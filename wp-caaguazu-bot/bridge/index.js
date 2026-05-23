@@ -256,6 +256,7 @@ function startTunnel( port ) {
         console.log( `[CaagBridge] Iniciando Cloudflare Tunnel nombrado → ${ tunnelUrl }` );
         const cf = spawn( 'cloudflared', [ 'tunnel', 'run' ], {
             stdio: [ 'ignore', 'pipe', 'pipe' ],
+            shell: true,
         } );
 
         cf.stdout.on( 'data', ( d ) => {

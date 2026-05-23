@@ -34,7 +34,7 @@ const rl = readline.createInterface({ input: process.stdin, output: process.stdo
 const ask = (q) => new Promise((res) => rl.question(q, res));
 
 function run(cmd, opts = {}) {
-    return execSync(cmd, { stdio: opts.silent ? 'pipe' : 'inherit', encoding: 'utf8' });
+    return execSync(cmd, { stdio: opts.silent ? 'pipe' : 'inherit', encoding: 'utf8', shell: true });
 }
 
 function tryRun(cmd) {
@@ -52,13 +52,25 @@ function banner(text) {
 // -----------------------------------------------------------------------
 
 function checkCloudflared() {
-    const version = tryRun('cloudflared --version');
+    // shell:true resuelve el PATH correctamente en Windows
+    const version = tryRun('cloudflared --version')
+                 || tryRun('cloudflared.exe --version');
+
     if (!version) {
-        console.error('❌  cloudflared no está instalado o no está en el PATH.\n');
-        console.log('Instrucciones de instalación:');
-        console.log('  Windows : https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/');
-        console.log('  Mac     : brew install cloudflare/cloudflare/cloudflared');
-        console.log('  Linux   : https://pkg.cloudflare.com/\n');
+        // Intentar localizar el ejecutable para dar un diagnóstico más útil
+        const where = tryRun('where cloudflared') || tryRun('which cloudflared');
+        if (where) {
+            console.error('⚠️  cloudflared está en:', where.trim());
+            console.error('   pero no se pudo ejecutar. Intente abriendo una nueva terminal y corriendo:');
+            console.error('   cloudflared --version\n');
+        } else {
+            console.error('❌  cloudflared no está instalado o no está en el PATH.\n');
+            console.log('Instrucciones de instalación:');
+            console.log('  Windows : https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/');
+            console.log('  Mac     : brew install cloudflare/cloudflare/cloudflared');
+            console.log('  Linux   : https://pkg.cloudflare.com/\n');
+            console.log('Si ya lo instaló, cierre y vuelva a abrir la terminal para recargar el PATH.');
+        }
         process.exit(1);
     }
     console.log('✅  cloudflared instalado:', version.trim());
