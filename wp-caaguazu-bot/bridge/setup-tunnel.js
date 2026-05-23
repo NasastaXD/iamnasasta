@@ -14,7 +14,17 @@ import { existsSync, writeFileSync, readFileSync, mkdirSync } from 'fs';
 import { homedir }          from 'os';
 import { join }             from 'path';
 import readline             from 'readline';
-import 'dotenv/config';
+
+// Verificar que npm install fue ejecutado (import dinámico para que el check corra primero)
+if ( ! existsSync( './node_modules' ) ) {
+    console.error( '\n❌  Faltan las dependencias. Ejecute primero:\n' );
+    console.error( '      npm install\n' );
+    console.error( '   Luego vuelva a correr:  node setup-tunnel.js\n' );
+    process.exit( 1 );
+}
+
+// Import dinámico: se ejecuta DESPUÉS del check de arriba
+await import( 'dotenv/config' );
 
 // -----------------------------------------------------------------------
 // Helpers
