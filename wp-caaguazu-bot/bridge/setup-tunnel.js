@@ -100,7 +100,10 @@ function createTunnel(name) {
     // Verificar si ya existe
     const list = tryRun('cloudflared tunnel list -o json') || '[]';
     let tunnels = [];
-    try { tunnels = JSON.parse(list); } catch {}
+    try {
+        const parsed = JSON.parse(list);
+        tunnels = Array.isArray(parsed) ? parsed : [];
+    } catch {}
 
     const existing = tunnels.find(t => t.name === name);
     if (existing) {
@@ -109,15 +112,21 @@ function createTunnel(name) {
     }
 
     console.log(`\n🔧  Creando tunnel "${name}"...`);
-    const output = run(`cloudflared tunnel create ${name}`, { silent: false });
+    run(`cloudflared tunnel create ${name}`, { silent: false });
 
     // Obtener el ID del tunnel recién creado
-    const list2  = tryRun('cloudflared tunnel list -o json') || '[]';
+    const list2 = tryRun('cloudflared tunnel list -o json') || '[]';
     let tunnels2 = [];
-    try { tunnels2 = JSON.parse(list2); } catch {}
+    try {
+        const parsed2 = JSON.parse(list2);
+        tunnels2 = Array.isArray(parsed2) ? parsed2 : [];
+    } catch {}
+
+    // cloudflared create también imprime el ID en su output; buscarlo como fallback
     const created = tunnels2.find(t => t.name === name);
     if (!created) {
         console.error('❌  No se pudo obtener el ID del tunnel creado.');
+        console.error('    Intente correr manualmente: cloudflared tunnel list');
         process.exit(1);
     }
     console.log(`✅  Tunnel creado con ID: ${created.id}`);
