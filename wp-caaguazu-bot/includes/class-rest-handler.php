@@ -29,6 +29,12 @@ class Caaguazu_Rest_Handler {
             'callback'            => [ $this, 'handle_status' ],
             'permission_callback' => [ $this, 'validate_token' ],
         ] );
+
+        register_rest_route( 'caag-bot/v1', '/update-bridge-url', [
+            'methods'             => 'POST',
+            'callback'            => [ $this, 'handle_update_bridge_url' ],
+            'permission_callback' => [ $this, 'validate_token' ],
+        ] );
     }
 
     public function validate_token( WP_REST_Request $request ): bool {
@@ -62,6 +68,19 @@ class Caaguazu_Rest_Handler {
         }
 
         return new WP_REST_Response( [ 'received' => true ], 200 );
+    }
+
+    public function handle_update_bridge_url( WP_REST_Request $request ): WP_REST_Response {
+        $body       = $request->get_json_params();
+        $bridge_url = esc_url_raw( (string) ( $body['bridge_url'] ?? '' ) );
+
+        if ( empty( $bridge_url ) ) {
+            return new WP_REST_Response( [ 'code' => 'bad_request', 'message' => 'bridge_url requerido' ], 400 );
+        }
+
+        $this->db->update_session( [ 'bridge_url' => $bridge_url ] );
+
+        return new WP_REST_Response( [ 'updated' => true, 'bridge_url' => $bridge_url ], 200 );
     }
 
     public function handle_status( WP_REST_Request $request ): WP_REST_Response {

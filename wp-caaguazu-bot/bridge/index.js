@@ -10,10 +10,11 @@ import makeWASocket, {
     DisconnectReason,
     Browsers,
 } from '@whiskeysockets/baileys';
-import express   from 'express';
-import axios     from 'axios';
-import qrcode    from 'qrcode';
-import pino      from 'pino';
+import express    from 'express';
+import axios      from 'axios';
+import qrcode     from 'qrcode';
+import pino       from 'pino';
+import { spawn }  from 'child_process';
 import { rmSync, existsSync } from 'fs';
 
 // -----------------------------------------------------------------------
@@ -219,16 +220,77 @@ app.post( '/api/logout', async ( _req, res ) => {
 } );
 
 // -----------------------------------------------------------------------
+// Cloudflare Tunnel (se inicia automáticamente si está configurado)
+// -----------------------------------------------------------------------
+
+function startTunnel() {
+    const tunnelUrl = process.env.TUNNEL_URL || '';
+
+    // Si ya hay una URL estable configurada (setup-tunnel.js), usar tunnel nombrado
+    if ( tunnelUrl ) {
+        console.log( `[CaagBridge] Iniciando Cloudflare Tunnel nombrado → ${ tunnelUrl }` );
+        const cf = spawn( 'cloudflared', [ 'tunnel', 'run' ], {
+            stdio: [ 'ignore', 'pipe', 'pipe' ],
+        } );
+
+        cf.stdout.on( 'data', ( d ) => {
+            const line = d.toString().trim();
+            if ( line ) console.log( '[Cloudflare]', line );
+        } );
+        cf.stderr.on( 'data', ( d ) => {
+            const line = d.toString().trim();
+            if ( line && !line.includes( 'INF' ) ) console.error( '[Cloudflare]', line );
+        } );
+        cf.on( 'close', ( code ) => {
+            if ( code !== 0 ) {
+                console.error( `[CaagBridge] Cloudflare Tunnel terminó (código ${ code }). Reintentando en 10s...` );
+                setTimeout( startTunnel, 10000 );
+            }
+        } );
+
+        console.log( `[CaagBridge] URL del bot: ${ tunnelUrl }` );
+        return;
+    }
+
+    // Sin TUNNEL_URL: usar tunnel rápido (URL cambia en cada reinicio)
+    console.log( '[CaagBridge] TUNNEL_URL no configurado. Iniciando tunnel rápido (URL temporal)...' );
+    console.log( '[CaagBridge] Para una URL estable, ejecute primero: node setup-tunnel.js\n' );
+
+    const cf = spawn( 'npx', [ 'cloudflared', 'tunnel', '--url', `http://localhost:${ PORT }` ], {
+        stdio: [ 'ignore', 'pipe', 'pipe' ],
+        shell: true,
+    } );
+
+    cf.stderr.on( 'data', ( d ) => {
+        const line = d.toString();
+        // Cloudflare escribe la URL en stderr
+        const match = line.match( /https:\/\/[a-z0-9-]+\.trycloudflare\.com/ );
+        if ( match ) {
+            const url = match[ 0 ];
+            console.log( `\n[CaagBridge] ✅ Tunnel activo: ${ url }` );
+            console.log( '[CaagBridge] ⚠️  Esta URL cambia al reiniciar. Actualícela en WordPress → Caaguazú Bot → Configuración\n' );
+        }
+    } );
+
+    cf.on( 'close', ( code ) => {
+        if ( code !== 0 ) {
+            console.error( `[CaagBridge] Tunnel terminó (código ${ code }). Reintentando en 10s...` );
+            setTimeout( startTunnel, 10000 );
+        }
+    } );
+}
+
+// -----------------------------------------------------------------------
 // Inicio
 // -----------------------------------------------------------------------
+
+app.listen( PORT, () => {
+    console.log( `[CaagBridge] Bridge corriendo en http://localhost:${ PORT }` );
+} );
 
 connectToWhatsApp().catch( ( err ) => {
     console.error( '[CaagBridge] Error fatal al iniciar:', err );
     process.exit( 1 );
 } );
 
-app.listen( PORT, () => {
-    console.log( `[CaagBridge] Bridge corriendo en http://localhost:${ PORT }` );
-    console.log( '[CaagBridge] Inicie Cloudflare Tunnel:' );
-    console.log( `[CaagBridge]   npx cloudflared tunnel --url http://localhost:${ PORT }` );
-} );
+startTunnel();
