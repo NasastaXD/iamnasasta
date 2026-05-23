@@ -135,10 +135,15 @@ async function connectToWhatsApp() {
             const reason = lastDisconnect?.error?.output?.statusCode;
             console.log( `[CaagBridge] Desconectado (reason: ${ reason })` );
 
-            if ( reason === DisconnectReason.loggedOut ) {
-                console.log( '[CaagBridge] Sesión cerrada. Reconectando...' );
+            const shouldClearSession =
+                reason === DisconnectReason.loggedOut ||   // 401 — logout explícito
+                reason === 405 ||                          // connectionReplaced — sesión inválida/reemplazada
+                reason === 500;                            // badSession — credenciales corruptas
+
+            if ( shouldClearSession ) {
+                console.log( '[CaagBridge] Sesión inválida — borrando auth_state y pidiendo QR nuevo...' );
                 clearAuthState();
-                await connectToWhatsApp();
+                setTimeout( connectToWhatsApp, 2000 );
             } else {
                 setTimeout( connectToWhatsApp, 5000 );
             }
@@ -257,7 +262,8 @@ function startTunnel( port ) {
     if ( tunnelUrl ) {
         // Tunnel nombrado (configurado con setup-tunnel.js)
         console.log( `[CaagBridge] Iniciando Cloudflare Tunnel nombrado → ${ tunnelUrl }` );
-        const cf = spawn( 'cloudflared', [ 'tunnel', 'run' ], {
+        // Comando como string para evitar DEP0190 con shell:true + array
+        const cf = spawn( 'cloudflared tunnel run', {
             stdio: [ 'ignore', 'pipe', 'pipe' ],
             shell: true,
         } );
@@ -275,8 +281,8 @@ function startTunnel( port ) {
     // Tunnel rápido (URL temporal — cambia al reiniciar)
     console.log( '[CaagBridge] Iniciando tunnel rápido (URL temporal)...' );
 
-    // Llamar a cloudflared directamente (NO npx — cloudflared es un binario nativo, no un paquete npm)
-    const cf = spawn( 'cloudflared', [ 'tunnel', '--url', `http://localhost:${ port }` ], {
+    // Comando como string para evitar DEP0190 con shell:true + array
+    const cf = spawn( `cloudflared tunnel --url http://localhost:${ port }`, {
         stdio: [ 'ignore', 'pipe', 'pipe' ],
         shell: true,
     } );
