@@ -9,6 +9,7 @@ import makeWASocket, {
     useMultiFileAuthState,
     DisconnectReason,
     Browsers,
+    fetchLatestBaileysVersion,
 } from '@whiskeysockets/baileys';
 import express          from 'express';
 import axios            from 'axios';
@@ -100,12 +101,27 @@ const logger = pino( { level: 'silent' } );
 // -----------------------------------------------------------------------
 
 async function connectToWhatsApp() {
+    // Obtener la versión actual del protocolo WA antes de conectar
+    // Sin esto, WhatsApp puede rechazar la conexión con error 405
+    let waVersion;
+    try {
+        const { version, isLatest } = await fetchLatestBaileysVersion();
+        waVersion = version;
+        console.log( `[CaagBridge] Protocolo WA: ${ version.join( '.' ) } (última disponible: ${ isLatest })` );
+    } catch {
+        waVersion = [ 2, 3000, 1015901307 ]; // fallback conocido
+        console.log( '[CaagBridge] No se pudo obtener versión WA, usando fallback.' );
+    }
+
     const { state, saveCreds } = await useMultiFileAuthState( AUTH_DIR );
 
     sock = makeWASocket( {
+        version: waVersion,
         auth:    state,
         logger,
-        browser: Browsers.macOS( 'Chrome' ),
+        browser: Browsers.ubuntu( 'Chrome' ),
+        connectTimeoutMs:    60000,
+        keepAliveIntervalMs: 25000,
     } );
 
     sock.ev.on( 'creds.update', saveCreds );
