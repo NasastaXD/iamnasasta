@@ -10,22 +10,47 @@ import makeWASocket, {
     DisconnectReason,
     Browsers,
 } from '@whiskeysockets/baileys';
-import express    from 'express';
-import axios      from 'axios';
-import qrcode     from 'qrcode';
-import pino       from 'pino';
-import { spawn }  from 'child_process';
+import express         from 'express';
+import axios           from 'axios';
+import qrcode          from 'qrcode';
+import qrcodeTerminal  from 'qrcode-terminal';
+import pino            from 'pino';
+import { spawn }       from 'child_process';
+import { createServer } from 'net';
 import { rmSync, existsSync } from 'fs';
+
+// -----------------------------------------------------------------------
+// Puerto: usa PORT del .env si está definido; si no, elige uno libre al azar
+// -----------------------------------------------------------------------
+
+async function getFreePort( preferred ) {
+    return new Promise( ( resolve, reject ) => {
+        const server = createServer();
+        server.listen( preferred || 0, () => {
+            const port = server.address().port;
+            server.close( () => resolve( port ) );
+        } );
+        server.on( 'error', () => {
+            // El puerto preferido está ocupado → pedir uno aleatorio al SO
+            const fallback = createServer();
+            fallback.listen( 0, () => {
+                const port = fallback.address().port;
+                fallback.close( () => resolve( port ) );
+            } );
+            fallback.on( 'error', reject );
+        } );
+    } );
+}
 
 // -----------------------------------------------------------------------
 // Configuración
 // -----------------------------------------------------------------------
 
-const PORT          = parseInt( process.env.PORT || '3000', 10 );
-const SHARED_TOKEN  = process.env.SHARED_TOKEN  || '';
-const WP_WEBHOOK    = process.env.WP_WEBHOOK_URL || '';
-const TYPING_DELAY  = parseInt( process.env.TYPING_DELAY_MS || '2000', 10 );
-const AUTH_DIR      = './auth_state';
+const PREFERRED_PORT = process.env.PORT ? parseInt( process.env.PORT, 10 ) : null;
+const SHARED_TOKEN   = process.env.SHARED_TOKEN  || '';
+const WP_WEBHOOK     = process.env.WP_WEBHOOK_URL || '';
+const TYPING_DELAY   = parseInt( process.env.TYPING_DELAY_MS || '2000', 10 );
+const AUTH_DIR       = './auth_state';
 
 if ( ! SHARED_TOKEN ) {
     console.error( '[CaagBridge] ERROR: SHARED_TOKEN no configurado en .env' );
@@ -58,7 +83,8 @@ async function connectToWhatsApp() {
         auth:    state,
         logger,
         browser: Browsers.macOS( 'Chrome' ),
-        printQRInTerminal: true,
+        // printQRInTerminal eliminado: las versiones nuevas de Baileys
+        // ya no lo soportan y lanzan advertencia; imprimimos el QR manualmente.
     } );
 
     sock.ev.on( 'creds.update', saveCreds );
@@ -67,16 +93,20 @@ async function connectToWhatsApp() {
         const { connection, lastDisconnect, qr } = update;
 
         if ( qr ) {
-            qrBase64    = await qrcode.toDataURL( qr );
             isConnected = false;
-            console.log( '[CaagBridge] QR generado — escanee con WhatsApp.' );
+            qrBase64    = await qrcode.toDataURL( qr );
+
+            // Imprimir QR en la terminal manualmente
+            console.log( '\n[CaagBridge] Escanee el QR con WhatsApp:' );
+            console.log( '  (WhatsApp → ⋮ → Dispositivos vinculados → Vincular dispositivo)\n' );
+            qrcodeTerminal.generate( qr, { small: true } );
         }
 
         if ( connection === 'open' ) {
             isConnected  = true;
             qrBase64     = null;
             linkedNumber = ( sock.user?.id || '' ).replace( /@.+$/, '' );
-            console.log( `[CaagBridge] Conectado como ${ linkedNumber }` );
+            console.log( `\n[CaagBridge] ✅ Conectado como ${ linkedNumber }` );
         }
 
         if ( connection === 'close' ) {
@@ -97,7 +127,7 @@ async function connectToWhatsApp() {
 
     sock.ev.on( 'messages.upsert', async ( { messages } ) => {
         for ( const msg of messages ) {
-            if ( msg.key.fromMe )                         continue;
+            if ( msg.key.fromMe )                          continue;
             if ( msg.key.remoteJid?.endsWith( '@g.us' ) ) continue;
 
             const from = ( msg.key.remoteJid || '' ).replace( /@s\.whatsapp\.net$/, '' );
@@ -194,9 +224,7 @@ app.get( '/api/status', ( _req, res ) => {
 // Reiniciar conexión
 app.post( '/api/restart', async ( _req, res ) => {
     res.json( { restarting: true } );
-    if ( sock ) {
-        sock.end( undefined );
-    }
+    if ( sock ) sock.end( undefined );
     isConnected  = false;
     linkedNumber = null;
     setTimeout( connectToWhatsApp, 1000 );
@@ -205,9 +233,7 @@ app.post( '/api/restart', async ( _req, res ) => {
 // Cerrar sesión
 app.post( '/api/logout', async ( _req, res ) => {
     try {
-        if ( sock ) {
-            await sock.logout().catch( () => {} );
-        }
+        if ( sock ) await sock.logout().catch( () => {} );
     } catch {}
 
     clearAuthState();
@@ -220,13 +246,12 @@ app.post( '/api/logout', async ( _req, res ) => {
 } );
 
 // -----------------------------------------------------------------------
-// Cloudflare Tunnel (se inicia automáticamente si está configurado)
+// Cloudflare Tunnel
 // -----------------------------------------------------------------------
 
-function startTunnel() {
+function startTunnel( port ) {
     const tunnelUrl = process.env.TUNNEL_URL || '';
 
-    // Si ya hay una URL estable configurada (setup-tunnel.js), usar tunnel nombrado
     if ( tunnelUrl ) {
         console.log( `[CaagBridge] Iniciando Cloudflare Tunnel nombrado → ${ tunnelUrl }` );
         const cf = spawn( 'cloudflared', [ 'tunnel', 'run' ], {
@@ -239,12 +264,12 @@ function startTunnel() {
         } );
         cf.stderr.on( 'data', ( d ) => {
             const line = d.toString().trim();
-            if ( line && !line.includes( 'INF' ) ) console.error( '[Cloudflare]', line );
+            if ( line && ! line.includes( 'INF' ) ) console.error( '[Cloudflare]', line );
         } );
         cf.on( 'close', ( code ) => {
             if ( code !== 0 ) {
-                console.error( `[CaagBridge] Cloudflare Tunnel terminó (código ${ code }). Reintentando en 10s...` );
-                setTimeout( startTunnel, 10000 );
+                console.error( `[CaagBridge] Tunnel terminó (código ${ code }). Reintentando en 10s...` );
+                setTimeout( () => startTunnel( port ), 10000 );
             }
         } );
 
@@ -252,30 +277,27 @@ function startTunnel() {
         return;
     }
 
-    // Sin TUNNEL_URL: usar tunnel rápido (URL cambia en cada reinicio)
-    console.log( '[CaagBridge] TUNNEL_URL no configurado. Iniciando tunnel rápido (URL temporal)...' );
-    console.log( '[CaagBridge] Para una URL estable, ejecute primero: node setup-tunnel.js\n' );
+    // Sin TUNNEL_URL: tunnel rápido con URL temporal
+    console.log( '[CaagBridge] TUNNEL_URL no configurado → tunnel rápido (URL temporal).' );
+    console.log( '[CaagBridge] Para URL estable ejecute: node setup-tunnel.js\n' );
 
-    const cf = spawn( 'npx', [ 'cloudflared', 'tunnel', '--url', `http://localhost:${ PORT }` ], {
+    const cf = spawn( 'npx', [ 'cloudflared', 'tunnel', '--url', `http://localhost:${ port }` ], {
         stdio: [ 'ignore', 'pipe', 'pipe' ],
         shell: true,
     } );
 
     cf.stderr.on( 'data', ( d ) => {
-        const line = d.toString();
-        // Cloudflare escribe la URL en stderr
-        const match = line.match( /https:\/\/[a-z0-9-]+\.trycloudflare\.com/ );
+        const match = d.toString().match( /https:\/\/[a-z0-9-]+\.trycloudflare\.com/ );
         if ( match ) {
-            const url = match[ 0 ];
-            console.log( `\n[CaagBridge] ✅ Tunnel activo: ${ url }` );
-            console.log( '[CaagBridge] ⚠️  Esta URL cambia al reiniciar. Actualícela en WordPress → Caaguazú Bot → Configuración\n' );
+            console.log( `[CaagBridge] ✅ Tunnel activo: ${ match[ 0 ] }` );
+            console.log( '[CaagBridge] ⚠️  Esta URL cambia al reiniciar — actualícela en WordPress → Caaguazú Bot → Configuración\n' );
         }
     } );
 
     cf.on( 'close', ( code ) => {
         if ( code !== 0 ) {
             console.error( `[CaagBridge] Tunnel terminó (código ${ code }). Reintentando en 10s...` );
-            setTimeout( startTunnel, 10000 );
+            setTimeout( () => startTunnel( port ), 10000 );
         }
     } );
 }
@@ -284,13 +306,22 @@ function startTunnel() {
 // Inicio
 // -----------------------------------------------------------------------
 
-app.listen( PORT, () => {
-    console.log( `[CaagBridge] Bridge corriendo en http://localhost:${ PORT }` );
-} );
+async function main() {
+    const port = await getFreePort( PREFERRED_PORT );
 
-connectToWhatsApp().catch( ( err ) => {
+    app.listen( port, () => {
+        if ( PREFERRED_PORT && port !== PREFERRED_PORT ) {
+            console.log( `[CaagBridge] Puerto ${ PREFERRED_PORT } ocupado → usando puerto ${ port }` );
+        } else {
+            console.log( `[CaagBridge] Bridge corriendo en http://localhost:${ port }` );
+        }
+    } );
+
+    await connectToWhatsApp();
+    startTunnel( port );
+}
+
+main().catch( ( err ) => {
     console.error( '[CaagBridge] Error fatal al iniciar:', err );
     process.exit( 1 );
 } );
-
-startTunnel();
