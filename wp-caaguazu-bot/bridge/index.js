@@ -1,0 +1,234 @@
+/**
+ * Caaguazú Bot — Bridge WhatsApp
+ * Conecta una cuenta de WhatsApp con el plugin WordPress vía Baileys.
+ * Corre en la PC del admin y se expone con Cloudflare Tunnel.
+ */
+
+import 'dotenv/config';
+import makeWASocket, {
+    useMultiFileAuthState,
+    DisconnectReason,
+    Browsers,
+} from '@whiskeysockets/baileys';
+import express   from 'express';
+import axios     from 'axios';
+import qrcode    from 'qrcode';
+import pino      from 'pino';
+import { rmSync, existsSync } from 'fs';
+
+// -----------------------------------------------------------------------
+// Configuración
+// -----------------------------------------------------------------------
+
+const PORT          = parseInt( process.env.PORT || '3000', 10 );
+const SHARED_TOKEN  = process.env.SHARED_TOKEN  || '';
+const WP_WEBHOOK    = process.env.WP_WEBHOOK_URL || '';
+const TYPING_DELAY  = parseInt( process.env.TYPING_DELAY_MS || '2000', 10 );
+const AUTH_DIR      = './auth_state';
+
+if ( ! SHARED_TOKEN ) {
+    console.error( '[CaagBridge] ERROR: SHARED_TOKEN no configurado en .env' );
+    process.exit( 1 );
+}
+if ( ! WP_WEBHOOK ) {
+    console.error( '[CaagBridge] ERROR: WP_WEBHOOK_URL no configurado en .env' );
+    process.exit( 1 );
+}
+
+// -----------------------------------------------------------------------
+// Estado del bot
+// -----------------------------------------------------------------------
+
+let sock         = null;
+let qrBase64     = null;
+let isConnected  = false;
+let linkedNumber = null;
+
+const logger = pino( { level: 'silent' } );
+
+// -----------------------------------------------------------------------
+// Conexión a WhatsApp
+// -----------------------------------------------------------------------
+
+async function connectToWhatsApp() {
+    const { state, saveCreds } = await useMultiFileAuthState( AUTH_DIR );
+
+    sock = makeWASocket( {
+        auth:    state,
+        logger,
+        browser: Browsers.macOS( 'Chrome' ),
+        printQRInTerminal: true,
+    } );
+
+    sock.ev.on( 'creds.update', saveCreds );
+
+    sock.ev.on( 'connection.update', async ( update ) => {
+        const { connection, lastDisconnect, qr } = update;
+
+        if ( qr ) {
+            qrBase64    = await qrcode.toDataURL( qr );
+            isConnected = false;
+            console.log( '[CaagBridge] QR generado — escanee con WhatsApp.' );
+        }
+
+        if ( connection === 'open' ) {
+            isConnected  = true;
+            qrBase64     = null;
+            linkedNumber = ( sock.user?.id || '' ).replace( /@.+$/, '' );
+            console.log( `[CaagBridge] Conectado como ${ linkedNumber }` );
+        }
+
+        if ( connection === 'close' ) {
+            isConnected  = false;
+            linkedNumber = null;
+            const reason = lastDisconnect?.error?.output?.statusCode;
+            console.log( `[CaagBridge] Desconectado (reason: ${ reason })` );
+
+            if ( reason === DisconnectReason.loggedOut ) {
+                console.log( '[CaagBridge] Sesión cerrada. Borrando auth_state y reconectando...' );
+                clearAuthState();
+                await connectToWhatsApp();
+            } else {
+                setTimeout( connectToWhatsApp, 5000 );
+            }
+        }
+    } );
+
+    sock.ev.on( 'messages.upsert', async ( { messages } ) => {
+        for ( const msg of messages ) {
+            if ( msg.key.fromMe )                         continue;
+            if ( msg.key.remoteJid?.endsWith( '@g.us' ) ) continue;
+
+            const from = ( msg.key.remoteJid || '' ).replace( /@s\.whatsapp\.net$/, '' );
+            const body = msg.message?.conversation
+                      || msg.message?.extendedTextMessage?.text
+                      || '';
+
+            if ( ! body.trim() ) continue;
+
+            // Marcar como leído
+            await sock.readMessages( [ msg.key ] ).catch( () => {} );
+
+            // Indicador "escribiendo..."
+            await sock.sendPresenceUpdate( 'composing', msg.key.remoteJid ).catch( () => {} );
+
+            // Enviar al webhook de WordPress
+            try {
+                await axios.post(
+                    WP_WEBHOOK,
+                    {
+                        from:      from,
+                        body:      body,
+                        pushName:  msg.pushName || '',
+                        timestamp: msg.messageTimestamp || Math.floor( Date.now() / 1000 ),
+                    },
+                    {
+                        headers: { 'X-Caag-Token': SHARED_TOKEN },
+                        timeout: 30000,
+                    }
+                );
+            } catch ( err ) {
+                console.error( '[CaagBridge] Error enviando a WordPress:', err.message );
+            }
+
+            // Detener indicador "escribiendo..."
+            setTimeout( () => {
+                sock.sendPresenceUpdate( 'paused', msg.key.remoteJid ).catch( () => {} );
+            }, TYPING_DELAY );
+        }
+    } );
+}
+
+function clearAuthState() {
+    if ( existsSync( AUTH_DIR ) ) {
+        rmSync( AUTH_DIR, { recursive: true, force: true } );
+    }
+}
+
+// -----------------------------------------------------------------------
+// Servidor Express
+// -----------------------------------------------------------------------
+
+const app = express();
+app.use( express.json() );
+
+// Middleware de autenticación
+app.use( ( req, res, next ) => {
+    const token = req.headers[ 'x-caag-token' ];
+    if ( ! token || token !== SHARED_TOKEN ) {
+        return res.status( 401 ).json( { error: 'Unauthorized' } );
+    }
+    next();
+} );
+
+// Enviar mensaje
+app.post( '/api/send', async ( req, res ) => {
+    const { to, message } = req.body;
+
+    if ( ! to || ! message ) {
+        return res.status( 400 ).json( { sent: false, error: 'Campos requeridos: to, message' } );
+    }
+    if ( ! isConnected || ! sock ) {
+        return res.status( 500 ).json( { sent: false, error: 'No conectado a WhatsApp' } );
+    }
+
+    try {
+        const result = await sock.sendMessage( `${ to }@s.whatsapp.net`, { text: message } );
+        return res.json( { sent: true, id: result?.key?.id } );
+    } catch ( err ) {
+        console.error( '[CaagBridge] send error:', err.message );
+        return res.status( 500 ).json( { sent: false, error: err.message } );
+    }
+} );
+
+// Estado
+app.get( '/api/status', ( _req, res ) => {
+    res.json( {
+        connected: isConnected,
+        number:    linkedNumber,
+        qr:        qrBase64,
+    } );
+} );
+
+// Reiniciar conexión
+app.post( '/api/restart', async ( _req, res ) => {
+    res.json( { restarting: true } );
+    if ( sock ) {
+        sock.end( undefined );
+    }
+    isConnected  = false;
+    linkedNumber = null;
+    setTimeout( connectToWhatsApp, 1000 );
+} );
+
+// Cerrar sesión
+app.post( '/api/logout', async ( _req, res ) => {
+    try {
+        if ( sock ) {
+            await sock.logout().catch( () => {} );
+        }
+    } catch {}
+
+    clearAuthState();
+    isConnected  = false;
+    linkedNumber = null;
+    qrBase64     = null;
+
+    res.json( { logged_out: true } );
+    setTimeout( connectToWhatsApp, 2000 );
+} );
+
+// -----------------------------------------------------------------------
+// Inicio
+// -----------------------------------------------------------------------
+
+connectToWhatsApp().catch( ( err ) => {
+    console.error( '[CaagBridge] Error fatal al iniciar:', err );
+    process.exit( 1 );
+} );
+
+app.listen( PORT, () => {
+    console.log( `[CaagBridge] Bridge corriendo en http://localhost:${ PORT }` );
+    console.log( '[CaagBridge] Inicie Cloudflare Tunnel:' );
+    console.log( `[CaagBridge]   npx cloudflared tunnel --url http://localhost:${ PORT }` );
+} );
