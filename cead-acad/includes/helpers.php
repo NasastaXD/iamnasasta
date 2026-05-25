@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  */
 function cead_acad_table( $name ) {
 	global $wpdb;
-	$allowed = [ 'invitations', 'audit_log', 'roster', 'audiences', 'broadcast_reads' ];
+	$allowed = [ 'invitations', 'audit_log', 'roster', 'audiences', 'broadcast_reads', 'survey_questions', 'survey_responses', 'survey_answers' ];
 	$name = in_array( $name, $allowed, true ) ? $name : 'invitations';
 	return $wpdb->prefix . 'cead_acad_' . $name;
 }

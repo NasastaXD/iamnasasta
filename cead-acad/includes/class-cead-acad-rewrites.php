@@ -92,6 +92,32 @@ class Cead_Acad_Rewrites {
 					wp_die( esc_html__( 'No tenés permiso para acceder al panel.', 'cead-acad' ), 403 );
 				}
 				$sub = $route === 'panel' ? '' : substr( $route, strlen( 'panel/' ) );
+				$this->dispatch_panel( $sub );
+				return;
+		}
+	}
+
+	protected function dispatch_panel( $sub ) {
+		// Normalizar y separar.
+		$sub = trim( (string) $sub, '/' );
+		$parts = $sub === '' ? [] : explode( '/', $sub );
+		$section = $parts[0] ?? '';
+
+		switch ( $section ) {
+			case '':
+				cead_acad_template( 'panel/home.php', [ 'sub' => '' ] );
+				return;
+
+			case 'comunicados':
+				$id = isset( $parts[1] ) ? (int) $parts[1] : 0;
+				if ( $id > 0 ) {
+					cead_acad_template( 'panel/comunicados/single.php', [ 'broadcast_id' => $id ] );
+				} else {
+					cead_acad_template( 'panel/comunicados/feed.php' );
+				}
+				return;
+
+			default:
 				cead_acad_template( 'panel/home.php', [ 'sub' => $sub ] );
 				return;
 		}

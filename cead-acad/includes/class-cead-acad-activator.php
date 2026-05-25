@@ -23,9 +23,12 @@ class Cead_Acad_Activator {
 		global $wpdb;
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-		$charset = $wpdb->get_charset_collate();
-		$invitations = cead_acad_table( 'invitations' );
-		$audit       = cead_acad_table( 'audit_log' );
+		$charset         = $wpdb->get_charset_collate();
+		$invitations     = cead_acad_table( 'invitations' );
+		$audit           = cead_acad_table( 'audit_log' );
+		$roster          = cead_acad_table( 'roster' );
+		$audiences       = cead_acad_table( 'audiences' );
+		$broadcast_reads = cead_acad_table( 'broadcast_reads' );
 
 		$sql_invitations = "CREATE TABLE {$invitations} (
 			id              BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -61,8 +64,48 @@ class Cead_Acad_Activator {
 			KEY entity (entity_type, entity_id)
 		) {$charset};";
 
+		$sql_roster = "CREATE TABLE {$roster} (
+			id              BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			user_id         BIGINT(20) UNSIGNED NOT NULL,
+			course_id       BIGINT(20) UNSIGNED NOT NULL,
+			role_in_course  VARCHAR(20) NOT NULL DEFAULT 'student',
+			start_date      DATE NULL,
+			end_date        DATE NULL,
+			status          VARCHAR(20) NOT NULL DEFAULT 'active',
+			created_at      DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY user_course (user_id, course_id),
+			KEY course_id (course_id),
+			KEY status (status)
+		) {$charset};";
+
+		$sql_audiences = "CREATE TABLE {$audiences} (
+			id             BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			subject_type   VARCHAR(40) NOT NULL,
+			subject_id     BIGINT(20) UNSIGNED NOT NULL,
+			audience_type  VARCHAR(20) NOT NULL,
+			audience_value VARCHAR(80) NOT NULL,
+			created_at     DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY subject (subject_type, subject_id),
+			KEY audience (audience_type, audience_value)
+		) {$charset};";
+
+		$sql_broadcast_reads = "CREATE TABLE {$broadcast_reads} (
+			id           BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			broadcast_id BIGINT(20) UNSIGNED NOT NULL,
+			user_id      BIGINT(20) UNSIGNED NOT NULL,
+			read_at      DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY broadcast_user (broadcast_id, user_id),
+			KEY user_id (user_id)
+		) {$charset};";
+
 		dbDelta( $sql_invitations );
 		dbDelta( $sql_audit );
+		dbDelta( $sql_roster );
+		dbDelta( $sql_audiences );
+		dbDelta( $sql_broadcast_reads );
 	}
 
 	protected static function ensure_upload_dir() {

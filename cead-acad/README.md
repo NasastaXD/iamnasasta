@@ -2,18 +2,28 @@
 
 Plugin modular para el portal del **Centro Educativo de Alto Desempeño "Félix de Guarania"** (CEAD). Convive con el tema `cead-theme` (mismo repo) y reutiliza su estética (paleta, tipografías y componentes).
 
-## Estado actual: Fase 0 — Fundación
+## Estado actual: Fase 1 — Cursos + Comunicados
 
-Implementado en esta fase:
+### Fase 0 (incluida) — Fundación
 
-- **Roles custom**: Dirección, Secretaría, Docente, Delegado, Alumno/a, Familia (con caps específicas del plugin).
-- **Invitaciones por link**: la dirección genera tokens desde *wp-admin → CEAD Académico → Invitaciones*. Cada link permite registrar una sola cuenta con rol predefinido.
-- **Login custom estilizado**: `/login` con la identidad visual del tema (no usa `wp-login.php`).
-- **Registro por invitación**: `/registro?t=<token>`.
-- **Recuperación de contraseña**: `/recuperar` y `/recuperar/restablecer`.
-- **Panel stub**: `/panel` muestra una bienvenida y placeholders de los módulos por venir.
-- **Bloqueo opcional** de `wp-login.php` para roles del plugin (redirige a `/login`).
-- Rate limiting básico, tokens hasheados (sha256), nonces en todos los formularios.
+- **Roles custom**: Dirección, Secretaría, Docente, Delegado, Alumno/a, Familia.
+- **Invitaciones por link**: tokens hasheados, expiración, single-use.
+- **Login/registro/recuperación** custom estilizados (no `wp-login.php`).
+- **Panel** con sidebar y topbar (campanita de no-leídos, user chip).
+- **Bloqueo opcional** de `wp-login.php` para roles del plugin.
+
+### Fase 1 — añadido en esta versión
+
+- **CPT `cead_acad_course`** con taxonomías `cohort` (año lectivo) y `grade_level`.
+- **Metabox de curso**: turno (mañana/tarde/noche), división vinculada al tema, delegado/a, tutor/a.
+- **Roster** (tabla `wp_cead_acad_roster`): relación user ↔ curso con `role_in_course` (student/delegate/teacher) e idempotente.
+- **CPT `cead_acad_broadcast`** con taxonomía de categorías (académico/administrativo/eventos/urgente).
+- **Tabla `cead_acad_audiences` polimórfica**: `subject_type` (broadcast/survey/event) × `audience_type` (all/role/course/cohort/user). Diseñada para reuso en F2 y F3.
+- **Tabla `cead_acad_broadcast_reads`** con unique (broadcast_id, user_id) — read receipts idempotentes.
+- **Feed `/panel/comunicados`** filtrado por audiencia del usuario, paginado, con filtro por categoría.
+- **Single `/panel/comunicados/{id}`** marca como leído automáticamente al abrir.
+- **Notificación opcional por email** al publicar un comunicado.
+- Home del panel renovado: dashboard contextual con tarjetas (no-leídos, cursos, próximas fases) y los 3 comunicados más recientes.
 
 ## Instalación
 

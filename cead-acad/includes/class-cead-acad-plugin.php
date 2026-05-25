@@ -26,6 +26,11 @@ final class Cead_Acad_Plugin {
 		( new Cead_Acad_Invitations() )->boot();
 		( new Cead_Acad_Auth_Controller() )->boot();
 		( new Cead_Acad_Password_Reset() )->boot();
+		( new Cead_Acad_Courses_CPT() )->boot();
+		( new Cead_Acad_Courses_Admin() )->boot();
+		( new Cead_Acad_Broadcasts_CPT() )->boot();
+		( new Cead_Acad_Broadcasts_Targeting() )->boot();
+		( new Cead_Acad_Broadcasts_Feed() )->boot();
 		( new Cead_Acad_Admin_Menu() )->boot();
 
 		// Migraciones idempotentes en cambio de versión.

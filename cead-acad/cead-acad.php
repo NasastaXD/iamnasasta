@@ -16,8 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CEAD_ACAD_VERSION',    '0.1.0' );
-define( 'CEAD_ACAD_DB_VERSION', '1' );
+define( 'CEAD_ACAD_VERSION',    '0.2.0' );
+define( 'CEAD_ACAD_DB_VERSION', '2' );
 define( 'CEAD_ACAD_FILE',       __FILE__ );
 define( 'CEAD_ACAD_DIR',        plugin_dir_path( __FILE__ ) );
 define( 'CEAD_ACAD_URL',        plugin_dir_url( __FILE__ ) );
@@ -33,6 +33,14 @@ require_once CEAD_ACAD_DIR . 'includes/class-cead-acad-assets.php';
 require_once CEAD_ACAD_DIR . 'modules/auth/class-invitations.php';
 require_once CEAD_ACAD_DIR . 'modules/auth/class-auth-controller.php';
 require_once CEAD_ACAD_DIR . 'modules/auth/class-password-reset.php';
+require_once CEAD_ACAD_DIR . 'modules/courses/class-courses-cpt.php';
+require_once CEAD_ACAD_DIR . 'modules/courses/class-courses-roster.php';
+require_once CEAD_ACAD_DIR . 'modules/courses/class-courses-admin.php';
+require_once CEAD_ACAD_DIR . 'modules/broadcasts/class-broadcasts-audiences.php';
+require_once CEAD_ACAD_DIR . 'modules/broadcasts/class-broadcasts-cpt.php';
+require_once CEAD_ACAD_DIR . 'modules/broadcasts/class-broadcasts-targeting.php';
+require_once CEAD_ACAD_DIR . 'modules/broadcasts/class-broadcasts-reads.php';
+require_once CEAD_ACAD_DIR . 'modules/broadcasts/class-broadcasts-feed.php';
 require_once CEAD_ACAD_DIR . 'admin/class-admin-menu.php';
 require_once CEAD_ACAD_DIR . 'includes/class-cead-acad-plugin.php';
 
