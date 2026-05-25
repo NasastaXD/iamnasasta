@@ -117,6 +117,15 @@ class Cead_Acad_Rewrites {
 				}
 				return;
 
+			case 'encuestas':
+				$id = isset( $parts[1] ) ? (int) $parts[1] : 0;
+				if ( $id > 0 ) {
+					cead_acad_template( 'panel/encuestas/take.php', [ 'survey_id' => $id ] );
+				} else {
+					cead_acad_template( 'panel/encuestas/list.php' );
+				}
+				return;
+
 			default:
 				cead_acad_template( 'panel/home.php', [ 'sub' => $sub ] );
 				return;

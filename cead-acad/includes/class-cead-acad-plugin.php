@@ -31,6 +31,9 @@ final class Cead_Acad_Plugin {
 		( new Cead_Acad_Broadcasts_CPT() )->boot();
 		( new Cead_Acad_Broadcasts_Targeting() )->boot();
 		( new Cead_Acad_Broadcasts_Feed() )->boot();
+		( new Cead_Acad_Surveys_CPT() )->boot();
+		( new Cead_Acad_Surveys_Admin() )->boot();
+		( new Cead_Acad_Surveys_Frontend() )->boot();
 		( new Cead_Acad_Admin_Menu() )->boot();
 
 		// Migraciones idempotentes en cambio de versión.

@@ -2,7 +2,20 @@
 
 Plugin modular para el portal del **Centro Educativo de Alto Desempeño "Félix de Guarania"** (CEAD). Convive con el tema `cead-theme` (mismo repo) y reutiliza su estética (paleta, tipografías y componentes).
 
-## Estado actual: Fase 1 — Cursos + Comunicados
+## Estado actual: Fase 2 — Encuestas
+
+### Fase 2 — añadido en esta versión
+
+- **CPT `cead_acad_survey`** con metabox de configuración (ventana de fechas, modo anónimo) y **builder de preguntas** inline (drag-up/down, agregar/quitar dinámicamente).
+- **Tipos de pregunta**: opción única, opción múltiple, texto corto, texto largo, escala numérica configurable (min/max 1-10), fecha.
+- **Tablas custom**: `wp_cead_acad_survey_questions`, `wp_cead_acad_survey_responses` (unique survey/user para nominales), `wp_cead_acad_survey_answers`.
+- **Targeting reutiliza** la tabla `cead_acad_audiences` de F1 (subject_type='survey').
+- **Frontend** `/panel/encuestas`: pendientes / respondidas / cerradas.
+- **Tomar encuesta** `/panel/encuestas/{id}`: validación de requeridas en cliente y servidor; encuestas anónimas vs nominales.
+- **Export CSV** de respuestas desde wp-admin (botón en metabox y en la lista de encuestas). Incluye guard de CSV injection y BOM UTF-8 para Excel.
+- Sidebar del panel actualizado con item "Encuestas".
+
+### Fase 1 — Cursos + Comunicados
 
 ### Fase 0 (incluida) — Fundación
 

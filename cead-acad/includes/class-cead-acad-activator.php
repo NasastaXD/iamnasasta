@@ -23,12 +23,15 @@ class Cead_Acad_Activator {
 		global $wpdb;
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-		$charset         = $wpdb->get_charset_collate();
-		$invitations     = cead_acad_table( 'invitations' );
-		$audit           = cead_acad_table( 'audit_log' );
-		$roster          = cead_acad_table( 'roster' );
-		$audiences       = cead_acad_table( 'audiences' );
-		$broadcast_reads = cead_acad_table( 'broadcast_reads' );
+		$charset           = $wpdb->get_charset_collate();
+		$invitations       = cead_acad_table( 'invitations' );
+		$audit             = cead_acad_table( 'audit_log' );
+		$roster            = cead_acad_table( 'roster' );
+		$audiences         = cead_acad_table( 'audiences' );
+		$broadcast_reads   = cead_acad_table( 'broadcast_reads' );
+		$survey_questions  = cead_acad_table( 'survey_questions' );
+		$survey_responses  = cead_acad_table( 'survey_responses' );
+		$survey_answers    = cead_acad_table( 'survey_answers' );
 
 		$sql_invitations = "CREATE TABLE {$invitations} (
 			id              BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -101,11 +104,52 @@ class Cead_Acad_Activator {
 			KEY user_id (user_id)
 		) {$charset};";
 
+		$sql_survey_questions = "CREATE TABLE {$survey_questions} (
+			id           BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			survey_id    BIGINT(20) UNSIGNED NOT NULL,
+			position     INT(10) UNSIGNED NOT NULL DEFAULT 0,
+			type         VARCHAR(20) NOT NULL,
+			text         TEXT NOT NULL,
+			required     TINYINT(1) NOT NULL DEFAULT 0,
+			config       LONGTEXT NULL,
+			created_at   DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY survey_id (survey_id),
+			KEY position (survey_id, position)
+		) {$charset};";
+
+		$sql_survey_responses = "CREATE TABLE {$survey_responses} (
+			id            BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			survey_id     BIGINT(20) UNSIGNED NOT NULL,
+			user_id       BIGINT(20) UNSIGNED NULL,
+			submitted_at  DATETIME NOT NULL,
+			ip_hash       VARCHAR(64) NULL,
+			user_agent    VARCHAR(255) NULL,
+			PRIMARY KEY  (id),
+			KEY survey_id (survey_id),
+			KEY user_id (user_id),
+			UNIQUE KEY survey_user (survey_id, user_id)
+		) {$charset};";
+
+		$sql_survey_answers = "CREATE TABLE {$survey_answers} (
+			id           BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			response_id  BIGINT(20) UNSIGNED NOT NULL,
+			question_id  BIGINT(20) UNSIGNED NOT NULL,
+			value_text   TEXT NULL,
+			value_json   LONGTEXT NULL,
+			PRIMARY KEY  (id),
+			KEY response_id (response_id),
+			KEY question_id (question_id)
+		) {$charset};";
+
 		dbDelta( $sql_invitations );
 		dbDelta( $sql_audit );
 		dbDelta( $sql_roster );
 		dbDelta( $sql_audiences );
 		dbDelta( $sql_broadcast_reads );
+		dbDelta( $sql_survey_questions );
+		dbDelta( $sql_survey_responses );
+		dbDelta( $sql_survey_answers );
 	}
 
 	protected static function ensure_upload_dir() {
