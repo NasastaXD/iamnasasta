@@ -32,6 +32,8 @@ class Cead_Acad_Activator {
 		$survey_questions  = cead_acad_table( 'survey_questions' );
 		$survey_responses  = cead_acad_table( 'survey_responses' );
 		$survey_answers    = cead_acad_table( 'survey_answers' );
+		$grades            = cead_acad_table( 'grades' );
+		$import_jobs       = cead_acad_table( 'import_jobs' );
 
 		$sql_invitations = "CREATE TABLE {$invitations} (
 			id              BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -142,6 +144,46 @@ class Cead_Acad_Activator {
 			KEY question_id (question_id)
 		) {$charset};";
 
+		$sql_grades = "CREATE TABLE {$grades} (
+			id              BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			student_user_id BIGINT(20) UNSIGNED NOT NULL,
+			course_id       BIGINT(20) UNSIGNED NOT NULL,
+			subject_term_id BIGINT(20) UNSIGNED NOT NULL,
+			cohort_term_id  BIGINT(20) UNSIGNED NULL,
+			period          VARCHAR(20) NOT NULL,
+			score           DECIMAL(5,2) NULL,
+			letter          VARCHAR(8) NULL,
+			comments        TEXT NULL,
+			recorded_by     BIGINT(20) UNSIGNED NULL,
+			recorded_at     DATETIME NOT NULL,
+			import_job_id   BIGINT(20) UNSIGNED NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY grade_unique (student_user_id, course_id, subject_term_id, period),
+			KEY course_subject (course_id, subject_term_id),
+			KEY student (student_user_id),
+			KEY import_job (import_job_id)
+		) {$charset};";
+
+		$sql_import_jobs = "CREATE TABLE {$import_jobs} (
+			id                BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			type              VARCHAR(40) NOT NULL,
+			original_filename VARCHAR(255) NOT NULL,
+			stored_path       VARCHAR(500) NOT NULL,
+			status            VARCHAR(20) NOT NULL DEFAULT 'uploaded',
+			mapping           LONGTEXT NULL,
+			report            LONGTEXT NULL,
+			rows_total        INT(10) UNSIGNED NOT NULL DEFAULT 0,
+			rows_ok           INT(10) UNSIGNED NOT NULL DEFAULT 0,
+			rows_failed       INT(10) UNSIGNED NOT NULL DEFAULT 0,
+			created_by        BIGINT(20) UNSIGNED NOT NULL,
+			created_at        DATETIME NOT NULL,
+			committed_at      DATETIME NULL,
+			PRIMARY KEY  (id),
+			KEY type (type),
+			KEY status (status),
+			KEY created_by (created_by)
+		) {$charset};";
+
 		dbDelta( $sql_invitations );
 		dbDelta( $sql_audit );
 		dbDelta( $sql_roster );
@@ -150,6 +192,8 @@ class Cead_Acad_Activator {
 		dbDelta( $sql_survey_questions );
 		dbDelta( $sql_survey_responses );
 		dbDelta( $sql_survey_answers );
+		dbDelta( $sql_grades );
+		dbDelta( $sql_import_jobs );
 	}
 
 	protected static function ensure_upload_dir() {

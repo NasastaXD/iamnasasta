@@ -144,6 +144,10 @@ class Cead_Acad_Rewrites {
 				}
 				return;
 
+			case 'boletin':
+				cead_acad_template( 'panel/boletin/show.php' );
+				return;
+
 			default:
 				cead_acad_template( 'panel/home.php', [ 'sub' => $sub ] );
 				return;

@@ -2,7 +2,24 @@
 
 Plugin modular para el portal del **Centro Educativo de Alto Desempeño "Félix de Guarania"** (CEAD). Convive con el tema `cead-theme` (mismo repo) y reutiliza su estética (paleta, tipografías y componentes).
 
-## Estado actual: Fase 3 — Horarios + Recursos
+## Estado actual: Fase 4 — Importadores + Calificaciones (CSV)
+
+### Fase 4 — añadido en esta versión
+
+- **Importador CSV** con flujo guiado de 3 pasos: subir → mapear columnas → validar/confirmar.
+- **Importador de alumnado**: crea `wp_users` con rol `cead_acad_student`, los suma al roster del curso si el título existe. Idempotente por documento (CI) o email.
+- **Importador de calificaciones**: idempotente por (alumno, materia, periodo). Crea términos de materia automáticamente si no existen.
+- **Tabla `cead_acad_grades`** con unique key compuesto y referencia al `import_job_id` para trazabilidad.
+- **Tabla `cead_acad_import_jobs`**: rastrea cada importación (mapping, reporte, contadores, autor, timestamps).
+- **Mapeo de columnas automático** por similitud (`similar_text`) — al cargar el archivo el sistema sugiere la mejor coincidencia.
+- **Sniff de delimitador** (`,`, `;`, `\t`, `|`).
+- **Boletín del alumno** en `/panel/boletin`: tabla por curso, materia × periodo.
+- **Plantillas CSV descargables** para alumnado y calificaciones.
+- **Reporte de errores** descargable (CSV) por job.
+
+XLSX/.xlsx pendiente para una próxima entrega con PhpSpreadsheet bundleado.
+
+### Fase 3 — Horarios + Recursos
 
 ### Fase 3 — añadido en esta versión
 

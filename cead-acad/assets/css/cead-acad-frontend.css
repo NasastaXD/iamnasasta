@@ -850,3 +850,53 @@ body.cead-acad-panel {
 	transform: scale(1.05);
 }
 
+/* ============================================================
+   Boletín (Grades)
+   ============================================================ */
+
+.cead-acad-bulletin {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 1rem;
+	background: #fff;
+	border: 1px solid var(--cead-acad-border);
+}
+.cead-acad-bulletin th,
+.cead-acad-bulletin td {
+	padding: 0.85rem 1rem;
+	border-bottom: 1px solid var(--cead-acad-border);
+	text-align: left;
+	vertical-align: top;
+}
+.cead-acad-bulletin thead th {
+	background: var(--cead-acad-canvas);
+	font-family: var(--cead-acad-font-display);
+	text-transform: uppercase;
+	letter-spacing: 0.18em;
+	font-size: 0.7rem;
+	color: var(--cead-acad-text-soft);
+}
+.cead-acad-bulletin tbody th {
+	font-family: var(--cead-acad-font-body);
+	font-weight: 600;
+	color: var(--cead-acad-ink);
+}
+.cead-acad-bulletin td strong {
+	font-family: var(--cead-acad-font-display);
+	font-size: 1.2rem;
+	color: var(--cead-acad-ink);
+}
+.cead-acad-bulletin-letter {
+	display: inline-block;
+	margin-left: 0.4rem;
+	padding: 0.1rem 0.4rem;
+	background: var(--cead-acad-brand-tint);
+	color: var(--cead-acad-brand-deep);
+	font-family: var(--cead-acad-font-display);
+	font-size: 0.7rem;
+	letter-spacing: 0.1em;
+}
+.cead-acad-bulletin-empty {
+	color: var(--cead-acad-text-muted);
+}
+

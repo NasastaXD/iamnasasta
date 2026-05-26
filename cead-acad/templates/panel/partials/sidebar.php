@@ -15,6 +15,11 @@ $base_items = [
 	[ 'href' => 'panel/recursos',     'label' => __( 'Recursos', 'cead-acad' ),     'icon' => 'portfolio' ],
 ];
 
+// Boletín solo para roles con acceso a notas propias.
+if ( current_user_can( 'cead_acad_view_own_grades' ) ) {
+	$base_items[] = [ 'href' => 'panel/boletin', 'label' => __( 'Boletín', 'cead-acad' ), 'icon' => 'clipboard' ];
+}
+
 $by_role = [
 	'cead_acad_direction' => [
 		[ 'href' => 'panel/direccion',  'label' => __( 'Dirección', 'cead-acad' ),  'icon' => 'star' ],
