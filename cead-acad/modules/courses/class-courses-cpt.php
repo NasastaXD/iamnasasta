@@ -12,22 +12,34 @@ class Cead_Acad_Courses_CPT {
 	const TAX_GRADE  = 'cead_acad_grade_level';
 
 	public function boot() {
-		add_action( 'init', [ $this, 'register' ], 10 );
+		add_action( 'init',           [ $this, 'register' ], 10 );
+		add_action( 'admin_notices',  [ $this, 'import_notice' ] );
+	}
+
+	public function import_notice() {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || $screen->post_type !== self::POST_TYPE ) {
+			return;
+		}
+		echo '<div class="notice notice-info"><p>';
+		printf(
+			/* translators: %s URL del importador */
+			esc_html__( 'Los cursos se crean masivamente vía %s.', 'cead-acad' ),
+			'<a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-importers' ) ) . '"><strong>' . esc_html__( 'Importadores → Cursos CSV', 'cead-acad' ) . '</strong></a>'
+		);
+		echo '</p></div>';
 	}
 
 	public function register() {
 		register_post_type( self::POST_TYPE, [
 			'labels' => [
-				'name'               => __( 'Cursos', 'cead-acad' ),
-				'singular_name'      => __( 'Curso', 'cead-acad' ),
-				'add_new'            => __( 'Agregar curso', 'cead-acad' ),
-				'add_new_item'       => __( 'Nuevo curso', 'cead-acad' ),
-				'edit_item'          => __( 'Editar curso', 'cead-acad' ),
-				'new_item'           => __( 'Nuevo curso', 'cead-acad' ),
-				'view_item'          => __( 'Ver curso', 'cead-acad' ),
-				'search_items'       => __( 'Buscar cursos', 'cead-acad' ),
-				'not_found'          => __( 'Sin cursos.', 'cead-acad' ),
-				'menu_name'          => __( 'Cursos', 'cead-acad' ),
+				'name'          => __( 'Cursos', 'cead-acad' ),
+				'singular_name' => __( 'Curso', 'cead-acad' ),
+				'edit_item'     => __( 'Editar curso', 'cead-acad' ),
+				'view_item'     => __( 'Ver curso', 'cead-acad' ),
+				'search_items'  => __( 'Buscar cursos', 'cead-acad' ),
+				'not_found'     => __( 'Sin cursos.', 'cead-acad' ),
+				'menu_name'     => __( 'Cursos', 'cead-acad' ),
 			],
 			'public'              => false,
 			'show_ui'             => true,
@@ -38,6 +50,8 @@ class Cead_Acad_Courses_CPT {
 			'has_archive'         => false,
 			'capability_type'     => 'post',
 			'map_meta_cap'        => true,
+			// Crear cursos solo desde Importadores → Cursos CSV.
+			'capabilities'        => [ 'create_posts' => 'do_not_allow' ],
 		] );
 
 		register_taxonomy( self::TAX_COHORT, [ self::POST_TYPE ], [

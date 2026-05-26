@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CEAD_ACAD_VERSION',    '0.6.1' );
+define( 'CEAD_ACAD_VERSION',    '0.7.0' );
 define( 'CEAD_ACAD_DB_VERSION', '5' );
 define( 'CEAD_ACAD_FILE',       __FILE__ );
 define( 'CEAD_ACAD_DIR',        plugin_dir_path( __FILE__ ) );
@@ -57,6 +57,8 @@ require_once CEAD_ACAD_DIR . 'modules/importers/class-importer-job.php';
 require_once CEAD_ACAD_DIR . 'modules/importers/class-importer-base.php';
 require_once CEAD_ACAD_DIR . 'modules/importers/class-importer-students.php';
 require_once CEAD_ACAD_DIR . 'modules/importers/class-importer-grades.php';
+require_once CEAD_ACAD_DIR . 'modules/importers/class-importer-courses.php';
+require_once CEAD_ACAD_DIR . 'modules/importers/class-importer-events.php';
 require_once CEAD_ACAD_DIR . 'modules/importers/class-importer-admin.php';
 require_once CEAD_ACAD_DIR . 'modules/grades/class-grades-db.php';
 require_once CEAD_ACAD_DIR . 'modules/panels/class-tasks-cpt.php';

@@ -12,7 +12,22 @@ class Cead_Acad_Schedule_CPT {
 	const TYPES = [ 'clase', 'reunion', 'examen', 'evento' ];
 
 	public function boot() {
-		add_action( 'init', [ $this, 'register' ], 10 );
+		add_action( 'init',          [ $this, 'register' ], 10 );
+		add_action( 'admin_notices', [ $this, 'import_notice' ] );
+	}
+
+	public function import_notice() {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || $screen->post_type !== self::POST_TYPE ) {
+			return;
+		}
+		echo '<div class="notice notice-info"><p>';
+		printf(
+			/* translators: %s URL del importador */
+			esc_html__( 'Los horarios se crean masivamente vía %s.', 'cead-acad' ),
+			'<a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-importers' ) ) . '"><strong>' . esc_html__( 'Importadores → Horarios CSV', 'cead-acad' ) . '</strong></a>'
+		);
+		echo '</p></div>';
 	}
 
 	public function register() {
@@ -20,8 +35,6 @@ class Cead_Acad_Schedule_CPT {
 			'labels' => [
 				'name'          => __( 'Horarios y eventos', 'cead-acad' ),
 				'singular_name' => __( 'Evento', 'cead-acad' ),
-				'add_new'       => __( 'Nuevo evento', 'cead-acad' ),
-				'add_new_item'  => __( 'Nuevo evento', 'cead-acad' ),
 				'edit_item'     => __( 'Editar evento', 'cead-acad' ),
 				'menu_name'     => __( 'Horarios', 'cead-acad' ),
 				'not_found'     => __( 'Sin eventos.', 'cead-acad' ),
@@ -35,6 +48,8 @@ class Cead_Acad_Schedule_CPT {
 			'has_archive'         => false,
 			'capability_type'     => 'post',
 			'map_meta_cap'        => true,
+			// Crear eventos solo desde Importadores → Horarios CSV.
+			'capabilities'        => [ 'create_posts' => 'do_not_allow' ],
 		] );
 
 		foreach ( [

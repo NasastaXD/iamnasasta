@@ -53,8 +53,15 @@ final class Cead_Acad_Plugin {
 		// Migraciones idempotentes en cambio de versión.
 		if ( get_option( 'cead_acad_db_version' ) !== CEAD_ACAD_DB_VERSION ) {
 			Cead_Acad_Activator::create_tables();
-			Cead_Acad_Capabilities::install();
 			update_option( 'cead_acad_db_version', CEAD_ACAD_DB_VERSION );
+		}
+
+		// Re-instalar capabilities en cada cambio de versión del plugin (no solo
+		// del schema). Esto asegura que admin recibe las caps nuevas tras un
+		// upgrade aunque no haya habido migración de tablas.
+		if ( get_option( 'cead_acad_caps_version' ) !== CEAD_ACAD_VERSION ) {
+			Cead_Acad_Capabilities::install();
+			update_option( 'cead_acad_caps_version', CEAD_ACAD_VERSION );
 		}
 	}
 
