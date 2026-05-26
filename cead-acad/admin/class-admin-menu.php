@@ -45,13 +45,39 @@ class Cead_Acad_Admin_Menu {
 	}
 
 	public function render_dashboard() {
+		$user = wp_get_current_user();
 		echo '<div class="wrap"><h1>' . esc_html__( 'CEAD Académico', 'cead-acad' ) . '</h1>';
-		echo '<p>' . esc_html__( 'Bienvenido al panel administrativo del plugin. Esta es la Fase 0 — invitaciones, login y registro están operativos.', 'cead-acad' ) . '</p>';
-		echo '<p><strong>' . esc_html__( 'Próximos pasos:', 'cead-acad' ) . '</strong></p><ul style="list-style:disc;margin-left:20px">';
-		echo '<li>' . esc_html__( 'Ir a Invitaciones y generar un link para sumar usuarios.', 'cead-acad' ) . '</li>';
-		echo '<li>' . esc_html__( 'Probar el flujo: copiar el link en una ventana de incógnito y completar el registro.', 'cead-acad' ) . '</li>';
-		echo '<li>' . esc_html__( 'En las próximas fases: cursos, comunicados, encuestas, horarios, recursos e importadores.', 'cead-acad' ) . '</li>';
-		echo '</ul></div>';
+
+		echo '<p>' . sprintf(
+			/* translators: %s nombre del usuario */
+			esc_html__( 'Hola, %s. Este es el panel administrativo del plugin.', 'cead-acad' ),
+			'<strong>' . esc_html( $user->display_name ) . '</strong>'
+		) . '</p>';
+
+		echo '<p>' . esc_html__( 'Estado: todos los módulos planificados (F0–F5) están instalados.', 'cead-acad' ) . '</p>';
+
+		echo '<h2>' . esc_html__( 'Accesos rápidos', 'cead-acad' ) . '</h2>';
+		echo '<ul style="list-style:disc;margin-left:20px;line-height:1.8">';
+		echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-invitations' ) ) . '">' . esc_html__( 'Invitaciones', 'cead-acad' ) . '</a> — ' . esc_html__( 'generá links para sumar usuarios al sistema.', 'cead-acad' ) . '</li>';
+		echo '<li><a href="' . esc_url( admin_url( 'edit.php?post_type=' . Cead_Acad_Courses_CPT::POST_TYPE ) ) . '">' . esc_html__( 'Cursos', 'cead-acad' ) . '</a> — ' . esc_html__( 'creá cursos y asigná delegado/a, tutor/a y alumnado.', 'cead-acad' ) . '</li>';
+		echo '<li><a href="' . esc_url( admin_url( 'edit.php?post_type=' . Cead_Acad_Broadcasts_CPT::POST_TYPE ) ) . '">' . esc_html__( 'Comunicados', 'cead-acad' ) . '</a> — ' . esc_html__( 'publicá comunicados dirigidos a rol, curso o personalmente.', 'cead-acad' ) . '</li>';
+		echo '<li><a href="' . esc_url( admin_url( 'edit.php?post_type=' . Cead_Acad_Surveys_CPT::POST_TYPE ) ) . '">' . esc_html__( 'Encuestas', 'cead-acad' ) . '</a> — ' . esc_html__( 'creá encuestas con varias preguntas y exportá resultados.', 'cead-acad' ) . '</li>';
+		echo '<li><a href="' . esc_url( admin_url( 'edit.php?post_type=' . Cead_Acad_Schedule_CPT::POST_TYPE ) ) . '">' . esc_html__( 'Horarios', 'cead-acad' ) . '</a> — ' . esc_html__( 'clases, reuniones, exámenes y eventos.', 'cead-acad' ) . '</li>';
+		echo '<li><a href="' . esc_url( admin_url( 'edit.php?post_type=' . Cead_Acad_Resources_CPT::POST_TYPE ) ) . '">' . esc_html__( 'Recursos', 'cead-acad' ) . '</a> — ' . esc_html__( 'mapas conceptuales, PDFs y enlaces pedagógicos.', 'cead-acad' ) . '</li>';
+		echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-importers' ) ) . '">' . esc_html__( 'Importadores CSV', 'cead-acad' ) . '</a> — ' . esc_html__( 'subí alumnado y calificaciones desde archivo.', 'cead-acad' ) . '</li>';
+		echo '<li><a href="' . esc_url( admin_url( 'edit.php?post_type=' . Cead_Acad_Tasks_CPT::POST_TYPE ) ) . '">' . esc_html__( 'Tareas (delegado)', 'cead-acad' ) . '</a> — ' . esc_html__( 'asigná tareas a cursos para que las gestionen los delegados.', 'cead-acad' ) . '</li>';
+		echo '</ul>';
+
+		echo '<h2>' . esc_html__( 'Panel frontend', 'cead-acad' ) . '</h2>';
+		echo '<p>' . sprintf(
+			/* translators: 1: URL panel, 2: URL login */
+			esc_html__( 'Los usuarios acceden al panel estilizado en %1$s y al login custom en %2$s.', 'cead-acad' ),
+			'<a href="' . esc_url( cead_acad_url( 'panel' ) ) . '">' . esc_html( cead_acad_url( 'panel' ) ) . '</a>',
+			'<a href="' . esc_url( cead_acad_url( 'login' ) ) . '">' . esc_html( cead_acad_url( 'login' ) ) . '</a>'
+		) . '</p>';
+		echo '<p><em>' . esc_html__( 'Tip: si recién activaste el plugin y las rutas frontend devuelven 404, andá a Ajustes → Enlaces permanentes y guardá una vez para refrescar las rewrite rules.', 'cead-acad' ) . '</em></p>';
+
+		echo '</div>';
 	}
 
 	public function render_invitations() {
