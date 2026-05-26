@@ -2,7 +2,17 @@
 
 Plugin modular para el portal del **Centro Educativo de Alto Desempeño "Félix de Guarania"** (CEAD). Convive con el tema `cead-theme` (mismo repo) y reutiliza su estética (paleta, tipografías y componentes).
 
-## Estado actual: Fase 4 — Importadores + Calificaciones (CSV)
+## Estado actual: Fase 5 — Paneles de rol (Delegado · Secretaría · Dirección)
+
+### Fase 5 — añadido en esta versión
+
+- **CPT `cead_acad_task`** con metabox (curso asignado, estado, prioridad, fecha de vencimiento). Estados: pendiente / en curso / hecha / cancelada.
+- **`/panel/delegado`**: dashboard del delegado/a con tareas pendientes y completadas. Botones "Marcar en curso" y "Marcar hecha". Permisos: dirección/secretaría siempre; delegado solo del curso al que pertenece.
+- **`/panel/secretaria`**: hub con conteos (invitaciones vigentes, cursos, alumnado, borradores), importaciones recientes y accesos rápidos.
+- **`/panel/direccion`**: tablero de métricas — comunidad (alumnos, delegados, docentes, cursos, inscripciones activas), contenido publicado (comunicados/encuestas/eventos/recursos), engagement (tasa de lectura del último comunicado, tasa de respuesta de la última encuesta) y próximos eventos.
+- Cada panel está cap-gated y se muestra en sidebar solo cuando aplica al rol del usuario.
+
+### Fase 4 — Importadores + Calificaciones (CSV)
 
 ### Fase 4 — añadido en esta versión
 

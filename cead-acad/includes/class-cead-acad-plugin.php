@@ -40,6 +40,7 @@ final class Cead_Acad_Plugin {
 		( new Cead_Acad_Resources_CPT() )->boot();
 		( new Cead_Acad_Resources_Admin() )->boot();
 		( new Cead_Acad_Importer_Admin() )->boot();
+		( new Cead_Acad_Tasks_CPT() )->boot();
 		( new Cead_Acad_Admin_Menu() )->boot();
 
 		// Migraciones idempotentes en cambio de versión.

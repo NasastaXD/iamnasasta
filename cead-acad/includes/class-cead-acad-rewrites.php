@@ -148,6 +148,18 @@ class Cead_Acad_Rewrites {
 				cead_acad_template( 'panel/boletin/show.php' );
 				return;
 
+			case 'delegado':
+				cead_acad_template( 'panel/delegado/dashboard.php' );
+				return;
+
+			case 'secretaria':
+				cead_acad_template( 'panel/secretaria/dashboard.php' );
+				return;
+
+			case 'direccion':
+				cead_acad_template( 'panel/direccion/dashboard.php' );
+				return;
+
 			default:
 				cead_acad_template( 'panel/home.php', [ 'sub' => $sub ] );
 				return;

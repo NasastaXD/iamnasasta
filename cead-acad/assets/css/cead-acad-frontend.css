@@ -900,3 +900,92 @@ body.cead-acad-panel {
 	color: var(--cead-acad-text-muted);
 }
 
+/* ============================================================
+   Métricas (Dirección) y Tareas (Delegado)
+   ============================================================ */
+
+.cead-acad-metrics {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 1px;
+	background: var(--cead-acad-border);
+	border: 1px solid var(--cead-acad-border);
+	margin-top: 1.5rem;
+}
+@media (min-width: 768px) {
+	.cead-acad-metrics { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 1024px) {
+	.cead-acad-metrics { grid-template-columns: repeat(5, 1fr); }
+}
+.cead-acad-metric {
+	background: #fff;
+	padding: 1.5rem 1.25rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	border-bottom: 4px solid var(--cead-acad-brand);
+}
+.cead-acad-metric--blue   { border-bottom-color: var(--cead-acad-acc-blue); }
+.cead-acad-metric--yellow { border-bottom-color: var(--cead-acad-acc-yellow); }
+.cead-acad-metric--orange { border-bottom-color: var(--cead-acad-acc-orange); }
+.cead-acad-metric-num {
+	font-family: var(--cead-acad-font-display);
+	font-size: 2.5rem;
+	line-height: 1;
+	color: var(--cead-acad-ink);
+}
+.cead-acad-metric-label {
+	font-family: var(--cead-acad-font-display);
+	text-transform: uppercase;
+	letter-spacing: 0.2em;
+	font-size: 0.65rem;
+	color: var(--cead-acad-text-muted);
+}
+
+.cead-acad-tasks {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	margin-top: 1.5rem;
+}
+.cead-acad-task {
+	background: #fff;
+	border: 1px solid var(--cead-acad-border);
+	border-left: 4px solid var(--cead-acad-acc-blue);
+	padding: 1.5rem 1.75rem;
+}
+.cead-acad-task--priority-alta   { border-left-color: var(--cead-acad-brand); }
+.cead-acad-task--priority-normal { border-left-color: var(--cead-acad-acc-blue); }
+.cead-acad-task--priority-baja   { border-left-color: var(--cead-acad-text-muted); }
+.cead-acad-task-head {
+	display: flex;
+	gap: 0.75rem;
+	align-items: center;
+	flex-wrap: wrap;
+	margin-bottom: 0.5rem;
+}
+.cead-acad-task h4 {
+	font-family: var(--cead-acad-font-display);
+	text-transform: uppercase;
+	letter-spacing: -0.01em;
+	font-size: 1.25rem;
+	margin: 0 0 0.5rem;
+	color: var(--cead-acad-ink);
+}
+.cead-acad-task-body {
+	color: var(--cead-acad-text-soft);
+	font-size: 0.95rem;
+}
+.cead-acad-task-due {
+	font-size: 0.8rem;
+	color: var(--cead-acad-text-muted);
+	margin-left: auto;
+}
+.cead-acad-task-actions {
+	display: flex;
+	gap: 0.6rem;
+	margin-top: 0.85rem;
+	flex-wrap: wrap;
+}
+
