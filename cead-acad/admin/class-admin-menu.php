@@ -15,10 +15,16 @@ class Cead_Acad_Admin_Menu {
 	}
 
 	public function register_menu() {
+		// Gating por rol staff (robusto ante caps custom no instaladas).
+		// Si no es staff, no registramos nada del backend del plugin.
+		if ( ! cead_acad_user_is_staff() ) {
+			return;
+		}
+
 		add_menu_page(
 			__( 'CEAD Académico', 'cead-acad' ),
 			__( 'CEAD Académico', 'cead-acad' ),
-			'cead_acad_view_panel',
+			'read',
 			'cead-acad',
 			[ $this, 'render_dashboard' ],
 			'dashicons-welcome-learn-more',
@@ -29,7 +35,7 @@ class Cead_Acad_Admin_Menu {
 			'cead-acad',
 			__( 'Panel', 'cead-acad' ),
 			__( 'Panel', 'cead-acad' ),
-			'cead_acad_view_panel',
+			'read',
 			'cead-acad',
 			[ $this, 'render_dashboard' ]
 		);
@@ -38,7 +44,7 @@ class Cead_Acad_Admin_Menu {
 			'cead-acad',
 			__( 'Invitaciones', 'cead-acad' ),
 			__( 'Invitaciones', 'cead-acad' ),
-			'cead_acad_manage_invitations',
+			'read',
 			'cead-acad-invitations',
 			[ $this, 'render_invitations' ]
 		);
@@ -54,7 +60,17 @@ class Cead_Acad_Admin_Menu {
 			'<strong>' . esc_html( $user->display_name ) . '</strong>'
 		) . '</p>';
 
-		echo '<p>' . esc_html__( 'Estado: todos los módulos planificados (F0–F5) están instalados.', 'cead-acad' ) . '</p>';
+		echo '<p>' . sprintf( esc_html__( 'Estado: todos los módulos planificados (F0–F5) están instalados. Versión %s.', 'cead-acad' ), esc_html( CEAD_ACAD_VERSION ) ) . '</p>';
+
+		// Diagnóstico de acceso (útil para depurar permisos).
+		$roles = implode( ', ', (array) $user->roles ) ?: '(ninguno)';
+		echo '<div class="notice notice-info inline" style="padding:8px 12px"><p style="margin:0"><strong>' . esc_html__( 'Diagnóstico de acceso', 'cead-acad' ) . ':</strong> ';
+		echo esc_html__( 'Roles', 'cead-acad' ) . ': <code>' . esc_html( $roles ) . '</code> · ';
+		echo 'manage_options: ' . ( current_user_can( 'manage_options' ) ? '✅' : '❌' ) . ' · ';
+		echo 'cead_acad_import_data: ' . ( current_user_can( 'cead_acad_import_data' ) ? '✅' : '❌' ) . ' · ';
+		echo 'cead_acad_manage_invitations: ' . ( current_user_can( 'cead_acad_manage_invitations' ) ? '✅' : '❌' ) . ' · ';
+		echo 'staff: ' . ( cead_acad_user_is_staff() ? '✅' : '❌' );
+		echo '</p></div>';
 
 		echo '<h2>' . esc_html__( 'Accesos rápidos', 'cead-acad' ) . '</h2>';
 		echo '<ul style="list-style:disc;margin-left:20px;line-height:1.8">';
@@ -81,7 +97,7 @@ class Cead_Acad_Admin_Menu {
 	}
 
 	public function render_invitations() {
-		if ( ! current_user_can( 'cead_acad_manage_invitations' ) ) {
+		if ( ! cead_acad_user_is_staff() ) {
 			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
 		}
 		// Carga de la vista (que internamente hace lista + form).
@@ -89,7 +105,7 @@ class Cead_Acad_Admin_Menu {
 	}
 
 	public function handle_invite_create() {
-		if ( ! current_user_can( 'cead_acad_manage_invitations' ) ) {
+		if ( ! cead_acad_user_is_staff() ) {
 			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
 		}
 		check_admin_referer( 'cead_acad_admin_invite_create' );
@@ -111,7 +127,7 @@ class Cead_Acad_Admin_Menu {
 	}
 
 	public function handle_invite_revoke() {
-		if ( ! current_user_can( 'cead_acad_manage_invitations' ) ) {
+		if ( ! cead_acad_user_is_staff() ) {
 			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
 		}
 		check_admin_referer( 'cead_acad_admin_invite_revoke' );

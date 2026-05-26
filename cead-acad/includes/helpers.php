@@ -16,6 +16,23 @@ function cead_acad_table( $name ) {
 }
 
 /**
+ * ¿El usuario es "staff" que puede gestionar el backend del plugin?
+ * Chequea por ROL directo (no por cap, que puede no haberse asignado) más
+ * el administrator de WordPress. Robusto ante caps custom que no se instalaron.
+ */
+function cead_acad_user_is_staff( $user = null ) {
+	$user = $user ? get_user_by( 'id', (int) $user ) : wp_get_current_user();
+	if ( ! $user || ! $user->exists() ) {
+		return false;
+	}
+	if ( user_can( $user, 'manage_options' ) ) {
+		return true;
+	}
+	$staff_roles = [ 'cead_acad_direction', 'cead_acad_secretary' ];
+	return (bool) array_intersect( (array) $user->roles, $staff_roles );
+}
+
+/**
  * Rol principal del usuario relevante para el plugin. Memoizado por user_id en el request.
  */
 function cead_acad_user_role( $user = null ) {

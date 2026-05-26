@@ -18,35 +18,21 @@ class Cead_Acad_Importer_Admin {
 	}
 
 	public function menu() {
-		// Solo registrar el submenu si el user actual puede acceder. Esto evita
-		// el "Sorry, you are not allowed to access this page" cuando WordPress
-		// chequea la cap del menu antes que se aplique nuestro filtro.
-		$cap = self::access_cap_for_current_user();
-		if ( ! $cap ) {
+		// Gating por ROL (no por cap custom, que puede no haberse asignado).
+		// Si es staff, registramos con 'read' (toda sesión logueada lo tiene),
+		// así WordPress no bloquea con "you are not allowed". El control real
+		// lo hace cead_acad_user_is_staff() acá y en cada handler.
+		if ( ! cead_acad_user_is_staff() ) {
 			return;
 		}
 		add_submenu_page(
 			'cead-acad',
 			__( 'Importadores', 'cead-acad' ),
 			__( 'Importadores', 'cead-acad' ),
-			$cap,
+			'read',
 			'cead-acad-importers',
 			[ $this, 'render' ]
 		);
-	}
-
-	/**
-	 * Devuelve la cap que el menú debe usar para el current_user, o '' si no
-	 * tiene acceso. Acepta cead_acad_import_data o, como fallback, manage_options.
-	 */
-	protected static function access_cap_for_current_user() {
-		if ( current_user_can( 'cead_acad_import_data' ) ) {
-			return 'cead_acad_import_data';
-		}
-		if ( current_user_can( 'manage_options' ) ) {
-			return 'manage_options';
-		}
-		return '';
 	}
 
 	public static function importers() {
@@ -59,7 +45,7 @@ class Cead_Acad_Importer_Admin {
 	}
 
 	public function render() {
-		if ( ! current_user_can( 'cead_acad_import_data' ) && ! current_user_can( 'manage_options' ) ) {
+		if ( ! cead_acad_user_is_staff() ) {
 			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
 		}
 		$job_id = isset( $_GET['job'] ) ? (int) $_GET['job'] : 0;
@@ -121,7 +107,7 @@ class Cead_Acad_Importer_Admin {
 	}
 
 	public function handle_upload() {
-		if ( ! current_user_can( 'cead_acad_import_data' ) && ! current_user_can( 'manage_options' ) ) {
+		if ( ! cead_acad_user_is_staff() ) {
 			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
 		}
 		check_admin_referer( 'cead_acad_import_upload' );
@@ -167,7 +153,7 @@ class Cead_Acad_Importer_Admin {
 	}
 
 	public function handle_mapping() {
-		if ( ! current_user_can( 'cead_acad_import_data' ) && ! current_user_can( 'manage_options' ) ) {
+		if ( ! cead_acad_user_is_staff() ) {
 			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
 		}
 		check_admin_referer( 'cead_acad_import_map' );
@@ -199,7 +185,7 @@ class Cead_Acad_Importer_Admin {
 	}
 
 	public function handle_commit() {
-		if ( ! current_user_can( 'cead_acad_import_data' ) && ! current_user_can( 'manage_options' ) ) {
+		if ( ! cead_acad_user_is_staff() ) {
 			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
 		}
 		check_admin_referer( 'cead_acad_import_commit' );
@@ -220,7 +206,7 @@ class Cead_Acad_Importer_Admin {
 	}
 
 	public function handle_template() {
-		if ( ! current_user_can( 'cead_acad_import_data' ) && ! current_user_can( 'manage_options' ) ) {
+		if ( ! cead_acad_user_is_staff() ) {
 			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
 		}
 		check_admin_referer( 'cead_acad_import_template' );
@@ -237,7 +223,7 @@ class Cead_Acad_Importer_Admin {
 	}
 
 	public function handle_errors_csv() {
-		if ( ! current_user_can( 'cead_acad_import_data' ) && ! current_user_can( 'manage_options' ) ) {
+		if ( ! cead_acad_user_is_staff() ) {
 			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
 		}
 		check_admin_referer( 'cead_acad_import_errors_csv' );
