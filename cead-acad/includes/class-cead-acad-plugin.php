@@ -28,6 +28,13 @@ final class Cead_Acad_Plugin {
 		// queda en Gutenberg porque es contenido rico.
 		add_filter( 'use_block_editor_for_post_type', [ $this, 'disable_block_editor_for_admin_cpts' ], 10, 2 );
 
+		// Seeding de términos: una vez por versión, después de registrar taxonomías
+		// (init prioridad 20). Guard por opción autoloaded = check barato por request.
+		add_action( 'init', [ $this, 'maybe_seed_terms' ], 20 );
+
+		// El menú padre "CEAD Académico" debe registrarse ANTES que los submenús.
+		( new Cead_Acad_Admin_Menu() )->boot();
+
 		( new Cead_Acad_Rewrites() )->boot();
 		( new Cead_Acad_Assets() )->boot();
 		( new Cead_Acad_Invitations() )->boot();
@@ -48,7 +55,6 @@ final class Cead_Acad_Plugin {
 		( new Cead_Acad_Resources_Admin() )->boot();
 		( new Cead_Acad_Importer_Admin() )->boot();
 		( new Cead_Acad_Tasks_CPT() )->boot();
-		( new Cead_Acad_Admin_Menu() )->boot();
 
 		// Migraciones idempotentes en cambio de versión.
 		if ( get_option( 'cead_acad_db_version' ) !== CEAD_ACAD_DB_VERSION ) {
@@ -57,12 +63,25 @@ final class Cead_Acad_Plugin {
 		}
 
 		// Re-instalar capabilities en cada cambio de versión del plugin (no solo
-		// del schema). Esto asegura que admin recibe las caps nuevas tras un
-		// upgrade aunque no haya habido migración de tablas.
+		// del schema), para refrescar caps del rol administrator tras un upgrade.
 		if ( get_option( 'cead_acad_caps_version' ) !== CEAD_ACAD_VERSION ) {
 			Cead_Acad_Capabilities::install();
 			update_option( 'cead_acad_caps_version', CEAD_ACAD_VERSION );
 		}
+	}
+
+	/**
+	 * Siembra términos por defecto una sola vez por versión. El check es una
+	 * opción autoloaded (sin query extra); las queries term_exists() reales solo
+	 * corren cuando la versión sembrada no coincide.
+	 */
+	public function maybe_seed_terms() {
+		if ( get_option( 'cead_acad_terms_seeded' ) === CEAD_ACAD_VERSION ) {
+			return;
+		}
+		Cead_Acad_Broadcasts_CPT::seed_terms();
+		Cead_Acad_Resources_CPT::seed_terms();
+		update_option( 'cead_acad_terms_seeded', CEAD_ACAD_VERSION );
 	}
 
 	public function disable_block_editor_for_admin_cpts( $use_block_editor, $post_type ) {

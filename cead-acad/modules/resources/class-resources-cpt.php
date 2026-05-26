@@ -79,13 +79,21 @@ class Cead_Acad_Resources_CPT {
 			'sanitize_callback' => 'absint',
 			'auth_callback'     => static function () { return current_user_can( 'cead_acad_upload_resource' ); },
 		] );
+	}
 
-		// Seeds idempotentes para tipos.
-		foreach ( [ 'mapa-conceptual' => __( 'Mapa conceptual', 'cead-acad' ),
-		            'pdf'             => __( 'PDF', 'cead-acad' ),
-		            'enlace'          => __( 'Enlace', 'cead-acad' ),
-		            'imagen'          => __( 'Imagen', 'cead-acad' ),
-		            'video'           => __( 'Video', 'cead-acad' ) ] as $slug => $label ) {
+	/**
+	 * Siembra tipos por defecto. Idempotente. Se llama UNA vez (activación y
+	 * migración de versión), NO en cada init.
+	 */
+	public static function seed_terms() {
+		$defaults = [
+			'mapa-conceptual' => __( 'Mapa conceptual', 'cead-acad' ),
+			'pdf'             => __( 'PDF', 'cead-acad' ),
+			'enlace'          => __( 'Enlace', 'cead-acad' ),
+			'imagen'          => __( 'Imagen', 'cead-acad' ),
+			'video'           => __( 'Video', 'cead-acad' ),
+		];
+		foreach ( $defaults as $slug => $label ) {
 			if ( ! term_exists( $slug, self::TAX_TYPE ) ) {
 				wp_insert_term( $label, self::TAX_TYPE, [ 'slug' => $slug ] );
 			}

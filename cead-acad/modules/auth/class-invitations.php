@@ -34,26 +34,80 @@ class Cead_Acad_Invitations {
 		$user_id = get_current_user_id();
 		$table = cead_acad_table( 'invitations' );
 
+		$email = $args['email'] ? sanitize_email( $args['email'] ) : null;
+
 		$plain_tokens = [];
 		for ( $i = 0; $i < $count; $i++ ) {
 			$token = cead_acad_generate_token();
 			$plain_tokens[] = $token;
+			// Guardamos el token en claro en metadata para poder mostrar/copiar
+			// el link y reenviar email cuando haga falta. Las invitaciones son
+			// de bajo riesgo (single-use, expiran, su propósito es compartirse).
 			$wpdb->insert(
 				$table,
 				[
 					'token_hash' => cead_acad_hash_token( $token ),
-					'email'      => $args['email'] ? sanitize_email( $args['email'] ) : null,
+					'email'      => $email,
 					'role'       => $role,
 					'course_id'  => $args['course_id'] ? (int) $args['course_id'] : null,
 					'invited_by' => $user_id,
 					'expires_at' => $expires,
 					'created_at' => $now,
-					'metadata'   => null,
+					'metadata'   => wp_json_encode( [ 'token' => $token ] ),
 				],
 				[ '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' ]
 			);
+			$invitation_id = (int) $wpdb->insert_id;
+
+			// Enviar email si se proveyó una dirección.
+			if ( $email ) {
+				self::send_email( $email, $token, $role );
+			}
 		}
 		return $plain_tokens;
+	}
+
+	/**
+	 * Token en claro almacenado en metadata (si existe).
+	 */
+	public static function plain_token( $row ) {
+		if ( empty( $row['metadata'] ) ) {
+			return '';
+		}
+		$meta = json_decode( $row['metadata'], true );
+		return is_array( $meta ) && ! empty( $meta['token'] ) ? (string) $meta['token'] : '';
+	}
+
+	/**
+	 * Envía el email de invitación con el link de registro.
+	 */
+	public static function send_email( $email, $token, $role = '' ) {
+		$roles = Cead_Acad_Capabilities::roles();
+		$role_label = $roles[ $role ]['display'] ?? '';
+		$url = self::registration_url( $token );
+		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+
+		$subject = sprintf( __( 'Invitación a %s', 'cead-acad' ), $site );
+		$message  = sprintf( __( "Te invitamos a sumarte a %s.\n\n", 'cead-acad' ), $site );
+		if ( $role_label ) {
+			$message .= sprintf( __( "Rol asignado: %s\n\n", 'cead-acad' ), $role_label );
+		}
+		$message .= __( "Para crear tu cuenta, entrá a este link:\n", 'cead-acad' );
+		$message .= $url . "\n\n";
+		$message .= __( "El link es de un solo uso y vence pronto.\n\n", 'cead-acad' );
+		$message .= sprintf( __( '— %s', 'cead-acad' ), $site );
+
+		return wp_mail( $email, $subject, $message );
+	}
+
+	/**
+	 * Busca una invitación por ID. Devuelve la fila o null.
+	 */
+	public static function find_by_id( $id ) {
+		global $wpdb;
+		$table = cead_acad_table( 'invitations' );
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", (int) $id ), ARRAY_A );
+		return $row ?: null;
 	}
 
 	/**

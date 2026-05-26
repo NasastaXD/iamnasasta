@@ -49,19 +49,23 @@ class Cead_Acad_Broadcasts_CPT {
 			'hierarchical'      => true,
 			'show_admin_column' => true,
 		] );
+	}
 
-		// Seed de categorías por defecto (idempotente).
-		if ( ! term_exists( 'academico', self::TAX_CAT ) ) {
-			wp_insert_term( __( 'Académico', 'cead-acad' ), self::TAX_CAT, [ 'slug' => 'academico' ] );
-		}
-		if ( ! term_exists( 'administrativo', self::TAX_CAT ) ) {
-			wp_insert_term( __( 'Administrativo', 'cead-acad' ), self::TAX_CAT, [ 'slug' => 'administrativo' ] );
-		}
-		if ( ! term_exists( 'eventos', self::TAX_CAT ) ) {
-			wp_insert_term( __( 'Eventos', 'cead-acad' ), self::TAX_CAT, [ 'slug' => 'eventos' ] );
-		}
-		if ( ! term_exists( 'urgente', self::TAX_CAT ) ) {
-			wp_insert_term( __( 'Urgente', 'cead-acad' ), self::TAX_CAT, [ 'slug' => 'urgente' ] );
+	/**
+	 * Siembra categorías por defecto. Idempotente. Se llama UNA vez (activación
+	 * y migración de versión), NO en cada init — eso disparaba queries por request.
+	 */
+	public static function seed_terms() {
+		$defaults = [
+			'academico'      => __( 'Académico', 'cead-acad' ),
+			'administrativo' => __( 'Administrativo', 'cead-acad' ),
+			'eventos'        => __( 'Eventos', 'cead-acad' ),
+			'urgente'        => __( 'Urgente', 'cead-acad' ),
+		];
+		foreach ( $defaults as $slug => $label ) {
+			if ( ! term_exists( $slug, self::TAX_CAT ) ) {
+				wp_insert_term( $label, self::TAX_CAT, [ 'slug' => $slug ] );
+			}
 		}
 	}
 }

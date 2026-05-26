@@ -15,6 +15,9 @@ class Cead_Acad_Activator {
 		update_option( 'cead_acad_flush_rewrites', 1 );
 		update_option( 'cead_acad_db_version', CEAD_ACAD_DB_VERSION );
 
+		// El seeding de términos lo hace Cead_Acad_Plugin::maybe_seed_terms() en
+		// init (cuando las taxonomías ya están registradas), guardado por opción.
+
 		// Crear carpeta protegida para uploads del plugin (importadores en F4 la usarán).
 		self::ensure_upload_dir();
 	}

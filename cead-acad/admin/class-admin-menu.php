@@ -11,6 +11,7 @@ class Cead_Acad_Admin_Menu {
 		add_action( 'admin_menu',           [ $this, 'register_menu' ] );
 		add_action( 'admin_post_cead_acad_admin_invite_create', [ $this, 'handle_invite_create' ] );
 		add_action( 'admin_post_cead_acad_admin_invite_revoke', [ $this, 'handle_invite_revoke' ] );
+		add_action( 'admin_post_cead_acad_admin_invite_resend', [ $this, 'handle_invite_resend' ] );
 		add_action( 'admin_notices',        [ $this, 'maybe_flash_notice' ] );
 	}
 
@@ -110,19 +111,41 @@ class Cead_Acad_Admin_Menu {
 		}
 		check_admin_referer( 'cead_acad_admin_invite_create' );
 
+		$email = ! empty( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : null;
 		$tokens = Cead_Acad_Invitations::create( [
 			'role'         => sanitize_text_field( wp_unslash( $_POST['role'] ?? 'cead_acad_student' ) ),
 			'course_id'    => ! empty( $_POST['course_id'] ) ? (int) $_POST['course_id'] : null,
-			'email'        => ! empty( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : null,
+			'email'        => $email,
 			'expires_days' => max( 1, min( 90, (int) ( $_POST['expires_days'] ?? 14 ) ) ),
 			'count'        => max( 1, min( 100, (int) ( $_POST['count'] ?? 1 ) ) ),
 		] );
 
-		// Guardamos los tokens recién creados en transient corto para mostrarlos UNA VEZ en la lista.
-		set_transient( 'cead_acad_recent_tokens_' . get_current_user_id(), $tokens, 5 * MINUTE_IN_SECONDS );
-		set_transient( 'cead_acad_flash_' . get_current_user_id(), [ 'type' => 'success', 'msg' => sprintf( _n( '%d invitación creada.', '%d invitaciones creadas.', count( $tokens ), 'cead-acad' ), count( $tokens ) ) ], 30 );
+		$msg = sprintf( _n( '%d invitación creada.', '%d invitaciones creadas.', count( $tokens ), 'cead-acad' ), count( $tokens ) );
+		if ( $email ) {
+			$msg .= ' ' . sprintf( __( 'Email enviado a %s.', 'cead-acad' ), $email );
+		}
+		$msg .= ' ' . __( 'El link de registro está copiable en la tabla de abajo.', 'cead-acad' );
+		set_transient( 'cead_acad_flash_' . get_current_user_id(), [ 'type' => 'success', 'msg' => $msg ], 30 );
 
 		wp_safe_redirect( admin_url( 'admin.php?page=cead-acad-invitations&created=1' ) );
+		exit;
+	}
+
+	public function handle_invite_resend() {
+		if ( ! cead_acad_user_is_staff() ) {
+			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
+		}
+		check_admin_referer( 'cead_acad_admin_invite_resend' );
+		$id  = (int) ( $_POST['id'] ?? 0 );
+		$row = $id ? Cead_Acad_Invitations::find_by_id( $id ) : null;
+		if ( $row && $row['email'] ) {
+			$token = Cead_Acad_Invitations::plain_token( $row );
+			if ( $token ) {
+				Cead_Acad_Invitations::send_email( $row['email'], $token, $row['role'] );
+				set_transient( 'cead_acad_flash_' . get_current_user_id(), [ 'type' => 'success', 'msg' => sprintf( __( 'Email reenviado a %s.', 'cead-acad' ), $row['email'] ) ], 30 );
+			}
+		}
+		wp_safe_redirect( admin_url( 'admin.php?page=cead-acad-invitations' ) );
 		exit;
 	}
 
