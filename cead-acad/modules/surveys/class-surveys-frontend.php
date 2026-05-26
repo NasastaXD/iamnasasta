@@ -27,7 +27,8 @@ class Cead_Acad_Surveys_Frontend {
 
 		$user = wp_get_current_user();
 
-		if ( ! Cead_Acad_Audiences::subjects_for_user( 'survey', $user->ID ) || ! in_array( $survey_id, Cead_Acad_Audiences::subjects_for_user( 'survey', $user->ID ), true ) ) {
+		$visible_ids = Cead_Acad_Audiences::subjects_for_user( 'survey', $user->ID );
+		if ( ! $visible_ids || ! in_array( $survey_id, $visible_ids, true ) ) {
 			$this->bail( $survey_id, 'forbidden' );
 		}
 		if ( ! Cead_Acad_Surveys_CPT::is_open( $survey_id ) ) {

@@ -8,10 +8,14 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class Cead_Acad_Capabilities {
 
 	/**
-	 * Lista de roles que el plugin instala. Idempotente.
+	 * Lista de roles que el plugin instala. Idempotente. Memoizada por request.
 	 */
 	public static function roles() {
-		return [
+		static $cache = null;
+		if ( null !== $cache ) {
+			return $cache;
+		}
+		return $cache = [
 			'cead_acad_direction' => [
 				'display' => 'Dirección',
 				'caps'    => array_merge(

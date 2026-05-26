@@ -29,6 +29,7 @@ class Cead_Acad_Resources_Acl {
 			'orderby'        => 'date',
 			'order'          => 'DESC',
 			'post__in'       => $ids,
+			'no_found_rows'  => true,
 		];
 		$tax = [];
 		if ( $args['subject'] ) {

@@ -16,19 +16,24 @@ function cead_acad_table( $name ) {
 }
 
 /**
- * Rol principal del usuario relevante para el plugin.
+ * Rol principal del usuario relevante para el plugin. Memoizado por user_id en el request.
  */
 function cead_acad_user_role( $user = null ) {
-	$user = $user ? get_user_by( 'id', (int) $user ) : wp_get_current_user();
-	if ( ! $user || ! $user->exists() ) {
-		return '';
+	static $cache = [];
+	$uid = $user ? (int) $user : get_current_user_id();
+	if ( array_key_exists( $uid, $cache ) ) {
+		return $cache[ $uid ];
 	}
-	foreach ( (array) $user->roles as $role ) {
+	$u = $uid ? get_user_by( 'id', $uid ) : null;
+	if ( ! $u || ! $u->exists() ) {
+		return $cache[ $uid ] = '';
+	}
+	foreach ( (array) $u->roles as $role ) {
 		if ( str_starts_with( $role, 'cead_acad_' ) ) {
-			return $role;
+			return $cache[ $uid ] = $role;
 		}
 	}
-	return (string) ( $user->roles[0] ?? '' );
+	return $cache[ $uid ] = (string) ( $u->roles[0] ?? '' );
 }
 
 /**

@@ -84,20 +84,24 @@ class Cead_Acad_Courses_CPT {
 	}
 
 	/**
-	 * Devuelve cursos como [ id => título ] para selects.
+	 * Devuelve cursos como [ id => título ] para selects. Memoizada por request.
 	 */
 	public static function options() {
-		$posts = get_posts( [
-			'post_type'      => self::POST_TYPE,
-			'posts_per_page' => -1,
-			'orderby'        => 'menu_order title',
-			'order'          => 'ASC',
-			'post_status'    => 'publish',
-		] );
-		$out = [];
-		foreach ( $posts as $p ) {
-			$out[ $p->ID ] = $p->post_title;
+		static $cache = null;
+		if ( null !== $cache ) {
+			return $cache;
 		}
-		return $out;
+		global $wpdb;
+		$rows = $wpdb->get_results( $wpdb->prepare(
+			"SELECT ID, post_title FROM {$wpdb->posts}
+			 WHERE post_type = %s AND post_status = 'publish'
+			 ORDER BY menu_order ASC, post_title ASC",
+			self::POST_TYPE
+		), ARRAY_A );
+		$out = [];
+		foreach ( (array) $rows as $r ) {
+			$out[ (int) $r['ID'] ] = $r['post_title'];
+		}
+		return $cache = $out;
 	}
 }

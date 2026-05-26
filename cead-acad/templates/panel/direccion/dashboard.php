@@ -71,8 +71,7 @@ $latest_survey = get_posts( [
 $latest_survey_stats = null;
 if ( $latest_survey ) {
 	$s = $latest_survey[0];
-	$recipients = count( Cead_Acad_Broadcasts_Feed::resolve_recipient_user_ids( $s->ID ) ); // Misma estrategia general para audiencias.
-	// Para encuestas las audiencias son del subject_type 'survey' — recomputar.
+	// Resolver audiencias del subject_type='survey' (resolve_recipient_user_ids vive en Broadcasts y asume 'broadcast').
 	$rows = Cead_Acad_Audiences::get( 'survey', $s->ID );
 	$audience_users = [];
 	foreach ( $rows as $r ) {

@@ -76,11 +76,13 @@ $body = function () use ( $user, $rdisp, $sub ) {
 				</div>
 			</div>
 
-			<?php if ( $recent_broadcasts ) : ?>
+			<?php if ( $recent_broadcasts ) :
+				$read_ids = Cead_Acad_Broadcasts_Reads::read_ids_for_user( $user->ID );
+			?>
 				<h3 class="cead-acad-section-h"><?php esc_html_e( 'Últimos comunicados', 'cead-acad' ); ?></h3>
 				<div class="cead-acad-grid cead-acad-grid--2">
 					<?php foreach ( $recent_broadcasts as $p ) :
-						$read = in_array( (int) $p->ID, Cead_Acad_Broadcasts_Reads::read_ids_for_user( $user->ID ), true );
+						$read = in_array( (int) $p->ID, $read_ids, true );
 					?>
 						<a class="cead-acad-card cead-acad-card--link" href="<?php echo esc_url( cead_acad_url( 'panel/comunicados/' . $p->ID ) ); ?>">
 							<?php if ( ! $read ) : ?><span class="cead-acad-pill"><?php esc_html_e( 'Nuevo', 'cead-acad' ); ?></span><?php endif; ?>

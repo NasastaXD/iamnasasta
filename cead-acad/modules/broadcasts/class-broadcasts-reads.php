@@ -37,16 +37,18 @@ class Cead_Acad_Broadcasts_Reads {
 		if ( ! $visible ) {
 			return 0;
 		}
-		$read = self::read_ids_for_user( $user_id );
-		$unread = array_diff( $visible, $read );
-		// Filtrar por publicados.
 		global $wpdb;
-		if ( ! $unread ) { return 0; }
-		$ph = implode( ',', array_fill( 0, count( $unread ), '%d' ) );
-		$count = $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$wpdb->posts} WHERE ID IN ($ph) AND post_status = 'publish' AND post_type = %s",
-			...array_merge( array_map( 'intval', $unread ), [ Cead_Acad_Broadcasts_CPT::POST_TYPE ] )
-		) );
-		return (int) $count;
+		$reads = cead_acad_table( 'broadcast_reads' );
+		$ph    = implode( ',', array_fill( 0, count( $visible ), '%d' ) );
+		// LEFT JOIN: cuenta los visibles publicados que NO tienen read del usuario.
+		// Orden de placeholders: user_id (JOIN), post_type (WHERE), IN (...) de IDs visibles.
+		$sql = "SELECT COUNT(*) FROM {$wpdb->posts} p
+				LEFT JOIN {$reads} r ON r.broadcast_id = p.ID AND r.user_id = %d
+				WHERE p.post_type = %s
+				AND p.post_status = 'publish'
+				AND p.ID IN ($ph)
+				AND r.id IS NULL";
+		$args = array_merge( [ (int) $user_id, Cead_Acad_Broadcasts_CPT::POST_TYPE ], array_map( 'intval', $visible ) );
+		return (int) $wpdb->get_var( $wpdb->prepare( $sql, ...$args ) );
 	}
 }

@@ -37,6 +37,7 @@ class Cead_Acad_Broadcasts_Feed {
 			'order'          => 'DESC',
 			'post__in'       => $ids,
 			'ignore_sticky_posts' => true,
+			'no_found_rows'  => true,
 		];
 		if ( $args['category'] ) {
 			$query_args['tax_query'] = [ [
@@ -59,43 +60,70 @@ class Cead_Acad_Broadcasts_Feed {
 			return [];
 		}
 		$ids = [];
+		// Si hay 'all' en cualquier row, eso ya domina al resto: una sola query.
+		foreach ( $rows as $r ) {
+			if ( 'all' === $r['audience_type'] ) {
+				return array_map( 'intval', get_users( [ 'fields' => 'ID' ] ) );
+			}
+		}
+
+		// Para cohortes y cursos: usar 1 query directa al roster con IN (...)
+		// en vez de N llamadas a users_in_course().
+		$cohort_terms = [];
+		$course_ids   = [];
+		$role_slugs   = [];
 		foreach ( $rows as $r ) {
 			switch ( $r['audience_type'] ) {
-				case 'all':
-					$users = get_users( [ 'fields' => [ 'ID' ] ] );
-					foreach ( $users as $u ) { $ids[] = (int) $u->ID; }
-					break;
 				case 'role':
-					$users = get_users( [ 'role' => $r['audience_value'], 'fields' => [ 'ID' ] ] );
-					foreach ( $users as $u ) { $ids[] = (int) $u->ID; }
+					$role_slugs[] = $r['audience_value'];
 					break;
 				case 'course':
-					foreach ( Cead_Acad_Courses_Roster::users_in_course( (int) $r['audience_value'] ) as $uid ) {
-						$ids[] = (int) $uid;
-					}
+					$course_ids[] = (int) $r['audience_value'];
 					break;
 				case 'cohort':
-					$course_ids = get_posts( [
-						'post_type'      => Cead_Acad_Courses_CPT::POST_TYPE,
-						'posts_per_page' => -1,
-						'fields'         => 'ids',
-						'tax_query'      => [ [
-							'taxonomy' => Cead_Acad_Courses_CPT::TAX_COHORT,
-							'field'    => 'term_id',
-							'terms'    => (int) $r['audience_value'],
-						] ],
-					] );
-					foreach ( $course_ids as $cid ) {
-						foreach ( Cead_Acad_Courses_Roster::users_in_course( (int) $cid ) as $uid ) {
-							$ids[] = (int) $uid;
-						}
-					}
+					$cohort_terms[] = (int) $r['audience_value'];
 					break;
 				case 'user':
 					$ids[] = (int) $r['audience_value'];
 					break;
 			}
 		}
+
+		if ( $role_slugs ) {
+			$user_ids = get_users( [ 'role__in' => array_values( array_unique( $role_slugs ) ), 'fields' => 'ID' ] );
+			foreach ( $user_ids as $uid ) { $ids[] = (int) $uid; }
+		}
+
+		// Cohort → expandir a course_ids con un solo WP_Query.
+		if ( $cohort_terms ) {
+			$cohort_terms = array_values( array_unique( $cohort_terms ) );
+			$expanded = get_posts( [
+				'post_type'      => Cead_Acad_Courses_CPT::POST_TYPE,
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+				'tax_query'      => [ [
+					'taxonomy' => Cead_Acad_Courses_CPT::TAX_COHORT,
+					'field'    => 'term_id',
+					'terms'    => $cohort_terms,
+				] ],
+			] );
+			foreach ( $expanded as $cid ) { $course_ids[] = (int) $cid; }
+		}
+
+		// Cursos + cohortes → 1 query al roster.
+		if ( $course_ids ) {
+			global $wpdb;
+			$roster = cead_acad_table( 'roster' );
+			$course_ids = array_values( array_unique( $course_ids ) );
+			$ph = implode( ',', array_fill( 0, count( $course_ids ), '%d' ) );
+			$roster_users = $wpdb->get_col( $wpdb->prepare(
+				"SELECT DISTINCT user_id FROM {$roster} WHERE status = 'active' AND course_id IN ({$ph})",
+				...$course_ids
+			) );
+			foreach ( $roster_users as $uid ) { $ids[] = (int) $uid; }
+		}
+
 		return array_values( array_unique( array_filter( $ids ) ) );
 	}
 

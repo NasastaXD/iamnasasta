@@ -235,6 +235,7 @@ class Cead_Acad_Tasks_CPT {
 			'orderby'        => 'date',
 			'order'          => 'DESC',
 			'meta_query'     => $meta_query,
+			'no_found_rows'  => true,
 		] );
 	}
 }

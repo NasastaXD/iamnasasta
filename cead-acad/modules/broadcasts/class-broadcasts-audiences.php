@@ -68,16 +68,23 @@ class Cead_Acad_Audiences {
 
 	/**
 	 * Devuelve IDs de sujetos visibles para un usuario.
+	 * Memoizado por (subject_type, user_id) en el lifecycle del request.
 	 *
 	 * @return int[]
 	 */
 	public static function subjects_for_user( $subject_type, $user_id ) {
+		static $cache = [];
+		$key = $subject_type . '|' . (int) $user_id;
+		if ( array_key_exists( $key, $cache ) ) {
+			return $cache[ $key ];
+		}
+
 		global $wpdb;
 		$table = cead_acad_table( 'audiences' );
 
 		$user = get_user_by( 'id', (int) $user_id );
 		if ( ! $user ) {
-			return [];
+			return $cache[ $key ] = [];
 		}
 
 		$role_slugs  = array_values( (array) $user->roles );
@@ -115,7 +122,7 @@ class Cead_Acad_Audiences {
 		$sql = "SELECT DISTINCT subject_id FROM {$table} WHERE subject_type = %s AND {$where}";
 
 		$ids = $wpdb->get_col( $wpdb->prepare( $sql, ...$args ) );
-		return array_map( 'intval', $ids ?: [] );
+		return $cache[ $key ] = array_map( 'intval', $ids ?: [] );
 	}
 
 	public static function sanitize_type( $type ) {

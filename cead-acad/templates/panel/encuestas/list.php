@@ -20,6 +20,7 @@ if ( $ids ) {
 		'posts_per_page' => -1,
 		'orderby'        => 'date',
 		'order'          => 'DESC',
+		'no_found_rows'  => true,
 	] );
 
 	foreach ( $posts as $p ) {

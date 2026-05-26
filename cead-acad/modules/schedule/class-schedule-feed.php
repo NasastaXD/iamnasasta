@@ -49,6 +49,7 @@ class Cead_Acad_Schedule_Feed {
 			'orderby'        => 'meta_value',
 			'meta_key'       => '_cead_acad_event_start',
 			'order'          => 'ASC',
+			'no_found_rows'  => true,
 		];
 		if ( $meta_query ) {
 			$args['meta_query'] = $meta_query;
