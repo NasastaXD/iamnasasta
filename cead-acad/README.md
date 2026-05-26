@@ -2,7 +2,13 @@
 
 Plugin modular para el portal del **Centro Educativo de Alto Desempeño "Félix de Guarania"** (CEAD). Convive con el tema `cead-theme` (mismo repo) y reutiliza su estética (paleta, tipografías y componentes).
 
-## Estado actual: Fase 5 — Paneles de rol (Delegado · Secretaría · Dirección)
+## v0.8.0 — XLSX + invitaciones robustas
+
+- **Importadores aceptan .xlsx** además de .csv (lector liviano propio con ZipArchive + SimpleXML, sin dependencia de 15MB; cae con gracia a solo .csv si falta la extensión zip).
+- **Plantilla de alumnos simplificada**: formato mínimo **Alumno | Curso | Mail**. Email **opcional por fila** — si falta, el alumno igual se importa (email interno placeholder). Dedup por documento → email → (nombre + curso).
+- **Invitaciones reescritas**: procesamiento inline (sin rebote a admin-post.php), link copiable siempre visible, envío de email, selector/autocompletado de usuarios registrados, botón reenviar.
+
+## Estado: Fase 5 — Paneles de rol (Delegado · Secretaría · Dirección)
 
 ### Fase 5 — añadido en esta versión
 

@@ -1,3 +1,4 @@
-documento,nombres,apellidos,email,fecha_nac,telefono,curso
-1234567,Juan,Pérez,juan.perez@ejemplo.com,2008-03-15,0981000000,1ro A Ciencias Básicas
-2345678,María,González,maria.gonzalez@ejemplo.com,2008-07-22,0982000000,1ro A Ciencias Básicas
+nombre,curso,email
+Juan Pérez,1ro A Ciencias Básicas,juan.perez@ejemplo.com
+María González,1ro A Ciencias Básicas,
+Carlos López,2do A Ciencias Sociales,carlos.lopez@ejemplo.com

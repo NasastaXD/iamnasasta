@@ -87,14 +87,14 @@ class Cead_Acad_Importer_Admin {
 	}
 
 	protected function view_mapping( $job, $importer ) {
-		[ $headers, $preview_rows ] = Cead_Acad_Importer_Csv_Reader::preview( $job['stored_path'], 5 );
+		[ $headers, $preview_rows ] = Cead_Acad_Importer_Reader::preview( $job['stored_path'], 5 );
 		$suggested = $importer->suggest_mapping( $headers );
 		$fields    = $importer->fields();
 		include CEAD_ACAD_DIR . 'admin/views/importer-mapping.php';
 	}
 
 	protected function view_preview( $job, $importer ) {
-		[ $headers, $rows ] = Cead_Acad_Importer_Csv_Reader::read_all( $job['stored_path'] );
+		[ $headers, $rows ] = Cead_Acad_Importer_Reader::read_all( $job['stored_path'] );
 		$mapping = Cead_Acad_Importer_Job::get_mapping( $job );
 		$report  = Cead_Acad_Importer_Job::get_report( $job );
 		$fields  = $importer->fields();
@@ -118,7 +118,7 @@ class Cead_Acad_Importer_Admin {
 			wp_die( esc_html__( 'Tipo de importador no válido.', 'cead-acad' ) );
 		}
 		if ( empty( $_FILES['csv_file']['name'] ) ) {
-			wp_die( esc_html__( 'Subí un archivo CSV.', 'cead-acad' ) );
+			wp_die( esc_html__( 'Subí un archivo.', 'cead-acad' ) );
 		}
 
 		$file = $_FILES['csv_file'];
@@ -126,10 +126,10 @@ class Cead_Acad_Importer_Admin {
 			wp_die( esc_html__( 'Archivo demasiado grande (máx 10MB).', 'cead-acad' ) );
 		}
 
-		// Validar extensión.
+		// Validar extensión (CSV/TXT siempre; XLSX si el entorno lo soporta).
 		$ext = strtolower( pathinfo( $file['name'], PATHINFO_EXTENSION ) );
-		if ( ! in_array( $ext, [ 'csv', 'txt' ], true ) ) {
-			wp_die( esc_html__( 'Solo se admiten archivos .csv en esta fase (próximamente .xlsx).', 'cead-acad' ) );
+		if ( ! in_array( $ext, Cead_Acad_Importer_Reader::allowed_extensions(), true ) ) {
+			wp_die( esc_html__( 'Formato no admitido. Subí un archivo .csv o .xlsx.', 'cead-acad' ) );
 		}
 
 		// Mover a uploads/cead-acad/imports/<hash>/<filename>.
@@ -170,7 +170,7 @@ class Cead_Acad_Importer_Admin {
 
 		// Validar in-line.
 		$importer = $this->importer_for( $job['type'] );
-		[ , $rows ] = Cead_Acad_Importer_Csv_Reader::read_all( $job['stored_path'] );
+		[ , $rows ] = Cead_Acad_Importer_Reader::read_all( $job['stored_path'] );
 		$report = $importer->validate_all( $rows, $mapping );
 		Cead_Acad_Importer_Job::update( $job_id, [
 			'rows_total'  => (string) count( $rows ),
@@ -196,7 +196,7 @@ class Cead_Acad_Importer_Admin {
 
 		$importer = $this->importer_for( $job['type'] );
 		$mapping  = Cead_Acad_Importer_Job::get_mapping( $job );
-		[ , $rows ] = Cead_Acad_Importer_Csv_Reader::read_all( $job['stored_path'] );
+		[ , $rows ] = Cead_Acad_Importer_Reader::read_all( $job['stored_path'] );
 
 		$ok = $importer->commit_all( $rows, $mapping, $job_id );
 		Cead_Acad_Importer_Job::mark_committed( $job_id, $ok );

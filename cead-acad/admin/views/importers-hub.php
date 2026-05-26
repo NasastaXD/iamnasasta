@@ -9,7 +9,8 @@ $jobs      = Cead_Acad_Importer_Job::recent( 20 );
 ?>
 <div class="wrap cead-acad-admin-wrap">
 	<h1><?php esc_html_e( 'Importadores', 'cead-acad' ); ?></h1>
-	<p class="description"><?php esc_html_e( 'Subí un archivo CSV (o .txt con valores separados) y guiado paso a paso lo mapeás, validás e importás.', 'cead-acad' ); ?></p>
+	<?php $xlsx_ok = Cead_Acad_Importer_Xlsx_Reader::available(); ?>
+	<p class="description"><?php esc_html_e( 'Subí un archivo CSV o Excel (.xlsx) y, guiado paso a paso, lo mapeás, validás e importás. Descargá una plantilla para ver el formato esperado.', 'cead-acad' ); ?></p>
 
 	<h2 class="title"><?php esc_html_e( 'Nuevo trabajo', 'cead-acad' ); ?></h2>
 	<form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -35,10 +36,16 @@ $jobs      = Cead_Acad_Importer_Job::recent( 20 );
 				</td>
 			</tr>
 			<tr>
-				<th><label for="csv_file"><?php esc_html_e( 'Archivo CSV', 'cead-acad' ); ?></label></th>
+				<th><label for="csv_file"><?php esc_html_e( 'Archivo', 'cead-acad' ); ?></label></th>
 				<td>
-					<input type="file" name="csv_file" id="csv_file" accept=".csv,.txt" required>
-					<p class="description"><?php esc_html_e( 'Máx 10MB. Soporte XLSX llega en una versión próxima.', 'cead-acad' ); ?></p>
+					<input type="file" name="csv_file" id="csv_file" accept="<?php echo $xlsx_ok ? '.csv,.txt,.xlsx' : '.csv,.txt'; ?>" required>
+					<p class="description">
+						<?php
+						echo $xlsx_ok
+							? esc_html__( 'Máx 10MB. Admite .csv y .xlsx. Para columnas de fecha en XLSX, escribilas como texto (ej. 2026-12-10 08:00).', 'cead-acad' )
+							: esc_html__( 'Máx 10MB. Admite .csv (en este servidor no está disponible la lectura de .xlsx).', 'cead-acad' );
+						?>
+					</p>
 				</td>
 			</tr>
 		</table>
