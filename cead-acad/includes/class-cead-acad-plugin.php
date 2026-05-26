@@ -21,6 +21,13 @@ final class Cead_Acad_Plugin {
 	public function boot() {
 		load_plugin_textdomain( 'cead-acad', false, dirname( CEAD_ACAD_BASENAME ) . '/languages' );
 
+		// Filtro de capabilities: admins reciben automáticamente las caps del plugin.
+		add_filter( 'user_has_cap', [ 'Cead_Acad_Capabilities', 'grant_plugin_caps_to_admins' ], 10, 4 );
+
+		// CPTs administrativos usan classic editor (no block editor). Comunicados
+		// queda en Gutenberg porque es contenido rico.
+		add_filter( 'use_block_editor_for_post_type', [ $this, 'disable_block_editor_for_admin_cpts' ], 10, 2 );
+
 		( new Cead_Acad_Rewrites() )->boot();
 		( new Cead_Acad_Assets() )->boot();
 		( new Cead_Acad_Invitations() )->boot();
@@ -49,5 +56,18 @@ final class Cead_Acad_Plugin {
 			Cead_Acad_Capabilities::install();
 			update_option( 'cead_acad_db_version', CEAD_ACAD_DB_VERSION );
 		}
+	}
+
+	public function disable_block_editor_for_admin_cpts( $use_block_editor, $post_type ) {
+		$classic = [
+			'cead_acad_course',
+			'cead_acad_event',
+			'cead_acad_resource',
+			'cead_acad_task',
+		];
+		if ( in_array( $post_type, $classic, true ) ) {
+			return false;
+		}
+		return $use_block_editor;
 	}
 }

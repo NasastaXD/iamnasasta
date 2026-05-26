@@ -144,6 +144,26 @@ class Cead_Acad_Capabilities {
 	}
 
 	/**
+	 * Filtro: cualquier user con `manage_options` (administradores típicos) recibe
+	 * todas las capabilities `cead_acad_*` automáticamente, aunque install() no
+	 * se haya re-ejecutado tras un upgrade que agregó caps nuevas.
+	 *
+	 * Engancha en `user_has_cap` con prioridad temprana para que actúe antes
+	 * que filtros restrictivos.
+	 */
+	public static function grant_plugin_caps_to_admins( $allcaps, $caps, $args, $user ) {
+		if ( empty( $allcaps['manage_options'] ) ) {
+			return $allcaps;
+		}
+		foreach ( (array) $caps as $cap ) {
+			if ( is_string( $cap ) && str_starts_with( $cap, 'cead_acad_' ) ) {
+				$allcaps[ $cap ] = true;
+			}
+		}
+		return $allcaps;
+	}
+
+	/**
 	 * Comprueba si el usuario actual pertenece al ecosistema del plugin.
 	 */
 	public static function user_in_plugin( $user = null ) {

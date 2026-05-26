@@ -16,8 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CEAD_ACAD_VERSION',    '0.6.0' );
-define( 'CEAD_ACAD_DB_VERSION', '4' );
+define( 'CEAD_ACAD_VERSION',    '0.6.1' );
+define( 'CEAD_ACAD_DB_VERSION', '5' );
 define( 'CEAD_ACAD_FILE',       __FILE__ );
 define( 'CEAD_ACAD_DIR',        plugin_dir_path( __FILE__ ) );
 define( 'CEAD_ACAD_URL',        plugin_dir_url( __FILE__ ) );
