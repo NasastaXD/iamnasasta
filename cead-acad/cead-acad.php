@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CEAD_ACAD_VERSION',    '0.3.0' );
+define( 'CEAD_ACAD_VERSION',    '0.4.0' );
 define( 'CEAD_ACAD_DB_VERSION', '3' );
 define( 'CEAD_ACAD_FILE',       __FILE__ );
 define( 'CEAD_ACAD_DIR',        plugin_dir_path( __FILE__ ) );
@@ -46,6 +46,12 @@ require_once CEAD_ACAD_DIR . 'modules/surveys/class-surveys-questions.php';
 require_once CEAD_ACAD_DIR . 'modules/surveys/class-surveys-responses.php';
 require_once CEAD_ACAD_DIR . 'modules/surveys/class-surveys-admin.php';
 require_once CEAD_ACAD_DIR . 'modules/surveys/class-surveys-frontend.php';
+require_once CEAD_ACAD_DIR . 'modules/schedule/class-schedule-cpt.php';
+require_once CEAD_ACAD_DIR . 'modules/schedule/class-schedule-admin.php';
+require_once CEAD_ACAD_DIR . 'modules/schedule/class-schedule-feed.php';
+require_once CEAD_ACAD_DIR . 'modules/resources/class-resources-cpt.php';
+require_once CEAD_ACAD_DIR . 'modules/resources/class-resources-admin.php';
+require_once CEAD_ACAD_DIR . 'modules/resources/class-resources-acl.php';
 require_once CEAD_ACAD_DIR . 'admin/class-admin-menu.php';
 require_once CEAD_ACAD_DIR . 'includes/class-cead-acad-plugin.php';
 

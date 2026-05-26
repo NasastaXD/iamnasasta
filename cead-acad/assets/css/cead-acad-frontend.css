@@ -726,3 +726,127 @@ body.cead-acad-panel {
 
 .cead-acad-feed-head { margin-bottom: 0.5rem; }
 
+/* ============================================================
+   Agenda (Horarios)
+   ============================================================ */
+
+.cead-acad-agenda {
+	margin-top: 2rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+}
+.cead-acad-agenda-day {
+	display: grid;
+	grid-template-columns: 100px 1fr;
+	gap: 1.5rem;
+	border-top: 1px solid var(--cead-acad-border);
+	padding-top: 1.5rem;
+}
+.cead-acad-agenda-daykey {
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+	text-align: center;
+}
+.cead-acad-agenda-num {
+	font-family: var(--cead-acad-font-display);
+	font-size: 3rem;
+	line-height: 1;
+	color: var(--cead-acad-brand);
+}
+.cead-acad-agenda-month {
+	font-family: var(--cead-acad-font-display);
+	text-transform: uppercase;
+	letter-spacing: 0.2em;
+	font-size: 0.7rem;
+	color: var(--cead-acad-ink);
+}
+.cead-acad-agenda-weekday {
+	font-family: var(--cead-acad-font-display);
+	text-transform: uppercase;
+	letter-spacing: 0.18em;
+	font-size: 0.65rem;
+	color: var(--cead-acad-text-muted);
+}
+.cead-acad-agenda-items {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+}
+.cead-acad-agenda-item {
+	display: grid;
+	grid-template-columns: 110px 1fr;
+	gap: 1rem;
+	padding: 1rem 1.25rem;
+	background: #fff;
+	border: 1px solid var(--cead-acad-border);
+	border-left: 4px solid var(--cead-acad-brand);
+	text-decoration: none;
+	color: inherit;
+	transition: background .2s ease;
+}
+.cead-acad-agenda-item:hover { background: var(--cead-acad-canvas); }
+.cead-acad-agenda-item--clase   { border-left-color: var(--cead-acad-acc-blue); }
+.cead-acad-agenda-item--reunion { border-left-color: var(--cead-acad-brand); }
+.cead-acad-agenda-item--examen  { border-left-color: var(--cead-acad-acc-orange); }
+.cead-acad-agenda-item--evento  { border-left-color: var(--cead-acad-acc-yellow); }
+.cead-acad-agenda-time {
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+	font-family: var(--cead-acad-font-display);
+	letter-spacing: 0.04em;
+	font-size: 1.1rem;
+	color: var(--cead-acad-ink);
+}
+.cead-acad-agenda-time-end {
+	font-size: 0.75rem;
+	color: var(--cead-acad-text-muted);
+}
+.cead-acad-agenda-title {
+	font-family: var(--cead-acad-font-display);
+	text-transform: uppercase;
+	letter-spacing: -0.01em;
+	font-size: 1.2rem;
+	margin: 0.1rem 0 0;
+	color: var(--cead-acad-ink);
+}
+.cead-acad-agenda-loc {
+	margin: 0.3rem 0 0;
+	font-size: 0.85rem;
+	color: var(--cead-acad-text-soft);
+}
+.cead-acad-bcast-loc {
+	margin: 0.5rem 0 0;
+	color: var(--cead-acad-text-soft);
+}
+
+/* ============================================================
+   Resources (Recursos)
+   ============================================================ */
+
+.cead-acad-resource-card {
+	padding: 0;
+	overflow: hidden;
+}
+.cead-acad-resource-card > .cead-acad-pill,
+.cead-acad-resource-card > h3,
+.cead-acad-resource-card > p {
+	padding-left: 1.5rem;
+	padding-right: 1.5rem;
+}
+.cead-acad-resource-card > .cead-acad-pill { margin: 1.25rem 1.5rem 0.5rem 1.5rem; padding-left: 0.75rem; padding-right: 0.75rem; }
+.cead-acad-resource-card > h3 { margin-top: 0.4rem; }
+.cead-acad-resource-card > p  { margin-bottom: 1.25rem; }
+.cead-acad-resource-thumb {
+	aspect-ratio: 4 / 3;
+	background-size: cover;
+	background-position: center;
+	background-color: var(--cead-acad-canvas);
+	transition: transform .8s ease;
+}
+.cead-acad-resource-card:hover .cead-acad-resource-thumb {
+	transform: scale(1.05);
+}
+

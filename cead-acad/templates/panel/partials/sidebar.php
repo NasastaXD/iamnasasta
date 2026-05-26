@@ -11,6 +11,8 @@ $base_items = [
 	[ 'href' => 'panel',              'label' => __( 'Inicio', 'cead-acad' ),       'icon' => 'home' ],
 	[ 'href' => 'panel/comunicados',  'label' => __( 'Comunicados', 'cead-acad' ),  'icon' => 'megaphone' ],
 	[ 'href' => 'panel/encuestas',    'label' => __( 'Encuestas', 'cead-acad' ),    'icon' => 'feedback' ],
+	[ 'href' => 'panel/horarios',     'label' => __( 'Horarios', 'cead-acad' ),     'icon' => 'calendar' ],
+	[ 'href' => 'panel/recursos',     'label' => __( 'Recursos', 'cead-acad' ),     'icon' => 'portfolio' ],
 ];
 
 $by_role = [

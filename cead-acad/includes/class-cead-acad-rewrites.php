@@ -126,6 +126,24 @@ class Cead_Acad_Rewrites {
 				}
 				return;
 
+			case 'horarios':
+				$id = isset( $parts[1] ) ? (int) $parts[1] : 0;
+				if ( $id > 0 ) {
+					cead_acad_template( 'panel/horarios/single.php', [ 'event_id' => $id ] );
+				} else {
+					cead_acad_template( 'panel/horarios/list.php' );
+				}
+				return;
+
+			case 'recursos':
+				$id = isset( $parts[1] ) ? (int) $parts[1] : 0;
+				if ( $id > 0 ) {
+					cead_acad_template( 'panel/recursos/single.php', [ 'resource_id' => $id ] );
+				} else {
+					cead_acad_template( 'panel/recursos/list.php' );
+				}
+				return;
+
 			default:
 				cead_acad_template( 'panel/home.php', [ 'sub' => $sub ] );
 				return;

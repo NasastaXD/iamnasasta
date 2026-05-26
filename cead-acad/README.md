@@ -2,7 +2,22 @@
 
 Plugin modular para el portal del **Centro Educativo de Alto Desempeño "Félix de Guarania"** (CEAD). Convive con el tema `cead-theme` (mismo repo) y reutiliza su estética (paleta, tipografías y componentes).
 
-## Estado actual: Fase 2 — Encuestas
+## Estado actual: Fase 3 — Horarios + Recursos
+
+### Fase 3 — añadido en esta versión
+
+- **CPT `cead_acad_event`** con metabox de fechas (inicio/fin/todo el día), tipo (clase/reunión/examen/evento) y lugar.
+- **Targeting reutiliza** la tabla `cead_acad_audiences` (subject_type='event').
+- **Frontend `/panel/horarios`**: agenda agrupada por día, próximos 60 días, código de color por tipo de evento.
+- **Frontend `/panel/horarios/{id}`**: detalle con permisos verificados.
+- **Export iCal** (.ics) por usuario: descarga sus eventos respetando audiencia.
+- **CPT `cead_acad_resource`** con metabox de archivo adjunto (Media Library) o URL externa.
+- **Taxonomías**: materias y tipos (mapa conceptual / PDF / enlace / imagen / video, seedeadas).
+- **Targeting reutiliza** la tabla `cead_acad_audiences` (subject_type='resource').
+- **Frontend `/panel/recursos`**: biblioteca con búsqueda + filtros por materia y tipo, grilla con thumbnails.
+- **Frontend `/panel/recursos/{id}`**: detalle con botón "Abrir recurso".
+
+### Fase 2 — Encuestas
 
 ### Fase 2 — añadido en esta versión
 
