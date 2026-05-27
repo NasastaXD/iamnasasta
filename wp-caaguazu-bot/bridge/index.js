@@ -10,6 +10,7 @@ import makeWASocket, {
     DisconnectReason,
     Browsers,
     fetchLatestBaileysVersion,
+    downloadMediaMessage,
 } from '@whiskeysockets/baileys';
 import express          from 'express';
 import axios            from 'axios';
@@ -171,12 +172,16 @@ async function connectToWhatsApp() {
             if ( msg.key.fromMe )                          continue;
             if ( msg.key.remoteJid?.endsWith( '@g.us' ) ) continue;
 
-            const from = ( msg.key.remoteJid || '' ).replace( /@s\.whatsapp\.net$/, '' );
+            const from     = ( msg.key.remoteJid || '' ).replace( /@s\.whatsapp\.net$/, '' );
+            const imageMsg = msg.message?.imageMessage;
             const body = msg.message?.conversation
                       || msg.message?.extendedTextMessage?.text
+                      || imageMsg?.caption
                       || '';
 
-            if ( ! body.trim() ) continue;
+            const media = imageMsg ? await downloadImage( msg, imageMsg ) : null;
+
+            if ( ! body.trim() && ! media ) continue;
 
             await sock.readMessages( [ msg.key ] ).catch( () => {} );
             await sock.sendPresenceUpdate( 'composing', msg.key.remoteJid ).catch( () => {} );
@@ -190,10 +195,12 @@ async function connectToWhatsApp() {
                             body:      body,
                             pushName:  msg.pushName || '',
                             timestamp: msg.messageTimestamp || Math.floor( Date.now() / 1000 ),
+                            media:     media,
                         },
                         {
                             headers: { 'X-Caag-Token': SHARED_TOKEN },
                             timeout: 30000,
+                            maxBodyLength: Infinity,
                         }
                     );
                 } catch ( err ) {
@@ -211,6 +218,40 @@ async function connectToWhatsApp() {
 function clearAuthState() {
     if ( existsSync( AUTH_DIR ) ) {
         rmSync( AUTH_DIR, { recursive: true, force: true } );
+    }
+}
+
+// Descarga una imagen entrante y la devuelve en base64 para enviarla a WordPress.
+// Solo acepta jpg/png/webp de hasta 5 MB; cualquier otra cosa se ignora.
+async function downloadImage( msg, imageMsg ) {
+    const allowed  = [ 'image/jpeg', 'image/png', 'image/webp' ];
+    const baseMime = ( imageMsg.mimetype || 'image/jpeg' ).split( ';' )[ 0 ].trim();
+
+    if ( ! allowed.includes( baseMime ) ) {
+        return null;
+    }
+
+    try {
+        const buffer = await downloadMediaMessage(
+            msg,
+            'buffer',
+            {},
+            { logger, reuploadRequest: sock.updateMediaMessage }
+        );
+
+        if ( ! buffer || buffer.length > 5 * 1024 * 1024 ) {
+            console.warn( '[CaagBridge] Imagen omitida (vacía o mayor a 5 MB).' );
+            return null;
+        }
+
+        return {
+            mime:        baseMime,
+            data_base64: buffer.toString( 'base64' ),
+            filename:    `whatsapp-${ Date.now() }.${ baseMime.split( '/' )[ 1 ] }`,
+        };
+    } catch ( err ) {
+        console.error( '[CaagBridge] Error descargando imagen:', err.message );
+        return null;
     }
 }
 

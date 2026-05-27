@@ -27,6 +27,32 @@ class Caaguazu_Bridge_Client {
         return $this->make_request( 'POST', '/api/logout' );
     }
 
+    /** Prueba el estado contra una URL/token arbitrarios (sin tocar la config guardada). */
+    public function probe( string $url, string $token ): array {
+        $url = rtrim( trim( $url ), '/' );
+        if ( $url === '' ) {
+            return [ 'error' => 'URL del bridge no configurada.' ];
+        }
+
+        $response = wp_remote_get( $url . '/api/status', [
+            'timeout' => 15,
+            'headers' => [ 'X-Caag-Token' => $token ],
+        ] );
+
+        if ( is_wp_error( $response ) ) {
+            return [ 'error' => $response->get_error_message() ];
+        }
+
+        $code = wp_remote_retrieve_response_code( $response );
+        $data = json_decode( wp_remote_retrieve_body( $response ), true );
+
+        if ( $code !== 200 ) {
+            return [ 'error' => "HTTP $code" ];
+        }
+
+        return is_array( $data ) ? $data : [ 'error' => 'Respuesta inválida del bridge.' ];
+    }
+
     private function make_request( string $method, string $path, array $body = [] ): array {
         if ( empty( $this->url ) ) {
             return [ 'error' => 'URL del bridge no configurada.' ];

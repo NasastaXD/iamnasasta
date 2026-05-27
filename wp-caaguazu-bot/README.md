@@ -81,19 +81,37 @@ Bot de WhatsApp para gestionar el sitio caaguazu.net desde el celular. Permite p
 ### Como administrador
 1. Envíe cualquier mensaje al número del bot
 2. Recibirá un menú con opciones: publicar, editar, borrar, ver enlaces
+3. **Publicar:** envíe el texto del artículo. La **primera línea** se usa como título y el
+   resto como cuerpo. Puede **adjuntar una imagen** y se fijará como portada (imagen
+   destacada). Luego elige categoría y si **publica** o lo deja como **borrador**.
+4. **Editar:** elige el artículo y luego si desea **reemplazar** todo el contenido o
+   **agregar al final**.
 
 ### Como lector
 1. Cualquier persona puede escribirle al número del bot
-2. Recibirá un menú para ver artículos por categoría o recientes
+2. Recibirá un menú para: ver artículos por categoría, recientes, **buscar por palabra
+   clave** y **administrar sus suscripciones** a categorías.
 
 ### Broadcast desde WordPress
 - Vaya a **Caaguazú Bot → Broadcast**
-- Escriba el mensaje y seleccione los destinatarios
-- Presione "Enviar mensaje"
+- Escriba el mensaje y seleccione los destinatarios: todos (sin bajas), solo lectores,
+  solo admins, **suscriptores de una categoría**, o números específicos.
+- Presione "Enviar mensaje". El envío se procesa **en segundo plano por lotes** (no se
+  corta con listas grandes) y verá una **barra de progreso** en vivo.
+
+> El procesamiento en lotes usa WP-Cron. En sitios con poco tráfico, WP-Cron puede
+> demorarse entre lotes hasta que llegue una visita o se dispare el heartbeat (cada 5
+> min). Para envíos masivos inmediatos en sitios de bajo tráfico, conviene configurar un
+> cron real del sistema apuntando a `wp-cron.php`.
+
+### Estadísticas
+- Vaya a **Caaguazú Bot → Estadísticas** para ver mensajes recibidos/enviados (totales y
+  últimos 7 días), usuarios únicos, conteo de admins/lectores y el historial de broadcasts.
 
 ### Editar los textos del bot
 - Vaya a **Caaguazú Bot → Mensajes del bot**
-- Edite cualquier plantilla (sin borrar los marcadores `{name}`, `{permalink}`, etc.)
+- Edite cualquier plantilla (sin borrar los marcadores `{name}`, `{permalink}`,
+  `{term}`, `{subs_list}`, etc.)
 
 ---
 
@@ -146,8 +164,9 @@ Si la PC del administrador está apagada, sin internet, o el bridge no está cor
 ### El tunnel gratuito de Cloudflare cambia de URL
 Con el plan gratuito, la URL de Cloudflare Tunnel cambia cada vez que reinicia. Para URLs estables, se puede pagar el plan de Cloudflare o usar un dominio propio con el tunnel.
 
-### Solo mensajes de texto
-El bot no procesa imágenes, audios, documentos ni stickers — solo mensajes de texto. Si recibe un mensaje multimedia, lo ignorará.
+### Multimedia limitada
+El bot procesa texto y, al publicar, **imágenes** (jpg/png/webp, hasta 5 MB) que usa como
+portada del artículo. Audios, documentos, stickers y videos se ignoran.
 
 ### Mensajes grupales no soportados
 El bot solo responde a chats individuales. Los mensajes enviados en grupos donde está el número del bot son ignorados.

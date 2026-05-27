@@ -37,6 +37,7 @@ class Caaguazu_Admin {
             [ 'caag-bot-qr',        'Vincular WhatsApp',   [ $this, 'render_qr_page'        ] ],
             [ 'caag-bot-messages',  'Mensajes del bot',    [ $this, 'render_messages_page'  ] ],
             [ 'caag-bot-broadcast', 'Broadcast',           [ $this, 'render_broadcast_page' ] ],
+            [ 'caag-bot-stats',     'Estadísticas',        [ $this, 'render_stats_page'     ] ],
             [ 'caag-bot-config',    'Configuración',       [ $this, 'render_config_page'    ] ],
         ];
 
@@ -90,6 +91,11 @@ class Caaguazu_Admin {
     public function render_qr_page(): void {
         $this->check_permission();
         include CAAG_BOT_DIR . 'admin/views/page-qr.php';
+    }
+
+    public function render_stats_page(): void {
+        $this->check_permission();
+        include CAAG_BOT_DIR . 'admin/views/page-stats.php';
     }
 
     public function render_messages_page(): void {
@@ -170,6 +176,7 @@ class Caaguazu_Admin {
             'caag_logout_bridge'      => $this->ajax_logout_bridge(),
             'caag_test_bridge'        => $this->ajax_test_bridge(),
             'caag_send_broadcast'     => $this->ajax_send_broadcast(),
+            'caag_broadcast_progress' => $this->ajax_broadcast_progress(),
             'caag_add_admin_number'   => $this->ajax_add_admin_number(),
             'caag_remove_admin_number'=> $this->ajax_remove_admin_number(),
             default                   => wp_send_json_error( [ 'message' => 'Acción no reconocida.' ] ),
@@ -211,7 +218,12 @@ class Caaguazu_Admin {
     }
 
     private function ajax_test_bridge(): void {
-        $status = $this->bridge->get_status();
+        // Prueba la URL y el token tipeados en el formulario (no los guardados).
+        $url   = esc_url_raw( wp_unslash( $_POST['bridge_url'] ?? '' ) );
+        $token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
+
+        $status = $this->bridge->probe( $url, $token );
+
         if ( isset( $status['error'] ) ) {
             wp_send_json_error( [ 'message' => $status['error'] ] );
         } else {
@@ -220,28 +232,28 @@ class Caaguazu_Admin {
     }
 
     private function ajax_send_broadcast(): void {
-        $message = sanitize_textarea_field( wp_unslash( $_POST['message'] ?? '' ) );
-        $target  = sanitize_key( $_POST['target'] ?? 'all' );
-        $custom  = sanitize_text_field( wp_unslash( $_POST['custom_numbers'] ?? '' ) );
+        $message     = sanitize_textarea_field( wp_unslash( $_POST['message'] ?? '' ) );
+        $target      = sanitize_key( $_POST['target'] ?? 'all' );
+        $custom      = sanitize_text_field( wp_unslash( $_POST['custom_numbers'] ?? '' ) );
+        $category_id = (int) ( $_POST['category_id'] ?? 0 );
 
         if ( empty( $message ) ) {
             wp_send_json_error( [ 'message' => 'El mensaje no puede estar vacío.' ] );
             return;
         }
 
-        if ( $custom !== '' ) {
-            $phones = array_map(
-                fn( $p ) => preg_replace( '/[^0-9]/', '', trim( $p ) ),
-                explode( ',', $custom )
-            );
-            $phones = array_filter( $phones, fn( $p ) => strlen( $p ) >= 7 );
-            $result = $this->broadcaster->send_to_numbers( $message, array_values( $phones ) );
-        } else {
-            $role   = match ( $target ) { 'readers' => 'reader', 'admins' => 'admin', default => '' };
-            $result = $this->broadcaster->send_to_all( $message, $role );
+        $result = $this->broadcaster->enqueue_for( $message, $target, $custom, $category_id );
+
+        if ( ( $result['total'] ?? 0 ) === 0 ) {
+            wp_send_json_error( [ 'message' => 'No hay destinatarios para el criterio seleccionado.' ] );
+            return;
         }
 
         wp_send_json_success( $result );
+    }
+
+    private function ajax_broadcast_progress(): void {
+        wp_send_json_success( $this->broadcaster->get_progress() );
     }
 
     private function ajax_add_admin_number(): void {

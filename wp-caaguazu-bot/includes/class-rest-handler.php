@@ -55,12 +55,22 @@ class Caaguazu_Rest_Handler {
             return new WP_REST_Response( [ 'code' => 'bad_request', 'message' => 'Campos requeridos: from, body' ], 400 );
         }
 
+        $media = null;
+        if ( ! empty( $body['media'] ) && is_array( $body['media'] ) ) {
+            $media = [
+                'mime'        => (string) ( $body['media']['mime'] ?? '' ),
+                'data_base64' => (string) ( $body['media']['data_base64'] ?? '' ),
+                'filename'    => (string) ( $body['media']['filename'] ?? '' ),
+            ];
+        }
+
         try {
             $this->engine->process_message( [
                 'from'     => (string) $body['from'],
                 'body'     => (string) $body['body'],
                 'pushName' => (string) ( $body['pushName'] ?? '' ),
                 'timestamp'=> (int) ( $body['timestamp'] ?? time() ),
+                'media'    => $media,
             ] );
         } catch ( \Throwable $e ) {
             error_log( '[CaagBot] process_message exception: ' . $e->getMessage() );

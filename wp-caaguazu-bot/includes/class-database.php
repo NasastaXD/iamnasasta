@@ -103,6 +103,12 @@ class Caaguazu_Database {
         return $wpdb->get_results( "SELECT * FROM `{$this->t_numbers}` ORDER BY registered_at DESC" ) ?: [];
     }
 
+    /** Todos los números que NO se dieron de baja (para broadcasts a "todos"). */
+    public function get_active_numbers(): array {
+        global $wpdb;
+        return $wpdb->get_results( "SELECT * FROM `{$this->t_numbers}` WHERE opt_out = 0 ORDER BY registered_at DESC" ) ?: [];
+    }
+
     public function is_admin_phone( string $phone ): bool {
         global $wpdb;
         $count = (int) $wpdb->get_var(
@@ -118,6 +124,51 @@ class Caaguazu_Database {
         global $wpdb;
         $row = $this->get_number( $phone );
         return $row && (int) $row->opt_out === 1;
+    }
+
+    // -----------------------------------------------------------------------
+    // Suscripciones a categorías
+    // Se guardan como string delimitado por comas (",1,5,9,") para poder
+    // filtrar con LIKE de forma segura.
+    // -----------------------------------------------------------------------
+
+    public function get_subscriptions( string $phone ): array {
+        $row = $this->get_number( $phone );
+        if ( ! $row || empty( $row->subscriptions ) ) {
+            return [];
+        }
+        $ids = array_filter( explode( ',', trim( (string) $row->subscriptions, ',' ) ), 'strlen' );
+        return array_values( array_unique( array_map( 'intval', $ids ) ) );
+    }
+
+    public function set_subscriptions( string $phone, array $cat_ids ): bool {
+        $ids = array_values( array_unique( array_filter( array_map( 'intval', $cat_ids ), fn( $i ) => $i > 0 ) ) );
+        sort( $ids );
+        $value = empty( $ids ) ? '' : ',' . implode( ',', $ids ) . ',';
+        return $this->upsert_number( $phone, [ 'subscriptions' => $value ] );
+    }
+
+    /** Activa/desactiva una categoría y devuelve la nueva lista de IDs. */
+    public function toggle_subscription( string $phone, int $cat_id ): array {
+        $subs = $this->get_subscriptions( $phone );
+        if ( in_array( $cat_id, $subs, true ) ) {
+            $subs = array_values( array_diff( $subs, [ $cat_id ] ) );
+        } else {
+            $subs[] = $cat_id;
+        }
+        $this->set_subscriptions( $phone, $subs );
+        return $subs;
+    }
+
+    public function get_subscribers_by_category( int $cat_id ): array {
+        global $wpdb;
+        $like = '%' . $wpdb->esc_like( ',' . $cat_id . ',' ) . '%';
+        return $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM `{$this->t_numbers}` WHERE opt_out = 0 AND subscriptions LIKE %s",
+                $like
+            )
+        ) ?: [];
     }
 
     // -----------------------------------------------------------------------
@@ -165,6 +216,56 @@ class Caaguazu_Database {
             )
         );
         return (int) $wpdb->rows_affected;
+    }
+
+    // -----------------------------------------------------------------------
+    // Estadísticas (solo lectura)
+    // -----------------------------------------------------------------------
+
+    /** Cuenta mensajes. $direction: '' = todos, 'in', 'out'. $days: 0 = sin límite. */
+    public function count_messages( string $direction = '', int $days = 0 ): int {
+        global $wpdb;
+        $where  = [];
+        $params = [];
+        if ( $direction !== '' ) {
+            $where[]  = 'direction = %s';
+            $params[] = $direction;
+        }
+        if ( $days > 0 ) {
+            $where[]  = 'timestamp >= DATE_SUB(NOW(), INTERVAL %d DAY)';
+            $params[] = $days;
+        }
+        $sql = "SELECT COUNT(*) FROM `{$this->t_logs}`";
+        if ( $where ) {
+            $sql .= ' WHERE ' . implode( ' AND ', $where );
+        }
+        return (int) ( $params
+            ? $wpdb->get_var( $wpdb->prepare( $sql, ...$params ) )
+            : $wpdb->get_var( $sql ) );
+    }
+
+    public function count_unique_users( int $days = 0 ): int {
+        global $wpdb;
+        $sql = "SELECT COUNT(DISTINCT phone) FROM `{$this->t_logs}`";
+        if ( $days > 0 ) {
+            return (int) $wpdb->get_var(
+                $wpdb->prepare( $sql . ' WHERE timestamp >= DATE_SUB(NOW(), INTERVAL %d DAY)', $days )
+            );
+        }
+        return (int) $wpdb->get_var( $sql );
+    }
+
+    /** Devuelve [ 'admin' => n, 'reader' => n ] de números no dados de baja. */
+    public function count_numbers_by_role(): array {
+        global $wpdb;
+        $rows = $wpdb->get_results(
+            "SELECT role, COUNT(*) AS total FROM `{$this->t_numbers}` WHERE opt_out = 0 GROUP BY role"
+        ) ?: [];
+        $out = [];
+        foreach ( $rows as $r ) {
+            $out[ (string) $r->role ] = (int) $r->total;
+        }
+        return $out;
     }
 
     // -----------------------------------------------------------------------

@@ -7,6 +7,9 @@ class Caaguazu_Bot_Engine {
     private Caaguazu_Bridge_Client $bridge;
     private Caaguazu_WP_Actions    $wp_actions;
 
+    /** Imagen recibida junto al mensaje actual (solo se usa al publicar). */
+    private ?array $pending_media = null;
+
     public function __construct(
         Caaguazu_Database $db,
         Caaguazu_Bridge_Client $bridge,
@@ -21,10 +24,13 @@ class Caaguazu_Bot_Engine {
         $phone     = preg_replace( '/[^0-9]/', '', (string) ( $msg['from'] ?? '' ) );
         $body      = sanitize_textarea_field( (string) ( $msg['body']     ?? '' ) );
         $push_name = sanitize_text_field( (string) ( $msg['pushName'] ?? '' ) );
+        $media     = $this->sanitize_media( $msg['media'] ?? null );
 
-        if ( $phone === '' || $body === '' ) {
+        if ( $phone === '' || ( $body === '' && ! $media ) ) {
             return;
         }
+
+        $this->pending_media = $media;
 
         // Registrar número si es primera visita (rol inicial: reader)
         $number_row = $this->db->get_number( $phone );
@@ -35,7 +41,7 @@ class Caaguazu_Bot_Engine {
         }
 
         $this->db->update_last_seen( $phone );
-        $this->db->log_message( $phone, 'in', $body );
+        $this->db->log_message( $phone, 'in', $body !== '' ? $body : '[imagen]' );
 
         if ( $this->db->is_opted_out( $phone ) ) {
             return;
@@ -71,12 +77,16 @@ class Caaguazu_Bot_Engine {
             'admin_menu'             => $this->handle_admin_menu( $phone, $body_lc ),
             'admin_publish_content'  => $this->handle_admin_publish_content( $phone, $body ),
             'admin_publish_category' => $this->handle_admin_publish_category( $phone, $body_lc, $context ),
+            'admin_publish_status'   => $this->handle_admin_publish_status( $phone, $body_lc, $context ),
             'admin_edit_list'        => $this->handle_admin_edit_list( $phone, $body_lc, $context ),
+            'admin_edit_mode'        => $this->handle_admin_edit_mode( $phone, $body_lc, $context ),
             'admin_edit_content'     => $this->handle_admin_edit_content( $phone, $body, $context ),
             'admin_delete_list'      => $this->handle_admin_delete_list( $phone, $body_lc, $context ),
             'admin_delete_confirm'   => $this->handle_admin_delete_confirm( $phone, $body_lc, $context ),
             'reader_menu'            => $this->handle_reader_menu( $phone, $body_lc, $name ),
             'reader_category_list'   => $this->handle_reader_category_list( $phone, $body_lc, $context ),
+            'reader_search'          => $this->handle_reader_search( $phone, $body, $body_lc ),
+            'reader_subs'            => $this->handle_reader_subs( $phone, $body_lc, $context ),
             default                  => $this->handle_idle( $phone, $name ),
         };
     }
@@ -114,7 +124,7 @@ class Caaguazu_Bot_Engine {
     }
 
     private function admin_show_edit_list( string $phone ): void {
-        $posts = $this->wp_actions->get_recent_posts( 10 );
+        $posts = $this->wp_actions->get_recent_posts( (int) get_option( 'caag_posts_per_page_admin', 10 ) );
         if ( empty( $posts ) ) {
             $this->send_reply( $phone, $this->db->get_message( 'no_posts_found' ) );
             return;
@@ -130,7 +140,7 @@ class Caaguazu_Bot_Engine {
     }
 
     private function admin_show_delete_list( string $phone ): void {
-        $posts = $this->wp_actions->get_recent_posts( 10 );
+        $posts = $this->wp_actions->get_recent_posts( (int) get_option( 'caag_posts_per_page_admin', 10 ) );
         if ( empty( $posts ) ) {
             $this->send_reply( $phone, $this->db->get_message( 'no_posts_found' ) );
             return;
@@ -161,16 +171,27 @@ class Caaguazu_Bot_Engine {
     }
 
     private function handle_admin_publish_content( string $phone, string $body ): void {
+        $has_media = false;
+        if ( $this->pending_media ) {
+            set_transient( $this->media_key( $phone ), $this->pending_media, 15 * MINUTE_IN_SECONDS );
+            $has_media = true;
+        }
+
         $cats = $this->wp_actions->get_categories();
         if ( empty( $cats ) ) {
-            $result = $this->wp_actions->insert_post( $body, 0 );
-            $this->db->reset_user_state( $phone );
-            $this->send_publish_result( $phone, $result );
+            $this->db->set_user_state( $phone, 'admin_publish_status', [
+                'pending_content' => $body,
+                'category_id'     => 0,
+                'has_media'       => $has_media,
+            ] );
+            $this->send_reply( $phone, $this->db->get_message( 'publish_status_prompt' ) );
             return;
         }
+
         $this->db->set_user_state( $phone, 'admin_publish_category', [
             'pending_content' => $body,
             'categories'      => $cats,
+            'has_media'       => $has_media,
         ] );
         $this->send_reply(
             $phone,
@@ -183,9 +204,7 @@ class Caaguazu_Bot_Engine {
 
     private function handle_admin_publish_category( string $phone, string $body_lc, array $context ): void {
         if ( $this->is_cancel( $body_lc ) ) {
-            $this->db->set_user_state( $phone, 'admin_menu' );
-            $this->send_reply( $phone, $this->db->get_message( 'publish_cancelled' ) );
-            $this->send_reply( $phone, $this->db->get_message( 'admin_menu' ) );
+            $this->cancel_publish( $phone );
             return;
         }
 
@@ -197,8 +216,41 @@ class Caaguazu_Bot_Engine {
             return;
         }
 
-        $cat_id = (int) $cats[ $index ]['id'];
-        $result = $this->wp_actions->insert_post( $context['pending_content'] ?? '', $cat_id );
+        $this->db->set_user_state( $phone, 'admin_publish_status', [
+            'pending_content' => $context['pending_content'] ?? '',
+            'category_id'     => (int) $cats[ $index ]['id'],
+            'has_media'       => $context['has_media'] ?? false,
+        ] );
+        $this->send_reply( $phone, $this->db->get_message( 'publish_status_prompt' ) );
+    }
+
+    private function handle_admin_publish_status( string $phone, string $body_lc, array $context ): void {
+        if ( $this->is_cancel( $body_lc ) ) {
+            $this->cancel_publish( $phone );
+            return;
+        }
+
+        $status = match ( $body_lc ) {
+            '1'     => 'publish',
+            '2'     => 'draft',
+            default => '',
+        };
+
+        if ( $status === '' ) {
+            $this->send_invalid_option( $phone );
+            return;
+        }
+
+        $media = ! empty( $context['has_media'] ) ? get_transient( $this->media_key( $phone ) ) : null;
+        delete_transient( $this->media_key( $phone ) );
+
+        $result = $this->wp_actions->insert_post(
+            (string) ( $context['pending_content'] ?? '' ),
+            (int) ( $context['category_id'] ?? 0 ),
+            $status,
+            is_array( $media ) ? $media : null
+        );
+
         $this->db->set_user_state( $phone, 'admin_menu' );
         $this->send_publish_result( $phone, $result );
         $this->send_reply( $phone, $this->db->get_message( 'admin_menu' ) );
@@ -221,26 +273,56 @@ class Caaguazu_Bot_Engine {
         }
 
         $post = $posts[ $index ];
-        $this->db->set_user_state( $phone, 'admin_edit_content', [ 'post_id' => $post['id'], 'post_title' => $post['title'] ] );
+        $this->db->set_user_state( $phone, 'admin_edit_mode', [ 'post_id' => $post['id'], 'post_title' => $post['title'] ] );
+        $this->send_reply(
+            $phone,
+            $this->interpolate(
+                $this->db->get_message( 'edit_mode_prompt' ),
+                [ 'title' => $post['title'] ]
+            )
+        );
+    }
+
+    private function handle_admin_edit_mode( string $phone, string $body_lc, array $context ): void {
+        if ( $this->is_cancel( $body_lc ) ) {
+            $this->cancel_edit( $phone );
+            return;
+        }
+
+        $mode = match ( $body_lc ) {
+            '1'     => 'replace',
+            '2'     => 'append',
+            default => '',
+        };
+
+        if ( $mode === '' ) {
+            $this->send_invalid_option( $phone );
+            return;
+        }
+
+        $this->db->set_user_state( $phone, 'admin_edit_content', [
+            'post_id'    => (int) ( $context['post_id'] ?? 0 ),
+            'post_title' => (string) ( $context['post_title'] ?? '' ),
+            'mode'       => $mode,
+        ] );
         $this->send_reply(
             $phone,
             $this->interpolate(
                 $this->db->get_message( 'edit_content_prompt' ),
-                [ 'title' => $post['title'] ]
+                [ 'title' => (string) ( $context['post_title'] ?? '' ) ]
             )
         );
     }
 
     private function handle_admin_edit_content( string $phone, string $body, array $context ): void {
         if ( $this->is_cancel( strtolower( trim( $body ) ) ) ) {
-            $this->db->set_user_state( $phone, 'admin_menu' );
-            $this->send_reply( $phone, $this->db->get_message( 'edit_cancelled' ) );
-            $this->send_reply( $phone, $this->db->get_message( 'admin_menu' ) );
+            $this->cancel_edit( $phone );
             return;
         }
 
         $post_id = (int) ( $context['post_id'] ?? 0 );
-        $result  = $this->wp_actions->update_post( $post_id, $body );
+        $mode    = (string) ( $context['mode'] ?? 'replace' );
+        $result  = $this->wp_actions->update_post( $post_id, $body, $mode );
         $this->db->set_user_state( $phone, 'admin_menu' );
 
         if ( $result['success'] ) {
@@ -311,6 +393,8 @@ class Caaguazu_Bot_Engine {
         match ( $body_lc ) {
             '1'                       => $this->reader_show_categories( $phone ),
             '2'                       => $this->reader_show_recent( $phone ),
+            '3'                       => $this->reader_start_search( $phone ),
+            '4'                       => $this->reader_show_subs( $phone ),
             '0', 'adios', 'adiós', 'salir' => $this->reader_exit( $phone ),
             default                   => $this->send_invalid_option( $phone ),
         };
@@ -378,6 +462,76 @@ class Caaguazu_Bot_Engine {
         $this->send_reply( $phone, $this->db->get_message( 'reader_menu' ) );
     }
 
+    private function reader_start_search( string $phone ): void {
+        $this->db->set_user_state( $phone, 'reader_search' );
+        $this->send_reply( $phone, $this->db->get_message( 'search_prompt' ) );
+    }
+
+    private function handle_reader_search( string $phone, string $body, string $body_lc ): void {
+        if ( $this->is_cancel( $body_lc ) ) {
+            $this->db->set_user_state( $phone, 'reader_menu' );
+            $this->send_reply( $phone, $this->db->get_message( 'reader_menu' ) );
+            return;
+        }
+
+        $term  = trim( $body );
+        $count = (int) get_option( 'caag_posts_per_page_reader', 5 );
+        $posts = $this->wp_actions->search_posts( $term, $count );
+        $this->db->set_user_state( $phone, 'reader_menu' );
+
+        if ( empty( $posts ) ) {
+            $this->send_reply( $phone, $this->interpolate( $this->db->get_message( 'search_no_results' ), [ 'term' => $term ] ) );
+        } else {
+            $header = $this->interpolate( $this->db->get_message( 'search_results_header' ), [ 'term' => $term ] );
+            $this->send_reply( $phone, $header . "\n\n" . $this->format_posts_list( $posts ) );
+        }
+
+        $this->send_reply( $phone, $this->db->get_message( 'reader_menu' ) );
+    }
+
+    private function reader_show_subs( string $phone ): void {
+        $cats = $this->wp_actions->get_categories();
+        if ( empty( $cats ) ) {
+            $this->send_reply( $phone, $this->db->get_message( 'no_posts_found' ) );
+            return;
+        }
+        $this->db->set_user_state( $phone, 'reader_subs', [ 'categories' => $cats ] );
+        $this->send_subs_prompt( $phone, $cats );
+    }
+
+    private function handle_reader_subs( string $phone, string $body_lc, array $context ): void {
+        if ( $this->is_cancel( $body_lc ) ) {
+            $this->db->set_user_state( $phone, 'reader_menu' );
+            $this->send_reply( $phone, $this->db->get_message( 'reader_menu' ) );
+            return;
+        }
+
+        $cats  = $context['categories'] ?? [];
+        $index = (int) $body_lc - 1;
+
+        if ( ! isset( $cats[ $index ] ) ) {
+            $this->send_invalid_option( $phone );
+            return;
+        }
+
+        $this->db->toggle_subscription( $phone, (int) $cats[ $index ]['id'] );
+        $this->send_reply( $phone, $this->db->get_message( 'subs_updated' ) );
+        $this->send_subs_prompt( $phone, $cats );
+    }
+
+    private function send_subs_prompt( string $phone, array $cats ): void {
+        $subs  = $this->db->get_subscriptions( $phone );
+        $lines = [];
+        foreach ( $cats as $i => $c ) {
+            $mark    = in_array( (int) $c['id'], $subs, true ) ? '✅' : '⬜';
+            $lines[] = ( $i + 1 ) . '. ' . $mark . ' ' . $c['name'];
+        }
+        $this->send_reply(
+            $phone,
+            $this->interpolate( $this->db->get_message( 'subs_prompt' ), [ 'subs_list' => implode( "\n", $lines ) ] )
+        );
+    }
+
     // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
@@ -393,14 +547,51 @@ class Caaguazu_Bot_Engine {
 
     private function send_publish_result( string $phone, array $result ): void {
         if ( $result['success'] ) {
+            $key = ( $result['status'] ?? 'publish' ) === 'draft' ? 'draft_success' : 'publish_success';
             $this->send_reply(
                 $phone,
-                $this->interpolate( $this->db->get_message( 'publish_success' ), [ 'permalink' => $result['permalink'] ] ),
+                $this->interpolate( $this->db->get_message( $key ), [ 'permalink' => $result['permalink'] ] ),
                 'publish_post'
             );
         } else {
             $this->send_reply( $phone, $this->db->get_message( 'error_generic' ) );
         }
+    }
+
+    private function cancel_publish( string $phone ): void {
+        delete_transient( $this->media_key( $phone ) );
+        $this->db->set_user_state( $phone, 'admin_menu' );
+        $this->send_reply( $phone, $this->db->get_message( 'publish_cancelled' ) );
+        $this->send_reply( $phone, $this->db->get_message( 'admin_menu' ) );
+    }
+
+    private function cancel_edit( string $phone ): void {
+        $this->db->set_user_state( $phone, 'admin_menu' );
+        $this->send_reply( $phone, $this->db->get_message( 'edit_cancelled' ) );
+        $this->send_reply( $phone, $this->db->get_message( 'admin_menu' ) );
+    }
+
+    private function media_key( string $phone ): string {
+        return 'caag_pubmedia_' . $phone;
+    }
+
+    /** Valida la estructura de media recibida del bridge. Devuelve null si no es válida. */
+    private function sanitize_media( $media ): ?array {
+        if ( ! is_array( $media ) || empty( $media['data_base64'] ) || empty( $media['mime'] ) ) {
+            return null;
+        }
+
+        $allowed = [ 'image/jpeg', 'image/png', 'image/webp' ];
+        $mime    = strtolower( (string) $media['mime'] );
+        if ( ! in_array( $mime, $allowed, true ) ) {
+            return null;
+        }
+
+        return [
+            'mime'        => $mime,
+            'data_base64' => (string) $media['data_base64'],
+            'filename'    => sanitize_file_name( (string) ( $media['filename'] ?? 'whatsapp-image' ) ),
+        ];
     }
 
     private function format_posts_list( array $posts ): string {

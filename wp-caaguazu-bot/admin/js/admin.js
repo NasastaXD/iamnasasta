@@ -132,10 +132,17 @@
      * --------------------------------------------------------------------- */
 
     var BroadcastTab = {
+        pollTimer: null,
+
         init: function () {
             $('#caag-btn-broadcast').on('click', function () {
                 BroadcastTab.send();
             });
+
+            // Mostrar el selector de categoría solo cuando aplica.
+            $('#caag-broadcast-target').on('change', function () {
+                $('#caag-broadcast-category-wrap').toggle($(this).val() === 'category');
+            }).trigger('change');
         },
 
         send: function () {
@@ -146,26 +153,50 @@
             $('#caag-btn-broadcast').prop('disabled', true).text(caagBot.strings.sending);
             $('#caag-broadcast-spinner').addClass('is-active');
             $('#caag-broadcast-result').hide();
+            $('#caag-broadcast-progress').hide();
+            $('#caag-broadcast-bar').css('width', '0');
 
             ajaxPost('caag_send_broadcast', {
                 message:        msg,
                 target:         $('#caag-broadcast-target').val(),
+                category_id:    $('#caag-broadcast-category').val(),
                 custom_numbers: $('#caag-broadcast-custom').val()
             }, function (res) {
-                $('#caag-btn-broadcast').prop('disabled', false).text('Enviar mensaje');
-                $('#caag-broadcast-spinner').removeClass('is-active');
-
                 if (res.success) {
-                    var d = res.data;
-                    $('#caag-broadcast-result')
-                        .html('<div class="notice notice-success inline"><p>✅ Enviados: <strong>' + d.sent + '</strong> | Fallidos: <strong>' + d.failed + '</strong></p></div>')
-                        .show();
+                    $('#caag-broadcast-progress').show();
+                    $('#caag-broadcast-progress-text').text('En cola: 0 / ' + res.data.total);
+                    BroadcastTab.poll(res.data.total);
                 } else {
+                    $('#caag-btn-broadcast').prop('disabled', false).text('Enviar mensaje');
+                    $('#caag-broadcast-spinner').removeClass('is-active');
                     $('#caag-broadcast-result')
                         .html('<div class="notice notice-error inline"><p>❌ ' + (res.data.message || 'Error') + '</p></div>')
                         .show();
                 }
             });
+        },
+
+        poll: function (total) {
+            clearInterval(BroadcastTab.pollTimer);
+            BroadcastTab.pollTimer = setInterval(function () {
+                ajaxPost('caag_broadcast_progress', {}, function (res) {
+                    if (!res.success) return;
+                    var d = res.data;
+                    var done = d.processed || 0;
+                    var pct = total > 0 ? Math.round((done / total) * 100) : 100;
+                    $('#caag-broadcast-bar').css('width', pct + '%');
+                    $('#caag-broadcast-progress-text').text('Procesados: ' + done + ' / ' + total + ' (enviados ' + (d.sent || 0) + ', fallidos ' + (d.failed || 0) + ')');
+
+                    if (d.status === 'done') {
+                        clearInterval(BroadcastTab.pollTimer);
+                        $('#caag-btn-broadcast').prop('disabled', false).text('Enviar mensaje');
+                        $('#caag-broadcast-spinner').removeClass('is-active');
+                        $('#caag-broadcast-result')
+                            .html('<div class="notice notice-success inline"><p>✅ Completado. Enviados: <strong>' + (d.sent || 0) + '</strong> | Fallidos: <strong>' + (d.failed || 0) + '</strong></p></div>')
+                            .show();
+                    }
+                });
+            }, 2000);
         }
     };
 
@@ -178,8 +209,9 @@
             // Probar conexión
             $('#caag-btn-test').on('click', function () {
                 var url = $('#caag_bridge_url').val();
+                var token = $('#caag_token').val();
                 $('#caag-test-result').text('Probando...');
-                ajaxPost('caag_test_bridge', { bridge_url: url }, function (res) {
+                ajaxPost('caag_test_bridge', { bridge_url: url, token: token }, function (res) {
                     if (res.success && res.data.connected) {
                         $('#caag-test-result').html('<span style="color:green;">✅ Conectado</span>');
                     } else {

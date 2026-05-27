@@ -40,6 +40,7 @@ class Caaguazu_Plugin {
         if ( ! is_admin() ) {
             return;
         }
+        add_action( 'admin_init',             [ 'Caaguazu_Activator', 'maybe_upgrade' ] );
         add_action( 'admin_menu',             [ $this->admin, 'register_menus' ] );
         add_action( 'admin_enqueue_scripts',  [ $this->admin, 'enqueue_scripts' ] );
         add_action( 'admin_post_caag_save_messages', [ $this->admin, 'save_messages' ] );
@@ -52,6 +53,7 @@ class Caaguazu_Plugin {
             'caag_logout_bridge',
             'caag_test_bridge',
             'caag_send_broadcast',
+            'caag_broadcast_progress',
             'caag_add_admin_number',
             'caag_remove_admin_number',
         ];
@@ -61,8 +63,9 @@ class Caaguazu_Plugin {
     }
 
     private function define_cron_hooks(): void {
-        add_action( 'caag_heartbeat_event',    [ $this, 'run_heartbeat'   ] );
-        add_action( 'caag_log_cleanup_event',  [ $this, 'run_log_cleanup' ] );
+        add_action( 'caag_heartbeat_event',     [ $this, 'run_heartbeat'   ] );
+        add_action( 'caag_log_cleanup_event',   [ $this, 'run_log_cleanup' ] );
+        add_action( 'caag_broadcast_batch_event', [ $this->broadcaster, 'process_batch' ] );
     }
 
     public function register_cron_intervals( array $schedules ): array {
