@@ -244,6 +244,11 @@ class Caaguazu_Admin {
 
         $result = $this->broadcaster->enqueue_for( $message, $target, $custom, $category_id );
 
+        if ( ! empty( $result['busy'] ) ) {
+            wp_send_json_error( [ 'message' => 'Ya hay un envío en curso. Espere a que termine.' ] );
+            return;
+        }
+
         if ( ( $result['total'] ?? 0 ) === 0 ) {
             wp_send_json_error( [ 'message' => 'No hay destinatarios para el criterio seleccionado.' ] );
             return;
@@ -253,6 +258,7 @@ class Caaguazu_Admin {
     }
 
     private function ajax_broadcast_progress(): void {
+        $this->broadcaster->kick_if_stalled();
         wp_send_json_success( $this->broadcaster->get_progress() );
     }
 

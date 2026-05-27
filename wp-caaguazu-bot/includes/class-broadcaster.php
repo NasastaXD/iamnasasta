@@ -25,12 +25,18 @@ class Caaguazu_Broadcaster {
                 array_map( fn( $p ) => preg_replace( '/[^0-9]/', '', trim( $p ) ), explode( ',', $custom ) ),
                 fn( $p ) => strlen( $p ) >= 7
             );
+        } elseif ( $target === 'category' ) {
+            // Solo se permite segmentar por categorías visibles para lectores.
+            $allowed = array_map( fn( $c ) => (int) $c['id'], ( new Caaguazu_WP_Actions() )->get_categories() );
+            if ( ! in_array( $category_id, $allowed, true ) ) {
+                return [ 'queued' => false, 'total' => 0 ];
+            }
+            $phones = array_map( fn( $n ) => (string) $n->phone, $this->db->get_subscribers_by_category( $category_id ) );
         } else {
             $numbers = match ( $target ) {
-                'readers'  => $this->db->get_numbers_by_role( 'reader' ),
-                'admins'   => $this->db->get_numbers_by_role( 'admin' ),
-                'category' => $this->db->get_subscribers_by_category( $category_id ),
-                default    => $this->db->get_active_numbers(),
+                'readers' => $this->db->get_numbers_by_role( 'reader' ),
+                'admins'  => $this->db->get_numbers_by_role( 'admin' ),
+                default   => $this->db->get_active_numbers(),
             };
             $phones = array_map( fn( $n ) => (string) $n->phone, $numbers );
         }
@@ -39,6 +45,10 @@ class Caaguazu_Broadcaster {
     }
 
     public function enqueue( string $message, array $phones ): array {
+        if ( $this->is_job_active() ) {
+            return [ 'queued' => false, 'busy' => true ];
+        }
+
         $phones = array_values( $phones );
         $job    = [
             'message'    => $message,
@@ -48,7 +58,7 @@ class Caaguazu_Broadcaster {
             'failed'     => 0,
             'total'      => count( $phones ),
             'status'     => count( $phones ) > 0 ? 'running' : 'done',
-            'started_at' => current_time( 'mysql' ),
+            'started_at' => time(),
         ];
 
         update_option( self::JOB_OPTION, $job, false );
@@ -59,6 +69,23 @@ class Caaguazu_Broadcaster {
         }
 
         return [ 'queued' => true, 'total' => $job['total'] ];
+    }
+
+    /**
+     * ¿Hay un envío realmente en curso? Un job 'running' se considera activo si tiene un
+     * evento de cron programado o se inició hace menos de 5 minutos; si no, está estancado
+     * y puede ser reemplazado (recuperación).
+     */
+    private function is_job_active(): bool {
+        $job = get_option( self::JOB_OPTION, null );
+        if ( ! is_array( $job ) || ( $job['status'] ?? '' ) !== 'running' ) {
+            return false;
+        }
+        if ( wp_next_scheduled( self::BATCH_EVENT ) ) {
+            return true;
+        }
+        $started = is_numeric( $job['started_at'] ?? null ) ? (int) $job['started_at'] : 0;
+        return $started > ( time() - 5 * MINUTE_IN_SECONDS );
     }
 
     /** Procesa un lote y reprograma el siguiente hasta agotar la cola. */
@@ -82,7 +109,6 @@ class Caaguazu_Broadcaster {
                 $job['failed']++;
             } else {
                 $job['sent']++;
-                $this->db->log_message( $phone, 'out', $job['message'], 'broadcast' );
             }
 
             // Pausa para evitar rate limiting de WhatsApp.
@@ -117,6 +143,19 @@ class Caaguazu_Broadcaster {
             'total'     => (int) ( $job['total'] ?? 0 ),
             'processed' => (int) ( $job['cursor'] ?? 0 ),
         ];
+    }
+
+    /**
+     * Si hay un job en curso sin evento de cron programado, reprograma uno. El poll del
+     * panel llama a esto para destrabar colas detenidas (incluso en hosts que bloquean el
+     * loopback de WP-Cron, ya que el navegador del admin actúa como disparador).
+     */
+    public function kick_if_stalled(): void {
+        $job = get_option( self::JOB_OPTION, null );
+        if ( is_array( $job ) && ( $job['status'] ?? '' ) === 'running' && ! wp_next_scheduled( self::BATCH_EVENT ) ) {
+            wp_schedule_single_event( time(), self::BATCH_EVENT );
+            spawn_cron();
+        }
     }
 
     private function log_broadcast( string $message, array $result ): void {

@@ -3,7 +3,7 @@
  * Plugin Name:  Caaguazú Bot
  * Plugin URI:   https://caaguazu.net
  * Description:  Bot de WhatsApp no oficial para gestionar el sitio vía mensajes. Requiere el bridge Node.js corriendo en la PC del admin.
- * Version:      1.1.0
+ * Version:      1.1.1
  * Requires at least: 6.0
  * Requires PHP: 8.0
  * Author:       Caaguazú Net
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'CAAG_BOT_VERSION', '1.1.0' );
+define( 'CAAG_BOT_VERSION', '1.1.1' );
 define( 'CAAG_BOT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'CAAG_BOT_URL',     plugin_dir_url( __FILE__ ) );
 

@@ -189,11 +189,18 @@ class Caaguazu_WP_Actions {
         }
 
         $data = base64_decode( (string) $media['data_base64'], true );
-        if ( $data === false || strlen( $data ) > 8 * 1024 * 1024 ) {
+        if ( $data === false || strlen( $data ) > 5 * 1024 * 1024 ) {
             return false;
         }
 
-        $filename = sanitize_file_name( $media['filename'] ?? ( 'whatsapp-' . $post_id . '.' . $allowed[ $mime ] ) );
+        // Validar que los bytes sean realmente una imagen del tipo declarado.
+        $info = @getimagesizefromstring( $data );
+        if ( $info === false || ( isset( $info['mime'] ) && $info['mime'] !== $mime ) ) {
+            return false;
+        }
+
+        // Nombre con extensión derivada del mime (no del payload) para evitar extensiones falsas.
+        $filename = 'whatsapp-' . $post_id . '-' . time() . '.' . $allowed[ $mime ];
         $upload   = wp_upload_bits( $filename, null, $data );
         if ( ! empty( $upload['error'] ) ) {
             error_log( '[CaagBot] upload error: ' . $upload['error'] );

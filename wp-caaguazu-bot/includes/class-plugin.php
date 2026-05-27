@@ -30,6 +30,8 @@ class Caaguazu_Plugin {
 
     private function define_common_hooks(): void {
         add_filter( 'cron_schedules', [ $this, 'register_cron_intervals' ] );
+        // Migración de esquema/plantillas; en plugins_loaded para cubrir también REST y cron.
+        add_action( 'plugins_loaded', [ 'Caaguazu_Activator', 'maybe_upgrade' ] );
     }
 
     private function define_public_hooks(): void {
@@ -40,7 +42,6 @@ class Caaguazu_Plugin {
         if ( ! is_admin() ) {
             return;
         }
-        add_action( 'admin_init',             [ 'Caaguazu_Activator', 'maybe_upgrade' ] );
         add_action( 'admin_menu',             [ $this->admin, 'register_menus' ] );
         add_action( 'admin_enqueue_scripts',  [ $this->admin, 'enqueue_scripts' ] );
         add_action( 'admin_post_caag_save_messages', [ $this->admin, 'save_messages' ] );

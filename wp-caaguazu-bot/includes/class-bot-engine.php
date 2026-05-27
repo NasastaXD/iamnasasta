@@ -537,6 +537,10 @@ class Caaguazu_Bot_Engine {
     // -----------------------------------------------------------------------
 
     private function send_reply( string $phone, string $message, string $action = '' ): void {
+        if ( trim( $message ) === '' ) {
+            error_log( '[CaagBot] send_reply omitido: mensaje vacío (¿plantilla faltante?) acción=' . $action );
+            return;
+        }
         $this->bridge->send_message( $phone, $message );
         $this->db->log_message( $phone, 'out', $message, $action );
     }

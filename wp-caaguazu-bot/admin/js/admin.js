@@ -178,7 +178,24 @@
 
         poll: function (total) {
             clearInterval(BroadcastTab.pollTimer);
+            var lastProcessed = -1;
+            var stalls = 0;     // ciclos sin avance (2s c/u)
+            var ticks = 0;      // tope duro de ciclos
+            var STALL_LIMIT = 15;   // ~30 s sin avance
+            var TICK_LIMIT = 900;   // ~30 min máximo
+
+            function finish(html) {
+                clearInterval(BroadcastTab.pollTimer);
+                $('#caag-btn-broadcast').prop('disabled', false).text('Enviar mensaje');
+                $('#caag-broadcast-spinner').removeClass('is-active');
+                $('#caag-broadcast-result').html(html).show();
+            }
+
             BroadcastTab.pollTimer = setInterval(function () {
+                if (++ticks > TICK_LIMIT) {
+                    finish('<div class="notice notice-warning inline"><p>⏱️ Seguimiento detenido por tiempo. El envío puede continuar en segundo plano.</p></div>');
+                    return;
+                }
                 ajaxPost('caag_broadcast_progress', {}, function (res) {
                     if (!res.success) return;
                     var d = res.data;
@@ -188,12 +205,18 @@
                     $('#caag-broadcast-progress-text').text('Procesados: ' + done + ' / ' + total + ' (enviados ' + (d.sent || 0) + ', fallidos ' + (d.failed || 0) + ')');
 
                     if (d.status === 'done') {
-                        clearInterval(BroadcastTab.pollTimer);
-                        $('#caag-btn-broadcast').prop('disabled', false).text('Enviar mensaje');
-                        $('#caag-broadcast-spinner').removeClass('is-active');
-                        $('#caag-broadcast-result')
-                            .html('<div class="notice notice-success inline"><p>✅ Completado. Enviados: <strong>' + (d.sent || 0) + '</strong> | Fallidos: <strong>' + (d.failed || 0) + '</strong></p></div>')
-                            .show();
+                        finish('<div class="notice notice-success inline"><p>✅ Completado. Enviados: <strong>' + (d.sent || 0) + '</strong> | Fallidos: <strong>' + (d.failed || 0) + '</strong></p></div>');
+                        return;
+                    }
+
+                    // Detección de estancamiento: el progreso no avanza.
+                    if (done === lastProcessed) {
+                        if (++stalls >= STALL_LIMIT) {
+                            finish('<div class="notice notice-warning inline"><p>⚠️ El envío parece detenido (' + done + '/' + total + '). Verifique el bridge y reintente.</p></div>');
+                        }
+                    } else {
+                        stalls = 0;
+                        lastProcessed = done;
                     }
                 });
             }, 2000);
