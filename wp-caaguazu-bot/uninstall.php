@@ -9,6 +9,10 @@ $tables = [
     'caag_conversation_logs',
     'caag_session',
     'caag_user_state',
+    'caag_reports',
+    'caag_suggestions',
+    'caag_events',
+    'caag_schedules',
 ];
 
 foreach ( $tables as $table ) {
@@ -23,6 +27,10 @@ $options = [
     'caag_posts_per_page_reader',
     'caag_posts_per_page_admin',
     'caag_bot_db_version',
+    'caag_report_key',
+    'caag_site_links',
+    'caag_contacts',
+    'caag_report_categories',
 ];
 foreach ( $options as $option ) {
     delete_option( $option );

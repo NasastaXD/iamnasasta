@@ -1,6 +1,33 @@
-# Caaguazú Bot — Plugin WordPress + WhatsApp
+# CEAD Bot — Bot institucional de WhatsApp (cead.caaguazu.net)
 
-Bot de WhatsApp para gestionar el sitio caaguazu.net desde el celular. Permite publicar, editar y borrar artículos, y responde consultas de lectores, sin necesidad de abrir el panel de WordPress.
+Bot de WhatsApp **institucional/educativo** para el CEAD. El alumnado consulta horarios,
+sitio web, calendario de eventos, contactos, y dispone de canales para **reportes
+confidenciales/anónimos** y **sugerencias/quejas**. El personal del colegio gestiona
+artículos web, envía comunicados, agrega eventos y atiende las bandejas de reportes y
+sugerencias — todo desde WhatsApp.
+
+> La arquitectura sigue desacoplada de la librería no oficial: toda la mensajería pasa por
+> el *bridge* (capa intercambiable), de modo que una futura migración a la Cloud API oficial
+> solo afecta esa capa.
+
+## Funciones
+
+**Alumnado (solo lectura + canales de contacto):**
+1. Horarios — por curso/división, con “qué tengo ahora / qué sigue”.
+2. Sitio web — enlaces a cead.caaguazu.net y secciones clave.
+3. Calendario de eventos — próximos eventos.
+4. Contacto — derivación a Administración, Secretaría y Consejo Estudiantil.
+5. Reportar algo — **anónimo total** o **confidencial (contactable)**. Cuerpo cifrado.
+6. Sugerencias y quejas — buzón separado de los reportes.
+
+**Personal (según permisos):**
+- **Editor** — gestión de artículos web (publicar/editar/eliminar).
+- **Comunicador** — comunicados a alumnado/personal/todos (envío escalonado) y alta de eventos.
+- **Moderador** — bandejas de reportes y sugerencias (estados: nuevo → en revisión → resuelto, con notas).
+- **SuperAdmin** — todo lo anterior + alta/baja de personal y asignación de roles.
+
+Permisos **por acción** (un número puede acumular varios roles). Un número agregado como
+personal sin roles asignados se trata como SuperAdmin (compatibilidad con instalaciones previas).
 
 ---
 
@@ -176,6 +203,43 @@ Baileys es una librería mantenida por la comunidad. Cuando WhatsApp actualiza s
 ```bash
 npm update @whiskeysockets/baileys
 ```
+
+---
+
+## Canal de reportes (A5) — privacidad y protocolo
+
+Esta es la función más delicada. El plugin cubre la parte **técnica**; el colegio debe definir
+la parte **operativa** antes de difundir el canal.
+
+**Lo que hace el plugin:**
+- Separa **anónimo total** de **confidencial (contactable)**. En anónimo no se guarda el número;
+  en confidencial se guarda para que Moderación pueda dar seguimiento.
+- **Cifra el cuerpo** del reporte en la base de datos (`sodium`/`AES-256-GCM`).
+- **No deja rastro en crudo**: durante la captura de un reporte, el contenido no se registra en
+  el log de conversaciones (anónimo) o se redacta (confidencial).
+- Restringe la lectura a los números con rol **Moderador** (el permiso más acotado).
+- Cada reporte tiene un **código de referencia** (ej. `RPT-AB12CD`) y trazabilidad de estado y notas.
+
+**Clave de cifrado.** Por defecto se genera una clave y se guarda en una opción de WordPress.
+Para mayor aislamiento, defina la clave en `wp-config.php` (32 bytes en base64):
+
+```php
+define( 'CAAG_REPORT_KEY', 'base64:...' ); // 32 bytes aleatorios codificados en base64
+```
+
+> Si cambia la clave, los reportes guardados con la clave anterior dejarán de poder descifrarse.
+
+**Protocolo a definir por el colegio (no es código):** a quién llega cada reporte, en qué plazo
+se responde y quién hace el seguimiento. Defínalo **antes** de anunciar el canal.
+
+---
+
+## Empaquetado del plugin (zip)
+
+⚠️ **No incluya la carpeta `bridge/` en el zip del plugin.** El *bridge* corre en la PC del
+administrador y se instala por separado; empaquetarlo dentro del plugin de WordPress puede
+sobrescribir/romper la instalación existente. El archivo [`.distignore`](.distignore) lista lo
+que debe excluirse al generar el paquete distribuible (`bridge/`, `auth_state/`, `.env`).
 
 ---
 

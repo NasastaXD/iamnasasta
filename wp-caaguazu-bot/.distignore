@@ -1,0 +1,7 @@
+# Archivos/carpetas que NO deben ir en el zip distribuible del plugin.
+# El bridge corre en la PC del admin y se instala por separado: incluirlo aquí
+# puede sobrescribir/romper la instalación existente.
+bridge/
+**/auth_state/
+**/.env
+.distignore

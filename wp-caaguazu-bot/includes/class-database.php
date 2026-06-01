@@ -8,14 +8,30 @@ class Caaguazu_Database {
     private string $t_logs;
     private string $t_session;
     private string $t_state;
+    private string $t_reports;
+    private string $t_suggestions;
+    private string $t_events;
+    private string $t_schedules;
+
+    /** Roles institucionales → capacidades por acción (permisos por acción, no por persona). */
+    const ROLE_CAPS = [
+        'superadmin'  => [ 'manage_users', 'cap_articles', 'cap_broadcast', 'cap_moderate' ],
+        'editor'      => [ 'cap_articles' ],
+        'comunicador' => [ 'cap_broadcast' ],
+        'moderador'   => [ 'cap_moderate' ],
+    ];
 
     public function __construct() {
         global $wpdb;
-        $this->t_messages = $wpdb->prefix . 'caag_bot_messages';
-        $this->t_numbers  = $wpdb->prefix . 'caag_registered_numbers';
-        $this->t_logs     = $wpdb->prefix . 'caag_conversation_logs';
-        $this->t_session  = $wpdb->prefix . 'caag_session';
-        $this->t_state    = $wpdb->prefix . 'caag_user_state';
+        $this->t_messages    = $wpdb->prefix . 'caag_bot_messages';
+        $this->t_numbers     = $wpdb->prefix . 'caag_registered_numbers';
+        $this->t_logs        = $wpdb->prefix . 'caag_conversation_logs';
+        $this->t_session     = $wpdb->prefix . 'caag_session';
+        $this->t_state       = $wpdb->prefix . 'caag_user_state';
+        $this->t_reports     = $wpdb->prefix . 'caag_reports';
+        $this->t_suggestions = $wpdb->prefix . 'caag_suggestions';
+        $this->t_events      = $wpdb->prefix . 'caag_events';
+        $this->t_schedules   = $wpdb->prefix . 'caag_schedules';
     }
 
     // -----------------------------------------------------------------------
@@ -124,6 +140,60 @@ class Caaguazu_Database {
         global $wpdb;
         $row = $this->get_number( $phone );
         return $row && (int) $row->opt_out === 1;
+    }
+
+    // -----------------------------------------------------------------------
+    // Roles y capacidades (permisos por acción; un número puede acumular roles)
+    // -----------------------------------------------------------------------
+
+    /** Cualquier número con role='admin' es personal del colegio (staff). */
+    public function is_staff( string $phone ): bool {
+        return $this->is_admin_phone( $phone );
+    }
+
+    /** Lista de slugs de rol asignados al número (CSV en columna `roles`). */
+    public function get_roles( string $phone ): array {
+        $row = $this->get_number( $phone );
+        if ( ! $row || empty( $row->roles ) ) {
+            return [];
+        }
+        $roles = array_filter( array_map( 'trim', explode( ',', (string) $row->roles ) ), 'strlen' );
+        return array_values( array_unique( $roles ) );
+    }
+
+    public function set_roles( string $phone, array $roles ): bool {
+        $valid = array_values( array_intersect( $roles, array_keys( self::ROLE_CAPS ) ) );
+        return $this->upsert_number( $phone, [ 'roles' => implode( ',', $valid ) ] );
+    }
+
+    /**
+     * Capacidades efectivas de un número staff. Compatibilidad: un staff sin roles
+     * asignados se trata como `superadmin` (los admins previos conservan acceso total).
+     */
+    public function get_caps( string $phone ): array {
+        if ( ! $this->is_staff( $phone ) ) {
+            return [];
+        }
+        $roles = $this->get_roles( $phone );
+        if ( empty( $roles ) ) {
+            $roles = [ 'superadmin' ];
+        }
+        $caps = [];
+        foreach ( $roles as $role ) {
+            foreach ( self::ROLE_CAPS[ $role ] ?? [] as $cap ) {
+                $caps[ $cap ] = true;
+            }
+        }
+        return array_keys( $caps );
+    }
+
+    public function has_cap( string $phone, string $cap ): bool {
+        return in_array( $cap, $this->get_caps( $phone ), true );
+    }
+
+    /** Números con rol staff (role='admin'), activos. Para gestión de usuarios. */
+    public function get_staff_numbers(): array {
+        return $this->get_numbers_by_role( 'admin' );
     }
 
     // -----------------------------------------------------------------------
@@ -368,5 +438,261 @@ class Caaguazu_Database {
             )
         );
         return (int) $wpdb->rows_affected;
+    }
+
+    // -----------------------------------------------------------------------
+    // Cifrado de contenido sensible (reportes)
+    // El cuerpo de los reportes se guarda cifrado. La clave proviene de la
+    // constante CAAG_REPORT_KEY (recomendado, en wp-config.php) o, si no existe,
+    // de una opción generada en la activación.
+    // -----------------------------------------------------------------------
+
+    private function get_report_key(): string {
+        if ( defined( 'CAAG_REPORT_KEY' ) && CAAG_REPORT_KEY ) {
+            $key = base64_decode( (string) CAAG_REPORT_KEY, true );
+            if ( $key !== false && strlen( $key ) === 32 ) {
+                return $key;
+            }
+        }
+        $stored = get_option( 'caag_report_key', '' );
+        $key    = $stored ? base64_decode( (string) $stored, true ) : false;
+        if ( $key === false || strlen( $key ) !== 32 ) {
+            $key = self::random_bytes32();
+            update_option( 'caag_report_key', base64_encode( $key ), false );
+        }
+        return $key;
+    }
+
+    public static function random_bytes32(): string {
+        try {
+            return random_bytes( 32 );
+        } catch ( \Throwable $e ) {
+            return hash( 'sha256', wp_generate_password( 64, true, true ) . microtime(), true );
+        }
+    }
+
+    public function encrypt( string $plaintext ): string {
+        $key = $this->get_report_key();
+
+        if ( function_exists( 'sodium_crypto_secretbox' ) ) {
+            $nonce  = random_bytes( SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
+            $cipher = sodium_crypto_secretbox( $plaintext, $nonce, $key );
+            return 'v1:' . base64_encode( $nonce . $cipher );
+        }
+
+        // Fallback: AES-256-GCM vía OpenSSL.
+        $iv  = random_bytes( 12 );
+        $tag = '';
+        $cipher = openssl_encrypt( $plaintext, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag );
+        return 'v2:' . base64_encode( $iv . $tag . $cipher );
+    }
+
+    public function decrypt( string $blob ): ?string {
+        $key = $this->get_report_key();
+
+        if ( str_starts_with( $blob, 'v1:' ) ) {
+            $raw = base64_decode( substr( $blob, 3 ), true );
+            if ( $raw === false || ! function_exists( 'sodium_crypto_secretbox_open' ) ) {
+                return null;
+            }
+            $nonce  = substr( $raw, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
+            $cipher = substr( $raw, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
+            $plain  = sodium_crypto_secretbox_open( $cipher, $nonce, $key );
+            return $plain === false ? null : $plain;
+        }
+
+        if ( str_starts_with( $blob, 'v2:' ) ) {
+            $raw = base64_decode( substr( $blob, 3 ), true );
+            if ( $raw === false ) {
+                return null;
+            }
+            $iv     = substr( $raw, 0, 12 );
+            $tag    = substr( $raw, 12, 16 );
+            $cipher = substr( $raw, 28 );
+            $plain  = openssl_decrypt( $cipher, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag );
+            return $plain === false ? null : $plain;
+        }
+
+        return null;
+    }
+
+    // -----------------------------------------------------------------------
+    // Reportes (A5 / D5) — canal sensible. Cuerpo cifrado; anónimo sin teléfono.
+    // -----------------------------------------------------------------------
+
+    /** Crea un reporte y devuelve su código de referencia (ej. RPT-AB12CD). */
+    public function create_report( string $type, ?string $phone, string $category, string $body ): string {
+        global $wpdb;
+        $ref = 'RPT-' . strtoupper( substr( bin2hex( self::random_bytes32() ), 0, 6 ) );
+        $wpdb->insert(
+            $this->t_reports,
+            [
+                'ref_code'   => $ref,
+                'type'       => $type === 'anonymous' ? 'anonymous' : 'confidential',
+                'phone'      => $type === 'anonymous' ? null : $phone,
+                'category'   => $category,
+                'body_enc'   => $this->encrypt( $body ),
+                'status'     => 'new',
+                'note'       => '',
+                'created_at' => current_time( 'mysql' ),
+                'updated_at' => current_time( 'mysql' ),
+            ]
+        );
+        return $ref;
+    }
+
+    public function get_reports_by_status( string $status = '', int $limit = 20 ): array {
+        global $wpdb;
+        if ( $status !== '' ) {
+            return $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT * FROM `{$this->t_reports}` WHERE status = %s ORDER BY created_at DESC LIMIT %d",
+                    $status, $limit
+                )
+            ) ?: [];
+        }
+        return $wpdb->get_results(
+            $wpdb->prepare( "SELECT * FROM `{$this->t_reports}` ORDER BY created_at DESC LIMIT %d", $limit )
+        ) ?: [];
+    }
+
+    public function get_report( int $id ): ?object {
+        global $wpdb;
+        return $wpdb->get_row(
+            $wpdb->prepare( "SELECT * FROM `{$this->t_reports}` WHERE id = %d", $id )
+        ) ?: null;
+    }
+
+    public function update_report_status( int $id, string $status ): bool {
+        global $wpdb;
+        return (bool) $wpdb->update(
+            $this->t_reports,
+            [ 'status' => $status, 'updated_at' => current_time( 'mysql' ) ],
+            [ 'id' => $id ]
+        );
+    }
+
+    public function append_report_note( int $id, string $note ): bool {
+        global $wpdb;
+        $report = $this->get_report( $id );
+        if ( ! $report ) {
+            return false;
+        }
+        $prefix = current_time( 'mysql' ) . ' — ';
+        $merged = trim( (string) $report->note ) === '' ? $prefix . $note : $report->note . "\n" . $prefix . $note;
+        return (bool) $wpdb->update(
+            $this->t_reports,
+            [ 'note' => $merged, 'updated_at' => current_time( 'mysql' ) ],
+            [ 'id' => $id ]
+        );
+    }
+
+    /** Devuelve [ 'new' => n, 'in_review' => n, 'resolved' => n ]. */
+    public function count_reports_by_status(): array {
+        global $wpdb;
+        $rows = $wpdb->get_results( "SELECT status, COUNT(*) AS total FROM `{$this->t_reports}` GROUP BY status" ) ?: [];
+        $out  = [ 'new' => 0, 'in_review' => 0, 'resolved' => 0 ];
+        foreach ( $rows as $r ) {
+            $out[ (string) $r->status ] = (int) $r->total;
+        }
+        return $out;
+    }
+
+    // -----------------------------------------------------------------------
+    // Sugerencias / quejas (A6 / D6) — buzón separado, sin cifrado fuerte.
+    // -----------------------------------------------------------------------
+
+    public function create_suggestion( ?string $phone, string $body ): bool {
+        global $wpdb;
+        return (bool) $wpdb->insert(
+            $this->t_suggestions,
+            [
+                'phone'      => $phone,
+                'body'       => $body,
+                'status'     => 'new',
+                'created_at' => current_time( 'mysql' ),
+            ]
+        );
+    }
+
+    public function get_suggestions( string $status = '', int $limit = 20 ): array {
+        global $wpdb;
+        if ( $status !== '' ) {
+            return $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT * FROM `{$this->t_suggestions}` WHERE status = %s ORDER BY created_at DESC LIMIT %d",
+                    $status, $limit
+                )
+            ) ?: [];
+        }
+        return $wpdb->get_results(
+            $wpdb->prepare( "SELECT * FROM `{$this->t_suggestions}` ORDER BY created_at DESC LIMIT %d", $limit )
+        ) ?: [];
+    }
+
+    public function get_suggestion( int $id ): ?object {
+        global $wpdb;
+        return $wpdb->get_row(
+            $wpdb->prepare( "SELECT * FROM `{$this->t_suggestions}` WHERE id = %d", $id )
+        ) ?: null;
+    }
+
+    public function update_suggestion_status( int $id, string $status ): bool {
+        global $wpdb;
+        return (bool) $wpdb->update(
+            $this->t_suggestions,
+            [ 'status' => $status ],
+            [ 'id' => $id ]
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Calendario de eventos (A3 / D7) — fuente única editable por staff.
+    // -----------------------------------------------------------------------
+
+    public function create_event( string $title, string $event_date, string $description, string $created_by ): bool {
+        global $wpdb;
+        return (bool) $wpdb->insert(
+            $this->t_events,
+            [
+                'title'       => $title,
+                'event_date'  => $event_date,
+                'description' => $description,
+                'created_by'  => $created_by,
+                'created_at'  => current_time( 'mysql' ),
+            ]
+        );
+    }
+
+    public function get_upcoming_events( int $limit = 10 ): array {
+        global $wpdb;
+        return $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM `{$this->t_events}` WHERE event_date >= CURDATE() ORDER BY event_date ASC LIMIT %d",
+                $limit
+            )
+        ) ?: [];
+    }
+
+    // -----------------------------------------------------------------------
+    // Horarios (A1) — grilla por curso/división.
+    // -----------------------------------------------------------------------
+
+    /** Cursos/divisiones distintos disponibles, como ['curso'=>..,'division'=>..]. */
+    public function get_schedule_groups(): array {
+        global $wpdb;
+        return $wpdb->get_results(
+            "SELECT DISTINCT course, division FROM `{$this->t_schedules}` ORDER BY course ASC, division ASC"
+        ) ?: [];
+    }
+
+    public function get_schedule( string $course, string $division ): array {
+        global $wpdb;
+        return $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM `{$this->t_schedules}` WHERE course = %s AND division = %s ORDER BY day_of_week ASC, period_order ASC",
+                $course, $division
+            )
+        ) ?: [];
     }
 }

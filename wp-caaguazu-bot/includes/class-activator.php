@@ -14,6 +14,7 @@ class Caaguazu_Activator {
 
         self::create_tables();
         self::seed_messages();
+        self::seed_defaults();
         self::insert_session_row();
         self::schedule_cron_jobs();
 
@@ -33,9 +34,10 @@ class Caaguazu_Activator {
             require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         }
 
-        self::create_tables();         // dbDelta agrega columnas nuevas (ej. subscriptions)
+        self::create_tables();         // dbDelta agrega columnas/tablas nuevas (roles, reportes, etc.)
         self::seed_messages();         // INSERT IGNORE agrega solo plantillas faltantes
         self::upgrade_menu_defaults(); // actualiza menús de fábrica si no fueron editados
+        self::seed_defaults();         // opciones y datos de ejemplo (solo si faltan)
         self::insert_session_row();
         self::schedule_cron_jobs();
 
@@ -61,6 +63,7 @@ class Caaguazu_Activator {
             id            bigint(20)   NOT NULL AUTO_INCREMENT,
             phone         varchar(30)  NOT NULL,
             role          varchar(20)  NOT NULL DEFAULT 'reader',
+            roles         varchar(191) NOT NULL DEFAULT '',
             name          varchar(100) DEFAULT '',
             opt_out       tinyint(1)   NOT NULL DEFAULT 0,
             subscriptions varchar(255) NOT NULL DEFAULT '',
@@ -106,6 +109,61 @@ class Caaguazu_Activator {
             UNIQUE KEY uq_phone (phone),
             KEY idx_updated_at (updated_at)
         ) ENGINE=InnoDB $c;" );
+
+        // Reportes (A5/D5) — canal sensible. body_enc almacena el cuerpo cifrado.
+        dbDelta( "CREATE TABLE {$p}caag_reports (
+            id         bigint(20)   NOT NULL AUTO_INCREMENT,
+            ref_code   varchar(20)  NOT NULL,
+            type       varchar(20)  NOT NULL DEFAULT 'anonymous',
+            phone      varchar(30)  DEFAULT NULL,
+            category   varchar(60)  DEFAULT '',
+            body_enc   longtext     NOT NULL,
+            status     varchar(20)  NOT NULL DEFAULT 'new',
+            note       longtext     DEFAULT NULL,
+            created_at datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_ref (ref_code),
+            KEY idx_status (status)
+        ) ENGINE=InnoDB $c;" );
+
+        // Sugerencias / quejas (A6/D6) — buzón separado de reportes.
+        dbDelta( "CREATE TABLE {$p}caag_suggestions (
+            id         bigint(20)   NOT NULL AUTO_INCREMENT,
+            phone      varchar(30)  DEFAULT NULL,
+            body       longtext     NOT NULL,
+            status     varchar(20)  NOT NULL DEFAULT 'new',
+            created_at datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_status (status)
+        ) ENGINE=InnoDB $c;" );
+
+        // Calendario de eventos (A3/D7) — fuente única.
+        dbDelta( "CREATE TABLE {$p}caag_events (
+            id          bigint(20)   NOT NULL AUTO_INCREMENT,
+            title       varchar(200) NOT NULL,
+            event_date  date         NOT NULL,
+            description text         DEFAULT NULL,
+            created_by  varchar(30)  DEFAULT '',
+            created_at  datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_event_date (event_date)
+        ) ENGINE=InnoDB $c;" );
+
+        // Horarios (A1) — grilla por curso/división. day_of_week: 1=Lun..7=Dom.
+        dbDelta( "CREATE TABLE {$p}caag_schedules (
+            id           bigint(20)   NOT NULL AUTO_INCREMENT,
+            course       varchar(60)  NOT NULL,
+            division     varchar(20)  NOT NULL DEFAULT '',
+            day_of_week  tinyint(1)   NOT NULL,
+            period_order tinyint(2)   NOT NULL DEFAULT 1,
+            subject      varchar(120) NOT NULL,
+            start_time   time         DEFAULT NULL,
+            end_time     time         DEFAULT NULL,
+            room         varchar(60)  DEFAULT '',
+            PRIMARY KEY (id),
+            KEY idx_group (course, division)
+        ) ENGINE=InnoDB $c;" );
     }
 
     private static function seed_messages(): void {
@@ -113,10 +171,11 @@ class Caaguazu_Activator {
         $t = $wpdb->prefix . 'caag_bot_messages';
 
         $templates = [
-            [ 'greeting_admin',       'Hola {name}! 👋 Bienvenido al panel de administración de Caaguazú Bot. ¿Qué desea hacer?',                                       'Saludo para admins. Usar {name}.' ],
-            [ 'admin_menu',           "*Menú Admin*\n1️⃣ Publicar artículo\n2️⃣ Editar artículo\n3️⃣ Eliminar artículo\n4️⃣ Ver enlaces del sitio\n0️⃣ Salir",                 'Menú principal de admins.' ],
-            [ 'greeting_reader',      'Hola {name}! 👋 Bienvenido al bot informativo de Caaguazú. ¿En qué le podemos ayudar?',                                           'Saludo para lectores. Usar {name}.' ],
-            [ 'reader_menu',          "*Menú*\n1️⃣ Ver artículos por categoría\n2️⃣ Artículos recientes\n3️⃣ Buscar artículos\n4️⃣ Mis suscripciones\n0️⃣ Salir\n\nEnvíe *BAJA* para darse de baja.", 'Menú principal de lectores.' ],
+            [ 'greeting_admin',       'Hola {name}! 👋 Panel del personal del CEAD (cead.caaguazu.net).',                                                                'Saludo para personal/staff. Usar {name}.' ],
+            [ 'staff_menu_header',    '*Panel del personal* — ¿qué desea hacer?',                                                                                       'Encabezado del menú staff (las opciones se arman según permisos).' ],
+            [ 'admin_menu',           "*Gestión de artículos web*\n1️⃣ Publicar\n2️⃣ Editar\n3️⃣ Eliminar\n4️⃣ Ver enlaces\n0️⃣ Volver",                                    'Submenú de artículos web (Editor).' ],
+            [ 'greeting_reader',      'Hola {name}! 👋 Bienvenido/a al bot del CEAD. Estoy para ayudarte con información del colegio.',                                  'Saludo para alumnado. Usar {name}.' ],
+            [ 'reader_menu',          "*Menú CEAD*\n1️⃣ Horarios\n2️⃣ Sitio web\n3️⃣ Calendario de eventos\n4️⃣ Contacto\n5️⃣ Reportar algo\n6️⃣ Sugerencias y quejas\n0️⃣ Salir\n\nEnvíe *BAJA* para no recibir mensajes.", 'Menú principal del alumnado.' ],
             [ 'opt_out_confirmed',    'Ha sido dado de baja. Ya no recibirá mensajes de este bot. Escríbanos de nuevo para volver.',                                      'Confirmación de opt-out.' ],
             [ 'publish_prompt',       'Perfecto. Envíe el contenido del artículo (puede adjuntar una imagen como portada). El título será la primera línea del texto.', 'Prompt para contenido del post.' ],
             [ 'category_prompt',      "Seleccione la categoría:\n{category_list}\n0️⃣ Cancelar",                                                                          'Lista de categorías. Usar {category_list}.' ],
@@ -143,6 +202,79 @@ class Caaguazu_Activator {
             [ 'subs_prompt',          "📬 *Sus suscripciones*\nResponda el número para activar o desactivar cada categoría (0 para volver):\n\n{subs_list}",              'Lista de suscripciones. Usar {subs_list}.' ],
             [ 'subs_updated',         '✅ Suscripciones actualizadas.',                                                                                                   'Confirmación de cambio de suscripción.' ],
             [ 'error_generic',        'Ocurrió un error. Por favor intente nuevamente más tarde.',                                                                       '' ],
+
+            // -------- Alumnado: Horarios (A1) --------
+            [ 'horario_group_prompt', "Seleccione su curso/división:\n{group_list}\n0️⃣ Volver",                                                                         'Lista de cursos. Usar {group_list}.' ],
+            [ 'horario_none',         'Todavía no hay horarios cargados. Consulte más tarde.',                                                                           '' ],
+            [ 'horario_header',       '📚 *Horario — {group}*',                                                                                                          'Encabezado de la grilla. Usar {group}.' ],
+            [ 'horario_now',          '⏰ *Ahora:* {now}',                                                                                                               'Materia actual. Usar {now}.' ],
+            [ 'horario_next',         '➡️ *Sigue:* {next}',                                                                                                              'Próxima materia. Usar {next}.' ],
+            [ 'horario_idle',         'En este momento no hay clases según el horario cargado.',                                                                         '' ],
+
+            // -------- Alumnado: Sitio web (A2) --------
+            [ 'site_links_header',    '🌐 *Sitio web del CEAD*',                                                                                                         'Encabezado de enlaces.' ],
+
+            // -------- Alumnado: Calendario (A3) --------
+            [ 'events_header',        '📅 *Próximos eventos*',                                                                                                           '' ],
+            [ 'events_none',          'No hay eventos próximos cargados.',                                                                                               '' ],
+
+            // -------- Alumnado: Contacto (A4) --------
+            [ 'contact_header',       '☎️ *Contactos del CEAD*',                                                                                                         '' ],
+
+            // -------- Alumnado: Reporte (A5) --------
+            [ 'report_type_prompt',   "🛡️ Este canal es para reportar situaciones (bullying, seguridad, etc.).\n¿Cómo desea enviarlo?\n1️⃣ Anónimo total\n2️⃣ Confidencial (quiero que me contacten)\n0️⃣ Cancelar", 'Elección de tipo de reporte.' ],
+            [ 'report_category_prompt',"¿Sobre qué es el reporte?\n{category_list}\n0️⃣ Cancelar",                                                                       'Categorías de reporte. Usar {category_list}.' ],
+            [ 'report_body_prompt',   'Escriba su reporte con el mayor detalle posible. Será tratado con confidencialidad. (0️⃣ para cancelar)',                          '' ],
+            [ 'report_saved_conf',    "✅ Reporte recibido. Código de seguimiento: *{ref}*.\nUna persona del equipo de moderación podrá contactarle.",                  'Confirmación reporte confidencial. Usar {ref}.' ],
+            [ 'report_saved_anon',    "✅ Reporte anónimo recibido. Gracias por confiar en nosotros.\nCódigo de referencia: *{ref}*.",                                  'Confirmación reporte anónimo. Usar {ref}.' ],
+            [ 'report_cancelled',     'Reporte cancelado. No se guardó nada.',                                                                                          '' ],
+
+            // -------- Alumnado: Sugerencias/quejas (A6) --------
+            [ 'suggestion_prompt',    'Escriba su sugerencia o queja (0️⃣ para cancelar):',                                                                              '' ],
+            [ 'suggestion_saved',     '✅ ¡Gracias! Su mensaje fue registrado y será revisado.',                                                                         '' ],
+            [ 'suggestion_cancelled', 'Cancelado.',                                                                                                                     '' ],
+
+            // -------- Staff: comunicados (D2) --------
+            [ 'comm_compose_prompt',  '✍️ Escriba el comunicado a enviar (0️⃣ para cancelar):',                                                                          '' ],
+            [ 'comm_audience_prompt', "¿A quién enviar?\n1️⃣ Alumnado\n2️⃣ Personal\n3️⃣ Todos\n0️⃣ Cancelar",                                                            '' ],
+            [ 'comm_confirm_prompt',  "Se enviará a *{count}* destinatario(s).\n¿Confirma? Responda *SI* o *NO*.",                                                       'Confirmación de envío. Usar {count}.' ],
+            [ 'comm_empty',           'No hay destinatarios para esa audiencia.',                                                                                       '' ],
+            [ 'comm_queued',          '📨 Comunicado encolado para {total} destinatario(s). Se enviará de forma escalonada para cuidar el número.',                      'Usar {total}.' ],
+            [ 'comm_busy',            'Ya hay un envío en curso. Espere a que termine e intente de nuevo.',                                                              '' ],
+            [ 'comm_cancelled',       'Comunicado cancelado.',                                                                                                          '' ],
+
+            // -------- Staff: eventos (D7) --------
+            [ 'event_title_prompt',   'Título del evento (0️⃣ para cancelar):',                                                                                          '' ],
+            [ 'event_date_prompt',    'Fecha del evento en formato AAAA-MM-DD (ej. 2026-07-15):',                                                                        '' ],
+            [ 'event_date_invalid',   'Fecha inválida. Use el formato AAAA-MM-DD.',                                                                                     '' ],
+            [ 'event_desc_prompt',    'Descripción breve (o escriba - para omitir):',                                                                                   '' ],
+            [ 'event_saved',          '✅ Evento agregado al calendario.',                                                                                               '' ],
+
+            // -------- Staff: bandeja de reportes (D5) --------
+            [ 'reports_inbox_header', "📥 *Bandeja de reportes*\nNuevos: {new} · En revisión: {in_review} · Resueltos: {resolved}",                                     'Usar {new},{in_review},{resolved}.' ],
+            [ 'reports_list_prompt',  "Seleccione un reporte:\n{report_list}\n0️⃣ Volver",                                                                               'Usar {report_list}.' ],
+            [ 'reports_empty',        'No hay reportes nuevos ni en revisión.',                                                                                          '' ],
+            [ 'report_actions_prompt',"1️⃣ Marcar en revisión\n2️⃣ Marcar resuelto\n3️⃣ Agregar nota\n0️⃣ Volver",                                                        '' ],
+            [ 'report_note_prompt',   'Escriba la nota de seguimiento (0️⃣ para cancelar):',                                                                             '' ],
+            [ 'report_updated',       '✅ Reporte actualizado.',                                                                                                         '' ],
+
+            // -------- Staff: bandeja de sugerencias (D6) --------
+            [ 'sugg_list_prompt',     "Seleccione una sugerencia:\n{sugg_list}\n0️⃣ Volver",                                                                             'Usar {sugg_list}.' ],
+            [ 'sugg_empty',           'No hay sugerencias pendientes.',                                                                                                 '' ],
+            [ 'sugg_actions_prompt',  "1️⃣ Marcar en revisión\n2️⃣ Marcar resuelta\n0️⃣ Volver",                                                                         '' ],
+            [ 'sugg_updated',         '✅ Sugerencia actualizada.',                                                                                                      '' ],
+
+            // -------- Staff: gestión de usuarios/roles (D8 / SuperAdmin) --------
+            [ 'users_menu',           "*Gestión de usuarios*\n1️⃣ Listar personal\n2️⃣ Agregar personal\n3️⃣ Quitar personal\n0️⃣ Volver",                                '' ],
+            [ 'users_list_header',    '👥 *Personal registrado*',                                                                                                       '' ],
+            [ 'user_add_phone_prompt','Envíe el número del nuevo integrante (con código de país, sin +). 0️⃣ para cancelar:',                                            '' ],
+            [ 'user_phone_invalid',   'Número inválido. Intente nuevamente.',                                                                                           '' ],
+            [ 'user_roles_prompt',    "Seleccione los roles (números separados por coma, ej. 2,3):\n{role_list}\n0️⃣ Cancelar",                                          'Usar {role_list}.' ],
+            [ 'user_added',           '✅ Personal agregado: {phone}\nRoles: {roles}',                                                                                   'Usar {phone},{roles}.' ],
+            [ 'user_remove_prompt',   'Envíe el número a quitar del personal (0️⃣ para cancelar):',                                                                      '' ],
+            [ 'user_removed',         '✅ {phone} ya no forma parte del personal.',                                                                                       'Usar {phone}.' ],
+            [ 'access_denied',        '🔒 No tiene permisos para realizar esa acción.',                                                                                 '' ],
+            [ 'back_to_menu',         'Volviendo al menú…',                                                                                                             '' ],
         ];
 
         foreach ( $templates as [ $key, $content, $desc ] ) {
@@ -164,13 +296,27 @@ class Caaguazu_Activator {
         $t = $wpdb->prefix . 'caag_bot_messages';
 
         $migrations = [
-            'reader_menu' => [
-                'old' => "*Menú*\n1️⃣ Ver artículos por categoría\n2️⃣ Artículos recientes\n0️⃣ Salir\n\nEnvíe *BAJA* para darse de baja.",
-                'new' => "*Menú*\n1️⃣ Ver artículos por categoría\n2️⃣ Artículos recientes\n3️⃣ Buscar artículos\n4️⃣ Mis suscripciones\n0️⃣ Salir\n\nEnvíe *BAJA* para darse de baja.",
-            ],
             'publish_prompt' => [
                 'old' => 'Perfecto. Envíe el contenido del artículo. El título se generará automáticamente.',
                 'new' => 'Perfecto. Envíe el contenido del artículo (puede adjuntar una imagen como portada). El título será la primera línea del texto.',
+            ],
+            // Pivot a bot escolar CEAD: actualizar menús de blog → institucionales
+            // solo si el admin aún tiene el default de la versión anterior.
+            'reader_menu' => [
+                'old' => "*Menú*\n1️⃣ Ver artículos por categoría\n2️⃣ Artículos recientes\n3️⃣ Buscar artículos\n4️⃣ Mis suscripciones\n0️⃣ Salir\n\nEnvíe *BAJA* para darse de baja.",
+                'new' => "*Menú CEAD*\n1️⃣ Horarios\n2️⃣ Sitio web\n3️⃣ Calendario de eventos\n4️⃣ Contacto\n5️⃣ Reportar algo\n6️⃣ Sugerencias y quejas\n0️⃣ Salir\n\nEnvíe *BAJA* para no recibir mensajes.",
+            ],
+            'greeting_reader' => [
+                'old' => 'Hola {name}! 👋 Bienvenido al bot informativo de Caaguazú. ¿En qué le podemos ayudar?',
+                'new' => 'Hola {name}! 👋 Bienvenido/a al bot del CEAD. Estoy para ayudarte con información del colegio.',
+            ],
+            'greeting_admin' => [
+                'old' => 'Hola {name}! 👋 Bienvenido al panel de administración de Caaguazú Bot. ¿Qué desea hacer?',
+                'new' => 'Hola {name}! 👋 Panel del personal del CEAD (cead.caaguazu.net).',
+            ],
+            'admin_menu' => [
+                'old' => "*Menú Admin*\n1️⃣ Publicar artículo\n2️⃣ Editar artículo\n3️⃣ Eliminar artículo\n4️⃣ Ver enlaces del sitio\n0️⃣ Salir",
+                'new' => "*Gestión de artículos web*\n1️⃣ Publicar\n2️⃣ Editar\n3️⃣ Eliminar\n4️⃣ Ver enlaces\n0️⃣ Volver",
             ],
         ];
 
@@ -181,6 +327,67 @@ class Caaguazu_Activator {
                     $m['new'], $key, $m['old']
                 )
             );
+        }
+    }
+
+    /**
+     * Siembra opciones de configuración y datos de ejemplo. Idempotente:
+     * solo escribe lo que falta (no pisa lo que el colegio ya cargó).
+     */
+    private static function seed_defaults(): void {
+        global $wpdb;
+
+        // Clave de cifrado de reportes (si no hay constante CAAG_REPORT_KEY ni opción).
+        if ( ! defined( 'CAAG_REPORT_KEY' ) && ! get_option( 'caag_report_key' ) ) {
+            update_option( 'caag_report_key', base64_encode( Caaguazu_Database::random_bytes32() ), false );
+        }
+
+        // Enlaces del sitio (A2).
+        if ( get_option( 'caag_site_links', null ) === null ) {
+            update_option( 'caag_site_links', [
+                [ 'label' => 'Sitio web del CEAD', 'url' => 'https://cead.caaguazu.net' ],
+                [ 'label' => 'Noticias',           'url' => 'https://cead.caaguazu.net/noticias' ],
+                [ 'label' => 'Inscripciones',      'url' => 'https://cead.caaguazu.net/inscripciones' ],
+            ], false );
+        }
+
+        // Contactos / derivación (A4).
+        if ( get_option( 'caag_contacts', null ) === null ) {
+            update_option( 'caag_contacts', [
+                [ 'name' => 'Administración',      'detail' => 'Lun a Vie 7:00–13:00 · administracion@cead.caaguazu.net' ],
+                [ 'name' => 'Secretaría',          'detail' => 'Lun a Vie 7:00–13:00 · secretaria@cead.caaguazu.net' ],
+                [ 'name' => 'Consejo Estudiantil', 'detail' => 'consejo@cead.caaguazu.net' ],
+            ], false );
+        }
+
+        // Categorías de reporte (A5).
+        if ( get_option( 'caag_report_categories', null ) === null ) {
+            update_option( 'caag_report_categories', [ 'Bullying / acoso', 'Seguridad', 'Infraestructura', 'Otro' ], false );
+        }
+
+        // Grilla de horario de ejemplo (A1) — solo si la tabla está vacía.
+        $sched_table = $wpdb->prefix . 'caag_schedules';
+        $has_sched   = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$sched_table`" );
+        if ( $has_sched === 0 ) {
+            $sample = [
+                [ '1° Año', 'A', 1, 1, 'Matemática',   '07:00', '07:45', 'Aula 1' ],
+                [ '1° Año', 'A', 1, 2, 'Lengua',       '07:45', '08:30', 'Aula 1' ],
+                [ '1° Año', 'A', 1, 3, 'Historia',     '08:45', '09:30', 'Aula 1' ],
+                [ '1° Año', 'A', 2, 1, 'Biología',     '07:00', '07:45', 'Lab' ],
+                [ '1° Año', 'A', 2, 2, 'Inglés',       '07:45', '08:30', 'Aula 1' ],
+            ];
+            foreach ( $sample as [ $course, $div, $dow, $ord, $subj, $start, $end, $room ] ) {
+                $wpdb->insert( $sched_table, [
+                    'course'       => $course,
+                    'division'     => $div,
+                    'day_of_week'  => $dow,
+                    'period_order' => $ord,
+                    'subject'      => $subj,
+                    'start_time'   => $start,
+                    'end_time'     => $end,
+                    'room'         => $room,
+                ] );
+            }
         }
     }
 
