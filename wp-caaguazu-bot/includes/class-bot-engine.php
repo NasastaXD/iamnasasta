@@ -145,6 +145,17 @@ class Caaguazu_Bot_Engine {
             'alu_report_cat'         => $this->handle_report_cat( $phone, $body_lc, $context ),
             'alu_report_body'        => $this->handle_report_body( $phone, $body, $body_lc, $context ),
             'alu_suggestion_body'    => $this->handle_suggestion_body( $phone, $body, $body_lc ),
+            'alu_council_menu'       => $this->handle_council_menu( $phone, $body_lc ),
+            'alu_council_proposal'   => $this->handle_council_proposal( $phone, $body, $body_lc ),
+
+            // -------- Fase 4: staff (plantillas, programación, métricas) --------
+            'staff_comm_template_pick' => $this->handle_comm_template_pick( $phone, $body_lc, $context ),
+            'staff_comm_when'        => $this->handle_comm_when( $phone, $body_lc, $context ),
+            'staff_comm_schedule_at' => $this->handle_comm_schedule_at( $phone, $body, $body_lc, $context ),
+            'staff_tpl_menu'         => $this->handle_tpl_menu( $phone, $body_lc ),
+            'staff_tpl_add_name'     => $this->handle_tpl_add_name( $phone, $body, $body_lc ),
+            'staff_tpl_add_body'     => $this->handle_tpl_add_body( $phone, $body, $body_lc, $context ),
+            'staff_tpl_delete'       => $this->handle_tpl_delete( $phone, $body_lc, $context ),
 
             default                  => $this->handle_idle( $phone, $name ),
         };
@@ -176,13 +187,15 @@ class Caaguazu_Bot_Engine {
             $opts[] = [ 'key' => 'articles', 'label' => 'Gestión de artículos web' ];
         }
         if ( $this->db->has_cap( $phone, 'cap_broadcast' ) ) {
-            $opts[] = [ 'key' => 'comm',  'label' => 'Enviar comunicado' ];
-            $opts[] = [ 'key' => 'event', 'label' => 'Agregar evento al calendario' ];
+            $opts[] = [ 'key' => 'comm',      'label' => 'Enviar comunicado' ];
+            $opts[] = [ 'key' => 'templates', 'label' => 'Plantillas de comunicados' ];
+            $opts[] = [ 'key' => 'event',     'label' => 'Agregar evento al calendario' ];
         }
         if ( $this->db->has_cap( $phone, 'cap_moderate' ) ) {
             $opts[] = [ 'key' => 'reports', 'label' => 'Bandeja de reportes' ];
             $opts[] = [ 'key' => 'sugg',    'label' => 'Bandeja de sugerencias' ];
         }
+        $opts[] = [ 'key' => 'metrics', 'label' => 'Métricas' ];
         if ( $this->db->has_cap( $phone, 'manage_users' ) ) {
             $opts[] = [ 'key' => 'users', 'label' => 'Gestionar usuarios y roles' ];
         }
@@ -219,13 +232,15 @@ class Caaguazu_Bot_Engine {
         }
 
         match ( $keys[ $index ] ) {
-            'articles' => $this->open_articles( $phone ),
-            'comm'     => $this->comm_start( $phone ),
-            'event'    => $this->event_start( $phone ),
-            'reports'  => $this->reports_open( $phone ),
-            'sugg'     => $this->sugg_open( $phone ),
-            'users'    => $this->users_open( $phone ),
-            default    => $this->send_invalid_option( $phone ),
+            'articles'  => $this->open_articles( $phone ),
+            'comm'      => $this->comm_start( $phone ),
+            'templates' => $this->tpl_open( $phone ),
+            'event'     => $this->event_start( $phone ),
+            'reports'   => $this->reports_open( $phone ),
+            'sugg'      => $this->sugg_open( $phone ),
+            'metrics'   => $this->metrics_show( $phone ),
+            'users'     => $this->users_open( $phone ),
+            default     => $this->send_invalid_option( $phone ),
         };
     }
 
@@ -538,7 +553,11 @@ class Caaguazu_Bot_Engine {
             return;
         }
         $this->db->set_user_state( $phone, 'staff_comm_compose' );
-        $this->send_reply( $phone, $this->db->get_message( 'comm_compose_prompt' ) );
+        $prompt = $this->db->get_message( 'comm_compose_prompt' );
+        if ( ! empty( $this->get_templates() ) ) {
+            $prompt .= "\n" . $this->db->get_message( 'comm_template_hint' );
+        }
+        $this->send_reply( $phone, $prompt );
     }
 
     private function handle_comm_compose( string $phone, string $body, string $body_lc ): void {
@@ -547,7 +566,38 @@ class Caaguazu_Bot_Engine {
             $this->enter_staff_menu( $phone );
             return;
         }
-        $this->db->set_user_state( $phone, 'staff_comm_audience', [ 'message' => $body ] );
+
+        // Atajo para usar una plantilla guardada (D4).
+        $templates = $this->get_templates();
+        if ( $body_lc === 'p' && ! empty( $templates ) ) {
+            $this->db->set_user_state( $phone, 'staff_comm_template_pick' );
+            $this->send_reply(
+                $phone,
+                $this->interpolate( $this->db->get_message( 'comm_template_prompt' ), [ 'template_list' => $this->format_template_list( $templates ) ] )
+            );
+            return;
+        }
+
+        $this->comm_ask_audience( $phone, $body );
+    }
+
+    private function handle_comm_template_pick( string $phone, string $body_lc, array $context ): void {
+        if ( $this->is_cancel( $body_lc ) ) {
+            $this->send_reply( $phone, $this->db->get_message( 'comm_cancelled' ) );
+            $this->enter_staff_menu( $phone );
+            return;
+        }
+        $templates = $this->get_templates();
+        $index     = (int) $body_lc - 1;
+        if ( ! isset( $templates[ $index ] ) ) {
+            $this->send_invalid_option( $phone );
+            return;
+        }
+        $this->comm_ask_audience( $phone, (string) ( $templates[ $index ]['body'] ?? '' ) );
+    }
+
+    private function comm_ask_audience( string $phone, string $message ): void {
+        $this->db->set_user_state( $phone, 'staff_comm_audience', [ 'message' => $message ] );
         $this->send_reply( $phone, $this->db->get_message( 'comm_audience_prompt' ) );
     }
 
@@ -577,14 +627,65 @@ class Caaguazu_Bot_Engine {
             return;
         }
 
-        $this->db->set_user_state( $phone, 'staff_comm_confirm', [
+        $this->db->set_user_state( $phone, 'staff_comm_when', [
             'message' => $context['message'] ?? '',
             'target'  => $target,
+            'count'   => $count,
         ] );
+        $this->send_reply( $phone, $this->db->get_message( 'comm_when_prompt' ) );
+    }
+
+    private function handle_comm_when( string $phone, string $body_lc, array $context ): void {
+        if ( $this->is_cancel( $body_lc ) ) {
+            $this->send_reply( $phone, $this->db->get_message( 'comm_cancelled' ) );
+            $this->enter_staff_menu( $phone );
+            return;
+        }
+
+        if ( $body_lc === '1' ) {
+            $this->db->set_user_state( $phone, 'staff_comm_confirm', [
+                'message' => $context['message'] ?? '',
+                'target'  => $context['target'] ?? 'all',
+            ] );
+            $this->send_reply(
+                $phone,
+                $this->interpolate( $this->db->get_message( 'comm_confirm_prompt' ), [ 'count' => (int) ( $context['count'] ?? 0 ) ] )
+            );
+        } elseif ( $body_lc === '2' ) {
+            $this->db->set_user_state( $phone, 'staff_comm_schedule_at', [
+                'message' => $context['message'] ?? '',
+                'target'  => $context['target'] ?? 'all',
+            ] );
+            $this->send_reply( $phone, $this->db->get_message( 'comm_schedule_prompt' ) );
+        } else {
+            $this->send_invalid_option( $phone );
+        }
+    }
+
+    private function handle_comm_schedule_at( string $phone, string $body, string $body_lc, array $context ): void {
+        if ( $this->is_cancel( $body_lc ) ) {
+            $this->send_reply( $phone, $this->db->get_message( 'comm_cancelled' ) );
+            $this->enter_staff_menu( $phone );
+            return;
+        }
+
+        $run_at = $this->parse_datetime( trim( $body ) );
+        if ( $run_at === null ) {
+            $this->send_reply( $phone, $this->db->get_message( 'comm_schedule_invalid' ) );
+            return;
+        }
+
+        $target = (string) ( $context['target'] ?? 'all' );
+        $this->db->create_scheduled_broadcast( (string) ( $context['message'] ?? '' ), $target, $run_at, $phone );
         $this->send_reply(
             $phone,
-            $this->interpolate( $this->db->get_message( 'comm_confirm_prompt' ), [ 'count' => $count ] )
+            $this->interpolate( $this->db->get_message( 'comm_scheduled_ok' ), [
+                'when'  => $run_at,
+                'count' => $this->audience_count( $target ),
+            ] ),
+            'broadcast_scheduled'
         );
+        $this->enter_staff_menu( $phone );
     }
 
     private function handle_comm_confirm( string $phone, string $body_lc, array $context ): void {
@@ -618,6 +719,149 @@ class Caaguazu_Bot_Engine {
             'admins'  => count( $this->db->get_numbers_by_role( 'admin' ) ),
             default   => count( $this->db->get_active_numbers() ),
         };
+    }
+
+    // -----------------------------------------------------------------------
+    // Plantillas de comunicados (D4)
+    // -----------------------------------------------------------------------
+
+    private function get_templates(): array {
+        $tpls = get_option( 'caag_comm_templates', [] );
+        return is_array( $tpls ) ? array_values( $tpls ) : [];
+    }
+
+    private function save_templates( array $tpls ): void {
+        update_option( 'caag_comm_templates', array_values( $tpls ), false );
+    }
+
+    private function format_template_list( array $tpls ): string {
+        $lines = [];
+        foreach ( $tpls as $i => $t ) {
+            $lines[] = ( $i + 1 ) . '. ' . ( $t['name'] ?? 'Plantilla' );
+        }
+        return implode( "\n", $lines );
+    }
+
+    private function tpl_open( string $phone ): void {
+        if ( ! $this->require_cap( $phone, 'cap_broadcast' ) ) {
+            return;
+        }
+        $this->db->set_user_state( $phone, 'staff_tpl_menu' );
+        $this->send_reply( $phone, $this->db->get_message( 'tpl_menu' ) );
+    }
+
+    private function handle_tpl_menu( string $phone, string $body_lc ): void {
+        match ( $body_lc ) {
+            '1'      => $this->tpl_list( $phone ),
+            '2'      => $this->tpl_add_start( $phone ),
+            '3'      => $this->tpl_delete_start( $phone ),
+            '0', 'volver', 'cancelar' => $this->enter_staff_menu( $phone ),
+            default  => $this->send_invalid_option( $phone ),
+        };
+    }
+
+    private function tpl_list( string $phone ): void {
+        $tpls = $this->get_templates();
+        if ( empty( $tpls ) ) {
+            $this->send_reply( $phone, $this->db->get_message( 'tpl_empty' ) );
+            $this->send_reply( $phone, $this->db->get_message( 'tpl_menu' ) );
+            return;
+        }
+        $lines = [ $this->db->get_message( 'tpl_list_header' ) ];
+        foreach ( $tpls as $i => $t ) {
+            $lines[] = ( $i + 1 ) . '. *' . ( $t['name'] ?? '' ) . "*\n   " . ( $t['body'] ?? '' );
+        }
+        $this->send_reply( $phone, implode( "\n", $lines ) );
+        $this->send_reply( $phone, $this->db->get_message( 'tpl_menu' ) );
+    }
+
+    private function tpl_add_start( string $phone ): void {
+        $this->db->set_user_state( $phone, 'staff_tpl_add_name' );
+        $this->send_reply( $phone, $this->db->get_message( 'tpl_add_name_prompt' ) );
+    }
+
+    private function handle_tpl_add_name( string $phone, string $body, string $body_lc ): void {
+        if ( $this->is_cancel( $body_lc ) ) {
+            $this->tpl_open( $phone );
+            return;
+        }
+        $this->db->set_user_state( $phone, 'staff_tpl_add_body', [ 'name' => $body ] );
+        $this->send_reply( $phone, $this->db->get_message( 'tpl_add_body_prompt' ) );
+    }
+
+    private function handle_tpl_add_body( string $phone, string $body, string $body_lc, array $context ): void {
+        if ( $this->is_cancel( $body_lc ) ) {
+            $this->tpl_open( $phone );
+            return;
+        }
+        $tpls   = $this->get_templates();
+        $name   = (string) ( $context['name'] ?? 'Plantilla' );
+        $tpls[] = [ 'name' => $name, 'body' => $body ];
+        $this->save_templates( $tpls );
+        $this->send_reply( $phone, $this->interpolate( $this->db->get_message( 'tpl_added' ), [ 'name' => $name ] ) );
+        $this->tpl_open( $phone );
+    }
+
+    private function tpl_delete_start( string $phone ): void {
+        $tpls = $this->get_templates();
+        if ( empty( $tpls ) ) {
+            $this->send_reply( $phone, $this->db->get_message( 'tpl_empty' ) );
+            $this->tpl_open( $phone );
+            return;
+        }
+        $this->db->set_user_state( $phone, 'staff_tpl_delete' );
+        $this->send_reply(
+            $phone,
+            $this->interpolate( $this->db->get_message( 'tpl_delete_prompt' ), [ 'template_list' => $this->format_template_list( $tpls ) ] )
+        );
+    }
+
+    private function handle_tpl_delete( string $phone, string $body_lc, array $context ): void {
+        if ( $this->is_cancel( $body_lc ) ) {
+            $this->tpl_open( $phone );
+            return;
+        }
+        $tpls  = $this->get_templates();
+        $index = (int) $body_lc - 1;
+        if ( ! isset( $tpls[ $index ] ) ) {
+            $this->send_invalid_option( $phone );
+            return;
+        }
+        array_splice( $tpls, $index, 1 );
+        $this->save_templates( $tpls );
+        $this->send_reply( $phone, $this->db->get_message( 'tpl_deleted' ) );
+        $this->tpl_open( $phone );
+    }
+
+    // -----------------------------------------------------------------------
+    // Métricas (D9)
+    // -----------------------------------------------------------------------
+
+    private function metrics_show( string $phone ): void {
+        $in        = $this->db->count_messages( 'in', 30 );
+        $out       = $this->db->count_messages( 'out', 30 );
+        $users     = $this->db->count_unique_users( 30 );
+        $by_role   = $this->db->count_numbers_by_role();
+        $reports   = $this->db->count_reports_by_status();
+        $sugg      = $this->db->count_suggestions_by_status();
+        $top       = $this->db->count_top_actions( 5, 30 );
+
+        $lines   = [ $this->db->get_message( 'metrics_header' ) ];
+        $lines[] = "💬 Mensajes: {$in} entrantes · {$out} salientes";
+        $lines[] = "👤 Usuarios activos: {$users}";
+        $lines[] = '👥 Números: ' . ( $by_role['reader'] ?? 0 ) . ' alumnado · ' . ( $by_role['admin'] ?? 0 ) . ' personal';
+        $lines[] = "📥 Reportes: {$reports['new']} nuevos · {$reports['in_review']} en revisión · {$reports['resolved']} resueltos";
+        $lines[] = "💡 Sugerencias: {$sugg['new']} nuevas · {$sugg['in_review']} en revisión · {$sugg['resolved']} resueltas";
+        if ( ! empty( $top ) ) {
+            $lines[] = '';
+            $lines[] = '🔝 *Acciones frecuentes:*';
+            foreach ( $top as $action => $total ) {
+                $lines[] = '• ' . $action . ': ' . $total;
+            }
+        }
+
+        $this->send_reply( $phone, implode( "\n", $lines ) );
+        $this->enter_staff_menu( $phone );
     }
 
     // -----------------------------------------------------------------------
@@ -1040,6 +1284,9 @@ class Caaguazu_Bot_Engine {
             '4'      => $this->contact_show( $phone ),
             '5'      => $this->report_start( $phone ),
             '6'      => $this->suggestion_start( $phone ),
+            '7'      => $this->faq_show( $phone ),
+            '8'      => $this->council_open( $phone ),
+            '9'      => $this->reminders_toggle( $phone ),
             '0', 'adios', 'adiós', 'salir' => $this->reader_exit( $phone ),
             default  => $this->send_invalid_option( $phone ),
         };
@@ -1299,6 +1546,71 @@ class Caaguazu_Bot_Engine {
         $this->back_to_reader_menu( $phone );
     }
 
+    // -------- A7 FAQ institucional --------
+
+    private function faq_show( string $phone ): void {
+        $faq = get_option( 'caag_faq', [] );
+        if ( ! is_array( $faq ) || empty( $faq ) ) {
+            $this->send_reply( $phone, $this->db->get_message( 'faq_none' ) );
+            $this->back_to_reader_menu( $phone );
+            return;
+        }
+        $lines = [ $this->db->get_message( 'faq_header' ) ];
+        foreach ( $faq as $item ) {
+            $lines[] = "\n*" . ( $item['q'] ?? '' ) . "*\n" . ( $item['a'] ?? '' );
+        }
+        $this->send_reply( $phone, implode( "\n", $lines ), 'faq' );
+        $this->back_to_reader_menu( $phone );
+    }
+
+    // -------- A8 Tablón del Consejo Estudiantil --------
+
+    private function council_open( string $phone ): void {
+        $board = (string) get_option( 'caag_council_board', '' );
+        $text  = $this->db->get_message( 'council_header' );
+        if ( trim( $board ) !== '' ) {
+            $text .= "\n\n" . $board;
+        }
+        $this->send_reply( $phone, $text, 'council' );
+        $this->db->set_user_state( $phone, 'alu_council_menu' );
+        $this->send_reply( $phone, $this->db->get_message( 'council_menu' ) );
+    }
+
+    private function handle_council_menu( string $phone, string $body_lc ): void {
+        if ( $body_lc === '1' ) {
+            $this->db->set_user_state( $phone, 'alu_council_proposal' );
+            $this->send_reply( $phone, $this->db->get_message( 'council_proposal_prompt' ) );
+        } elseif ( $this->is_cancel( $body_lc ) ) {
+            $this->back_to_reader_menu( $phone );
+        } else {
+            $this->send_invalid_option( $phone );
+        }
+    }
+
+    private function handle_council_proposal( string $phone, string $body, string $body_lc ): void {
+        if ( $this->is_cancel( $body_lc ) ) {
+            $this->back_to_reader_menu( $phone );
+            return;
+        }
+        // Las propuestas se guardan en el buzón de sugerencias, marcadas para el consejo.
+        $this->db->create_suggestion( $phone, '[Propuesta al Consejo] ' . $body );
+        $this->send_reply( $phone, $this->db->get_message( 'council_proposal_saved' ), 'council_proposal' );
+        $this->back_to_reader_menu( $phone );
+    }
+
+    // -------- A3 Recordatorios opt-in --------
+
+    private function reminders_toggle( string $phone ): void {
+        $new = ! $this->db->has_event_reminders( $phone );
+        $this->db->set_event_reminders( $phone, $new );
+        $this->send_reply(
+            $phone,
+            $this->db->get_message( $new ? 'reminders_on' : 'reminders_off' ),
+            'reminders_toggle'
+        );
+        $this->back_to_reader_menu( $phone );
+    }
+
     // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
@@ -1395,6 +1707,15 @@ class Caaguazu_Bot_Engine {
     private function is_valid_date( string $date ): bool {
         $dt = DateTime::createFromFormat( 'Y-m-d', $date );
         return $dt && $dt->format( 'Y-m-d' ) === $date;
+    }
+
+    /** Valida 'AAAA-MM-DD HH:MM' y devuelve 'Y-m-d H:i:s', o null si es inválido. */
+    private function parse_datetime( string $input ): ?string {
+        $dt = DateTime::createFromFormat( 'Y-m-d H:i', $input );
+        if ( ! $dt || $dt->format( 'Y-m-d H:i' ) !== $input ) {
+            return null;
+        }
+        return $dt->format( 'Y-m-d H:i:s' );
     }
 
     private function report_type_label( string $type ): string {

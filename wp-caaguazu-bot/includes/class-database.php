@@ -12,6 +12,7 @@ class Caaguazu_Database {
     private string $t_suggestions;
     private string $t_events;
     private string $t_schedules;
+    private string $t_scheduled;
 
     /** Roles institucionales → capacidades por acción (permisos por acción, no por persona). */
     const ROLE_CAPS = [
@@ -32,6 +33,7 @@ class Caaguazu_Database {
         $this->t_suggestions = $wpdb->prefix . 'caag_suggestions';
         $this->t_events      = $wpdb->prefix . 'caag_events';
         $this->t_schedules   = $wpdb->prefix . 'caag_schedules';
+        $this->t_scheduled   = $wpdb->prefix . 'caag_scheduled';
     }
 
     // -----------------------------------------------------------------------
@@ -694,5 +696,120 @@ class Caaguazu_Database {
                 $course, $division
             )
         ) ?: [];
+    }
+
+    // -----------------------------------------------------------------------
+    // Recordatorios de eventos opt-in (A3 / Fase 4)
+    // -----------------------------------------------------------------------
+
+    public function set_event_reminders( string $phone, bool $on ): bool {
+        return $this->upsert_number( $phone, [ 'event_reminders' => $on ? 1 : 0 ] );
+    }
+
+    public function has_event_reminders( string $phone ): bool {
+        $row = $this->get_number( $phone );
+        return $row && (int) ( $row->event_reminders ?? 0 ) === 1;
+    }
+
+    /** Números con recordatorios activados y no dados de baja. */
+    public function get_reminder_numbers(): array {
+        global $wpdb;
+        return $wpdb->get_results(
+            "SELECT * FROM `{$this->t_numbers}` WHERE event_reminders = 1 AND opt_out = 0"
+        ) ?: [];
+    }
+
+    /** Eventos en una fecha exacta que aún no enviaron recordatorio. */
+    public function get_events_to_remind( string $date ): array {
+        global $wpdb;
+        return $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM `{$this->t_events}` WHERE event_date = %s AND reminder_sent_at IS NULL ORDER BY id ASC",
+                $date
+            )
+        ) ?: [];
+    }
+
+    public function mark_event_reminded( int $id ): bool {
+        global $wpdb;
+        return (bool) $wpdb->update(
+            $this->t_events,
+            [ 'reminder_sent_at' => current_time( 'mysql' ) ],
+            [ 'id' => $id ]
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Programación de envíos (D3 / Fase 4)
+    // -----------------------------------------------------------------------
+
+    public function create_scheduled_broadcast( string $message, string $target, string $run_at, string $created_by ): bool {
+        global $wpdb;
+        return (bool) $wpdb->insert(
+            $this->t_scheduled,
+            [
+                'message'    => $message,
+                'target'     => $target,
+                'run_at'     => $run_at,
+                'status'     => 'pending',
+                'created_by' => $created_by,
+                'created_at' => current_time( 'mysql' ),
+            ]
+        );
+    }
+
+    /** Envíos pendientes cuya hora ya llegó. */
+    public function get_due_scheduled( int $limit = 5 ): array {
+        global $wpdb;
+        return $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM `{$this->t_scheduled}` WHERE status = 'pending' AND run_at <= %s ORDER BY run_at ASC LIMIT %d",
+                current_time( 'mysql' ), $limit
+            )
+        ) ?: [];
+    }
+
+    public function set_scheduled_status( int $id, string $status ): bool {
+        global $wpdb;
+        return (bool) $wpdb->update( $this->t_scheduled, [ 'status' => $status ], [ 'id' => $id ] );
+    }
+
+    public function count_pending_scheduled(): int {
+        global $wpdb;
+        return (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$this->t_scheduled}` WHERE status = 'pending'" );
+    }
+
+    // -----------------------------------------------------------------------
+    // Métricas adicionales (D9 / Fase 4)
+    // -----------------------------------------------------------------------
+
+    /** Acciones más frecuentes en los logs de salida. Devuelve [ accion => total ]. */
+    public function count_top_actions( int $limit = 5, int $days = 30 ): array {
+        global $wpdb;
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT processed_action AS action, COUNT(*) AS total
+                 FROM `{$this->t_logs}`
+                 WHERE processed_action IS NOT NULL AND processed_action <> ''
+                   AND timestamp >= DATE_SUB(NOW(), INTERVAL %d DAY)
+                 GROUP BY processed_action ORDER BY total DESC LIMIT %d",
+                $days, $limit
+            )
+        ) ?: [];
+        $out = [];
+        foreach ( $rows as $r ) {
+            $out[ (string) $r->action ] = (int) $r->total;
+        }
+        return $out;
+    }
+
+    public function count_suggestions_by_status(): array {
+        global $wpdb;
+        $rows = $wpdb->get_results( "SELECT status, COUNT(*) AS total FROM `{$this->t_suggestions}` GROUP BY status" ) ?: [];
+        $out  = [ 'new' => 0, 'in_review' => 0, 'resolved' => 0 ];
+        foreach ( $rows as $r ) {
+            $out[ (string) $r->status ] = (int) $r->total;
+        }
+        return $out;
     }
 }

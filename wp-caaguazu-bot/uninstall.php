@@ -13,6 +13,7 @@ $tables = [
     'caag_suggestions',
     'caag_events',
     'caag_schedules',
+    'caag_scheduled',
 ];
 
 foreach ( $tables as $table ) {
@@ -31,6 +32,10 @@ $options = [
     'caag_site_links',
     'caag_contacts',
     'caag_report_categories',
+    'caag_faq',
+    'caag_council_board',
+    'caag_comm_templates',
+    'caag_reminder_days',
 ];
 foreach ( $options as $option ) {
     delete_option( $option );
@@ -39,3 +44,5 @@ foreach ( $options as $option ) {
 wp_clear_scheduled_hook( 'caag_heartbeat_event' );
 wp_clear_scheduled_hook( 'caag_log_cleanup_event' );
 wp_clear_scheduled_hook( 'caag_broadcast_batch_event' );
+wp_clear_scheduled_hook( 'caag_reminders_event' );
+wp_clear_scheduled_hook( 'caag_scheduled_event' );

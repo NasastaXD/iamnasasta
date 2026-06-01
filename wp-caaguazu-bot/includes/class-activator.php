@@ -67,6 +67,7 @@ class Caaguazu_Activator {
             name          varchar(100) DEFAULT '',
             opt_out       tinyint(1)   NOT NULL DEFAULT 0,
             subscriptions varchar(255) NOT NULL DEFAULT '',
+            event_reminders tinyint(1) NOT NULL DEFAULT 0,
             registered_at datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,
             last_seen     datetime     DEFAULT NULL,
             PRIMARY KEY (id),
@@ -145,9 +146,23 @@ class Caaguazu_Activator {
             event_date  date         NOT NULL,
             description text         DEFAULT NULL,
             created_by  varchar(30)  DEFAULT '',
+            reminder_sent_at datetime DEFAULT NULL,
             created_at  datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY idx_event_date (event_date)
+        ) ENGINE=InnoDB $c;" );
+
+        // Envíos programados (D3) — comunicados a despachar más tarde.
+        dbDelta( "CREATE TABLE {$p}caag_scheduled (
+            id         bigint(20)   NOT NULL AUTO_INCREMENT,
+            message    longtext     NOT NULL,
+            target     varchar(20)  NOT NULL DEFAULT 'all',
+            run_at     datetime     NOT NULL,
+            status     varchar(20)  NOT NULL DEFAULT 'pending',
+            created_by varchar(30)  DEFAULT '',
+            created_at datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_status_run (status, run_at)
         ) ENGINE=InnoDB $c;" );
 
         // Horarios (A1) — grilla por curso/división. day_of_week: 1=Lun..7=Dom.
@@ -175,7 +190,7 @@ class Caaguazu_Activator {
             [ 'staff_menu_header',    '*Panel del personal* — ¿qué desea hacer?',                                                                                       'Encabezado del menú staff (las opciones se arman según permisos).' ],
             [ 'admin_menu',           "*Gestión de artículos web*\n1️⃣ Publicar\n2️⃣ Editar\n3️⃣ Eliminar\n4️⃣ Ver enlaces\n0️⃣ Volver",                                    'Submenú de artículos web (Editor).' ],
             [ 'greeting_reader',      'Hola {name}! 👋 Bienvenido/a al bot del CEAD. Estoy para ayudarte con información del colegio.',                                  'Saludo para alumnado. Usar {name}.' ],
-            [ 'reader_menu',          "*Menú CEAD*\n1️⃣ Horarios\n2️⃣ Sitio web\n3️⃣ Calendario de eventos\n4️⃣ Contacto\n5️⃣ Reportar algo\n6️⃣ Sugerencias y quejas\n0️⃣ Salir\n\nEnvíe *BAJA* para no recibir mensajes.", 'Menú principal del alumnado.' ],
+            [ 'reader_menu',          "*Menú CEAD*\n1️⃣ Horarios\n2️⃣ Sitio web\n3️⃣ Calendario de eventos\n4️⃣ Contacto\n5️⃣ Reportar algo\n6️⃣ Sugerencias y quejas\n7️⃣ Preguntas frecuentes\n8️⃣ Consejo Estudiantil\n9️⃣ Recordatorios de eventos\n0️⃣ Salir\n\nEnvíe *BAJA* para no recibir mensajes.", 'Menú principal del alumnado.' ],
             [ 'opt_out_confirmed',    'Ha sido dado de baja. Ya no recibirá mensajes de este bot. Escríbanos de nuevo para volver.',                                      'Confirmación de opt-out.' ],
             [ 'publish_prompt',       'Perfecto. Envíe el contenido del artículo (puede adjuntar una imagen como portada). El título será la primera línea del texto.', 'Prompt para contenido del post.' ],
             [ 'category_prompt',      "Seleccione la categoría:\n{category_list}\n0️⃣ Cancelar",                                                                          'Lista de categorías. Usar {category_list}.' ],
@@ -275,6 +290,34 @@ class Caaguazu_Activator {
             [ 'user_removed',         '✅ {phone} ya no forma parte del personal.',                                                                                       'Usar {phone}.' ],
             [ 'access_denied',        '🔒 No tiene permisos para realizar esa acción.',                                                                                 '' ],
             [ 'back_to_menu',         'Volviendo al menú…',                                                                                                             '' ],
+
+            // -------- Fase 4: Alumnado --------
+            [ 'faq_header',           '❓ *Preguntas frecuentes*',                                                                                                       '' ],
+            [ 'faq_none',             'Todavía no hay preguntas frecuentes cargadas.',                                                                                  '' ],
+            [ 'council_header',       '📌 *Tablón del Consejo Estudiantil*',                                                                                            '' ],
+            [ 'council_menu',         "1️⃣ Enviar una propuesta al consejo\n0️⃣ Volver",                                                                                  '' ],
+            [ 'council_proposal_prompt','Escriba su propuesta para el Consejo Estudiantil (0️⃣ para cancelar):',                                                         '' ],
+            [ 'council_proposal_saved','✅ ¡Gracias! Su propuesta fue enviada al Consejo Estudiantil.',                                                                  '' ],
+            [ 'reminders_on',         '🔔 Recordatorios de eventos *activados*. Le avisaremos antes de cada evento.',                                                    '' ],
+            [ 'reminders_off',        '🔕 Recordatorios de eventos *desactivados*.',                                                                                     '' ],
+            [ 'event_reminder',       "🔔 *Recordatorio de eventos del CEAD*\n{events}",                                                                                 'Recordatorio. Usar {events}.' ],
+
+            // -------- Fase 4: Staff --------
+            [ 'comm_template_hint',   'Escriba *P* para elegir una plantilla.',                                                                                         'Sufijo del prompt de comunicado si hay plantillas.' ],
+            [ 'comm_template_prompt', "Seleccione una plantilla:\n{template_list}\n0️⃣ Cancelar",                                                                        'Usar {template_list}.' ],
+            [ 'comm_when_prompt',     "¿Cuándo enviar?\n1️⃣ Ahora\n2️⃣ Programar fecha y hora\n0️⃣ Cancelar",                                                            '' ],
+            [ 'comm_schedule_prompt', 'Indique fecha y hora (AAAA-MM-DD HH:MM), ej. 2026-07-15 07:00:',                                                                 '' ],
+            [ 'comm_schedule_invalid','Formato inválido. Use AAAA-MM-DD HH:MM (ej. 2026-07-15 07:00).',                                                                 '' ],
+            [ 'comm_scheduled_ok',    '🗓️ Comunicado programado para {when} ({count} destinatario(s)).',                                                                'Usar {when},{count}.' ],
+            [ 'tpl_menu',             "*Plantillas de comunicados*\n1️⃣ Listar\n2️⃣ Agregar\n3️⃣ Eliminar\n0️⃣ Volver",                                                  '' ],
+            [ 'tpl_empty',            'No hay plantillas guardadas.',                                                                                                   '' ],
+            [ 'tpl_list_header',      '🗂️ *Plantillas*',                                                                                                                '' ],
+            [ 'tpl_add_name_prompt',  'Nombre de la plantilla (0️⃣ para cancelar):',                                                                                     '' ],
+            [ 'tpl_add_body_prompt',  'Texto de la plantilla (0️⃣ para cancelar):',                                                                                      '' ],
+            [ 'tpl_added',            '✅ Plantilla guardada: {name}',                                                                                                    'Usar {name}.' ],
+            [ 'tpl_delete_prompt',    "Seleccione la plantilla a eliminar:\n{template_list}\n0️⃣ Cancelar",                                                              'Usar {template_list}.' ],
+            [ 'tpl_deleted',          '🗑️ Plantilla eliminada.',                                                                                                        '' ],
+            [ 'metrics_header',       '📊 *Métricas (últimos 30 días)*',                                                                                                '' ],
         ];
 
         foreach ( $templates as [ $key, $content, $desc ] ) {
@@ -304,7 +347,12 @@ class Caaguazu_Activator {
             // solo si el admin aún tiene el default de la versión anterior.
             'reader_menu' => [
                 'old' => "*Menú*\n1️⃣ Ver artículos por categoría\n2️⃣ Artículos recientes\n3️⃣ Buscar artículos\n4️⃣ Mis suscripciones\n0️⃣ Salir\n\nEnvíe *BAJA* para darse de baja.",
-                'new' => "*Menú CEAD*\n1️⃣ Horarios\n2️⃣ Sitio web\n3️⃣ Calendario de eventos\n4️⃣ Contacto\n5️⃣ Reportar algo\n6️⃣ Sugerencias y quejas\n0️⃣ Salir\n\nEnvíe *BAJA* para no recibir mensajes.",
+                'new' => "*Menú CEAD*\n1️⃣ Horarios\n2️⃣ Sitio web\n3️⃣ Calendario de eventos\n4️⃣ Contacto\n5️⃣ Reportar algo\n6️⃣ Sugerencias y quejas\n7️⃣ Preguntas frecuentes\n8️⃣ Consejo Estudiantil\n9️⃣ Recordatorios de eventos\n0️⃣ Salir\n\nEnvíe *BAJA* para no recibir mensajes.",
+            ],
+            'reader_menu_f4' => [
+                'key' => 'reader_menu',
+                'old' => "*Menú CEAD*\n1️⃣ Horarios\n2️⃣ Sitio web\n3️⃣ Calendario de eventos\n4️⃣ Contacto\n5️⃣ Reportar algo\n6️⃣ Sugerencias y quejas\n0️⃣ Salir\n\nEnvíe *BAJA* para no recibir mensajes.",
+                'new' => "*Menú CEAD*\n1️⃣ Horarios\n2️⃣ Sitio web\n3️⃣ Calendario de eventos\n4️⃣ Contacto\n5️⃣ Reportar algo\n6️⃣ Sugerencias y quejas\n7️⃣ Preguntas frecuentes\n8️⃣ Consejo Estudiantil\n9️⃣ Recordatorios de eventos\n0️⃣ Salir\n\nEnvíe *BAJA* para no recibir mensajes.",
             ],
             'greeting_reader' => [
                 'old' => 'Hola {name}! 👋 Bienvenido al bot informativo de Caaguazú. ¿En qué le podemos ayudar?',
@@ -321,10 +369,11 @@ class Caaguazu_Activator {
         ];
 
         foreach ( $migrations as $key => $m ) {
+            $msg_key = $m['key'] ?? $key;
             $wpdb->query(
                 $wpdb->prepare(
                     "UPDATE `$t` SET content = %s WHERE msg_key = %s AND content = %s",
-                    $m['new'], $key, $m['old']
+                    $m['new'], $msg_key, $m['old']
                 )
             );
         }
@@ -363,6 +412,36 @@ class Caaguazu_Activator {
         // Categorías de reporte (A5).
         if ( get_option( 'caag_report_categories', null ) === null ) {
             update_option( 'caag_report_categories', [ 'Bullying / acoso', 'Seguridad', 'Infraestructura', 'Otro' ], false );
+        }
+
+        // FAQ institucional (A7).
+        if ( get_option( 'caag_faq', null ) === null ) {
+            update_option( 'caag_faq', [
+                [ 'q' => '¿Cómo pido una constancia de alumno regular?', 'a' => 'Solicítela en Secretaría de lunes a viernes de 7:00 a 13:00. Demora 48 hs hábiles.' ],
+                [ 'q' => '¿Cuándo son las inscripciones?',             'a' => 'Las fechas se publican en cead.caaguazu.net/inscripciones y en el calendario de eventos.' ],
+                [ 'q' => '¿Qué necesito para inscribirme?',            'a' => 'Documento de identidad, certificado del año anterior y formulario de inscripción.' ],
+            ], false );
+        }
+
+        // Tablón del Consejo Estudiantil (A8).
+        if ( get_option( 'caag_council_board', null ) === null ) {
+            update_option( 'caag_council_board',
+                "El Consejo Estudiantil está trabajando en:\n• Mejoras en el patio y los espacios comunes.\n• Actividades para la semana del estudiante.\n\n¡Tus propuestas son bienvenidas!",
+                false
+            );
+        }
+
+        // Plantillas de comunicados (D4).
+        if ( get_option( 'caag_comm_templates', null ) === null ) {
+            update_option( 'caag_comm_templates', [
+                [ 'name' => 'Suspensión de clases', 'body' => 'Estimadas familias: les informamos que mañana no habrá clases por [motivo]. Saludos, CEAD.' ],
+                [ 'name' => 'Reunión de padres',    'body' => 'Estimadas familias: convocamos a reunión de padres el [fecha] a las [hora] en el colegio.' ],
+            ], false );
+        }
+
+        // Días de anticipación de recordatorios de eventos (A3).
+        if ( get_option( 'caag_reminder_days', null ) === null ) {
+            update_option( 'caag_reminder_days', 1, false );
         }
 
         // Grilla de horario de ejemplo (A1) — solo si la tabla está vacía.
@@ -406,6 +485,12 @@ class Caaguazu_Activator {
         }
         if ( ! wp_next_scheduled( 'caag_log_cleanup_event' ) ) {
             wp_schedule_event( time(), 'daily', 'caag_log_cleanup_event' );
+        }
+        if ( ! wp_next_scheduled( 'caag_reminders_event' ) ) {
+            wp_schedule_event( time(), 'daily', 'caag_reminders_event' );
+        }
+        if ( ! wp_next_scheduled( 'caag_scheduled_event' ) ) {
+            wp_schedule_event( time(), 'caag_five_minutes', 'caag_scheduled_event' );
         }
     }
 }

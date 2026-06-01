@@ -64,9 +64,11 @@ class Caaguazu_Plugin {
     }
 
     private function define_cron_hooks(): void {
-        add_action( 'caag_heartbeat_event',     [ $this, 'run_heartbeat'   ] );
-        add_action( 'caag_log_cleanup_event',   [ $this, 'run_log_cleanup' ] );
+        add_action( 'caag_heartbeat_event',       [ $this, 'run_heartbeat'   ] );
+        add_action( 'caag_log_cleanup_event',     [ $this, 'run_log_cleanup' ] );
         add_action( 'caag_broadcast_batch_event', [ $this->broadcaster, 'process_batch' ] );
+        add_action( 'caag_reminders_event',       [ $this, 'run_reminders' ] );
+        add_action( 'caag_scheduled_event',       [ $this, 'run_scheduled_broadcasts' ] );
     }
 
     public function register_cron_intervals( array $schedules ): array {
@@ -95,5 +97,61 @@ class Caaguazu_Plugin {
     public function run_log_cleanup(): void {
         $this->db->cleanup_old_logs( 90 );
         $this->db->cleanup_stale_states( 60 );
+    }
+
+    /**
+     * Recordatorios opt-in (A3): envía un aviso a los números suscritos por los
+     * eventos que ocurren dentro de N días (configurable). Un solo mensaje por día.
+     */
+    public function run_reminders(): void {
+        $days   = max( 0, (int) get_option( 'caag_reminder_days', 1 ) );
+        $target = date( 'Y-m-d', strtotime( current_time( 'mysql' ) . " +{$days} day" ) );
+        $events = $this->db->get_events_to_remind( $target );
+        if ( empty( $events ) ) {
+            return;
+        }
+
+        $numbers = $this->db->get_reminder_numbers();
+        $phones  = array_values( array_filter( array_map( fn( $n ) => (string) $n->phone, $numbers ), fn( $p ) => $p !== '' ) );
+
+        if ( ! empty( $phones ) ) {
+            $message = $this->interpolate_reminder( $events );
+            $result  = $this->broadcaster->enqueue( $message, $phones );
+            if ( empty( $result['queued'] ) ) {
+                return; // ocupado: reintenta en la próxima corrida sin marcar
+            }
+        }
+
+        foreach ( $events as $e ) {
+            $this->db->mark_event_reminded( (int) $e->id );
+        }
+    }
+
+    private function interpolate_reminder( array $events ): string {
+        $lines = [];
+        foreach ( $events as $e ) {
+            $line = '• *' . $e->title . '*';
+            if ( trim( (string) $e->description ) !== '' ) {
+                $line .= ' — ' . $e->description;
+            }
+            $lines[] = $line;
+        }
+        $tpl = $this->db->get_message( 'event_reminder' );
+        return str_replace( '{events}', implode( "\n", $lines ), $tpl );
+    }
+
+    /**
+     * Programación de envíos (D3): despacha comunicados cuya hora ya llegó.
+     * Procesa de a uno para respetar el control de volumen del broadcaster.
+     */
+    public function run_scheduled_broadcasts(): void {
+        $due = $this->db->get_due_scheduled( 5 );
+        foreach ( $due as $job ) {
+            $result = $this->broadcaster->enqueue_for( (string) $job->message, (string) $job->target );
+            if ( ! empty( $result['busy'] ) ) {
+                break; // hay un envío en curso; reintentar en la próxima corrida
+            }
+            $this->db->set_scheduled_status( (int) $job->id, 'sent' );
+        }
     }
 }

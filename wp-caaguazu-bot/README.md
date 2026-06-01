@@ -19,12 +19,17 @@ sugerencias — todo desde WhatsApp.
 4. Contacto — derivación a Administración, Secretaría y Consejo Estudiantil.
 5. Reportar algo — **anónimo total** o **confidencial (contactable)**. Cuerpo cifrado.
 6. Sugerencias y quejas — buzón separado de los reportes.
+7. Preguntas frecuentes — trámites e info pública.
+8. Consejo Estudiantil — tablón de novedades + canal de propuestas.
+9. Recordatorios de eventos — opt-in: aviso automático antes de cada evento.
 
 **Personal (según permisos):**
 - **Editor** — gestión de artículos web (publicar/editar/eliminar).
-- **Comunicador** — comunicados a alumnado/personal/todos (envío escalonado) y alta de eventos.
+- **Comunicador** — comunicados a alumnado/personal/todos (envío escalonado), **programación**
+  de envíos (enviar después), **plantillas** reutilizables, y alta de eventos del calendario.
 - **Moderador** — bandejas de reportes y sugerencias (estados: nuevo → en revisión → resuelto, con notas).
 - **SuperAdmin** — todo lo anterior + alta/baja de personal y asignación de roles.
+- **Métricas** — resumen de mensajes, usuarios, reportes/sugerencias y acciones frecuentes.
 
 Permisos **por acción** (un número puede acumular varios roles). Un número agregado como
 personal sin roles asignados se trata como SuperAdmin (compatibilidad con instalaciones previas).

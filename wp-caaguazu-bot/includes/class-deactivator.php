@@ -7,5 +7,7 @@ class Caaguazu_Deactivator {
         wp_clear_scheduled_hook( 'caag_heartbeat_event' );
         wp_clear_scheduled_hook( 'caag_log_cleanup_event' );
         wp_clear_scheduled_hook( 'caag_broadcast_batch_event' );
+        wp_clear_scheduled_hook( 'caag_reminders_event' );
+        wp_clear_scheduled_hook( 'caag_scheduled_event' );
     }
 }
