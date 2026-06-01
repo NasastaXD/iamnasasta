@@ -13,6 +13,7 @@ $posts_admin   = (int) get_option( 'caag_posts_per_page_admin', 10 );
 $all_cats        = get_categories( [ 'hide_empty' => false ] );
 $reader_cats     = get_option( 'caag_reader_categories', [] );
 $admin_numbers   = $db->get_numbers_by_role( 'admin' );
+$report_forward  = get_option( 'caag_report_forward_number', '' );
 ?>
 <div class="wrap" data-caag-page="config">
     <h1>Caaguazú Bot — Configuración</h1>
@@ -103,6 +104,18 @@ $admin_numbers   = $db->get_numbers_by_role( 'admin' );
             <tr>
                 <th><label for="caag_posts_admin">Posts en listas admin (máx. 20)</label></th>
                 <td><input type="number" id="caag_posts_admin" name="caag_posts_admin" value="<?php echo (int) $posts_admin; ?>" min="1" max="20" style="width:80px;"></td>
+            </tr>
+        </table>
+
+        <!-- Sección E: Canal de reportes -->
+        <h2>Canal de reportes</h2>
+        <table class="form-table">
+            <tr>
+                <th><label for="caag_report_forward_number">Número que recibe los reportes</label></th>
+                <td>
+                    <input type="text" id="caag_report_forward_number" name="caag_report_forward_number" value="<?php echo esc_attr( $report_forward ); ?>" class="regular-text" placeholder="595981234567">
+                    <p class="description">Número de WhatsApp (con código de país, sin <code>+</code>) al que se reenviará cada reporte recibido. Déjelo vacío para no reenviar. En reportes anónimos no se incluye el número del remitente.</p>
+                </td>
             </tr>
         </table>
 

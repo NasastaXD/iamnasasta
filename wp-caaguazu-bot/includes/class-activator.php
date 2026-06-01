@@ -444,6 +444,11 @@ class Caaguazu_Activator {
             update_option( 'caag_reminder_days', 1, false );
         }
 
+        // Número responsable al que se reenvían los reportes (A5/D5). Vacío = no reenviar.
+        if ( get_option( 'caag_report_forward_number', null ) === null ) {
+            update_option( 'caag_report_forward_number', '', false );
+        }
+
         // Grilla de horario de ejemplo (A1) — solo si la tabla está vacía.
         $sched_table = $wpdb->prefix . 'caag_schedules';
         $has_sched   = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$sched_table`" );

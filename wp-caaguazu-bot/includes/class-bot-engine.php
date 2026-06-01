@@ -1517,10 +1517,39 @@ class Caaguazu_Bot_Engine {
         $category = (string) ( $context['category'] ?? '' );
         $ref      = $this->db->create_report( $type, $type === 'confidential' ? $phone : null, $category, $body );
 
+        // Reenvía el reporte al número responsable configurado (si lo hay).
+        $this->maybe_forward_report( $ref, $type, $category, $body, $type === 'confidential' ? $phone : null );
+
         $key = $type === 'anonymous' ? 'report_saved_anon' : 'report_saved_conf';
         // Acción del log de salida sin filtrar el cuerpo del reporte.
         $this->send_reply( $phone, $this->interpolate( $this->db->get_message( $key ), [ 'ref' => $ref ] ), 'report_received' );
         $this->back_to_reader_menu( $phone );
+    }
+
+    /**
+     * Reenvía un reporte recién recibido al número responsable (opción
+     * caag_report_forward_number). El envío va directo por el bridge y el log
+     * se registra redactado: el cuerpo nunca queda en crudo en la base.
+     */
+    private function maybe_forward_report( string $ref, string $type, string $category, string $body, ?string $contact ): void {
+        $to = preg_replace( '/[^0-9]/', '', (string) get_option( 'caag_report_forward_number', '' ) );
+        if ( $to === '' || strlen( $to ) < 7 ) {
+            return;
+        }
+
+        $lines = [
+            '🛡️ *Nuevo reporte* ' . $ref,
+            'Tipo: ' . $this->report_type_label( $type ),
+            'Tema: ' . ( $category !== '' ? $category : '—' ),
+        ];
+        if ( $type === 'confidential' && $contact ) {
+            $lines[] = 'Contacto: +' . $contact;
+        }
+        $lines[] = '';
+        $lines[] = $body;
+
+        $this->bridge->send_message( $to, implode( "\n", $lines ) );
+        $this->db->log_message( $to, 'out', '[reporte reenviado] ' . $ref, 'report_forwarded' );
     }
 
     private function report_categories(): array {

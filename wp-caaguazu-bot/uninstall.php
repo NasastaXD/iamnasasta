@@ -36,6 +36,7 @@ $options = [
     'caag_council_board',
     'caag_comm_templates',
     'caag_reminder_days',
+    'caag_report_forward_number',
 ];
 foreach ( $options as $option ) {
     delete_option( $option );

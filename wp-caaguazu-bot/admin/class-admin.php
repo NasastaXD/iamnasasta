@@ -156,6 +156,9 @@ class Caaguazu_Admin {
         update_option( 'caag_posts_per_page_reader', max( 1, min( 10, (int) ( $_POST['caag_posts_reader'] ?? 5 ) ) ) );
         update_option( 'caag_posts_per_page_admin',  max( 1, min( 20, (int) ( $_POST['caag_posts_admin']  ?? 10 ) ) ) );
 
+        // Número que recibe los reportes (solo dígitos).
+        update_option( 'caag_report_forward_number', preg_replace( '/[^0-9]/', '', (string) wp_unslash( $_POST['caag_report_forward_number'] ?? '' ) ) );
+
         wp_redirect( admin_url( 'admin.php?page=caag-bot-config&updated=1' ) );
         exit;
     }
