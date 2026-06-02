@@ -265,15 +265,38 @@ class Cead_Acad_WA_Admin {
 		if ( $notice ) {
 			$this->notice( $notice[1] );
 		}
+		echo '<div class="notice notice-info inline"><p>';
+		echo esc_html__( 'Acá editás solo el TEXTO de los mensajes. Las opciones del menú (los números) se reconocen en el código: cambiar el texto no agrega ni quita funciones.', 'cead-acad' );
+		echo '<br/>' . esc_html__( 'Las variables entre llaves como {name}, {count} o {events} se reemplazan solas — dejalas tal cual.', 'cead-acad' );
+		echo '</p></div>';
+
+		// Contenido actual indexado por clave.
+		$current = [];
+		foreach ( $this->store->all_messages() as $m ) {
+			$current[ $m->msg_key ] = $m->content;
+		}
+		$catalog = Cead_Acad_WA_Tables::catalog();
+		$groups  = Cead_Acad_WA_Tables::message_groups();
+
 		echo '<form method="post">';
 		wp_nonce_field( 'cead_acad_wa_messages' );
-		echo '<table class="form-table"><tbody>';
-		foreach ( $this->store->all_messages() as $m ) {
-			echo '<tr><th scope="row" style="word-break:break-all"><code>' . esc_html( $m->msg_key ) . '</code></th><td>';
-			echo '<textarea name="msg[' . esc_attr( $m->msg_key ) . ']" rows="2" class="large-text">' . esc_textarea( $m->content ) . '</textarea>';
-			echo '</td></tr>';
+		foreach ( $groups as $gkey => $gtitle ) {
+			$rows = array_filter( $catalog, static fn( $meta ) => $meta['group'] === $gkey );
+			if ( ! $rows ) {
+				continue;
+			}
+			echo '<h2 style="margin-top:1.5em">' . esc_html( $gtitle ) . '</h2>';
+			echo '<table class="form-table"><tbody>';
+			foreach ( $rows as $key => $meta ) {
+				$value = $current[ $key ] ?? $meta['default'];
+				echo '<tr><th scope="row" style="max-width:240px">';
+				echo esc_html( $meta['label'] );
+				echo '<br/><code style="font-size:11px;color:#888;word-break:break-all">' . esc_html( $key ) . '</code></th><td>';
+				echo '<textarea name="msg[' . esc_attr( $key ) . ']" rows="2" class="large-text">' . esc_textarea( $value ) . '</textarea>';
+				echo '</td></tr>';
+			}
+			echo '</tbody></table>';
 		}
-		echo '</tbody></table>';
 		echo '<p><button type="submit" name="cead_acad_wa_save_messages" value="1" class="button button-primary">' . esc_html__( 'Guardar mensajes', 'cead-acad' ) . '</button></p>';
 		echo '</form></div>';
 	}

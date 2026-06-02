@@ -4,6 +4,24 @@ Bot de WhatsApp integrado a `cead-acad`, controlado desde wp-admin y alimentado
 con los **datos reales del plugin** (eventos/horarios, comunicados, cursos).
 Es un port completo del bot original (Fases 0–4) reescrito como módulo nativo.
 
+## Estructura (todo unificado en este repo)
+
+```
+cead-acad/
+├── modules/whatsapp/      ← este módulo (lógica del bot en WordPress)
+│   ├── class-wa-*.php      (11 clases)
+│   ├── README.md           (este archivo)
+│   └── EXTENDING.md         ← cómo modificar/añadir cosas (devs / IA)
+└── bridge/                ← el "bridge" Node.js que habla con WhatsApp
+    ├── index.js, setup-tunnel.js, package.json, .env.example
+    └── INSTALACION.md      ← guía de instalación para no técnicos
+```
+
+- **¿Cambiar un texto del bot?** wp-admin → *CEAD Académico → WhatsApp · Mensajes*
+  (agrupado y con nombres claros; es solo texto).
+- **¿Cambiar o agregar una función?** ver `EXTENDING.md` (recetas paso a paso).
+- **¿Instalar el bridge?** ver `bridge/INSTALACION.md`.
+
 ## Arquitectura
 
 ```

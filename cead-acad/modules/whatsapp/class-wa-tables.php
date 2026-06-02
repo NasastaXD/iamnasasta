@@ -133,11 +133,14 @@ class Cead_Acad_WA_Tables {
 		global $wpdb;
 		$t   = cead_acad_table( 'wa_messages' );
 		$now = current_time( 'mysql' );
-		foreach ( self::default_messages() as $key => $content ) {
+		foreach ( self::catalog() as $key => $meta ) {
+			// No pisar el texto si el colegio ya lo editó: solo insertamos los
+			// que falten. La descripción (metadato) sí se refresca siempre.
 			$wpdb->query( $wpdb->prepare(
-				"INSERT IGNORE INTO {$t} (msg_key, content, updated_at) VALUES (%s, %s, %s)",
-				$key, $content, $now
+				"INSERT IGNORE INTO {$t} (msg_key, content, description, updated_at) VALUES (%s, %s, %s, %s)",
+				$key, $meta['default'], $meta['label'], $now
 			) );
+			$wpdb->update( $t, [ 'description' => $meta['label'] ], [ 'msg_key' => $key ] );
 		}
 	}
 
@@ -176,7 +179,118 @@ class Cead_Acad_WA_Tables {
 	}
 
 	/**
-	 * Plantillas por defecto del bot (editables luego desde wp-admin).
+	 * Catálogo de mensajes = única fuente de verdad para el panel de edición.
+	 * Cada clave: grupo (para agrupar en pantalla), etiqueta legible y texto por
+	 * defecto. Para AGREGAR un mensaje nuevo: sumalo en message_meta() (grupo +
+	 * etiqueta) y en default_messages() (texto), y usalo en el motor con m('clave').
+	 */
+	public static function catalog() {
+		$defaults = self::default_messages();
+		$out = [];
+		foreach ( self::message_meta() as $key => $meta ) {
+			$out[ $key ] = [ 'group' => $meta[0], 'label' => $meta[1], 'default' => $defaults[ $key ] ?? '' ];
+		}
+		// Cualquier clave sin metadato igual se incluye (no se pierde).
+		foreach ( $defaults as $key => $text ) {
+			if ( ! isset( $out[ $key ] ) ) {
+				$out[ $key ] = [ 'group' => 'otros', 'label' => $key, 'default' => $text ];
+			}
+		}
+		return $out;
+	}
+
+	/** Grupos del panel de mensajes, en orden de aparición. */
+	public static function message_groups() {
+		return [
+			'menus'         => __( 'Menú principal', 'cead-acad' ),
+			'sistema'       => __( 'Saludos y sistema', 'cead-acad' ),
+			'info'          => __( 'Información para alumnado', 'cead-acad' ),
+			'reportes'      => __( 'Reportes', 'cead-acad' ),
+			'sugerencias'   => __( 'Sugerencias y Consejo', 'cead-acad' ),
+			'recordatorios' => __( 'Recordatorios', 'cead-acad' ),
+			'staff'         => __( 'Personal (staff)', 'cead-acad' ),
+			'otros'         => __( 'Otros', 'cead-acad' ),
+		];
+	}
+
+	/** Metadatos de cada mensaje: clave => [ grupo, etiqueta legible ]. */
+	public static function message_meta() {
+		return [
+			// Menú
+			'student_menu'      => [ 'menus', 'Menú principal del alumnado (las opciones se reconocen por número en el código)' ],
+			'staff_menu_header' => [ 'menus', 'Encabezado del menú del personal' ],
+			// Sistema / saludos
+			'greeting_staff'    => [ 'sistema', 'Saludo al personal' ],
+			'greeting_student'  => [ 'sistema', 'Saludo al alumnado' ],
+			'opt_out_confirmed' => [ 'sistema', 'Confirmación de baja (BAJA)' ],
+			'goodbye'           => [ 'sistema', 'Despedida / salir' ],
+			'invalid_option'    => [ 'sistema', 'Opción inválida' ],
+			'error_generic'     => [ 'sistema', 'Error genérico' ],
+			'identify_hint'     => [ 'sistema', 'Aviso de respuesta general (número no reconocido)' ],
+			'access_denied'     => [ 'sistema', 'Sin permisos' ],
+			// Info alumnado
+			'horario_none'      => [ 'info', 'Horarios: sin eventos' ],
+			'horario_header'    => [ 'info', 'Horarios: encabezado personalizado' ],
+			'horario_general'   => [ 'info', 'Horarios: encabezado general' ],
+			'horario_now'       => [ 'info', 'Horarios: "Ahora"' ],
+			'horario_next'      => [ 'info', 'Horarios: "Sigue"' ],
+			'site_links_header' => [ 'info', 'Sitio web: encabezado' ],
+			'events_header'     => [ 'info', 'Calendario: encabezado' ],
+			'events_none'       => [ 'info', 'Calendario: sin eventos' ],
+			'contact_header'    => [ 'info', 'Contacto: encabezado' ],
+			'comm_read_header'  => [ 'info', 'Comunicados (lectura): encabezado' ],
+			'comm_read_none'    => [ 'info', 'Comunicados (lectura): sin comunicados' ],
+			// Reportes
+			'report_type_prompt'     => [ 'reportes', 'Pregunta tipo de reporte' ],
+			'report_category_prompt' => [ 'reportes', 'Pregunta categoría del reporte' ],
+			'report_body_prompt'     => [ 'reportes', 'Pedido del texto del reporte' ],
+			'report_saved_conf'      => [ 'reportes', 'Reporte confidencial guardado' ],
+			'report_saved_anon'      => [ 'reportes', 'Reporte anónimo guardado' ],
+			'report_cancelled'       => [ 'reportes', 'Reporte cancelado' ],
+			// Sugerencias / Consejo
+			'suggestion_prompt'       => [ 'sugerencias', 'Pedido de sugerencia' ],
+			'suggestion_saved'        => [ 'sugerencias', 'Sugerencia guardada' ],
+			'suggestion_cancelled'    => [ 'sugerencias', 'Sugerencia cancelada' ],
+			'faq_header'              => [ 'sugerencias', 'FAQ: encabezado' ],
+			'faq_none'                => [ 'sugerencias', 'FAQ: vacío' ],
+			'council_header'          => [ 'sugerencias', 'Consejo: encabezado del tablón' ],
+			'council_menu'            => [ 'sugerencias', 'Consejo: submenú' ],
+			'council_proposal_prompt' => [ 'sugerencias', 'Consejo: pedido de propuesta' ],
+			'council_proposal_saved'  => [ 'sugerencias', 'Consejo: propuesta enviada' ],
+			// Recordatorios
+			'reminders_on'   => [ 'recordatorios', 'Recordatorios activados' ],
+			'reminders_off'  => [ 'recordatorios', 'Recordatorios desactivados' ],
+			'event_reminder' => [ 'recordatorios', 'Texto del recordatorio (usa {events})' ],
+			// Staff
+			'comm_compose_prompt'   => [ 'staff', 'Comunicado: pedir texto' ],
+			'comm_audience_prompt'  => [ 'staff', 'Comunicado: elegir audiencia' ],
+			'comm_confirm_prompt'   => [ 'staff', 'Comunicado: confirmar (usa {count})' ],
+			'comm_empty'            => [ 'staff', 'Comunicado: sin destinatarios' ],
+			'comm_queued'           => [ 'staff', 'Comunicado: encolado (usa {total})' ],
+			'comm_busy'             => [ 'staff', 'Comunicado: envío en curso' ],
+			'comm_cancelled'        => [ 'staff', 'Comunicado: cancelado' ],
+			'event_title_prompt'    => [ 'staff', 'Evento: pedir título' ],
+			'event_date_prompt'     => [ 'staff', 'Evento: pedir fecha' ],
+			'event_date_invalid'    => [ 'staff', 'Evento: fecha inválida' ],
+			'event_saved'           => [ 'staff', 'Evento: guardado' ],
+			'reports_inbox_header'  => [ 'staff', 'Reportes: encabezado de bandeja (usa {new}/{in_review}/{resolved})' ],
+			'reports_list_prompt'   => [ 'staff', 'Reportes: lista (usa {report_list})' ],
+			'reports_empty'         => [ 'staff', 'Reportes: bandeja vacía' ],
+			'report_actions_prompt' => [ 'staff', 'Reportes: acciones' ],
+			'report_note_prompt'    => [ 'staff', 'Reportes: pedir nota' ],
+			'report_updated'        => [ 'staff', 'Reportes: actualizado' ],
+			'sugg_list_prompt'      => [ 'staff', 'Sugerencias: lista (usa {sugg_list})' ],
+			'sugg_empty'            => [ 'staff', 'Sugerencias: bandeja vacía' ],
+			'sugg_actions_prompt'   => [ 'staff', 'Sugerencias: acciones' ],
+			'sugg_updated'          => [ 'staff', 'Sugerencias: actualizada' ],
+			'metrics_header'        => [ 'staff', 'Métricas: encabezado' ],
+		];
+	}
+
+	/**
+	 * Plantillas por defecto del bot (texto). Editables luego desde wp-admin.
+	 * Para cambiar un texto por defecto, editá acá; para que aparezca agrupado y
+	 * con nombre claro en el panel, agregá su entrada en message_meta().
 	 */
 	public static function default_messages() {
 		return [
