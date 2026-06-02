@@ -23,7 +23,9 @@ class Cead_Acad_WA_Engine {
 		$phone = preg_replace( '/[^0-9]/', '', (string) ( $msg['from'] ?? '' ) );
 		$body  = sanitize_textarea_field( (string) ( $msg['body'] ?? '' ) );
 		$name  = sanitize_text_field( (string) ( $msg['pushName'] ?? '' ) );
-		if ( $phone === '' || $body === '' ) {
+		$media = ( isset( $msg['media'] ) && is_array( $msg['media'] ) ) ? $msg['media'] : null;
+		// Procesar si hay texto O imagen (mensajes con solo imagen son válidos).
+		if ( $phone === '' || ( $body === '' && ! $media ) ) {
 			return;
 		}
 
@@ -42,7 +44,7 @@ class Cead_Acad_WA_Engine {
 		$context = $st['context'];
 
 		// Log redactado para reportes sensibles.
-		$this->log_inbound( $phone, $state, $context, $body );
+		$this->log_inbound( $phone, $state, $context, $body !== '' ? $body : '[imagen]' );
 
 		if ( $this->store->is_opted_out( $phone ) ) {
 			return;
@@ -56,7 +58,12 @@ class Cead_Acad_WA_Engine {
 			return;
 		}
 
-		$this->dispatch( $phone, $body, $lc, $state, $context, $name, $identity );
+		// Atajos rápidos de staff (-AA / -AE), solo en estados de menú.
+		if ( $body !== '' && $this->maybe_handle_shortcut( $phone, $body, $state, $identity ) ) {
+			return;
+		}
+
+		$this->dispatch( $phone, $body, $lc, $state, $context, $name, $identity, $media );
 	}
 
 	private function log_inbound( $phone, $state, $context, $body ) {
@@ -71,9 +78,10 @@ class Cead_Acad_WA_Engine {
 		$this->store->log( $phone, 'in', $body );
 	}
 
-	private function dispatch( $phone, $body, $lc, $state, $context, $name, $identity ) {
+	private function dispatch( $phone, $body, $lc, $state, $context, $name, $identity, $media = null ) {
 		switch ( $state ) {
 			case 'idle':                 $this->idle( $phone, $name, $identity ); break;
+			case 'role_chooser':         $this->role_chooser( $phone, $lc, $context, $identity ); break;
 			// Alumnado
 			case 'student_menu':         $this->student_menu( $phone, $lc, $identity ); break;
 			case 'stu_report_type':      $this->report_type( $phone, $lc ); break;
@@ -84,7 +92,7 @@ class Cead_Acad_WA_Engine {
 			case 'stu_council_proposal': $this->council_proposal( $phone, $body, $lc, $identity ); break;
 			// Staff
 			case 'staff_menu':           $this->staff_menu( $phone, $lc, $context, $identity ); break;
-			case 'staff_comm_compose':   $this->comm_compose( $phone, $body, $lc ); break;
+			case 'staff_comm_compose':   $this->comm_compose( $phone, $body, $lc, $media ); break;
 			case 'staff_comm_template':  $this->comm_template( $phone, $lc ); break;
 			case 'staff_comm_audience':  $this->comm_audience( $phone, $lc, $context ); break;
 			case 'staff_comm_when':      $this->comm_when( $phone, $lc, $context ); break;
@@ -92,6 +100,15 @@ class Cead_Acad_WA_Engine {
 			case 'staff_comm_schedule':  $this->comm_schedule( $phone, $body, $lc, $context, $identity ); break;
 			case 'staff_event_title':    $this->event_title( $phone, $body, $lc ); break;
 			case 'staff_event_date':     $this->event_date( $phone, $body, $lc, $context, $identity ); break;
+			case 'staff_article_menu':   $this->article_menu( $phone, $lc, $identity ); break;
+			case 'staff_article_title':  $this->article_title( $phone, $body, $lc ); break;
+			case 'staff_article_body':   $this->article_body( $phone, $body, $lc, $context, $identity ); break;
+			case 'staff_article_edit_pick': $this->article_edit_pick( $phone, $lc, $context ); break;
+			case 'staff_article_edit_body': $this->article_edit_body( $phone, $body, $lc, $context ); break;
+			case 'staff_article_del_pick':  $this->article_del_pick( $phone, $lc, $context ); break;
+			case 'staff_article_del_confirm': $this->article_del_confirm( $phone, $lc, $context ); break;
+			case 'staff_role_phone':     $this->role_phone( $phone, $body, $lc ); break;
+			case 'staff_role_choose':    $this->role_choose( $phone, $lc, $context, $identity ); break;
 			case 'staff_reports_list':   $this->reports_list( $phone, $lc, $context ); break;
 			case 'staff_report_view':    $this->report_view( $phone, $lc, $context ); break;
 			case 'staff_report_note':    $this->report_note( $phone, $body, $lc, $context ); break;
@@ -101,16 +118,160 @@ class Cead_Acad_WA_Engine {
 		}
 	}
 
+	/**
+	 * Atajos de staff: "-AA <texto>" anuncio, "-AE <texto>" evento. Solo se
+	 * disparan en estados de menú (no en medio de una captura) y según capacidad.
+	 */
+	private function maybe_handle_shortcut( $phone, $body, $state, $identity ) {
+		$safe = [ 'idle', 'role_chooser', 'student_menu', 'staff_menu' ];
+		if ( ! in_array( $state, $safe, true ) ) {
+			return false;
+		}
+		if ( ! preg_match( '/^-(aa|ae)\b\s*(.*)$/is', trim( $body ), $m ) ) {
+			return false;
+		}
+		$cmd  = strtolower( $m[1] );
+		$text = trim( $m[2] );
+		if ( $cmd === 'aa' ) {
+			if ( ! Cead_Acad_WA_Identity::can( $identity['user_id'], 'cead_acad_publish_broadcast' ) ) {
+				return false;
+			}
+			if ( $text === '' ) { $this->send( $phone, 'Uso: *-AA* <texto del anuncio>' ); return true; }
+			$this->create_broadcast_post( $text, 'all' );
+			$res = $this->broadcaster->enqueue_for( $text, 'all' );
+			$this->send( $phone, $this->interp( $this->m( 'shortcut_announce_ok' ), [ 'total' => (int) ( $res['total'] ?? 0 ) ] ), 'quick_announce' );
+			return true;
+		}
+		// -AE: pedir la fecha en un paso.
+		if ( ! Cead_Acad_WA_Identity::can( $identity['user_id'], 'cead_acad_manage_schedule' ) ) {
+			return false;
+		}
+		if ( $text === '' ) { $this->send( $phone, 'Uso: *-AE* <título del evento>' ); return true; }
+		$this->store->set_state( $phone, 'staff_event_date', [ 'title' => $text ] );
+		$this->send( $phone, $this->m( 'event_date_prompt' ) );
+		return true;
+	}
+
 	// ---------------------------------------------------------------- idle
 	private function idle( $phone, $name, $identity ) {
-		if ( $identity['is_staff'] ) {
+		$menus = $this->available_role_menus( $identity );
+		if ( $menus ) {
 			$greeting = $this->interp( $this->m( 'greeting_staff' ), [ 'name' => $name ?: 'Profe' ] );
-			$this->enter_staff_menu( $phone, $identity, $greeting );
-		} else {
-			$greeting = $this->interp( $this->m( 'greeting_student' ), [ 'name' => $name ?: 'che' ] );
-			$this->store->set_state( $phone, 'student_menu' );
-			$this->send( $phone, $greeting . "\n\n" . $this->m( 'student_menu' ) );
+			$this->enter_role_chooser( $phone, $identity, $menus, $greeting );
+			return;
 		}
+		$greeting = $this->interp( $this->m( 'greeting_student' ), [ 'name' => $name ?: 'che' ] );
+		$this->store->set_state( $phone, 'student_menu' );
+		$this->send( $phone, $greeting . "\n\n" . $this->m( 'student_menu' ) . "\n\n" . $this->m( 'panel_promo' ) );
+	}
+
+	// --------------------------------------------------- selector de menú por rol
+	/**
+	 * Definición declarativa de los menús de cada rol. Cada acción: [ key, label, cap ]
+	 * (cap '' = siempre visible). Ver EXTENDING.md, receta 4.
+	 */
+	private function role_menus() {
+		$full = [
+			[ 'comm',      'Enviar comunicado / anuncio',   'cead_acad_publish_broadcast' ],
+			[ 'event',     'Agregar evento al calendario',  'cead_acad_manage_schedule' ],
+			[ 'articles',  'Artículos del sitio',           'cead_acad_manage_articles' ],
+			[ 'reports',   'Bandeja de reportes',           'cead_acad_manage_reports' ],
+			[ 'sugg',      'Bandeja de sugerencias',        'cead_acad_manage_reports' ],
+			[ 'roles',     'Asignar roles a un número',     'cead_acad_manage_roles' ],
+			[ 'metrics',   'Métricas',                      'cead_acad_view_metrics' ],
+			[ 'shortcuts', 'Atajos rápidos',                '' ],
+		];
+		return [
+			'cead_acad_direction' => [ 'label' => 'Dirección',  'actions' => $full ],
+			'cead_acad_secretary' => [ 'label' => 'Secretaría', 'actions' => $full ],
+			'cead_acad_teacher'   => [ 'label' => 'Docente', 'actions' => [
+				[ 'comm',      'Enviar comunicado',  'cead_acad_publish_broadcast' ],
+				[ 'event',     'Agregar evento',     'cead_acad_manage_schedule' ],
+				[ 'shortcuts', 'Atajos rápidos',     '' ],
+			] ],
+			'cead_acad_student_council' => [ 'label' => 'Consejo Estudiantil', 'actions' => [
+				[ 'comm',      'Enviar comunicado',                'cead_acad_publish_broadcast' ],
+				[ 'sugg',      'Bandeja de propuestas/sugerencias', 'cead_acad_manage_reports' ],
+				[ 'shortcuts', 'Atajos rápidos',                   '' ],
+			] ],
+		];
+	}
+
+	/** Acciones disponibles de un rol para un usuario (filtradas por capacidad). */
+	private function role_actions( $role, $uid ) {
+		$defs = $this->role_menus();
+		if ( ! isset( $defs[ $role ] ) ) {
+			return [];
+		}
+		$out = [];
+		foreach ( $defs[ $role ]['actions'] as $a ) {
+			[ $key, $label, $cap ] = $a;
+			if ( $cap === '' || Cead_Acad_WA_Identity::can( $uid, $cap ) ) {
+				$out[] = [ 'key' => $key, 'label' => $label ];
+			}
+		}
+		return $out;
+	}
+
+	/** Menús de rol que el usuario realmente puede usar (rol => def). */
+	private function available_role_menus( $identity ) {
+		$uid = $identity['user_id'];
+		if ( ! $uid ) {
+			return [];
+		}
+		$user = get_user_by( 'id', $uid );
+		if ( ! $user ) {
+			return [];
+		}
+		$defs = $this->role_menus();
+		$out  = [];
+		foreach ( (array) $user->roles as $role ) {
+			if ( isset( $defs[ $role ] ) && $this->role_actions( $role, $uid ) ) {
+				$out[ $role ] = $defs[ $role ];
+			}
+		}
+		return $out;
+	}
+
+	private function enter_role_chooser( $phone, $identity, $menus, $prefix = '' ) {
+		$options = array_merge( [ 'students' ], array_keys( $menus ) );
+		$this->store->set_state( $phone, 'role_chooser', [ 'options' => $options ] );
+		$lines = [];
+		if ( $prefix !== '' ) { $lines[] = $prefix; $lines[] = ''; }
+		$lines[] = $this->m( 'role_chooser_header' );
+		$lines[] = '1. Estudiantes';
+		$i = 2;
+		foreach ( $menus as $def ) { $lines[] = $i . '. ' . $def['label']; $i++; }
+		$lines[] = '0. Salir';
+		$this->send( $phone, implode( "\n", $lines ) );
+	}
+
+	private function role_chooser( $phone, $lc, $context, $identity ) {
+		if ( in_array( $lc, [ '0', 'salir' ], true ) ) {
+			$this->store->reset_state( $phone );
+			$this->send( $phone, $this->m( 'goodbye' ) );
+			return;
+		}
+		$options = $context['options'] ?? [];
+		$idx     = (int) $lc - 1;
+		if ( ! isset( $options[ $idx ] ) ) { $this->invalid( $phone ); return; }
+		if ( $options[ $idx ] === 'students' ) {
+			$this->store->set_state( $phone, 'student_menu' );
+			$this->send( $phone, $this->m( 'student_menu' ) );
+			return;
+		}
+		$this->enter_role_menu( $phone, $options[ $idx ], $identity );
+	}
+
+	private function enter_role_menu( $phone, $role, $identity ) {
+		$actions = $this->role_actions( $role, $identity['user_id'] );
+		if ( ! $actions ) { $this->idle( $phone, '', $identity ); return; }
+		$this->store->set_state( $phone, 'staff_menu', [ 'options' => array_column( $actions, 'key' ), 'role' => $role ] );
+		$defs  = $this->role_menus();
+		$lines = [ '*' . ( $defs[ $role ]['label'] ?? 'Panel' ) . '* — ¿qué querés hacer?' ];
+		foreach ( $actions as $i => $a ) { $lines[] = ( $i + 1 ) . '. ' . $a['label']; }
+		$lines[] = '0. Salir';
+		$this->send( $phone, implode( "\n", $lines ) );
 	}
 
 	// ---------------------------------------------------------------- alumnado
@@ -126,6 +287,7 @@ class Cead_Acad_WA_Engine {
 			case '8':  $this->show_faq( $phone ); break;
 			case '9':  $this->council_open( $phone ); break;
 			case '10': $this->reminders_toggle( $phone ); break;
+			case '11': $this->show_panel( $phone ); break;
 			case '0': case 'salir': case 'adios': case 'adiós':
 				$this->store->reset_state( $phone );
 				$this->send( $phone, $this->m( 'goodbye' ) );
@@ -377,34 +539,13 @@ class Cead_Acad_WA_Engine {
 		$this->back_to_student( $phone );
 	}
 
+	// Mi panel web
+	private function show_panel( $phone ) {
+		$this->send( $phone, $this->m( 'panel_promo' ), 'panel_promo' );
+		$this->back_to_student( $phone );
+	}
+
 	// ---------------------------------------------------------------- staff
-	private function staff_options( $uid ) {
-		$opts = [];
-		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast' ) ) {
-			$opts[] = [ 'key' => 'comm',  'label' => 'Enviar comunicado' ];
-		}
-		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_schedule' ) ) {
-			$opts[] = [ 'key' => 'event', 'label' => 'Agregar evento al calendario' ];
-		}
-		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_reports' ) ) {
-			$opts[] = [ 'key' => 'reports', 'label' => 'Bandeja de reportes' ];
-			$opts[] = [ 'key' => 'sugg',    'label' => 'Bandeja de sugerencias' ];
-		}
-		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_view_metrics' ) ) {
-			$opts[] = [ 'key' => 'metrics', 'label' => 'Métricas' ];
-		}
-		return $opts;
-	}
-
-	private function enter_staff_menu( $phone, $identity, $prefix = '' ) {
-		$opts = $this->staff_options( $identity['user_id'] );
-		$this->store->set_state( $phone, 'staff_menu', [ 'options' => array_column( $opts, 'key' ) ] );
-		$lines = [ $this->m( 'staff_menu_header' ) ];
-		foreach ( $opts as $i => $o ) { $lines[] = ( $i + 1 ) . '. ' . $o['label']; }
-		$lines[] = '0. Salir';
-		$this->send( $phone, ( $prefix !== '' ? $prefix . "\n\n" : '' ) . implode( "\n", $lines ) );
-	}
-
 	private function staff_menu( $phone, $lc, $context, $identity ) {
 		if ( in_array( $lc, [ '0', 'salir', 'cancelar' ], true ) ) {
 			$this->store->reset_state( $phone );
@@ -415,19 +556,22 @@ class Cead_Acad_WA_Engine {
 		$idx  = (int) $lc - 1;
 		if ( ! isset( $keys[ $idx ] ) ) { $this->invalid( $phone ); return; }
 		switch ( $keys[ $idx ] ) {
-			case 'comm':    $this->comm_start( $phone, $identity ); break;
-			case 'event':   $this->event_start( $phone, $identity ); break;
-			case 'reports': $this->reports_open( $phone, $identity ); break;
-			case 'sugg':    $this->sugg_open( $phone, $identity ); break;
-			case 'metrics': $this->metrics_show( $phone, $identity ); break;
-			default:        $this->invalid( $phone );
+			case 'comm':      $this->comm_start( $phone, $identity ); break;
+			case 'event':     $this->event_start( $phone, $identity ); break;
+			case 'articles':  $this->articles_start( $phone, $identity ); break;
+			case 'reports':   $this->reports_open( $phone, $identity ); break;
+			case 'sugg':      $this->sugg_open( $phone, $identity ); break;
+			case 'roles':     $this->roles_start( $phone, $identity ); break;
+			case 'metrics':   $this->metrics_show( $phone, $identity ); break;
+			case 'shortcuts': $this->send( $phone, $this->m( 'shortcuts_help' ) ); $this->reenter_staff( $phone ); break;
+			default:          $this->invalid( $phone );
 		}
 	}
 
 	private function require_cap( $phone, $identity, $cap ) {
 		if ( Cead_Acad_WA_Identity::can( $identity['user_id'], $cap ) ) { return true; }
 		$this->send( $phone, $this->m( 'access_denied' ) );
-		$this->enter_staff_menu( $phone, $identity );
+		$this->reenter_staff( $phone );
 		return false;
 	}
 
@@ -440,7 +584,7 @@ class Cead_Acad_WA_Engine {
 		$this->send( $phone, $prompt );
 	}
 
-	private function comm_compose( $phone, $body, $lc ) {
+	private function comm_compose( $phone, $body, $lc, $media = null ) {
 		if ( $this->is_cancel( $lc ) ) { $this->send( $phone, $this->m( 'comm_cancelled' ) ); $this->reenter_staff( $phone ); return; }
 		if ( $lc === 'p' && $this->templates() ) {
 			$this->store->set_state( $phone, 'staff_comm_template' );
@@ -450,7 +594,9 @@ class Cead_Acad_WA_Engine {
 			$this->send( $phone, implode( "\n", $lines ) );
 			return;
 		}
-		$this->comm_ask_audience( $phone, $body );
+		// Si el comunicado trae una imagen, la guardamos para reenviarla.
+		$image = $media ? $this->store_image( $media ) : null;
+		$this->comm_ask_audience( $phone, $body, $image );
 	}
 
 	private function comm_template( $phone, $lc ) {
@@ -461,9 +607,10 @@ class Cead_Acad_WA_Engine {
 		$this->comm_ask_audience( $phone, (string) ( $tpls[ $idx ]['body'] ?? '' ) );
 	}
 
-	private function comm_ask_audience( $phone, $message ) {
-		$this->store->set_state( $phone, 'staff_comm_audience', [ 'message' => $message ] );
-		$this->send( $phone, $this->m( 'comm_audience_prompt' ) );
+	private function comm_ask_audience( $phone, $message, $image = null ) {
+		$this->store->set_state( $phone, 'staff_comm_audience', [ 'message' => $message, 'image' => $image ] );
+		$extra = $image ? "\n📷 (con imagen adjunta)" : '';
+		$this->send( $phone, $this->m( 'comm_audience_prompt' ) . $extra );
 	}
 
 	private function comm_audience( $phone, $lc, $context ) {
@@ -472,14 +619,14 @@ class Cead_Acad_WA_Engine {
 		if ( $target === '' ) { $this->invalid( $phone ); return; }
 		$count = $this->broadcaster->count_for( $target );
 		if ( $count === 0 ) { $this->send( $phone, $this->m( 'comm_empty' ) ); $this->reenter_staff( $phone ); return; }
-		$this->store->set_state( $phone, 'staff_comm_when', [ 'message' => $context['message'] ?? '', 'target' => $target, 'count' => $count ] );
+		$this->store->set_state( $phone, 'staff_comm_when', [ 'message' => $context['message'] ?? '', 'image' => $context['image'] ?? null, 'target' => $target, 'count' => $count ] );
 		$this->send( $phone, "¿Cuándo enviar?\n1. Ahora\n2. Programar fecha y hora\n0. Cancelar" );
 	}
 
 	private function comm_when( $phone, $lc, $context ) {
 		if ( $this->is_cancel( $lc ) ) { $this->send( $phone, $this->m( 'comm_cancelled' ) ); $this->reenter_staff( $phone ); return; }
 		if ( $lc === '1' ) {
-			$this->store->set_state( $phone, 'staff_comm_confirm', [ 'message' => $context['message'] ?? '', 'target' => $context['target'] ?? 'all' ] );
+			$this->store->set_state( $phone, 'staff_comm_confirm', [ 'message' => $context['message'] ?? '', 'image' => $context['image'] ?? null, 'target' => $context['target'] ?? 'all' ] );
 			$this->send( $phone, $this->interp( $this->m( 'comm_confirm_prompt' ), [ 'count' => (int) ( $context['count'] ?? 0 ) ] ) );
 		} elseif ( $lc === '2' ) {
 			$this->store->set_state( $phone, 'staff_comm_schedule', [ 'message' => $context['message'] ?? '', 'target' => $context['target'] ?? 'all' ] );
@@ -491,7 +638,12 @@ class Cead_Acad_WA_Engine {
 
 	private function comm_confirm( $phone, $lc, $context ) {
 		if ( in_array( $lc, [ 'si', 'sí', 'yes' ], true ) ) {
-			$res = $this->broadcaster->enqueue_for( (string) ( $context['message'] ?? '' ), (string) ( $context['target'] ?? 'all' ) );
+			$message = (string) ( $context['message'] ?? '' );
+			$target  = (string) ( $context['target'] ?? 'all' );
+			$image   = $context['image'] ?? null;
+			// Crear el comunicado como post (se ve en el panel web) y enviarlo por WA.
+			$this->create_broadcast_post( $message, $target, $image );
+			$res = $this->broadcaster->enqueue_for( $message, $target, $image );
 			if ( ! empty( $res['busy'] ) ) { $this->send( $phone, $this->m( 'comm_busy' ) ); }
 			elseif ( empty( $res['queued'] ) ) { $this->send( $phone, $this->m( 'comm_empty' ) ); }
 			else { $this->send( $phone, $this->interp( $this->m( 'comm_queued' ), [ 'total' => (int) ( $res['total'] ?? 0 ) ] ), 'broadcast_enqueued' ); }
@@ -542,6 +694,147 @@ class Cead_Acad_WA_Engine {
 		Cead_Acad_Audiences::set( 'event', $post_id, [ [ 'type' => 'all', 'value' => '*' ] ] );
 		$this->send( $phone, $this->m( 'event_saved' ), 'event_created' );
 		$this->reenter_staff( $phone );
+	}
+
+	// ---- Artículos del blog WP ----
+	private function articles_start( $phone, $identity ) {
+		if ( ! $this->require_cap( $phone, $identity, 'cead_acad_manage_articles' ) ) { return; }
+		$this->store->set_state( $phone, 'staff_article_menu' );
+		$this->send( $phone, $this->m( 'article_menu_prompt' ) );
+	}
+
+	private function article_menu( $phone, $lc, $identity ) {
+		switch ( $lc ) {
+			case '1': $this->store->set_state( $phone, 'staff_article_title' ); $this->send( $phone, $this->m( 'article_title_prompt' ) ); break;
+			case '2': $this->article_list( $phone, 'edit' ); break;
+			case '3': $this->article_list( $phone, 'delete' ); break;
+			case '0': case 'volver': $this->reenter_staff( $phone ); break;
+			default: $this->invalid( $phone );
+		}
+	}
+
+	private function article_title( $phone, $body, $lc ) {
+		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
+		$this->store->set_state( $phone, 'staff_article_body', [ 'title' => $body ] );
+		$this->send( $phone, $this->m( 'article_body_prompt' ) );
+	}
+
+	private function article_body( $phone, $body, $lc, $context, $identity ) {
+		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
+		$pid = wp_insert_post( [
+			'post_type'    => 'post',
+			'post_status'  => 'publish',
+			'post_title'   => (string) ( $context['title'] ?? 'Artículo' ),
+			'post_content' => $body,
+			'post_author'  => (int) ( $identity['user_id'] ?: 0 ),
+		], true );
+		if ( is_wp_error( $pid ) ) { $this->send( $phone, $this->m( 'error_generic' ) ); $this->reenter_staff( $phone ); return; }
+		$this->send( $phone, $this->interp( $this->m( 'article_published' ), [ 'url' => get_permalink( $pid ) ] ), 'article_published' );
+		$this->reenter_staff( $phone );
+	}
+
+	private function recent_articles( $limit = 10 ) {
+		return get_posts( [ 'post_type' => 'post', 'post_status' => [ 'publish', 'draft' ], 'posts_per_page' => (int) $limit, 'orderby' => 'date', 'order' => 'DESC', 'no_found_rows' => true ] );
+	}
+
+	private function article_list( $phone, $mode ) {
+		$posts = $this->recent_articles( 10 );
+		if ( ! $posts ) { $this->send( $phone, $this->m( 'article_none' ) ); $this->reenter_staff( $phone ); return; }
+		$ids = []; $lines = [];
+		foreach ( $posts as $i => $p ) { $ids[] = (int) $p->ID; $lines[] = ( $i + 1 ) . '. ' . get_the_title( $p ); }
+		$lines[] = '0. Volver';
+		$state = $mode === 'edit' ? 'staff_article_edit_pick' : 'staff_article_del_pick';
+		$this->store->set_state( $phone, $state, [ 'ids' => $ids ] );
+		$head = $mode === 'edit' ? 'Elegí el artículo a editar:' : 'Elegí el artículo a borrar:';
+		$this->send( $phone, $head . "\n" . implode( "\n", $lines ) );
+	}
+
+	private function article_edit_pick( $phone, $lc, $context ) {
+		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
+		$ids = $context['ids'] ?? []; $idx = (int) $lc - 1;
+		if ( ! isset( $ids[ $idx ] ) ) { $this->invalid( $phone ); return; }
+		$this->store->set_state( $phone, 'staff_article_edit_body', [ 'post_id' => (int) $ids[ $idx ] ] );
+		$this->send( $phone, $this->m( 'article_edit_body_prompt' ) );
+	}
+
+	private function article_edit_body( $phone, $body, $lc, $context ) {
+		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
+		$pid = (int) ( $context['post_id'] ?? 0 );
+		$r = wp_update_post( [ 'ID' => $pid, 'post_content' => $body ], true );
+		$this->send( $phone, is_wp_error( $r ) ? $this->m( 'error_generic' ) : $this->m( 'article_updated' ), 'article_updated' );
+		$this->reenter_staff( $phone );
+	}
+
+	private function article_del_pick( $phone, $lc, $context ) {
+		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
+		$ids = $context['ids'] ?? []; $idx = (int) $lc - 1;
+		if ( ! isset( $ids[ $idx ] ) ) { $this->invalid( $phone ); return; }
+		$pid = (int) $ids[ $idx ];
+		$this->store->set_state( $phone, 'staff_article_del_confirm', [ 'post_id' => $pid ] );
+		$this->send( $phone, $this->interp( $this->m( 'article_del_confirm' ), [ 'title' => get_the_title( $pid ) ] ) );
+	}
+
+	private function article_del_confirm( $phone, $lc, $context ) {
+		$pid = (int) ( $context['post_id'] ?? 0 );
+		if ( in_array( $lc, [ 'si', 'sí', 'yes' ], true ) ) {
+			wp_trash_post( $pid );
+			$this->send( $phone, $this->m( 'article_deleted' ), 'article_deleted' );
+			$this->reenter_staff( $phone );
+		} elseif ( in_array( $lc, [ 'no' ], true ) || $this->is_cancel( $lc ) ) {
+			$this->reenter_staff( $phone );
+		} else {
+			$this->send( $phone, 'Respondé *SI* o *NO*.' );
+		}
+	}
+
+	// ---- Asignar roles a un número ----
+	private function roles_start( $phone, $identity ) {
+		if ( ! $this->require_cap( $phone, $identity, 'cead_acad_manage_roles' ) ) { return; }
+		$this->store->set_state( $phone, 'staff_role_phone' );
+		$this->send( $phone, $this->m( 'role_phone_prompt' ) );
+	}
+
+	private function role_phone( $phone, $body, $lc ) {
+		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
+		$target = preg_replace( '/[^0-9]/', '', $body );
+		if ( strlen( $target ) < 7 ) { $this->send( $phone, $this->m( 'role_phone_invalid' ) ); return; }
+		$this->store->set_state( $phone, 'staff_role_choose', [ 'target' => $target ] );
+		$this->send( $phone, $this->m( 'role_choose_prompt' ) );
+	}
+
+	private function role_choose( $phone, $lc, $context, $identity ) {
+		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
+		// Whitelist: solo roles no-administrativos.
+		$map = [ '1' => 'cead_acad_teacher', '2' => 'cead_acad_delegate', '3' => 'cead_acad_student_council' ];
+		if ( ! isset( $map[ $lc ] ) ) { $this->invalid( $phone ); return; }
+		$target = (string) ( $context['target'] ?? '' );
+		$res    = $this->assign_role_to_phone( $target, $map[ $lc ] );
+		$key    = $res['created'] ? 'role_assigned_new' : 'role_assigned';
+		$this->send( $phone, $this->interp( $this->m( $key ), [ 'phone' => $target, 'role' => $res['label'] ] ), 'role_assigned' );
+		$this->reenter_staff( $phone );
+	}
+
+	private function assign_role_to_phone( $target, $role ) {
+		$labels   = [ 'cead_acad_teacher' => 'Docente', 'cead_acad_delegate' => 'Delegado', 'cead_acad_student_council' => 'Consejo Estudiantil' ];
+		$identity = Cead_Acad_WA_Identity::resolve( $target );
+		if ( $identity['user_id'] ) {
+			$u = get_user_by( 'id', $identity['user_id'] );
+			if ( $u ) { $u->add_role( $role ); }
+			return [ 'created' => false, 'label' => $labels[ $role ] ?? $role ];
+		}
+		$login  = 'wa_' . $target;
+		$suffix = 1;
+		while ( username_exists( $login ) ) { $login = 'wa_' . $target . '_' . $suffix; $suffix++; }
+		$uid = wp_insert_user( [
+			'user_login'   => $login,
+			'user_pass'    => wp_generate_password( 20, true ),
+			'display_name' => '+' . $target,
+			'role'         => $role,
+		] );
+		if ( ! is_wp_error( $uid ) ) {
+			update_user_meta( $uid, '_cead_acad_phone', $target );
+		}
+		return [ 'created' => true, 'label' => $labels[ $role ] ?? $role ];
 	}
 
 	// D5 Bandeja de reportes
@@ -680,9 +973,17 @@ class Cead_Acad_WA_Engine {
 	}
 
 	private function reenter_staff( $phone ) {
-		// Reconstruye el menú staff con la identidad actual del número.
+		// Vuelve al menú del rol; si el usuario tiene varios, al selector.
 		$identity = Cead_Acad_WA_Identity::resolve( $phone );
-		$this->enter_staff_menu( $phone, $identity );
+		$menus    = $this->available_role_menus( $identity );
+		if ( count( $menus ) === 1 ) {
+			$this->enter_role_menu( $phone, array_key_first( $menus ), $identity );
+		} elseif ( $menus ) {
+			$this->enter_role_chooser( $phone, $identity, $menus );
+		} else {
+			$this->store->reset_state( $phone );
+			$this->send( $phone, $this->m( 'goodbye' ) );
+		}
 	}
 
 	// ---------------------------------------------------------------- helpers
@@ -728,6 +1029,36 @@ class Cead_Acad_WA_Engine {
 	private function templates() {
 		$t = get_option( 'cead_acad_wa_comm_templates', [] );
 		return is_array( $t ) ? array_values( $t ) : [];
+	}
+
+	/** Crea el comunicado como post (delegado al broadcaster, compartido con admin). */
+	private function create_broadcast_post( $message, $target, $image = null ) {
+		$attachment_id = ( is_array( $image ) && ! empty( $image['attachment_id'] ) ) ? (int) $image['attachment_id'] : 0;
+		return Cead_Acad_WA_Broadcaster::create_broadcast_post( $message, $target, $attachment_id );
+	}
+
+	/**
+	 * Guarda una imagen entrante (base64 del bridge) en la biblioteca de medios.
+	 * Devuelve [ attachment_id, path, mime, url ] o null.
+	 */
+	private function store_image( $media ) {
+		if ( ! is_array( $media ) || empty( $media['data_base64'] ) ) { return null; }
+		$mime  = (string) ( $media['mime'] ?? 'image/jpeg' );
+		$ext   = $mime === 'image/png' ? 'png' : ( $mime === 'image/webp' ? 'webp' : 'jpg' );
+		$bytes = base64_decode( (string) $media['data_base64'], true );
+		if ( $bytes === false ) { return null; }
+		$filename = 'wa-' . date( 'Ymd-His' ) . '-' . wp_generate_password( 6, false ) . '.' . $ext;
+		$upload   = wp_upload_bits( $filename, null, $bytes );
+		if ( ! empty( $upload['error'] ) ) { return null; }
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+		$attachment_id = wp_insert_attachment( [
+			'post_mime_type' => $mime,
+			'post_title'     => sanitize_file_name( $filename ),
+			'post_status'    => 'inherit',
+		], $upload['file'] );
+		if ( is_wp_error( $attachment_id ) || ! $attachment_id ) { return null; }
+		wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $upload['file'] ) );
+		return [ 'attachment_id' => (int) $attachment_id, 'path' => $upload['file'], 'mime' => $mime, 'url' => $upload['url'] ];
 	}
 
 	private function status_label( $s ) {

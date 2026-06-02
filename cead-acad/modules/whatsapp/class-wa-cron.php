@@ -89,7 +89,11 @@ class Cead_Acad_WA_Cron {
 	public function run_scheduled() {
 		foreach ( $this->store->due_scheduled( 5 ) as $job ) {
 			$res = $this->broadcaster->enqueue_for( (string) $job->message, (string) $job->target );
-			$this->store->set_scheduled_status( (int) $job->id, ! empty( $res['busy'] ) ? 'pending' : 'sent' );
+			if ( empty( $res['busy'] ) ) {
+				// Al dispararse, también se crea el comunicado para el panel web.
+				Cead_Acad_WA_Broadcaster::create_broadcast_post( (string) $job->message, (string) $job->target );
+				$this->store->set_scheduled_status( (int) $job->id, 'sent' );
+			}
 		}
 	}
 

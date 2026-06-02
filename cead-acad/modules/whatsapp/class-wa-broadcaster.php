@@ -19,6 +19,37 @@ class Cead_Acad_WA_Broadcaster {
 		$this->bridge = $bridge;
 	}
 
+	/**
+	 * Crea el comunicado como post `cead_acad_broadcast` (visible en el panel web
+	 * y en "Comunicados" del bot) con la audiencia mapeada. Estático para que lo
+	 * usen tanto el motor del bot como el panel de wp-admin.
+	 */
+	public static function create_broadcast_post( $message, $target, $attachment_id = 0 ) {
+		$title = wp_trim_words( $message !== '' ? $message : 'Comunicado', 10, '…' );
+		$pid = wp_insert_post( [
+			'post_type'    => Cead_Acad_Broadcasts_CPT::POST_TYPE,
+			'post_status'  => 'publish',
+			'post_title'   => $title,
+			'post_content' => $message,
+		], true );
+		if ( is_wp_error( $pid ) ) {
+			return 0;
+		}
+		Cead_Acad_Audiences::set( 'broadcast', $pid, self::map_target_to_audiences( $target ) );
+		if ( $attachment_id ) {
+			set_post_thumbnail( $pid, (int) $attachment_id );
+		}
+		return (int) $pid;
+	}
+
+	public static function map_target_to_audiences( $target ) {
+		return match ( $target ) {
+			'students' => [ [ 'type' => 'role', 'value' => 'cead_acad_student' ], [ 'type' => 'role', 'value' => 'cead_acad_delegate' ] ],
+			'staff'    => [ [ 'type' => 'role', 'value' => 'cead_acad_direction' ], [ 'type' => 'role', 'value' => 'cead_acad_secretary' ], [ 'type' => 'role', 'value' => 'cead_acad_teacher' ] ],
+			default    => [ [ 'type' => 'all', 'value' => '*' ] ],
+		};
+	}
+
 	/** Resuelve los teléfonos de una audiencia del registro WA. */
 	public function resolve_phones( $target ) {
 		$numbers = $this->store->active_numbers();
@@ -41,17 +72,18 @@ class Cead_Acad_WA_Broadcaster {
 		return count( $this->resolve_phones( $target ) );
 	}
 
-	public function enqueue_for( $message, $target ) {
-		return $this->enqueue( $message, $this->resolve_phones( $target ) );
+	public function enqueue_for( $message, $target, $image = null ) {
+		return $this->enqueue( $message, $this->resolve_phones( $target ), $image );
 	}
 
-	public function enqueue( $message, array $phones ) {
+	public function enqueue( $message, array $phones, $image = null ) {
 		if ( $this->is_active() ) {
 			return [ 'queued' => false, 'busy' => true ];
 		}
 		$phones = array_values( array_filter( $phones, fn( $p ) => $p !== '' ) );
 		$job = [
 			'message' => $message,
+			'image'   => ( is_array( $image ) && ! empty( $image['path'] ) ) ? [ 'path' => $image['path'], 'mime' => $image['mime'] ?? 'image/jpeg' ] : null,
 			'phones'  => $phones,
 			'cursor'  => 0,
 			'sent'    => 0,
@@ -86,10 +118,23 @@ class Cead_Acad_WA_Broadcaster {
 			return;
 		}
 		$end = min( $job['cursor'] + self::BATCH_SIZE, $job['total'] );
+		// Imagen (si la hay): leer una vez y reenviar a cada destinatario.
+		$image_b64 = null; $image_mime = 'image/jpeg';
+		if ( ! empty( $job['image']['path'] ) && file_exists( $job['image']['path'] ) ) {
+			$raw = @file_get_contents( $job['image']['path'] );
+			if ( $raw !== false ) {
+				$image_b64  = base64_encode( $raw );
+				$image_mime = (string) ( $job['image']['mime'] ?? 'image/jpeg' );
+			}
+		}
 		for ( $i = $job['cursor']; $i < $end; $i++ ) {
 			$phone = (string) ( $job['phones'][ $i ] ?? '' );
 			if ( $phone === '' ) { continue; }
-			$result = $this->bridge->send_message( $phone, $job['message'] );
+			if ( $image_b64 !== null ) {
+				$result = $this->bridge->send_image( $phone, $image_b64, $image_mime, (string) $job['message'] );
+			} else {
+				$result = $this->bridge->send_message( $phone, $job['message'] );
+			}
 			if ( isset( $result['error'] ) ) { $job['failed']++; } else { $job['sent']++; }
 			if ( $i < $end - 1 ) { sleep( 1 ); }
 		}

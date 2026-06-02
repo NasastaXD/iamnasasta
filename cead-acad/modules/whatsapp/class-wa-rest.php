@@ -59,12 +59,15 @@ class Cead_Acad_WA_REST {
 		$from = (string) ( $body['from'] ?? '' );
 		// El JID de WhatsApp llega como 5959xxxx@s.whatsapp.net.
 		$phone = preg_replace( '/[^0-9]/', '', explode( '@', $from )[0] );
+		$media = ( isset( $body['media'] ) && is_array( $body['media'] ) ) ? $body['media'] : null;
 		$message = [
 			'from'     => $phone,
 			'body'     => (string) ( $body['body'] ?? '' ),
 			'pushName' => (string) ( $body['pushName'] ?? '' ),
+			'media'    => $media,
 		];
-		if ( $phone === '' || trim( $message['body'] ) === '' ) {
+		// Procesar si hay texto o imagen.
+		if ( $phone === '' || ( trim( $message['body'] ) === '' && ! $media ) ) {
 			return new WP_REST_Response( [ 'ok' => true, 'skipped' => true ], 200 );
 		}
 		try {

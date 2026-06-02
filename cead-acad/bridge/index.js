@@ -56,7 +56,7 @@ ensureToken();
 const PREFERRED_PORT = process.env.PORT ? parseInt( process.env.PORT, 10 ) : null;
 const SHARED_TOKEN   = process.env.SHARED_TOKEN;
 const WP_WEBHOOK     = process.env.WP_WEBHOOK_URL || '';
-const TYPING_DELAY   = parseInt( process.env.TYPING_DELAY_MS || '2000', 10 );
+const TYPING_DELAY   = parseInt( process.env.TYPING_DELAY_MS || '1500', 10 );
 const AUTH_DIR       = './auth_state';
 
 if ( ! WP_WEBHOOK ) {
@@ -283,6 +283,28 @@ app.post( '/api/send', async ( req, res ) => {
         return res.json( { sent: true, id: result?.key?.id } );
     } catch ( err ) {
         console.error( '[CaagBridge] send error:', err.message );
+        return res.status( 500 ).json( { sent: false, error: err.message } );
+    }
+} );
+
+// Envío de imagen (base64) con caption opcional.
+app.post( '/api/send-image', async ( req, res ) => {
+    const { to, image_base64, caption } = req.body;
+    if ( ! to || ! image_base64 ) {
+        return res.status( 400 ).json( { sent: false, error: 'Campos requeridos: to, image_base64' } );
+    }
+    if ( ! isConnected || ! sock ) {
+        return res.status( 500 ).json( { sent: false, error: 'No conectado a WhatsApp' } );
+    }
+    try {
+        const buffer = Buffer.from( image_base64, 'base64' );
+        const result = await sock.sendMessage(
+            `${ to }@s.whatsapp.net`,
+            { image: buffer, caption: caption || '' }
+        );
+        return res.json( { sent: true, id: result?.key?.id } );
+    } catch ( err ) {
+        console.error( '[CaagBridge] send-image error:', err.message );
         return res.status( 500 ).json( { sent: false, error: err.message } );
     }
 } );

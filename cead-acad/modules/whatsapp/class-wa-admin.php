@@ -148,13 +148,15 @@ class Cead_Acad_WA_Admin {
 			} elseif ( trim( $message ) === '' ) {
 				$notice = [ 'err', __( 'El mensaje no puede estar vacío.', 'cead-acad' ) ];
 			} else {
+				// Crear el comunicado como post (se ve en el panel web) y enviarlo por WA.
+				Cead_Acad_WA_Broadcaster::create_broadcast_post( $message, $target );
 				$res = $this->broadcaster->enqueue_for( $message, $target );
 				if ( ! empty( $res['busy'] ) ) {
 					$notice = [ 'err', __( 'Ya hay un envío en curso.', 'cead-acad' ) ];
 				} elseif ( empty( $res['queued'] ) ) {
 					$notice = [ 'err', __( 'No hay destinatarios para esa audiencia.', 'cead-acad' ) ];
 				} else {
-					$notice = [ 'ok', sprintf( __( 'Encolado para %d destinatario(s).', 'cead-acad' ), (int) $res['total'] ) ];
+					$notice = [ 'ok', sprintf( __( 'Comunicado publicado y encolado para %d destinatario(s).', 'cead-acad' ), (int) $res['total'] ) ];
 				}
 			}
 		}

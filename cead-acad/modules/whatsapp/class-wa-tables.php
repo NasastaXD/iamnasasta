@@ -284,6 +284,25 @@ class Cead_Acad_WA_Tables {
 			'sugg_actions_prompt'   => [ 'staff', 'Sugerencias: acciones' ],
 			'sugg_updated'          => [ 'staff', 'Sugerencias: actualizada' ],
 			'metrics_header'        => [ 'staff', 'Métricas: encabezado' ],
+			'shortcuts_help'        => [ 'staff', 'Atajos: ayuda (-AA / -AE)' ],
+			'shortcut_announce_ok'  => [ 'staff', 'Atajo -AA: anuncio publicado (usa {total})' ],
+			'article_menu_prompt'   => [ 'staff', 'Artículos: submenú' ],
+			'article_title_prompt'  => [ 'staff', 'Artículos: pedir título' ],
+			'article_body_prompt'   => [ 'staff', 'Artículos: pedir contenido' ],
+			'article_published'     => [ 'staff', 'Artículos: publicado (usa {url})' ],
+			'article_none'          => [ 'staff', 'Artículos: ninguno' ],
+			'article_edit_body_prompt' => [ 'staff', 'Artículos: pedir nuevo contenido' ],
+			'article_updated'       => [ 'staff', 'Artículos: actualizado' ],
+			'article_del_confirm'   => [ 'staff', 'Artículos: confirmar borrado (usa {title})' ],
+			'article_deleted'       => [ 'staff', 'Artículos: borrado' ],
+			'role_phone_prompt'     => [ 'staff', 'Roles: pedir número' ],
+			'role_phone_invalid'    => [ 'staff', 'Roles: número inválido' ],
+			'role_choose_prompt'    => [ 'staff', 'Roles: elegir rol' ],
+			'role_assigned'         => [ 'staff', 'Roles: asignado (usa {role}/{phone})' ],
+			'role_assigned_new'     => [ 'staff', 'Roles: usuario creado (usa {role}/{phone})' ],
+			// Menú / info
+			'role_chooser_header'   => [ 'menus', 'Selector de menú por rol' ],
+			'panel_promo'           => [ 'info', 'Promoción del panel web' ],
 		];
 	}
 
@@ -297,7 +316,7 @@ class Cead_Acad_WA_Tables {
 			'greeting_staff'   => 'Hola {name}! 👋 Panel del personal del CEAD.',
 			'staff_menu_header'=> '*Panel del personal* — ¿qué querés hacer?',
 			'greeting_student' => 'Hola {name}! 👋 Bienvenido/a al bot del CEAD. ¿En qué te ayudo?',
-			'student_menu'     => "*Menú CEAD*\n1. Horarios\n2. Sitio web\n3. Calendario de eventos\n4. Contacto\n5. Comunicados\n6. Reportar algo\n7. Sugerencias y quejas\n8. Preguntas frecuentes\n9. Consejo Estudiantil\n10. Recordatorios de eventos\n0. Salir\n\nEnviá *BAJA* para no recibir mensajes.",
+			'student_menu'     => "*Menú CEAD*\n1. Horarios\n2. Sitio web\n3. Calendario de eventos\n4. Contacto\n5. Comunicados\n6. Reportar algo\n7. Sugerencias y quejas\n8. Preguntas frecuentes\n9. Consejo Estudiantil\n10. Recordatorios de eventos\n11. Mi panel web\n0. Salir\n\nEnviá *BAJA* para no recibir mensajes.",
 			'opt_out_confirmed'=> 'Listo, ya no vas a recibir mensajes de este bot. Escribinos de nuevo para volver.',
 			'goodbye'          => '¡Hasta luego! 👋 Escribí cuando quieras para volver al menú.',
 			'invalid_option'   => 'Opción no válida. Elegí una de las opciones del menú.',
@@ -379,6 +398,34 @@ class Cead_Acad_WA_Tables {
 			// Staff: métricas (D9)
 			'metrics_header'    => '📊 *Métricas (últimos 30 días)*',
 			'access_denied'     => '🔒 No tenés permisos para esa acción.',
+
+			// Selector de menú por rol
+			'role_chooser_header' => '¿A qué menú querés entrar?',
+
+			// Promoción del panel web
+			'panel_promo'       => "💻 *Tu panel web del CEAD*\nEntrá a tus comunicados, horarios, recursos y boletín:\n" . home_url( '/panel' ),
+
+			// Atajos rápidos (staff)
+			'shortcuts_help'    => "⚡ *Atajos rápidos*\nEnviá en una sola línea:\n• *-AA* <texto> → publica un anuncio para todos.\n• *-AE* <texto> → agrega un evento (te pregunto la fecha).",
+			'shortcut_announce_ok' => '📣 Anuncio publicado y enviado a {total} destinatario(s).',
+
+			// Staff: artículos del blog
+			'article_menu_prompt'     => "📝 *Artículos del sitio*\n1. Publicar artículo\n2. Editar artículo\n3. Borrar artículo\n0. Volver",
+			'article_title_prompt'    => 'Título del artículo (0 para cancelar):',
+			'article_body_prompt'     => 'Escribí el contenido del artículo (0 para cancelar):',
+			'article_published'       => '✅ Artículo publicado: {url}',
+			'article_none'            => 'No hay artículos para mostrar.',
+			'article_edit_body_prompt'=> 'Escribí el nuevo contenido del artículo (0 para cancelar):',
+			'article_updated'         => '✅ Artículo actualizado.',
+			'article_del_confirm'     => "¿Borrar el artículo *{title}*? Respondé *SI* o *NO*.",
+			'article_deleted'         => '🗑️ Artículo enviado a la papelera.',
+
+			// Staff: asignar roles
+			'role_phone_prompt'   => 'Indicá el número (solo dígitos, con código de país) al que asignar un rol (0 para cancelar):',
+			'role_phone_invalid'  => 'Número inválido. Probá de nuevo (solo dígitos).',
+			'role_choose_prompt'  => "¿Qué rol asignar?\n1. Profesor\n2. Delegado\n3. Consejo Estudiantil\n0. Cancelar",
+			'role_assigned'       => '✅ Rol *{role}* asignado a +{phone}.',
+			'role_assigned_new'   => '✅ Se creó el usuario para +{phone} con el rol *{role}*.',
 		];
 	}
 }

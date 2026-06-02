@@ -39,6 +39,6 @@ foreach ( $options as $opt ) {
 }
 
 // Borrar roles del plugin.
-foreach ( [ 'cead_acad_direction', 'cead_acad_secretary', 'cead_acad_teacher', 'cead_acad_delegate', 'cead_acad_student', 'cead_acad_guardian' ] as $role ) {
+foreach ( [ 'cead_acad_direction', 'cead_acad_secretary', 'cead_acad_teacher', 'cead_acad_delegate', 'cead_acad_student', 'cead_acad_guardian', 'cead_acad_student_council' ] as $role ) {
 	remove_role( $role );
 }

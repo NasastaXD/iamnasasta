@@ -84,20 +84,28 @@ El token compartido y la URL del bridge se configuran en
 **Alumnado:** horarios (con "ahora/sigue"), sitio web, calendario, contacto,
 lectura de comunicados, reporte anónimo/confidencial (cifrado + código de
 seguimiento + reenvío a un número responsable), sugerencias, FAQ, tablón del
-Consejo + propuestas, recordatorios de eventos opt-in. `BAJA` para no recibir más.
+Consejo + propuestas, recordatorios de eventos opt-in, y **"Mi panel web"**
+(promoción del panel). `BAJA` para no recibir más.
 
-**Staff (menú dinámico según capacidades de cead-acad):**
+**Menú inicial por rol:** quien tiene permisos elige primero a qué menú entrar
+("Estudiantes" o el/los menú(s) de su rol). Un alumno entra directo.
+
+**Staff (menú por rol, cada acción gateada por capacidad de cead-acad):**
 
 | Acción | Capacidad requerida |
 |---|---|
-| Enviar comunicado por WhatsApp (ahora o programado) | `cead_acad_publish_broadcast` (`_all` para "todos") |
+| Enviar comunicado / anuncio (ahora o programado; **crea el comunicado en el panel** y lo envía por WA, soporta **imagen**) | `cead_acad_publish_broadcast` (`_all` para "todos") |
 | Agregar evento al calendario | `cead_acad_manage_schedule` |
-| Bandeja de reportes / sugerencias | `cead_acad_manage_reports` *(nueva, en Dirección y Secretaría)* |
+| Artículos del sitio (publicar/editar/borrar entradas del blog WP) | `cead_acad_manage_articles` *(nueva)* |
+| Bandeja de reportes / sugerencias | `cead_acad_manage_reports` |
+| Asignar roles a un número (profesor/delegado/consejo; crea el usuario si no existe) | `cead_acad_manage_roles` *(nueva, solo Dirección)* |
 | Métricas | `cead_acad_view_metrics` |
 
-> Los artículos web y la gestión de usuarios/roles del bot original se cubren
-> de forma nativa en wp-admin (CPT de comunicados y roles de WordPress), por lo
-> que no se duplican en el chat.
+**Atajos rápidos (staff):** `-AA <texto>` publica un anuncio para todos;
+`-AE <texto>` agrega un evento (el bot pregunta la fecha).
+
+**Imágenes:** el bot recibe imágenes y, en un comunicado/anuncio, las **replica**
+a la audiencia y las deja como imagen destacada del comunicado en el panel.
 
 ## Tablas (`wp_cead_acad_wa_*`)
 

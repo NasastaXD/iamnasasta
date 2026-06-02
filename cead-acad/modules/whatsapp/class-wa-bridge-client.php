@@ -18,6 +18,15 @@ class Cead_Acad_WA_Bridge_Client {
 		return $this->request( 'POST', '/api/send', [ 'to' => $to, 'message' => $message ] );
 	}
 
+	public function send_image( $to, $image_base64, $mime, $caption = '' ) {
+		return $this->request( 'POST', '/api/send-image', [
+			'to'           => $to,
+			'image_base64' => $image_base64,
+			'mime'         => $mime,
+			'caption'      => $caption,
+		] );
+	}
+
 	public function status()  { return $this->request( 'GET',  '/api/status' ); }
 	public function restart() { return $this->request( 'POST', '/api/restart' ); }
 	public function logout()  { return $this->request( 'POST', '/api/logout' ); }

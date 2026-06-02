@@ -79,22 +79,35 @@ una conversación de varios pasos.
 
 ## Receta 4 — Agregar una acción al menú del personal
 
-El menú del staff es **dinámico por capacidad**. En `class-wa-engine.php`:
+Cada rol tiene su propio menú (selector inicial "¿A qué menú entrar?"). Los menús
+son **declarativos y por capacidad**, definidos en `role_menus()` de
+`class-wa-engine.php`:
 
-1. `staff_options()`: agregá la opción con la capacidad que la habilita:
+1. `role_menus()`: agregá la acción `[ key, label, cap ]` al/los rol(es) deseados
+   (cap `''` = siempre visible):
    ```php
-   if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_create_survey' ) ) {
-       $opts[] = [ 'key' => 'survey', 'label' => 'Lanzar encuesta' ];
-   }
+   [ 'survey', 'Lanzar encuesta', 'cead_acad_create_survey' ],
    ```
 2. `staff_menu()`: agregá el `case` que despacha por `key`:
    ```php
    case 'survey': $this->survey_start( $phone, $identity ); break;
    ```
 3. Creá el handler. Protegé la acción con
-   `if ( ! $this->require_cap( $phone, $identity, 'cead_acad_create_survey' ) ) return;`.
+   `if ( ! $this->require_cap( $phone, $identity, 'cead_acad_create_survey' ) ) return;`
+   y terminá con `$this->reenter_staff( $phone );` para volver al menú del rol.
 
 Las capacidades son las de cead-acad (`includes/class-cead-acad-capabilities.php`).
+Para un atajo de una línea (estilo `-AA`/`-AE`), agregá la detección en
+`maybe_handle_shortcut()`.
+
+### Notas de features recientes
+- **Artículos** = posts WP (`post_type 'post'`), cap `cead_acad_manage_articles`.
+- **Roles por chat** (`roles` / `assign_role_to_phone()`): whitelist de roles no
+  administrativos; cap `cead_acad_manage_roles`; crea el usuario si el número no existe.
+- **Comunicados/anuncios** crean además un `cead_acad_broadcast`
+  (`Cead_Acad_WA_Broadcaster::create_broadcast_post()`) para verse en el panel web.
+- **Imágenes**: el bridge expone `/api/send-image`; el broadcaster reenvía la imagen
+  del job; `store_image()` la guarda en la biblioteca de medios.
 
 ---
 

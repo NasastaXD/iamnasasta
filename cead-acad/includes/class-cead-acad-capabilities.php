@@ -24,6 +24,8 @@ class Cead_Acad_Capabilities {
 						'cead_acad_manage_invitations'   => true,
 						'cead_acad_manage_courses'       => true,
 						'cead_acad_assign_delegate'      => true,
+						'cead_acad_manage_articles'      => true,
+						'cead_acad_manage_roles'         => true,
 						'cead_acad_publish_broadcast'    => true,
 						'cead_acad_publish_broadcast_all'=> true,
 						'cead_acad_create_survey'        => true,
@@ -56,6 +58,7 @@ class Cead_Acad_Capabilities {
 						'cead_acad_record_grade'         => true,
 						'cead_acad_view_course_grades'   => true,
 						'cead_acad_manage_reports'       => true,
+						'cead_acad_manage_articles'      => true,
 					]
 				),
 			],
@@ -99,6 +102,16 @@ class Cead_Acad_Capabilities {
 					self::base_caps(),
 					[
 						'cead_acad_view_own_grades' => true,
+					]
+				),
+			],
+			'cead_acad_student_council' => [
+				'display' => 'Consejo Estudiantil',
+				'caps'    => array_merge(
+					self::base_caps(),
+					[
+						'cead_acad_publish_broadcast' => true,
+						'cead_acad_manage_reports'    => true,
 					]
 				),
 			],
