@@ -80,6 +80,20 @@ class Cead_Acad_WA_REST {
 			}
 			set_transient( $lock, 1, 2 * MINUTE_IN_SECONDS );
 		}
+		// Dedup por CONTENIDO (red de seguridad para bridges que no mandan 'id'):
+		// si el mismo número manda el mismo texto dentro de una ventana corta, es
+		// una reentrega de WhatsApp/Baileys → se ignora. Ventana ajustable por
+		// filtro `cead_acad_wa_dedup_seconds` (en segundos, admite decimales).
+		$cooldown = (float) apply_filters( 'cead_acad_wa_dedup_seconds', 2.0 );
+		if ( $cooldown > 0 ) {
+			$sig  = 'cead_acad_wa_dup_' . md5( $phone . '|' . trim( $message['body'] ) . '|' . ( $media ? '1' : '0' ) );
+			$last = get_transient( $sig );
+			$now  = microtime( true );
+			if ( false !== $last && ( $now - (float) $last ) < $cooldown ) {
+				return new WP_REST_Response( [ 'ok' => true, 'duplicate' => true ], 200 );
+			}
+			set_transient( $sig, $now, 30 );
+		}
 		try {
 			$this->engine->process_message( $message );
 		} catch ( \Throwable $e ) {
