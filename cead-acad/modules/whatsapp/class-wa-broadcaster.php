@@ -117,6 +117,8 @@ class Cead_Acad_WA_Broadcaster {
 		if ( ! is_array( $job ) || ( $job['status'] ?? '' ) !== 'running' ) {
 			return;
 		}
+		// El lote usa sleep() entre mensajes; evitar que el max_execution_time lo corte.
+		@set_time_limit( 0 );
 		$end = min( $job['cursor'] + self::BATCH_SIZE, $job['total'] );
 		// Imagen (si la hay): leer una vez y reenviar a cada destinatario.
 		$image_b64 = null; $image_mime = 'image/jpeg';

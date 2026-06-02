@@ -113,14 +113,20 @@ class Cead_Acad_WA_Cron {
 			if ( ! $events ) {
 				continue;
 			}
-			$lines = [];
+			$lines = []; $keys = [];
 			foreach ( $events as $e ) {
-				$start = (string) get_post_meta( $e->ID, '_cead_acad_event_start', true );
+				// Dedup: no recordar dos veces el mismo evento al mismo número.
+				$rk = 'cead_acad_wa_rem_' . md5( $n->phone . '|' . $e->ID );
+				if ( get_transient( $rk ) ) { continue; }
+				$start  = (string) get_post_meta( $e->ID, '_cead_acad_event_start', true );
 				$lines[] = '• ' . date_i18n( 'D d/m H:i', strtotime( $start ) ) . ' — ' . get_the_title( $e );
+				$keys[]  = $rk;
 			}
+			if ( ! $lines ) { continue; }
 			$msg = str_replace( '{events}', implode( "\n", $lines ), $tpl );
 			$this->bridge->send_message( (string) $n->phone, $msg );
 			$this->store->log( (string) $n->phone, 'out', $msg, 'event_reminder' );
+			foreach ( $keys as $rk ) { set_transient( $rk, 1, 3 * DAY_IN_SECONDS ); }
 			usleep( 300000 );
 		}
 	}

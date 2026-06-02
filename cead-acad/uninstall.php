@@ -31,6 +31,7 @@ $options = [
 	'cead_acad_wa_council_board',
 	'cead_acad_wa_reminder_days',
 	'cead_acad_wa_report_forward_number',
+	'cead_acad_wa_country_code',
 	'cead_acad_wa_comm_templates',
 	'cead_acad_wa_broadcast_job',
 ];

@@ -29,6 +29,11 @@ class Cead_Acad_WA_Engine {
 			return;
 		}
 
+		// Anti-flood: límite por número y ventana (evita abuso / creación masiva).
+		if ( ! $this->allow_rate( $phone ) ) {
+			return;
+		}
+
 		$identity = Cead_Acad_WA_Identity::resolve( $phone );
 
 		$existing = $this->store->get_number( $phone );
@@ -136,7 +141,7 @@ class Cead_Acad_WA_Engine {
 			if ( ! Cead_Acad_WA_Identity::can( $identity['user_id'], 'cead_acad_publish_broadcast' ) ) {
 				return false;
 			}
-			if ( $text === '' ) { $this->send( $phone, 'Uso: *-AA* <texto del anuncio>' ); return true; }
+			if ( $text === '' ) { $this->send( $phone, $this->m( 'shortcut_aa_usage' ) ); return true; }
 			$this->create_broadcast_post( $text, 'all' );
 			$res = $this->broadcaster->enqueue_for( $text, 'all' );
 			$this->send( $phone, $this->interp( $this->m( 'shortcut_announce_ok' ), [ 'total' => (int) ( $res['total'] ?? 0 ) ] ), 'quick_announce' );
@@ -146,7 +151,7 @@ class Cead_Acad_WA_Engine {
 		if ( ! Cead_Acad_WA_Identity::can( $identity['user_id'], 'cead_acad_manage_schedule' ) ) {
 			return false;
 		}
-		if ( $text === '' ) { $this->send( $phone, 'Uso: *-AE* <título del evento>' ); return true; }
+		if ( $text === '' ) { $this->send( $phone, $this->m( 'shortcut_ae_usage' ) ); return true; }
 		$this->store->set_state( $phone, 'staff_event_date', [ 'title' => $text ] );
 		$this->send( $phone, $this->m( 'event_date_prompt' ) );
 		return true;
@@ -229,6 +234,10 @@ class Cead_Acad_WA_Engine {
 			if ( isset( $defs[ $role ] ) && $this->role_actions( $role, $uid ) ) {
 				$out[ $role ] = $defs[ $role ];
 			}
+		}
+		// Administrador de WordPress sin rol de cead-acad: darle el menú de Dirección.
+		if ( ! $out && user_can( $uid, 'manage_options' ) && $this->role_actions( 'cead_acad_direction', $uid ) ) {
+			$out['cead_acad_direction'] = $defs['cead_acad_direction'];
 		}
 		return $out;
 	}
@@ -595,8 +604,12 @@ class Cead_Acad_WA_Engine {
 			return;
 		}
 		// Si el comunicado trae una imagen, la guardamos para reenviarla.
-		$image = $media ? $this->store_image( $media ) : null;
-		$this->comm_ask_audience( $phone, $body, $image );
+		$image = null; $image_failed = false;
+		if ( $media ) {
+			$image = $this->store_image( $media );
+			$image_failed = ! $image;
+		}
+		$this->comm_ask_audience( $phone, $body, $image, $image_failed );
 	}
 
 	private function comm_template( $phone, $lc ) {
@@ -607,9 +620,11 @@ class Cead_Acad_WA_Engine {
 		$this->comm_ask_audience( $phone, (string) ( $tpls[ $idx ]['body'] ?? '' ) );
 	}
 
-	private function comm_ask_audience( $phone, $message, $image = null ) {
+	private function comm_ask_audience( $phone, $message, $image = null, $image_failed = false ) {
 		$this->store->set_state( $phone, 'staff_comm_audience', [ 'message' => $message, 'image' => $image ] );
-		$extra = $image ? "\n📷 (con imagen adjunta)" : '';
+		$extra = '';
+		if ( $image ) { $extra = "\n📷 (con imagen adjunta)"; }
+		elseif ( $image_failed ) { $extra = "\n" . $this->m( 'image_attach_failed' ); }
 		$this->send( $phone, $this->m( 'comm_audience_prompt' ) . $extra );
 	}
 
@@ -620,7 +635,7 @@ class Cead_Acad_WA_Engine {
 		$count = $this->broadcaster->count_for( $target );
 		if ( $count === 0 ) { $this->send( $phone, $this->m( 'comm_empty' ) ); $this->reenter_staff( $phone ); return; }
 		$this->store->set_state( $phone, 'staff_comm_when', [ 'message' => $context['message'] ?? '', 'image' => $context['image'] ?? null, 'target' => $target, 'count' => $count ] );
-		$this->send( $phone, "¿Cuándo enviar?\n1. Ahora\n2. Programar fecha y hora\n0. Cancelar" );
+		$this->send( $phone, $this->m( 'comm_when_prompt' ) );
 	}
 
 	private function comm_when( $phone, $lc, $context ) {
@@ -630,7 +645,9 @@ class Cead_Acad_WA_Engine {
 			$this->send( $phone, $this->interp( $this->m( 'comm_confirm_prompt' ), [ 'count' => (int) ( $context['count'] ?? 0 ) ] ) );
 		} elseif ( $lc === '2' ) {
 			$this->store->set_state( $phone, 'staff_comm_schedule', [ 'message' => $context['message'] ?? '', 'target' => $context['target'] ?? 'all' ] );
-			$this->send( $phone, 'Indicá fecha y hora (AAAA-MM-DD HH:MM), ej. 2026-07-15 07:00:' );
+			$prompt = $this->m( 'comm_schedule_prompt' );
+			if ( ! empty( $context['image'] ) ) { $prompt .= "\n" . $this->m( 'comm_schedule_no_image' ); }
+			$this->send( $phone, $prompt );
 		} else {
 			$this->invalid( $phone );
 		}
@@ -652,16 +669,16 @@ class Cead_Acad_WA_Engine {
 			$this->send( $phone, $this->m( 'comm_cancelled' ) );
 			$this->reenter_staff( $phone );
 		} else {
-			$this->send( $phone, 'Respondé *SI* o *NO*.' );
+			$this->send( $phone, $this->m( 'confirm_si_no' ) );
 		}
 	}
 
 	private function comm_schedule( $phone, $body, $lc, $context, $identity ) {
 		if ( $this->is_cancel( $lc ) ) { $this->send( $phone, $this->m( 'comm_cancelled' ) ); $this->reenter_staff( $phone ); return; }
 		$run = $this->parse_datetime( trim( $body ) );
-		if ( $run === null ) { $this->send( $phone, 'Formato inválido. Usá AAAA-MM-DD HH:MM.' ); return; }
+		if ( $run === null ) { $this->send( $phone, $this->m( 'datetime_invalid' ) ); return; }
 		$this->store->create_scheduled( (string) ( $context['message'] ?? '' ), (string) ( $context['target'] ?? 'all' ), $run, $phone );
-		$this->send( $phone, "🗓️ Comunicado programado para {$run}.", 'broadcast_scheduled' );
+		$this->send( $phone, $this->interp( $this->m( 'comm_scheduled_ok' ), [ 'run' => $run ] ), 'broadcast_scheduled' );
 		$this->reenter_staff( $phone );
 	}
 
@@ -745,7 +762,7 @@ class Cead_Acad_WA_Engine {
 		$lines[] = '0. Volver';
 		$state = $mode === 'edit' ? 'staff_article_edit_pick' : 'staff_article_del_pick';
 		$this->store->set_state( $phone, $state, [ 'ids' => $ids ] );
-		$head = $mode === 'edit' ? 'Elegí el artículo a editar:' : 'Elegí el artículo a borrar:';
+		$head = $mode === 'edit' ? $this->m( 'article_pick_edit' ) : $this->m( 'article_pick_delete' );
 		$this->send( $phone, $head . "\n" . implode( "\n", $lines ) );
 	}
 
@@ -783,7 +800,7 @@ class Cead_Acad_WA_Engine {
 		} elseif ( in_array( $lc, [ 'no' ], true ) || $this->is_cancel( $lc ) ) {
 			$this->reenter_staff( $phone );
 		} else {
-			$this->send( $phone, 'Respondé *SI* o *NO*.' );
+			$this->send( $phone, $this->m( 'confirm_si_no' ) );
 		}
 	}
 
@@ -991,9 +1008,8 @@ class Cead_Acad_WA_Engine {
 		global $wpdb;
 		$aud = cead_acad_table( 'audiences' );
 		$now = current_time( 'mysql' );
-		$ids = $wpdb->get_col( $wpdb->prepare(
-			"SELECT DISTINCT subject_id FROM {$aud} WHERE subject_type = 'event' AND audience_type = 'all'"
-		) );
+		// Sin placeholders → get_col directo ($aud viene del whitelist de cead_acad_table).
+		$ids = $wpdb->get_col( "SELECT DISTINCT subject_id FROM {$aud} WHERE subject_type = 'event' AND audience_type = 'all'" );
 		$ids = array_map( 'intval', $ids ?: [] );
 		if ( ! $ids ) { return []; }
 		return get_posts( [
@@ -1092,6 +1108,17 @@ class Cead_Acad_WA_Engine {
 
 	private function is_cancel( $lc ) {
 		return in_array( $lc, [ '0', 'cancelar', 'cancel' ], true );
+	}
+
+	/** Límite anti-flood: máx. de mensajes por número en una ventana de tiempo. */
+	private function allow_rate( $phone, $max = 25, $window = 60 ) {
+		$key = 'cead_acad_wa_rl_' . md5( $phone );
+		$n   = (int) get_transient( $key );
+		if ( $n >= $max ) {
+			return false;
+		}
+		set_transient( $key, $n + 1, $window );
+		return true;
 	}
 
 	private function invalid( $phone ) {

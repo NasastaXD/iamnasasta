@@ -57,6 +57,7 @@ class Cead_Acad_WA_Admin {
 				] );
 				update_option( 'cead_acad_wa_report_forward_number', preg_replace( '/[^0-9]/', '', (string) ( $_POST['report_forward_number'] ?? '' ) ), false );
 				update_option( 'cead_acad_wa_reminder_days', max( 1, (int) ( $_POST['reminder_days'] ?? 1 ) ), false );
+				update_option( 'cead_acad_wa_country_code', preg_replace( '/[^0-9]/', '', (string) ( $_POST['country_code'] ?? '595' ) ) ?: '595', false );
 				$notice = [ 'ok', __( 'Configuración guardada.', 'cead-acad' ) ];
 			} elseif ( $action === 'restart' ) {
 				$res = $this->bridge->restart();
@@ -114,6 +115,7 @@ class Cead_Acad_WA_Admin {
 		$this->field( 'shared_token', __( 'Token compartido (X-Caag-Token)', 'cead-acad' ), $s->shared_token ?? '', '', 'text' );
 		$this->field( 'report_forward_number', __( 'Número que recibe reportes', 'cead-acad' ), get_option( 'cead_acad_wa_report_forward_number', '' ), '595991123456' );
 		$this->field( 'reminder_days', __( 'Días de anticipación de recordatorios', 'cead-acad' ), get_option( 'cead_acad_wa_reminder_days', 1 ), '', 'number' );
+		$this->field( 'country_code', __( 'Código de país (para reconocer alumnos)', 'cead-acad' ), get_option( 'cead_acad_wa_country_code', '595' ), '595' );
 		echo '</tbody></table>';
 		submit_button( __( 'Guardar configuración', 'cead-acad' ) );
 		echo '</form></div>';

@@ -114,3 +114,17 @@ a la audiencia y las deja como imagen destacada del comunicado en el panel.
 `Cead_Acad_Activator::create_tables()` (activación y migración por versión).
 Los horarios, eventos, comunicados y cursos **no** se duplican: se leen de los
 módulos existentes de cead-acad.
+
+## Reconocer alumnos por teléfono
+
+El bot identifica al usuario por el meta `_cead_acad_phone` comparando el número
+**normalizado a E.164** (exacto, no por subcadena → sin falsos positivos). El
+código de país se configura en *WhatsApp → Configuración* (opción
+`cead_acad_wa_country_code`, por defecto `595`). Hay un test ejecutable de la
+normalización en `tests/test-phone-normalization.php` (`php cead-acad/tests/test-phone-normalization.php`).
+
+## Compatibilidad
+
+Instalá **un solo** plugin de WhatsApp: este módulo expone el namespace REST
+`caag-bot/v1`, igual que el viejo plugin `wp-caaguazu-bot`. Si ambos están
+activos, las rutas chocan. Mantené activo solo cead-acad.

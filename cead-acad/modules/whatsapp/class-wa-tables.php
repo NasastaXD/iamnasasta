@@ -176,6 +176,9 @@ class Cead_Acad_WA_Tables {
 		if ( get_option( 'cead_acad_wa_report_forward_number', null ) === null ) {
 			update_option( 'cead_acad_wa_report_forward_number', '', false );
 		}
+		if ( get_option( 'cead_acad_wa_country_code', null ) === null ) {
+			update_option( 'cead_acad_wa_country_code', '595', false );
+		}
 	}
 
 	/**
@@ -284,6 +287,17 @@ class Cead_Acad_WA_Tables {
 			'sugg_actions_prompt'   => [ 'staff', 'Sugerencias: acciones' ],
 			'sugg_updated'          => [ 'staff', 'Sugerencias: actualizada' ],
 			'metrics_header'        => [ 'staff', 'Métricas: encabezado' ],
+			'comm_when_prompt'      => [ 'staff', 'Comunicado: ¿cuándo enviar?' ],
+			'comm_schedule_prompt'  => [ 'staff', 'Comunicado: pedir fecha de programación' ],
+			'comm_scheduled_ok'     => [ 'staff', 'Comunicado: programado (usa {run})' ],
+			'comm_schedule_no_image'=> [ 'staff', 'Comunicado: aviso imagen no va en programados' ],
+			'image_attach_failed'   => [ 'staff', 'Comunicado: no se pudo adjuntar imagen' ],
+			'datetime_invalid'      => [ 'staff', 'Fecha/hora inválida' ],
+			'confirm_si_no'         => [ 'staff', 'Pedido de confirmación SI/NO' ],
+			'shortcut_aa_usage'     => [ 'staff', 'Atajo -AA: uso' ],
+			'shortcut_ae_usage'     => [ 'staff', 'Atajo -AE: uso' ],
+			'article_pick_edit'     => [ 'staff', 'Artículos: elegir para editar' ],
+			'article_pick_delete'   => [ 'staff', 'Artículos: elegir para borrar' ],
 			'shortcuts_help'        => [ 'staff', 'Atajos: ayuda (-AA / -AE)' ],
 			'shortcut_announce_ok'  => [ 'staff', 'Atajo -AA: anuncio publicado (usa {total})' ],
 			'article_menu_prompt'   => [ 'staff', 'Artículos: submenú' ],
@@ -374,6 +388,15 @@ class Cead_Acad_WA_Tables {
 			'comm_queued'          => '📨 Comunicado encolado para {total} destinatario(s). Se envía de forma escalonada.',
 			'comm_busy'            => 'Ya hay un envío en curso. Esperá a que termine.',
 			'comm_cancelled'       => 'Comunicado cancelado.',
+			'comm_when_prompt'     => "¿Cuándo enviar?\n1. Ahora\n2. Programar fecha y hora\n0. Cancelar",
+			'comm_schedule_prompt' => 'Indicá fecha y hora (AAAA-MM-DD HH:MM), ej. 2026-07-15 07:00:',
+			'comm_scheduled_ok'    => '🗓️ Comunicado programado para {run}.',
+			'comm_schedule_no_image' => '(El envío programado se hará solo con texto; la imagen no se adjunta en programados.)',
+			'image_attach_failed'  => '⚠️ No pude adjuntar la imagen; el comunicado se enviará solo con texto.',
+			'datetime_invalid'     => 'Formato inválido. Usá AAAA-MM-DD HH:MM.',
+			'confirm_si_no'        => 'Respondé *SI* o *NO*.',
+			'shortcut_aa_usage'    => 'Uso: *-AA* <texto del anuncio>',
+			'shortcut_ae_usage'    => 'Uso: *-AE* <título del evento>',
 
 			// Staff: eventos (D7)
 			'event_title_prompt' => 'Título del evento (0 para cancelar):',
@@ -415,6 +438,8 @@ class Cead_Acad_WA_Tables {
 			'article_body_prompt'     => 'Escribí el contenido del artículo (0 para cancelar):',
 			'article_published'       => '✅ Artículo publicado: {url}',
 			'article_none'            => 'No hay artículos para mostrar.',
+			'article_pick_edit'       => 'Elegí el artículo a editar:',
+			'article_pick_delete'     => 'Elegí el artículo a borrar:',
 			'article_edit_body_prompt'=> 'Escribí el nuevo contenido del artículo (0 para cancelar):',
 			'article_updated'         => '✅ Artículo actualizado.',
 			'article_del_confirm'     => "¿Borrar el artículo *{title}*? Respondé *SI* o *NO*.",
