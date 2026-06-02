@@ -81,6 +81,7 @@ class Cead_Acad_Admin_Menu {
 		echo '<li><a href="' . esc_url( admin_url( 'edit.php?post_type=' . Cead_Acad_Resources_CPT::POST_TYPE ) ) . '">' . esc_html__( 'Recursos', 'cead-acad' ) . '</a> — ' . esc_html__( 'mapas conceptuales, PDFs y enlaces pedagógicos.', 'cead-acad' ) . '</li>';
 		echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-importers' ) ) . '">' . esc_html__( 'Importadores CSV', 'cead-acad' ) . '</a> — ' . esc_html__( 'subí alumnado y calificaciones desde archivo.', 'cead-acad' ) . '</li>';
 		echo '<li><a href="' . esc_url( admin_url( 'edit.php?post_type=' . Cead_Acad_Tasks_CPT::POST_TYPE ) ) . '">' . esc_html__( 'Tareas (delegado)', 'cead-acad' ) . '</a> — ' . esc_html__( 'asigná tareas a cursos para que las gestionen los delegados.', 'cead-acad' ) . '</li>';
+		echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-whatsapp' ) ) . '">' . esc_html__( 'Bot de WhatsApp', 'cead-acad' ) . '</a> — ' . esc_html__( 'estado del bridge, comunicados, reportes y mensajes del bot.', 'cead-acad' ) . '</li>';
 		echo '</ul>';
 
 		echo '<h2>' . esc_html__( 'Panel frontend', 'cead-acad' ) . '</h2>';

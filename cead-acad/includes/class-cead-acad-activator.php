@@ -197,6 +197,9 @@ class Cead_Acad_Activator {
 		dbDelta( $sql_survey_answers );
 		dbDelta( $sql_grades );
 		dbDelta( $sql_import_jobs );
+
+		// Tablas del módulo WhatsApp.
+		Cead_Acad_WA_Tables::create_tables();
 	}
 
 	protected static function ensure_upload_dir() {

@@ -55,6 +55,7 @@ final class Cead_Acad_Plugin {
 		( new Cead_Acad_Resources_Admin() )->boot();
 		( new Cead_Acad_Importer_Admin() )->boot();
 		( new Cead_Acad_Tasks_CPT() )->boot();
+		( new Cead_Acad_WA_Module() )->boot();
 
 		// Migraciones idempotentes en cambio de versión.
 		if ( get_option( 'cead_acad_db_version' ) !== CEAD_ACAD_DB_VERSION ) {

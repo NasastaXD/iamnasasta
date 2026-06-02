@@ -35,6 +35,7 @@ class Cead_Acad_Capabilities {
 						'cead_acad_assign_tasks'         => true,
 						'cead_acad_record_grade'         => true,
 						'cead_acad_view_course_grades'   => true,
+						'cead_acad_manage_reports'       => true,
 					]
 				),
 			],
@@ -54,6 +55,7 @@ class Cead_Acad_Capabilities {
 						'cead_acad_assign_tasks'         => true,
 						'cead_acad_record_grade'         => true,
 						'cead_acad_view_course_grades'   => true,
+						'cead_acad_manage_reports'       => true,
 					]
 				),
 			],
