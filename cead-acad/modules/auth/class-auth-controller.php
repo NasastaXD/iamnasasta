@@ -68,14 +68,18 @@ class Cead_Acad_Auth_Controller {
 			$this->bail_to( 'register', 'invitation_' . $status, [ 't' => $token ] );
 		}
 
-		$full_name = sanitize_text_field( wp_unslash( $_POST['full_name'] ?? '' ) );
+		$full_name  = sanitize_text_field( wp_unslash( $_POST['full_name'] ?? '' ) );
 		$user_login = sanitize_user( wp_unslash( $_POST['user_login'] ?? '' ), true );
-		$email     = sanitize_email( wp_unslash( $_POST['email'] ?? '' ) );
-		$password  = (string) ( $_POST['user_pass'] ?? '' );
-		$password2 = (string) ( $_POST['user_pass2'] ?? '' );
+		$email      = sanitize_email( wp_unslash( $_POST['email'] ?? '' ) );
+		$phone      = sanitize_text_field( wp_unslash( $_POST['phone'] ?? '' ) );
+		$password   = (string) ( $_POST['user_pass'] ?? '' );
+		$password2  = (string) ( $_POST['user_pass2'] ?? '' );
 
 		if ( ! $full_name || ! $user_login || ! $email || ! $password ) {
 			$this->bail_to( 'register', 'missing_fields', [ 't' => $token ] );
+		}
+		if ( ! $phone ) {
+			$this->bail_to( 'register', 'missing_phone', [ 't' => $token ] );
 		}
 		if ( strlen( $password ) < 8 ) {
 			$this->bail_to( 'register', 'weak_password', [ 't' => $token ] );
@@ -107,6 +111,7 @@ class Cead_Acad_Auth_Controller {
 		}
 
 		update_user_meta( $user_id, '_cead_acad_legal_name', $full_name );
+		update_user_meta( $user_id, '_cead_acad_phone', $phone );
 		update_user_meta( $user_id, '_cead_acad_invited_via', (int) $invitation['id'] );
 		if ( ! empty( $invitation['course_id'] ) ) {
 			update_user_meta( $user_id, '_cead_acad_current_course_id', (int) $invitation['course_id'] );

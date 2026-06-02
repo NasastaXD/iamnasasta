@@ -57,6 +57,7 @@ $body  = function () use ( $token, $invitation, $status, $err, $role_display ) {
 			'username_taken'    => __( 'Ese nombre de usuario ya está en uso.', 'cead-acad' ),
 			'email_taken'       => __( 'Ya hay una cuenta con ese email.', 'cead-acad' ),
 			'rate_limited'      => __( 'Demasiados intentos. Esperá un minuto.', 'cead-acad' ),
+			'missing_phone'     => __( 'El número de teléfono es obligatorio.', 'cead-acad' ),
 			'invitation_used'   => __( 'Este link de invitación ya se utilizó.', 'cead-acad' ),
 			'invitation_expired'=> __( 'Este link de invitación expiró.', 'cead-acad' ),
 			'invitation_revoked'=> __( 'Esta invitación fue revocada.', 'cead-acad' ),
@@ -83,6 +84,12 @@ $body  = function () use ( $token, $invitation, $status, $err, $role_display ) {
 		<label class="cead-acad-field">
 			<span class="cead-acad-label"><?php esc_html_e( 'Email', 'cead-acad' ); ?></span>
 			<input type="email" name="email" required autocomplete="email" value="<?php echo esc_attr( $invitation['email'] ?? '' ); ?>">
+		</label>
+
+		<label class="cead-acad-field">
+			<span class="cead-acad-label"><?php esc_html_e( 'Teléfono (WhatsApp)', 'cead-acad' ); ?></span>
+			<input type="tel" name="phone" required autocomplete="tel" placeholder="<?php esc_attr_e( 'Ej: 0981123456', 'cead-acad' ); ?>" value="<?php echo isset( $_GET['phone'] ) ? esc_attr( wp_unslash( $_GET['phone'] ) ) : ''; ?>">
+			<small class="cead-acad-hint"><?php esc_html_e( 'Tu número de WhatsApp. Ejemplo: 0981123456', 'cead-acad' ); ?></small>
 		</label>
 
 		<label class="cead-acad-field">

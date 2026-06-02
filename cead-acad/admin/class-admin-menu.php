@@ -47,6 +47,15 @@ class Cead_Acad_Admin_Menu {
 			'cead-acad-invitations',
 			[ $this, 'render_invitations' ]
 		);
+
+		add_submenu_page(
+			'cead-acad',
+			__( 'Usuarios', 'cead-acad' ),
+			__( 'Usuarios', 'cead-acad' ),
+			'read',
+			'cead-acad-users',
+			[ $this, 'render_users' ]
+		);
 	}
 
 	public function render_dashboard() {
@@ -73,6 +82,7 @@ class Cead_Acad_Admin_Menu {
 
 		echo '<h2>' . esc_html__( 'Accesos rápidos', 'cead-acad' ) . '</h2>';
 		echo '<ul style="list-style:disc;margin-left:20px;line-height:1.8">';
+		echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-users' ) ) . '">' . esc_html__( 'Usuarios', 'cead-acad' ) . '</a> — ' . esc_html__( 'creá usuarios manualmente y asigná roles y teléfono.', 'cead-acad' ) . '</li>';
 		echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-invitations' ) ) . '">' . esc_html__( 'Invitaciones', 'cead-acad' ) . '</a> — ' . esc_html__( 'generá links para sumar usuarios al sistema.', 'cead-acad' ) . '</li>';
 		echo '<li><a href="' . esc_url( admin_url( 'edit.php?post_type=' . Cead_Acad_Courses_CPT::POST_TYPE ) ) . '">' . esc_html__( 'Cursos', 'cead-acad' ) . '</a> — ' . esc_html__( 'creá cursos y asigná delegado/a, tutor/a y alumnado.', 'cead-acad' ) . '</li>';
 		echo '<li><a href="' . esc_url( admin_url( 'edit.php?post_type=' . Cead_Acad_Broadcasts_CPT::POST_TYPE ) ) . '">' . esc_html__( 'Comunicados', 'cead-acad' ) . '</a> — ' . esc_html__( 'publicá comunicados dirigidos a rol, curso o personalmente.', 'cead-acad' ) . '</li>';
@@ -208,5 +218,114 @@ class Cead_Acad_Admin_Menu {
 			return [ 'type' => 'success', 'msg' => __( 'Invitación revocada.', 'cead-acad' ) ];
 		}
 		return null;
+	}
+
+	// -------------------------------------------------------------------------
+	// Usuarios
+	// -------------------------------------------------------------------------
+
+	/** @var string Contraseña generada al crear un usuario, para mostrar una vez. */
+	protected $last_created_password = '';
+
+	public function render_users() {
+		if ( ! cead_acad_user_is_staff() ) {
+			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
+		}
+		$notice            = $this->process_users_post();
+		$last_password     = $this->last_created_password;
+		include CEAD_ACAD_DIR . 'admin/views/users-list.php';
+	}
+
+	protected function process_users_post() {
+		if ( empty( $_POST['cead_acad_users_action'] ) ) {
+			return null;
+		}
+		$action = sanitize_key( wp_unslash( $_POST['cead_acad_users_action'] ) );
+		if ( ! isset( $_POST['_cead_users_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_cead_users_nonce'] ) ), 'cead_acad_users_' . $action ) ) {
+			return [ 'type' => 'error', 'msg' => __( 'Sesión expirada. Probá de nuevo.', 'cead-acad' ) ];
+		}
+		switch ( $action ) {
+			case 'create': return $this->do_create_user();
+			case 'edit':   return $this->do_edit_user();
+		}
+		return null;
+	}
+
+	protected function do_create_user() {
+		$full_name  = sanitize_text_field( wp_unslash( $_POST['full_name'] ?? '' ) );
+		$user_login = sanitize_user( wp_unslash( $_POST['user_login'] ?? '' ), true );
+		$email      = sanitize_email( wp_unslash( $_POST['email'] ?? '' ) );
+		$phone      = sanitize_text_field( wp_unslash( $_POST['phone'] ?? '' ) );
+		$role       = sanitize_key( wp_unslash( $_POST['role'] ?? 'cead_acad_student' ) );
+
+		if ( ! $full_name || ! $user_login ) {
+			return [ 'type' => 'error', 'msg' => __( 'Nombre y usuario son obligatorios.', 'cead-acad' ) ];
+		}
+		if ( username_exists( $user_login ) ) {
+			return [ 'type' => 'error', 'msg' => __( 'Ese nombre de usuario ya está en uso.', 'cead-acad' ) ];
+		}
+		if ( $email && email_exists( $email ) ) {
+			return [ 'type' => 'error', 'msg' => __( 'Ya hay una cuenta con ese email.', 'cead-acad' ) ];
+		}
+
+		$valid_roles = array_keys( Cead_Acad_Capabilities::roles() );
+		if ( ! in_array( $role, $valid_roles, true ) ) {
+			$role = 'cead_acad_student';
+		}
+
+		$password = wp_generate_password( 12, false );
+		$args     = [
+			'user_login'   => $user_login,
+			'user_pass'    => $password,
+			'display_name' => $full_name,
+			'first_name'   => $full_name,
+			'role'         => $role,
+		];
+		if ( $email ) {
+			$args['user_email'] = $email;
+		}
+
+		$user_id = wp_insert_user( $args );
+		if ( is_wp_error( $user_id ) ) {
+			return [ 'type' => 'error', 'msg' => $user_id->get_error_message() ];
+		}
+
+		update_user_meta( $user_id, '_cead_acad_legal_name', $full_name );
+		if ( $phone !== '' ) {
+			update_user_meta( $user_id, '_cead_acad_phone', $phone );
+		}
+
+		$this->last_created_password = $password;
+		$roles        = Cead_Acad_Capabilities::roles();
+		$role_display = $roles[ $role ]['display'] ?? $role;
+		return [ 'type' => 'success', 'msg' => sprintf( __( 'Usuario "%s" creado como %s.', 'cead-acad' ), esc_html( $user_login ), esc_html( $role_display ) ) ];
+	}
+
+	protected function do_edit_user() {
+		$user_id = (int) ( $_POST['user_id'] ?? 0 );
+		if ( $user_id < 1 || ! get_user_by( 'id', $user_id ) ) {
+			return [ 'type' => 'error', 'msg' => __( 'Usuario inválido.', 'cead-acad' ) ];
+		}
+
+		$phone = sanitize_text_field( wp_unslash( $_POST['phone'] ?? '' ) );
+		$role  = sanitize_key( wp_unslash( $_POST['role'] ?? '' ) );
+
+		update_user_meta( $user_id, '_cead_acad_phone', $phone );
+
+		if ( $role !== '' ) {
+			$valid_roles = array_keys( Cead_Acad_Capabilities::roles() );
+			if ( in_array( $role, $valid_roles, true ) ) {
+				$user = new WP_User( $user_id );
+				// Eliminar roles cead_acad_* previos y asignar el nuevo.
+				foreach ( $valid_roles as $vr ) {
+					if ( in_array( $vr, (array) $user->roles, true ) ) {
+						$user->remove_role( $vr );
+					}
+				}
+				$user->add_role( $role );
+			}
+		}
+
+		return [ 'type' => 'success', 'msg' => __( 'Usuario actualizado.', 'cead-acad' ) ];
 	}
 }
