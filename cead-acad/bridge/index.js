@@ -97,6 +97,50 @@ let linkedNumber = null;
 
 const logger = pino( { level: 'silent' } );
 
+// Deduplicación de mensajes: WhatsApp/Baileys puede entregar el mismo mensaje
+// más de una vez (reintentos, reconexión). Guardamos los IDs vistos un rato
+// para no procesar duplicados y evitar respuestas/flujos dobles.
+const seenMessages = new Map(); // id → timestamp (ms)
+const SEEN_TTL_MS  = 5 * 60 * 1000;
+
+function alreadySeen( id ) {
+    if ( ! id ) return false;
+    const now = Date.now();
+    // Limpieza perezosa de entradas viejas.
+    for ( const [ key, ts ] of seenMessages ) {
+        if ( now - ts > SEEN_TTL_MS ) seenMessages.delete( key );
+    }
+    if ( seenMessages.has( id ) ) return true;
+    seenMessages.set( id, now );
+    return false;
+}
+
+// Extrae el número de teléfono REAL de la clave del mensaje. WhatsApp ahora
+// puede direccionar por LID (`<id>@lid`), que NO es un número; en ese caso el
+// teléfono real viene en senderPn / participantPn (Baileys reciente). Probamos
+// varios campos y descartamos cualquier JID `@lid`.
+function extractPhone( key ) {
+    if ( ! key ) return '';
+    // 1) Preferir un JID que SEA un número real (no LID).
+    const candidates = [
+        key.senderPn,       // número real cuando el chat usa LID
+        key.participantPn,  // idem en algunos eventos
+        key.remoteJidAlt,   // JID alternativo (según versión)
+        key.remoteJid,      // normal: <phone>@s.whatsapp.net
+    ];
+    for ( const jid of candidates ) {
+        if ( ! jid || typeof jid !== 'string' ) continue;
+        if ( jid.endsWith( '@lid' ) ) continue;       // un LID no es un teléfono
+        const digits = jid.replace( /@.+$/, '' ).replace( /[^0-9]/g, '' );
+        if ( digits.length >= 7 ) return digits;
+    }
+    // 2) Último recurso: usar los dígitos del remoteJid aunque sea un LID. No
+    //    permite reconocer al usuario, pero el bot igual responde (modo general)
+    //    en vez de quedar mudo. Ocurre solo en versiones viejas de Baileys.
+    const fallback = ( key.remoteJid || '' ).replace( /@.+$/, '' ).replace( /[^0-9]/g, '' );
+    return fallback.length >= 7 ? fallback : '';
+}
+
 // -----------------------------------------------------------------------
 // Conexión a WhatsApp
 // -----------------------------------------------------------------------
@@ -167,12 +211,19 @@ async function connectToWhatsApp() {
         }
     } );
 
-    sock.ev.on( 'messages.upsert', async ( { messages } ) => {
+    sock.ev.on( 'messages.upsert', async ( { messages, type } ) => {
+        // Solo mensajes recién recibidos. 'append' llega en sincronización/
+        // reconexión y reprocesaría mensajes viejos (causa de respuestas dobles).
+        if ( type !== 'notify' ) return;
+
         for ( const msg of messages ) {
             if ( msg.key.fromMe )                          continue;
             if ( msg.key.remoteJid?.endsWith( '@g.us' ) ) continue;
 
-            const from     = ( msg.key.remoteJid || '' ).replace( /@s\.whatsapp\.net$/, '' );
+            // Dedup por ID: evita procesar el mismo mensaje dos veces.
+            if ( alreadySeen( msg.key.id ) ) continue;
+
+            const from     = extractPhone( msg.key );
             const imageMsg = msg.message?.imageMessage;
             const body = msg.message?.conversation
                       || msg.message?.extendedTextMessage?.text
@@ -182,6 +233,11 @@ async function connectToWhatsApp() {
             const media = imageMsg ? await downloadImage( msg, imageMsg ) : null;
 
             if ( ! body.trim() && ! media ) continue;
+
+            if ( ! from ) {
+                console.warn( '[CaagBridge] ⚠️  No se pudo extraer el número del mensaje (¿LID sin número?):', msg.key.remoteJid );
+                continue;
+            }
 
             await sock.readMessages( [ msg.key ] ).catch( () => {} );
             await sock.sendPresenceUpdate( 'composing', msg.key.remoteJid ).catch( () => {} );
@@ -196,6 +252,7 @@ async function connectToWhatsApp() {
                             pushName:  msg.pushName || '',
                             timestamp: msg.messageTimestamp || Math.floor( Date.now() / 1000 ),
                             media:     media,
+                            id:        msg.key.id || '',
                         },
                         {
                             headers: { 'X-Caag-Token': SHARED_TOKEN },

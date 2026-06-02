@@ -70,6 +70,16 @@ class Cead_Acad_WA_REST {
 		if ( $phone === '' || ( trim( $message['body'] ) === '' && ! $media ) ) {
 			return new WP_REST_Response( [ 'ok' => true, 'skipped' => true ], 200 );
 		}
+		// Dedup defensiva por ID de mensaje: si el bridge reenvía el mismo mensaje
+		// (reintento de red), no lo procesamos dos veces.
+		$msg_id = isset( $body['id'] ) ? sanitize_text_field( (string) $body['id'] ) : '';
+		if ( $msg_id !== '' ) {
+			$lock = 'cead_acad_wa_seen_' . md5( $msg_id );
+			if ( get_transient( $lock ) ) {
+				return new WP_REST_Response( [ 'ok' => true, 'duplicate' => true ], 200 );
+			}
+			set_transient( $lock, 1, 2 * MINUTE_IN_SECONDS );
+		}
 		try {
 			$this->engine->process_message( $message );
 		} catch ( \Throwable $e ) {
