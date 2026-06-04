@@ -13,6 +13,9 @@ class Cead_Acad_WA_Engine {
 	private $bridge;
 	private $broadcaster;
 
+	/** Buffer de mensajes del turno actual (se entregan juntos en flush_outbox). */
+	private $outbox = [];
+
 	public function __construct( Cead_Acad_WA_Store $store, Cead_Acad_WA_Bridge_Client $bridge, Cead_Acad_WA_Broadcaster $broadcaster ) {
 		$this->store       = $store;
 		$this->bridge      = $bridge;
@@ -55,20 +58,26 @@ class Cead_Acad_WA_Engine {
 			return;
 		}
 
+		// Todas las respuestas de este turno se acumulan y se entregan juntas.
+		$this->outbox = [];
+
 		$lc = strtolower( trim( $body ) );
 		if ( $lc === 'baja' ) {
 			$this->store->set_opt_out( $phone, true );
 			$this->store->reset_state( $phone );
 			$this->send( $phone, $this->m( 'opt_out_confirmed' ), 'opt_out' );
+			$this->flush_outbox( $phone );
 			return;
 		}
 
 		// Atajos rápidos de staff (-AA / -AE), solo en estados de menú.
 		if ( $body !== '' && $this->maybe_handle_shortcut( $phone, $body, $state, $identity ) ) {
+			$this->flush_outbox( $phone );
 			return;
 		}
 
 		$this->dispatch( $phone, $body, $lc, $state, $context, $name, $identity, $media );
+		$this->flush_outbox( $phone );
 	}
 
 	private function log_inbound( $phone, $state, $context, $body ) {
@@ -1177,42 +1186,66 @@ class Cead_Acad_WA_Engine {
 
 	// --------------------------------------------------- envío
 	/**
-	 * Envía un menú de navegación manteniendo el chat prolijo. Si el último mensaje
-	 * a este número fue un menú y sigue dentro de la ventana de edición de WhatsApp
-	 * (~15 min, sin contenido de por medio), lo edita en sitio; si no, manda uno
-	 * nuevo. send() invalida el menú guardado, así tras mostrar contenido el próximo
-	 * menú aparece fresco al final del chat.
+	 * Ventana en la que WhatsApp permite editar un mensaje propio (~15 min, contados
+	 * desde el mensaje original). Pasada la ventana, el bot manda un mensaje nuevo y
+	 * arranca otra tanda de ediciones. 840 s = 14 min (margen bajo el límite de WA).
 	 */
-	private function send_menu( $phone, $message, $action = 'menu' ) {
-		if ( trim( (string) $message ) === '' ) { return; }
-		$key  = 'cead_acad_wa_menu_' . md5( $phone );
-		$last = get_transient( $key );
-		if ( is_array( $last ) && ! empty( $last['id'] ) && ( time() - (int) ( $last['ts'] ?? 0 ) ) < 14 * MINUTE_IN_SECONDS ) {
-			$res = $this->bridge->edit_message( $phone, $message, (string) $last['id'] );
-			if ( is_array( $res ) && ! empty( $res['edited'] ) ) {
-				$this->store->log( $phone, 'out', $message, $action . '_edit' );
-				set_transient( $key, [ 'id' => (string) $last['id'], 'ts' => time() ], 14 * MINUTE_IN_SECONDS );
-				return;
-			}
-		}
-		$res = $this->bridge->send_message( $phone, $message );
-		$this->store->log( $phone, 'out', $message, $action );
-		$id = is_array( $res ) ? (string) ( $res['id'] ?? '' ) : '';
-		if ( $id !== '' ) {
-			set_transient( $key, [ 'id' => $id, 'ts' => time() ], 14 * MINUTE_IN_SECONDS );
-		} else {
-			delete_transient( $key );
-		}
-	}
+	const EDIT_WINDOW = 840;
 
+	/**
+	 * Encola un mensaje del bot. Todas las respuestas de un mismo turno se juntan y
+	 * se entregan como UN solo mensaje (ver flush_outbox), editándolo sobre el
+	 * anterior para no llenar el chat.
+	 */
 	private function send( $phone, $message, $action = '' ) {
 		if ( trim( (string) $message ) === '' ) {
 			error_log( '[CeadAcadWA] send omitido: mensaje vacío. acción=' . $action );
 			return;
 		}
-		// Un mensaje de contenido invalida el menú editable: el próximo menú será nuevo.
-		delete_transient( 'cead_acad_wa_menu_' . md5( $phone ) );
-		$this->bridge->send_message( $phone, $message );
+		$this->outbox[] = [ 'text' => $message, 'action' => $action ];
+	}
+
+	/** Alias histórico: los menús se entregan igual que cualquier otro mensaje. */
+	private function send_menu( $phone, $message, $action = 'menu' ) {
+		$this->send( $phone, $message, $action );
+	}
+
+	/**
+	 * Entrega lo encolado en el turno como un único mensaje, EDITÁNDOLO sobre el
+	 * último mensaje del bot mientras WhatsApp lo permita (ventana de ~15 min desde
+	 * el mensaje original; el ts no se renueva al editar). Si la ventana venció o el
+	 * edit es rechazado, manda uno nuevo y empieza una tanda nueva. Así el usuario
+	 * trabaja con un mensaje que se va actualizando en vez de recibir decenas.
+	 */
+	private function flush_outbox( $phone ) {
+		if ( empty( $this->outbox ) ) {
+			return;
+		}
+		$texts        = array_map( static function ( $m ) { return $m['text']; }, $this->outbox );
+		$last         = end( $this->outbox );
+		$action       = ( is_array( $last ) && $last['action'] !== '' ) ? $last['action'] : 'menu';
+		$message      = implode( "\n\n", $texts );
+		$this->outbox = [];
+
+		$key    = 'cead_acad_wa_anchor_' . md5( $phone );
+		$anchor = get_transient( $key );
+		if ( is_array( $anchor ) && ! empty( $anchor['id'] ) && ( time() - (int) ( $anchor['ts'] ?? 0 ) ) < self::EDIT_WINDOW ) {
+			$res = $this->bridge->edit_message( $phone, $message, (string) $anchor['id'] );
+			if ( is_array( $res ) && ! empty( $res['edited'] ) ) {
+				$this->store->log( $phone, 'out', $message, $action . '_edit' );
+				// Mantener id y ts ORIGINAL: la ventana corre desde el primer mensaje.
+				set_transient( $key, [ 'id' => (string) $anchor['id'], 'ts' => (int) $anchor['ts'] ], self::EDIT_WINDOW );
+				return;
+			}
+		}
+		// Sin ancla válida (primer mensaje, ventana vencida o edit rechazado): nuevo.
+		$res = $this->bridge->send_message( $phone, $message );
 		$this->store->log( $phone, 'out', $message, $action );
+		$id  = is_array( $res ) ? (string) ( $res['id'] ?? '' ) : '';
+		if ( $id !== '' ) {
+			set_transient( $key, [ 'id' => $id, 'ts' => time() ], self::EDIT_WINDOW );
+		} else {
+			delete_transient( $key );
+		}
 	}
 }
