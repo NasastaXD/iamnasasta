@@ -70,6 +70,19 @@ class Cead_Acad_WA_Engine {
 			return;
 		}
 
+		// "bajar": reenvía el mensaje actual al final del chat (mensaje nuevo).
+		if ( in_array( $lc, [ 'bajar', 'abajo' ], true ) ) {
+			$this->bring_down( $phone );
+			return;
+		}
+
+		// "volver": sube un nivel de menú desde donde esté.
+		if ( in_array( $lc, [ 'volver', 'atras', 'atrás' ], true ) ) {
+			$this->go_back( $phone, $state, $identity );
+			$this->flush_outbox( $phone );
+			return;
+		}
+
 		// Atajos rápidos de staff (-AA / -AE), solo en estados de menú.
 		if ( $body !== '' && $this->maybe_handle_shortcut( $phone, $body, $state, $identity ) ) {
 			$this->flush_outbox( $phone );
@@ -1193,6 +1206,12 @@ class Cead_Acad_WA_Engine {
 	const EDIT_WINDOW = 840;
 
 	/**
+	 * Cada cuántos mensajes el bot "baja" automáticamente (manda uno nuevo en vez de
+	 * editar) para que no quede arriba en el chat. Se cuenta sobre el mismo ancla.
+	 */
+	const MESSAGES_BEFORE_DROP = 5;
+
+	/**
 	 * Encola un mensaje del bot. Todas las respuestas de un mismo turno se juntan y
 	 * se entregan como UN solo mensaje (ver flush_outbox), editándolo sobre el
 	 * anterior para no llenar el chat.
@@ -1226,26 +1245,90 @@ class Cead_Acad_WA_Engine {
 		$action       = ( is_array( $last ) && $last['action'] !== '' ) ? $last['action'] : 'menu';
 		$message      = implode( "\n\n", $texts );
 		$this->outbox = [];
+		$this->deliver( $phone, $message, $action );
+	}
 
-		$key    = 'cead_acad_wa_anchor_' . md5( $phone );
-		$anchor = get_transient( $key );
-		if ( is_array( $anchor ) && ! empty( $anchor['id'] ) && ( time() - (int) ( $anchor['ts'] ?? 0 ) ) < self::EDIT_WINDOW ) {
+	/** Clave del ancla (último mensaje editable) por número. */
+	private function anchor_key( $phone ) {
+		return 'cead_acad_wa_anchor_' . md5( $phone );
+	}
+
+	/**
+	 * Entrega un mensaje editando el ancla mientras se pueda; si no, manda uno nuevo.
+	 * No edita si: no hay ancla, venció la ventana, ya se editó MESSAGES_BEFORE_DROP-1
+	 * veces (toca "bajar"), o se fuerza con $force_new. Guarda el texto para "bajar".
+	 */
+	private function deliver( $phone, $message, $action = 'menu', $force_new = false ) {
+		if ( trim( (string) $message ) === '' ) {
+			return;
+		}
+		$key     = $this->anchor_key( $phone );
+		$anchor  = get_transient( $key );
+		$edits   = is_array( $anchor ) ? (int) ( $anchor['edits'] ?? 0 ) : 0;
+		$can_edit = ! $force_new
+			&& is_array( $anchor ) && ! empty( $anchor['id'] )
+			&& ( time() - (int) ( $anchor['ts'] ?? 0 ) ) < self::EDIT_WINDOW
+			&& $edits < ( self::MESSAGES_BEFORE_DROP - 1 );
+		if ( $can_edit ) {
 			$res = $this->bridge->edit_message( $phone, $message, (string) $anchor['id'] );
 			if ( is_array( $res ) && ! empty( $res['edited'] ) ) {
 				$this->store->log( $phone, 'out', $message, $action . '_edit' );
 				// Mantener id y ts ORIGINAL: la ventana corre desde el primer mensaje.
-				set_transient( $key, [ 'id' => (string) $anchor['id'], 'ts' => (int) $anchor['ts'] ], self::EDIT_WINDOW );
+				set_transient( $key, [ 'id' => (string) $anchor['id'], 'ts' => (int) $anchor['ts'], 'edits' => $edits + 1, 'text' => $message ], self::EDIT_WINDOW );
 				return;
 			}
 		}
-		// Sin ancla válida (primer mensaje, ventana vencida o edit rechazado): nuevo.
+		// Mensaje nuevo (primer mensaje, ventana vencida, toca bajar o edit rechazado).
 		$res = $this->bridge->send_message( $phone, $message );
 		$this->store->log( $phone, 'out', $message, $action );
 		$id  = is_array( $res ) ? (string) ( $res['id'] ?? '' ) : '';
 		if ( $id !== '' ) {
-			set_transient( $key, [ 'id' => $id, 'ts' => time() ], self::EDIT_WINDOW );
+			set_transient( $key, [ 'id' => $id, 'ts' => time(), 'edits' => 0, 'text' => $message ], self::EDIT_WINDOW );
 		} else {
 			delete_transient( $key );
 		}
+	}
+
+	/** Comando "bajar": reenvía el último mensaje del bot al final del chat (nuevo). */
+	private function bring_down( $phone ) {
+		$anchor = get_transient( $this->anchor_key( $phone ) );
+		$text   = is_array( $anchor ) ? (string) ( $anchor['text'] ?? '' ) : '';
+		if ( $text === '' ) {
+			return; // no hay nada que bajar todavía.
+		}
+		$this->deliver( $phone, $text, 'bring_down', true );
+	}
+
+	/** Comando "volver": sube un nivel de menú según el estado actual. */
+	private function go_back( $phone, $state, $identity ) {
+		$student_sub = [ 'stu_report_type', 'stu_report_cat', 'stu_report_body', 'stu_suggestion_body', 'stu_council_menu', 'stu_council_proposal' ];
+		$staff_sub   = [
+			'staff_comm_compose', 'staff_comm_template', 'staff_comm_audience', 'staff_comm_when', 'staff_comm_confirm', 'staff_comm_schedule',
+			'staff_event_title', 'staff_event_date', 'staff_article_menu', 'staff_article_title', 'staff_article_body',
+			'staff_article_edit_pick', 'staff_article_edit_body', 'staff_article_del_pick', 'staff_article_del_confirm',
+			'staff_role_phone', 'staff_role_choose', 'staff_reports_list', 'staff_report_view', 'staff_report_note',
+			'staff_sugg_list', 'staff_sugg_view',
+		];
+		if ( in_array( $state, $student_sub, true ) ) {
+			$this->back_to_student( $phone );
+			return;
+		}
+		if ( in_array( $state, $staff_sub, true ) ) {
+			$this->reenter_staff( $phone );
+			return;
+		}
+		if ( $state === 'staff_menu' ) {
+			// Del menú del rol, subir al selector (si hay varios) o salir.
+			$menus = $this->available_role_menus( $identity );
+			if ( count( $menus ) > 1 ) {
+				$this->enter_role_chooser( $phone, $identity, $menus );
+			} else {
+				$this->store->reset_state( $phone );
+				$this->send( $phone, $this->m( 'goodbye' ) );
+			}
+			return;
+		}
+		// student_menu, role_chooser, idle u otros: volver al inicio.
+		$this->idle( $phone, '', $identity );
 	}
 }
