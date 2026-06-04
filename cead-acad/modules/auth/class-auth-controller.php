@@ -52,20 +52,20 @@ class Cead_Acad_Auth_Controller {
 
 	public function handle_register() {
 		if ( ! cead_acad_verify_nonce( '_cead_nonce', 'cead_acad_register' ) ) {
-			$this->bail_to( 'register', 'invalid_nonce' );
+			$this->bail_to( 'registro', 'invalid_nonce' );
 		}
 		if ( ! cead_acad_rate_limit( 'register', 5, 60 ) ) {
-			$this->bail_to( 'register', 'rate_limited' );
+			$this->bail_to( 'registro', 'rate_limited' );
 		}
 
 		$token = sanitize_text_field( wp_unslash( $_POST['token'] ?? '' ) );
 		if ( ! $token ) {
-			$this->bail_to( 'register', 'missing_token' );
+			$this->bail_to( 'registro', 'missing_token' );
 		}
 		$invitation = Cead_Acad_Invitations::find_by_token( $token );
 		$status = Cead_Acad_Invitations::status( $invitation );
 		if ( 'valid' !== $status ) {
-			$this->bail_to( 'register', 'invitation_' . $status, [ 't' => $token ] );
+			$this->bail_to( 'registro', 'invitation_' . $status, [ 't' => $token ] );
 		}
 
 		$full_name  = sanitize_text_field( wp_unslash( $_POST['full_name'] ?? '' ) );
@@ -76,25 +76,25 @@ class Cead_Acad_Auth_Controller {
 		$password2  = (string) ( $_POST['user_pass2'] ?? '' );
 
 		if ( ! $full_name || ! $user_login || ! $email || ! $password ) {
-			$this->bail_to( 'register', 'missing_fields', [ 't' => $token ] );
+			$this->bail_to( 'registro', 'missing_fields', [ 't' => $token ] );
 		}
 		if ( ! $phone ) {
-			$this->bail_to( 'register', 'missing_phone', [ 't' => $token ] );
+			$this->bail_to( 'registro', 'missing_phone', [ 't' => $token ] );
 		}
 		if ( strlen( $password ) < 8 ) {
-			$this->bail_to( 'register', 'weak_password', [ 't' => $token ] );
+			$this->bail_to( 'registro', 'weak_password', [ 't' => $token ] );
 		}
 		if ( $password !== $password2 ) {
-			$this->bail_to( 'register', 'password_mismatch', [ 't' => $token ] );
+			$this->bail_to( 'registro', 'password_mismatch', [ 't' => $token ] );
 		}
 		if ( ! is_email( $email ) ) {
-			$this->bail_to( 'register', 'bad_email', [ 't' => $token ] );
+			$this->bail_to( 'registro', 'bad_email', [ 't' => $token ] );
 		}
 		if ( username_exists( $user_login ) ) {
-			$this->bail_to( 'register', 'username_taken', [ 't' => $token ] );
+			$this->bail_to( 'registro', 'username_taken', [ 't' => $token ] );
 		}
 		if ( email_exists( $email ) ) {
-			$this->bail_to( 'register', 'email_taken', [ 't' => $token ] );
+			$this->bail_to( 'registro', 'email_taken', [ 't' => $token ] );
 		}
 
 		$user_id = wp_insert_user( [
@@ -107,7 +107,7 @@ class Cead_Acad_Auth_Controller {
 		] );
 
 		if ( is_wp_error( $user_id ) ) {
-			$this->bail_to( 'register', 'insert_failed', [ 't' => $token ] );
+			$this->bail_to( 'registro', 'insert_failed', [ 't' => $token ] );
 		}
 
 		update_user_meta( $user_id, '_cead_acad_legal_name', $full_name );

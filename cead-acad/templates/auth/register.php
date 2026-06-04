@@ -61,6 +61,8 @@ $body  = function () use ( $token, $invitation, $status, $err, $role_display ) {
 			'invitation_used'   => __( 'Este link de invitación ya se utilizó.', 'cead-acad' ),
 			'invitation_expired'=> __( 'Este link de invitación expiró.', 'cead-acad' ),
 			'invitation_revoked'=> __( 'Esta invitación fue revocada.', 'cead-acad' ),
+			'insert_failed'     => __( 'No se pudo crear la cuenta. Intentá de nuevo o pedí ayuda a la dirección.', 'cead-acad' ),
+			'missing_token'     => __( 'Falta el código de invitación. Volvé a abrir el link que te enviaron.', 'cead-acad' ),
 		];
 		?>
 		<div class="cead-acad-msg cead-acad-msg--err"><?php echo esc_html( $labels[ $err ] ?? __( 'Error.', 'cead-acad' ) ); ?></div>
