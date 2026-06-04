@@ -9,14 +9,6 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class Cead_Acad_WA_Engine {
 
-	/**
-	 * ⚠️ TEMPORAL — ACCESO DE PRUEBA. BORRAR ANTES DE PRODUCCIÓN.
-	 * Si un número escribe exactamente esta frase, el bot lo trata como Dirección
-	 * (usando el admin de WordPress) durante 12 h, sin modificar metadatos de
-	 * usuarios. Para desactivarlo: poné '' o eliminá los bloques marcados «TEMP».
-	 */
-	const TEMP_ADMIN_PHRASE = '@Cead_2026@_';
-
 	private $store;
 	private $bridge;
 	private $broadcaster;
@@ -71,15 +63,6 @@ class Cead_Acad_WA_Engine {
 			return;
 		}
 
-		// ⚠️ TEMP — acceso de prueba: la frase clave eleva el número a Dirección.
-		if ( self::TEMP_ADMIN_PHRASE !== '' && trim( $body ) === self::TEMP_ADMIN_PHRASE ) {
-			$this->enable_temp_admin( $phone );
-			$this->store->reset_state( $phone );
-			$this->send( $phone, '✅ Acceso de prueba activado. Entrás como *Dirección* por 12 h.' );
-			$this->idle( $phone, $name, $this->resolve_identity( $phone ) );
-			return;
-		}
-
 		// Atajos rápidos de staff (-AA / -AE), solo en estados de menú.
 		if ( $body !== '' && $this->maybe_handle_shortcut( $phone, $body, $state, $identity ) ) {
 			return;
@@ -101,6 +84,14 @@ class Cead_Acad_WA_Engine {
 	}
 
 	private function dispatch( $phone, $body, $lc, $state, $context, $name, $identity, $media = null ) {
+		// Filtro de lenguaje en estados de texto libre (reportes, sugerencias, comunicados).
+		if ( $body !== '' && $this->is_free_text_state( $state ) ) {
+			$hits = $this->detect_banned_words( $body );
+			if ( $hits ) {
+				$this->send( $phone, $this->interp( $this->m( 'vulgar_detected' ), [ 'words' => implode( ', ', $hits ) ] ), 'vulgar_blocked' );
+				return;
+			}
+		}
 		switch ( $state ) {
 			case 'idle':                 $this->idle( $phone, $name, $identity ); break;
 			case 'role_chooser':         $this->role_chooser( $phone, $lc, $context, $identity ); break;
@@ -184,7 +175,7 @@ class Cead_Acad_WA_Engine {
 		}
 		$greeting = $this->interp( $this->m( 'greeting_student' ), [ 'name' => $name ?: 'che' ] );
 		$this->store->set_state( $phone, 'student_menu' );
-		$this->send( $phone, $greeting . "\n\n" . $this->m( 'student_menu' ) . "\n\n" . $this->m( 'panel_promo' ) );
+		$this->send_menu( $phone, $greeting . "\n\n" . $this->m( 'student_menu' ) . "\n\n" . $this->m( 'panel_promo' ), 'student_menu' );
 	}
 
 	// --------------------------------------------------- selector de menú por rol
@@ -269,7 +260,7 @@ class Cead_Acad_WA_Engine {
 		$i = 2;
 		foreach ( $menus as $def ) { $lines[] = $i . '. ' . $def['label']; $i++; }
 		$lines[] = '0. Salir';
-		$this->send( $phone, implode( "\n", $lines ) );
+		$this->send_menu( $phone, implode( "\n", $lines ), 'role_chooser' );
 	}
 
 	private function role_chooser( $phone, $lc, $context, $identity ) {
@@ -283,7 +274,7 @@ class Cead_Acad_WA_Engine {
 		if ( ! isset( $options[ $idx ] ) ) { $this->invalid( $phone ); return; }
 		if ( $options[ $idx ] === 'students' ) {
 			$this->store->set_state( $phone, 'student_menu' );
-			$this->send( $phone, $this->m( 'student_menu' ) );
+			$this->send_menu( $phone, $this->m( 'student_menu' ), 'student_menu' );
 			return;
 		}
 		$this->enter_role_menu( $phone, $options[ $idx ], $identity );
@@ -297,7 +288,7 @@ class Cead_Acad_WA_Engine {
 		$lines = [ '*' . ( $defs[ $role ]['label'] ?? 'Panel' ) . '* — ¿qué querés hacer?' ];
 		foreach ( $actions as $i => $a ) { $lines[] = ( $i + 1 ) . '. ' . $a['label']; }
 		$lines[] = '0. Salir';
-		$this->send( $phone, implode( "\n", $lines ) );
+		$this->send_menu( $phone, implode( "\n", $lines ), 'staff_menu' );
 	}
 
 	// ---------------------------------------------------------------- alumnado
@@ -324,7 +315,7 @@ class Cead_Acad_WA_Engine {
 
 	private function back_to_student( $phone ) {
 		$this->store->set_state( $phone, 'student_menu' );
-		$this->send( $phone, $this->m( 'student_menu' ) );
+		$this->send_menu( $phone, $this->m( 'student_menu' ), 'student_menu' );
 	}
 
 	// A1 Horarios
@@ -1143,32 +1134,75 @@ class Cead_Acad_WA_Engine {
 	}
 
 	/**
-	 * Resuelve la identidad del número. Aplica el override TEMPORAL de prueba:
-	 * si el número activó la frase clave y no tiene un usuario real asociado, se
-	 * lo trata como el admin de WordPress (Dirección). Quitar junto al bloque TEMP.
+	 * Resuelve la identidad del número a partir del usuario asociado (si existe).
 	 */
 	private function resolve_identity( $phone ) {
-		$identity = Cead_Acad_WA_Identity::resolve( $phone );
-		// ⚠️ TEMP — override de admin de prueba.
-		if ( ! $identity['user_id'] && self::TEMP_ADMIN_PHRASE !== '' && $this->has_temp_admin( $phone ) ) {
-			$aid = $this->first_admin_id();
-			if ( $aid ) {
-				$identity = [ 'user_id' => $aid, 'is_student' => false, 'is_staff' => true ];
-			}
-		}
-		return $identity;
+		return Cead_Acad_WA_Identity::resolve( $phone );
 	}
 
-	// ⚠️ TEMP — helpers del acceso de prueba. Borrar junto a TEMP_ADMIN_PHRASE.
-	private function enable_temp_admin( $phone ) {
-		set_transient( 'cead_acad_wa_tempadmin_' . md5( $phone ), 1, 12 * HOUR_IN_SECONDS );
+	// --------------------------------------------------- filtro de lenguaje
+	/** Estados donde el usuario escribe texto libre que se guarda/reenvía. */
+	private function is_free_text_state( $state ) {
+		return in_array( $state, [ 'stu_report_body', 'stu_suggestion_body', 'stu_council_proposal', 'staff_comm_compose' ], true );
 	}
-	private function has_temp_admin( $phone ) {
-		return (bool) get_transient( 'cead_acad_wa_tempadmin_' . md5( $phone ) );
+
+	/** Lista de palabras prohibidas configurable (una por línea o separadas por coma). */
+	private function banned_words() {
+		$raw  = (string) get_option( 'cead_acad_banned_words', '' );
+		$list = preg_split( '/[\r\n,]+/', $raw );
+		$list = array_filter( array_map( 'trim', (array) $list ), static function ( $w ) { return $w !== ''; } );
+		return array_values( $list );
 	}
-	private function first_admin_id() {
-		$ids = get_users( [ 'role' => 'administrator', 'number' => 1, 'fields' => 'ID', 'orderby' => 'ID', 'order' => 'ASC' ] );
-		return $ids ? (int) $ids[0] : 0;
+
+	/** Palabras prohibidas detectadas en el texto (match por palabra, sin acentos ni distinción de mayúsculas). */
+	private function detect_banned_words( $text ) {
+		$list = $this->banned_words();
+		if ( ! $list ) { return []; }
+		$haystack = $this->normalize_text( $text );
+		$hits = [];
+		foreach ( $list as $word ) {
+			$needle = $this->normalize_text( $word );
+			if ( $needle === '' ) { continue; }
+			if ( preg_match( '/(?<![\p{L}\p{N}])' . preg_quote( $needle, '/' ) . '(?![\p{L}\p{N}])/u', $haystack ) ) {
+				$hits[] = $word;
+			}
+		}
+		return array_values( array_unique( $hits ) );
+	}
+
+	private function normalize_text( $s ) {
+		$s = function_exists( 'mb_strtolower' ) ? mb_strtolower( (string) $s, 'UTF-8' ) : strtolower( (string) $s );
+		return strtr( $s, [ 'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n' ] );
+	}
+
+	// --------------------------------------------------- envío
+	/**
+	 * Envía un menú de navegación manteniendo el chat prolijo. Si el último mensaje
+	 * a este número fue un menú y sigue dentro de la ventana de edición de WhatsApp
+	 * (~15 min, sin contenido de por medio), lo edita en sitio; si no, manda uno
+	 * nuevo. send() invalida el menú guardado, así tras mostrar contenido el próximo
+	 * menú aparece fresco al final del chat.
+	 */
+	private function send_menu( $phone, $message, $action = 'menu' ) {
+		if ( trim( (string) $message ) === '' ) { return; }
+		$key  = 'cead_acad_wa_menu_' . md5( $phone );
+		$last = get_transient( $key );
+		if ( is_array( $last ) && ! empty( $last['id'] ) && ( time() - (int) ( $last['ts'] ?? 0 ) ) < 14 * MINUTE_IN_SECONDS ) {
+			$res = $this->bridge->edit_message( $phone, $message, (string) $last['id'] );
+			if ( is_array( $res ) && ! empty( $res['edited'] ) ) {
+				$this->store->log( $phone, 'out', $message, $action . '_edit' );
+				set_transient( $key, [ 'id' => (string) $last['id'], 'ts' => time() ], 14 * MINUTE_IN_SECONDS );
+				return;
+			}
+		}
+		$res = $this->bridge->send_message( $phone, $message );
+		$this->store->log( $phone, 'out', $message, $action );
+		$id = is_array( $res ) ? (string) ( $res['id'] ?? '' ) : '';
+		if ( $id !== '' ) {
+			set_transient( $key, [ 'id' => $id, 'ts' => time() ], 14 * MINUTE_IN_SECONDS );
+		} else {
+			delete_transient( $key );
+		}
 	}
 
 	private function send( $phone, $message, $action = '' ) {
@@ -1176,6 +1210,8 @@ class Cead_Acad_WA_Engine {
 			error_log( '[CeadAcadWA] send omitido: mensaje vacío. acción=' . $action );
 			return;
 		}
+		// Un mensaje de contenido invalida el menú editable: el próximo menú será nuevo.
+		delete_transient( 'cead_acad_wa_menu_' . md5( $phone ) );
 		$this->bridge->send_message( $phone, $message );
 		$this->store->log( $phone, 'out', $message, $action );
 	}

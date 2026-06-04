@@ -366,6 +366,68 @@ app.post( '/api/send-image', async ( req, res ) => {
     }
 } );
 
+// Edición de un mensaje ya enviado (menús que se actualizan en sitio).
+app.post( '/api/edit', async ( req, res ) => {
+    const { to, message, msg_id } = req.body;
+    if ( ! to || ! message || ! msg_id ) {
+        return res.status( 400 ).json( { edited: false, error: 'Campos requeridos: to, message, msg_id' } );
+    }
+    if ( ! isConnected || ! sock ) {
+        return res.status( 500 ).json( { edited: false, error: 'No conectado a WhatsApp' } );
+    }
+    try {
+        const jid = `${ to }@s.whatsapp.net`;
+        const result = await sock.sendMessage( jid, {
+            text: message,
+            edit: { remoteJid: jid, fromMe: true, id: msg_id },
+        } );
+        return res.json( { edited: true, id: result?.key?.id || msg_id } );
+    } catch ( err ) {
+        console.error( '[CaagBridge] edit error:', err.message );
+        return res.status( 500 ).json( { edited: false, error: err.message } );
+    }
+} );
+
+// Perfil del bot: nombre visible y/o descripción ("info" de la cuenta).
+app.post( '/api/profile', async ( req, res ) => {
+    const { name, about } = req.body;
+    if ( ! isConnected || ! sock ) {
+        return res.status( 500 ).json( { ok: false, error: 'No conectado a WhatsApp' } );
+    }
+    try {
+        if ( typeof name === 'string' && name.trim() !== '' ) {
+            await sock.updateProfileName( name.trim() );
+        }
+        if ( typeof about === 'string' ) {
+            await sock.updateProfileStatus( about );
+        }
+        return res.json( { ok: true } );
+    } catch ( err ) {
+        console.error( '[CaagBridge] profile error:', err.message );
+        return res.status( 500 ).json( { ok: false, error: err.message } );
+    }
+} );
+
+// Foto de perfil del bot (imagen en base64).
+app.post( '/api/profile-picture', async ( req, res ) => {
+    const { image_base64 } = req.body;
+    if ( ! image_base64 ) {
+        return res.status( 400 ).json( { ok: false, error: 'Campo requerido: image_base64' } );
+    }
+    if ( ! isConnected || ! sock ) {
+        return res.status( 500 ).json( { ok: false, error: 'No conectado a WhatsApp' } );
+    }
+    try {
+        const buffer = Buffer.from( image_base64, 'base64' );
+        const jid = sock.user?.id ? sock.user.id.replace( /:[0-9]+/, '' ) : `${ linkedNumber }@s.whatsapp.net`;
+        await sock.updateProfilePicture( jid, buffer );
+        return res.json( { ok: true } );
+    } catch ( err ) {
+        console.error( '[CaagBridge] profile-picture error:', err.message );
+        return res.status( 500 ).json( { ok: false, error: err.message } );
+    }
+} );
+
 app.get( '/api/status', ( _req, res ) => {
     res.json( { connected: isConnected, number: linkedNumber, qr: qrBase64 } );
 } );

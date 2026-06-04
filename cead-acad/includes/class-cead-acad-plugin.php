@@ -61,6 +61,8 @@ final class Cead_Acad_Plugin {
 		if ( get_option( 'cead_acad_db_version' ) !== CEAD_ACAD_DB_VERSION ) {
 			Cead_Acad_Activator::create_tables();
 			update_option( 'cead_acad_db_version', CEAD_ACAD_DB_VERSION );
+			// Hay reglas de rewrite nuevas (link corto /i/<token>): pedir flush.
+			update_option( 'cead_acad_flush_rewrites', 1 );
 		}
 
 		// Re-instalar capabilities en cada cambio de versión del plugin (no solo

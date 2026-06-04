@@ -31,6 +31,8 @@ class Cead_Acad_WA_Admin {
 		add_submenu_page( 'cead-acad', __( 'WA · Reportes', 'cead-acad' ), __( 'WA · Reportes', 'cead-acad' ), 'cead_acad_manage_reports', 'cead-acad-wa-reports', [ $this, 'page_reports' ] );
 		add_submenu_page( 'cead-acad', __( 'WA · Mensajes', 'cead-acad' ), __( 'WA · Mensajes', 'cead-acad' ), 'manage_options', 'cead-acad-wa-messages', [ $this, 'page_messages' ] );
 		add_submenu_page( 'cead-acad', __( 'WA · Métricas', 'cead-acad' ), __( 'WA · Métricas', 'cead-acad' ), 'cead_acad_view_metrics', 'cead-acad-wa-metrics', [ $this, 'page_metrics' ] );
+		add_submenu_page( 'cead-acad', __( 'WA · Mensaje directo', 'cead-acad' ), __( 'WA · Mensaje directo', 'cead-acad' ), 'cead_acad_publish_broadcast', 'cead-acad-wa-direct', [ $this, 'page_direct' ] );
+		add_submenu_page( 'cead-acad', __( 'CEADI · Perfil', 'cead-acad' ), __( 'CEADI · Perfil', 'cead-acad' ), 'manage_options', 'cead-acad-wa-profile', [ $this, 'page_profile' ] );
 	}
 
 	private function guard( $cap = 'read' ) {
@@ -58,6 +60,10 @@ class Cead_Acad_WA_Admin {
 				update_option( 'cead_acad_wa_report_forward_number', preg_replace( '/[^0-9]/', '', (string) ( $_POST['report_forward_number'] ?? '' ) ), false );
 				update_option( 'cead_acad_wa_reminder_days', max( 1, (int) ( $_POST['reminder_days'] ?? 1 ) ), false );
 				update_option( 'cead_acad_wa_country_code', preg_replace( '/[^0-9]/', '', (string) ( $_POST['country_code'] ?? '595' ) ) ?: '595', false );
+				update_option( 'cead_acad_wa_bot_number', preg_replace( '/[^0-9]/', '', (string) ( $_POST['bot_number'] ?? '' ) ), false );
+				update_option( 'cead_acad_panel_intro', sanitize_textarea_field( wp_unslash( $_POST['panel_intro'] ?? '' ) ), false );
+				update_option( 'cead_acad_ceadi_intro', sanitize_textarea_field( wp_unslash( $_POST['ceadi_intro'] ?? '' ) ), false );
+				update_option( 'cead_acad_banned_words', sanitize_textarea_field( wp_unslash( $_POST['banned_words'] ?? '' ) ), false );
 				$notice = [ 'ok', __( 'Configuración guardada.', 'cead-acad' ) ];
 			} elseif ( $action === 'restart' ) {
 				$res = $this->bridge->restart();
@@ -116,6 +122,10 @@ class Cead_Acad_WA_Admin {
 		$this->field( 'report_forward_number', __( 'Número que recibe reportes', 'cead-acad' ), get_option( 'cead_acad_wa_report_forward_number', '' ), '595991123456' );
 		$this->field( 'reminder_days', __( 'Días de anticipación de recordatorios', 'cead-acad' ), get_option( 'cead_acad_wa_reminder_days', 1 ), '', 'number' );
 		$this->field( 'country_code', __( 'Código de país (para reconocer alumnos)', 'cead-acad' ), get_option( 'cead_acad_wa_country_code', '595' ), '595' );
+			$this->field( 'bot_number', __( 'Número de CEADI (botón «Agregar a CEADI»)', 'cead-acad' ), get_option( 'cead_acad_wa_bot_number', '' ), '595991123456' );
+			$this->field_textarea( 'panel_intro', __( 'Landing: ¿qué es el panel del CEAD?', 'cead-acad' ), get_option( 'cead_acad_panel_intro', '' ) );
+			$this->field_textarea( 'ceadi_intro', __( 'Landing: ¿qué es CEADI?', 'cead-acad' ), get_option( 'cead_acad_ceadi_intro', '' ) );
+			$this->field_textarea( 'banned_words', __( 'Palabras prohibidas (una por línea)', 'cead-acad' ), get_option( 'cead_acad_banned_words', '' ) );
 		echo '</tbody></table>';
 		submit_button( __( 'Guardar configuración', 'cead-acad' ) );
 		echo '</form></div>';
@@ -135,6 +145,12 @@ class Cead_Acad_WA_Admin {
 	private function field( $name, $label, $value, $placeholder = '', $type = 'text' ) {
 		echo '<tr><th scope="row"><label for="' . esc_attr( $name ) . '">' . esc_html( $label ) . '</label></th><td>';
 		echo '<input type="' . esc_attr( $type ) . '" id="' . esc_attr( $name ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( (string) $value ) . '" placeholder="' . esc_attr( $placeholder ) . '" class="regular-text" />';
+		echo '</td></tr>';
+	}
+
+	private function field_textarea( $name, $label, $value, $rows = 3 ) {
+		echo '<tr><th scope="row"><label for="' . esc_attr( $name ) . '">' . esc_html( $label ) . '</label></th><td>';
+		echo '<textarea id="' . esc_attr( $name ) . '" name="' . esc_attr( $name ) . '" rows="' . (int) $rows . '" class="large-text">' . esc_textarea( (string) $value ) . '</textarea>';
 		echo '</td></tr>';
 	}
 
@@ -187,6 +203,85 @@ class Cead_Acad_WA_Admin {
 		echo '</form></div>';
 		echo '<p><em>' . esc_html__( 'El envío es escalonado (lotes con pausa) para no saturar WhatsApp.', 'cead-acad' ) . '</em></p>';
 		echo '</div>';
+	}
+
+	// -------------------------------------------------- Mensaje directo
+	public function page_direct() {
+		$this->guard( 'cead_acad_publish_broadcast' );
+		$notice = null;
+		if ( isset( $_POST['cead_acad_wa_direct'] ) && check_admin_referer( 'cead_acad_wa_direct' ) ) {
+			$digits  = preg_replace( '/[^0-9]/', '', (string) ( $_POST['to'] ?? '' ) );
+			$message = sanitize_textarea_field( wp_unslash( $_POST['message'] ?? '' ) );
+			if ( strlen( $digits ) < 7 ) {
+				$notice = [ 'err', __( 'Número inválido (incluí el código de país).', 'cead-acad' ) ];
+			} elseif ( trim( $message ) === '' ) {
+				$notice = [ 'err', __( 'El mensaje no puede estar vacío.', 'cead-acad' ) ];
+			} else {
+				$res = $this->bridge->send_message( $digits, $message );
+				if ( isset( $res['error'] ) || empty( $res['sent'] ) ) {
+					$notice = [ 'err', $res['error'] ?? __( 'No se pudo enviar (¿el bridge está conectado?).', 'cead-acad' ) ];
+				} else {
+					$this->store->log( $digits, 'out', $message, 'direct' );
+					$notice = [ 'ok', sprintf( __( 'Mensaje enviado a +%s.', 'cead-acad' ), $digits ) ];
+				}
+			}
+		}
+		echo '<div class="wrap"><h1>' . esc_html__( 'WhatsApp — Mensaje directo', 'cead-acad' ) . '</h1>';
+		if ( $notice ) { $this->notice( $notice[1], $notice[0] === 'ok' ? 'success' : 'error' ); }
+		echo '<div class="card" style="max-width:720px"><form method="post">';
+		wp_nonce_field( 'cead_acad_wa_direct' );
+		echo '<p><label><strong>' . esc_html__( 'Número (con código de país, solo dígitos)', 'cead-acad' ) . '</strong></label><br/>';
+		echo '<input type="text" name="to" class="regular-text" placeholder="595991123456" required /></p>';
+		echo '<p><label><strong>' . esc_html__( 'Mensaje', 'cead-acad' ) . '</strong></label><br/>';
+		echo '<textarea name="message" rows="5" class="large-text" required></textarea></p>';
+		echo '<p><button type="submit" name="cead_acad_wa_direct" value="1" class="button button-primary">' . esc_html__( 'Enviar mensaje', 'cead-acad' ) . '</button></p>';
+		echo '</form></div>';
+		echo '<p><em>' . esc_html__( 'Envía un mensaje puntual a un número desde CEADI. Queda registrado en el historial.', 'cead-acad' ) . '</em></p>';
+		echo '</div>';
+	}
+
+	// -------------------------------------------------- Perfil de CEADI
+	public function page_profile() {
+		$this->guard( 'manage_options' );
+		$notice = null;
+		if ( isset( $_POST['cead_acad_wa_profile'] ) && check_admin_referer( 'cead_acad_wa_profile' ) ) {
+			$name   = sanitize_text_field( wp_unslash( $_POST['bot_name'] ?? '' ) );
+			$about  = sanitize_textarea_field( wp_unslash( $_POST['bot_about'] ?? '' ) );
+			$errors = [];
+			$res = $this->bridge->set_profile( $name !== '' ? $name : null, $about );
+			if ( isset( $res['error'] ) || empty( $res['ok'] ) ) {
+				$errors[] = $res['error'] ?? __( 'No se pudo actualizar nombre/descripción.', 'cead-acad' );
+			} else {
+				update_option( 'cead_acad_wa_bot_name', $name, false );
+				update_option( 'cead_acad_wa_bot_about', $about, false );
+			}
+			// Foto opcional (se envía directo al bridge, sin guardarla en la biblioteca).
+			if ( ! empty( $_FILES['bot_picture']['tmp_name'] ) && is_uploaded_file( $_FILES['bot_picture']['tmp_name'] ) ) {
+				$bytes = file_get_contents( $_FILES['bot_picture']['tmp_name'] );
+				if ( $bytes !== false ) {
+					$pres = $this->bridge->set_profile_picture( base64_encode( $bytes ) );
+					if ( isset( $pres['error'] ) || empty( $pres['ok'] ) ) {
+						$errors[] = $pres['error'] ?? __( 'No se pudo actualizar la foto.', 'cead-acad' );
+					}
+				}
+			}
+			$notice = $errors ? [ 'err', implode( ' · ', $errors ) ] : [ 'ok', __( 'Perfil de CEADI actualizado.', 'cead-acad' ) ];
+		}
+		echo '<div class="wrap"><h1>' . esc_html__( 'CEADI — Perfil del bot', 'cead-acad' ) . '</h1>';
+		if ( $notice ) { $this->notice( $notice[1], $notice[0] === 'ok' ? 'success' : 'error' ); }
+		echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Estos cambios se aplican a la cuenta de WhatsApp vinculada y requieren el bridge conectado.', 'cead-acad' ) . '</p></div>';
+		echo '<div class="card" style="max-width:720px"><form method="post" enctype="multipart/form-data">';
+		wp_nonce_field( 'cead_acad_wa_profile' );
+		echo '<table class="form-table"><tbody>';
+		$this->field( 'bot_name', __( 'Nombre visible', 'cead-acad' ), get_option( 'cead_acad_wa_bot_name', 'CEADI' ), 'CEADI' );
+		$this->field_textarea( 'bot_about', __( 'Descripción (info)', 'cead-acad' ), get_option( 'cead_acad_wa_bot_about', '' ) );
+		echo '<tr><th scope="row"><label for="bot_picture">' . esc_html__( 'Foto de perfil', 'cead-acad' ) . '</label></th><td>';
+		echo '<input type="file" id="bot_picture" name="bot_picture" accept="image/*" />';
+		echo '<p class="description">' . esc_html__( 'Imagen cuadrada (JPG/PNG). Dejalo vacío para no cambiarla.', 'cead-acad' ) . '</p>';
+		echo '</td></tr>';
+		echo '</tbody></table>';
+		echo '<p><button type="submit" name="cead_acad_wa_profile" value="1" class="button button-primary">' . esc_html__( 'Guardar perfil', 'cead-acad' ) . '</button></p>';
+		echo '</form></div></div>';
 	}
 
 	// -------------------------------------------------- Reportes

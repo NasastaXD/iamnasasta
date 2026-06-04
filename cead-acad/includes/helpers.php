@@ -54,10 +54,18 @@ function cead_acad_user_role( $user = null ) {
 }
 
 /**
- * Genera un token alfanumérico criptográficamente seguro.
+ * Genera un token alfanumérico corto y criptográficamente seguro para invitaciones.
+ * Base62, 12 caracteres (~71 bits). Las invitaciones son de un solo uso y expiran,
+ * así que el link puede ser corto sin comprometer la seguridad.
  */
 function cead_acad_generate_token() {
-	return bin2hex( random_bytes( 24 ) ); // 48 chars hex
+	$alphabet = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+	$max      = strlen( $alphabet ) - 1;
+	$out      = '';
+	for ( $i = 0; $i < 12; $i++ ) {
+		$out .= $alphabet[ random_int( 0, $max ) ];
+	}
+	return $out;
 }
 
 /**

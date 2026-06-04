@@ -10,6 +10,11 @@ if ( is_user_logged_in() ) {
 }
 
 $token = isset( $_GET['t'] ) ? sanitize_text_field( wp_unslash( $_GET['t'] ) ) : '';
+if ( $token === '' ) {
+	// Link corto /i/<token>.
+	$qv    = get_query_var( 'cead_acad_t' );
+	$token = $qv ? sanitize_text_field( wp_unslash( $qv ) ) : '';
+}
 $err   = isset( $_GET['err'] ) ? sanitize_key( $_GET['err'] ) : '';
 
 $invitation = $token ? Cead_Acad_Invitations::find_by_token( $token ) : null;
@@ -17,8 +22,13 @@ $status     = Cead_Acad_Invitations::status( $invitation );
 $roles      = Cead_Acad_Capabilities::roles();
 $role_display = $invitation && isset( $roles[ $invitation['role'] ] ) ? $roles[ $invitation['role'] ]['display'] : '';
 
+// Textos editables (wp-admin → WhatsApp) que explican el panel y el bot.
+$panel_intro  = (string) get_option( 'cead_acad_panel_intro', __( 'El panel del CEAD es el espacio web donde alumnado y personal gestionan las cosas del colegio: comunicados, horarios, eventos, materiales y más, todo en un solo lugar.', 'cead-acad' ) );
+$ceadi_intro  = (string) get_option( 'cead_acad_ceadi_intro', __( 'CEADI es el asistente del colegio en WhatsApp. Te acerca comunicados, horarios y novedades, y te deja hacer consultas rápidas cuando las necesites.', 'cead-acad' ) );
+$ceadi_number = preg_replace( '/[^0-9]/', '', (string) get_option( 'cead_acad_wa_bot_number', '' ) );
+
 $title = __( 'Crear cuenta', 'cead-acad' );
-$body  = function () use ( $token, $invitation, $status, $err, $role_display ) {
+$body  = function () use ( $token, $invitation, $status, $err, $role_display, $panel_intro, $ceadi_intro, $ceadi_number ) {
 	?>
 	<h1 class="cead-acad-auth-h"><?php esc_html_e( 'Crear cuenta', 'cead-acad' ); ?></h1>
 
@@ -47,6 +57,24 @@ $body  = function () use ( $token, $invitation, $status, $err, $role_display ) {
 		);
 		?>
 	</p>
+
+	<div class="cead-acad-auth-intro">
+		<?php if ( trim( $panel_intro ) !== '' ) : ?>
+			<h2 class="cead-acad-auth-h2"><?php esc_html_e( '¿Qué es el panel del CEAD?', 'cead-acad' ); ?></h2>
+			<p><?php echo esc_html( $panel_intro ); ?></p>
+		<?php endif; ?>
+		<?php if ( trim( $ceadi_intro ) !== '' ) : ?>
+			<h2 class="cead-acad-auth-h2"><?php esc_html_e( 'CEADI · el bot del colegio', 'cead-acad' ); ?></h2>
+			<p><?php echo esc_html( $ceadi_intro ); ?></p>
+		<?php endif; ?>
+		<?php if ( $ceadi_number !== '' ) : ?>
+			<p>
+				<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( 'https://wa.me/' . $ceadi_number ); ?>" target="_blank" rel="noopener">
+					<?php esc_html_e( 'Agregar a CEADI', 'cead-acad' ); ?>
+				</a>
+			</p>
+		<?php endif; ?>
+	</div>
 
 	<?php if ( $err ) :
 		$labels = [

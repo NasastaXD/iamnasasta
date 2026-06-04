@@ -179,6 +179,18 @@ class Cead_Acad_WA_Tables {
 		if ( get_option( 'cead_acad_wa_country_code', null ) === null ) {
 			update_option( 'cead_acad_wa_country_code', '595', false );
 		}
+		if ( get_option( 'cead_acad_wa_bot_number', null ) === null ) {
+			update_option( 'cead_acad_wa_bot_number', '', false );
+		}
+		if ( get_option( 'cead_acad_banned_words', null ) === null ) {
+			update_option( 'cead_acad_banned_words', '', false );
+		}
+		if ( get_option( 'cead_acad_panel_intro', null ) === null ) {
+			update_option( 'cead_acad_panel_intro', 'El panel del CEAD es el espacio web donde alumnado y personal gestionan las cosas del colegio: comunicados, horarios, eventos, materiales y más, todo en un solo lugar.', false );
+		}
+		if ( get_option( 'cead_acad_ceadi_intro', null ) === null ) {
+			update_option( 'cead_acad_ceadi_intro', 'CEADI es el asistente del colegio en WhatsApp. Te acerca comunicados, horarios y novedades, y te deja hacer consultas rápidas cuando las necesites.', false );
+		}
 	}
 
 	/**
@@ -250,6 +262,7 @@ class Cead_Acad_WA_Tables {
 			'report_saved_conf'      => [ 'reportes', 'Reporte confidencial guardado' ],
 			'report_saved_anon'      => [ 'reportes', 'Reporte anónimo guardado' ],
 			'report_cancelled'       => [ 'reportes', 'Reporte cancelado' ],
+			'vulgar_detected'        => [ 'reportes', 'Filtro de lenguaje: palabra prohibida detectada (usa {words})' ],
 			// Sugerencias / Consejo
 			'suggestion_prompt'       => [ 'sugerencias', 'Pedido de sugerencia' ],
 			'suggestion_saved'        => [ 'sugerencias', 'Sugerencia guardada' ],
@@ -336,6 +349,7 @@ class Cead_Acad_WA_Tables {
 			'invalid_option'   => 'Opción no válida. Elegí una de las opciones del menú.',
 			'error_generic'    => 'Ocurrió un error. Probá de nuevo más tarde.',
 			'identify_hint'    => 'ℹ️ Te respondo con información general. Si tu número está registrado en el colegio, te muestro tus datos personalizados.',
+			'vulgar_detected'  => '🚫 Lenguaje vulgar detectado, elimine las palabras: {words}',
 
 			// Horarios (A1)
 			'horario_none'     => 'No tengo horarios/eventos próximos cargados.',

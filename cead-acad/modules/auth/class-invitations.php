@@ -180,9 +180,10 @@ class Cead_Acad_Invitations {
 	}
 
 	/**
-	 * URL final de registro con el token.
+	 * URL final de registro con el token. Usa el link corto /i/<token>; la ruta
+	 * larga /registro?t=<token> sigue funcionando para links viejos.
 	 */
 	public static function registration_url( $token ) {
-		return add_query_arg( 't', $token, cead_acad_url( 'registro' ) );
+		return home_url( '/i/' . rawurlencode( $token ) );
 	}
 }

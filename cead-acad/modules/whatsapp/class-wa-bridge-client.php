@@ -27,6 +27,24 @@ class Cead_Acad_WA_Bridge_Client {
 		] );
 	}
 
+	/** Edita un mensaje ya enviado (Baileys: { text, edit: key }). */
+	public function edit_message( $to, $message, $msg_id ) {
+		return $this->request( 'POST', '/api/edit', [ 'to' => $to, 'message' => $message, 'msg_id' => $msg_id ] );
+	}
+
+	/** Actualiza el perfil del bot: nombre visible y/o descripción ("info"). */
+	public function set_profile( $name = null, $about = null ) {
+		$body = [];
+		if ( $name !== null )  { $body['name'] = $name; }
+		if ( $about !== null ) { $body['about'] = $about; }
+		return $this->request( 'POST', '/api/profile', $body );
+	}
+
+	/** Actualiza la foto de perfil del bot (imagen en base64). */
+	public function set_profile_picture( $image_base64 ) {
+		return $this->request( 'POST', '/api/profile-picture', [ 'image_base64' => $image_base64 ] );
+	}
+
 	public function status()  { return $this->request( 'GET',  '/api/status' ); }
 	public function restart() { return $this->request( 'POST', '/api/restart' ); }
 	public function logout()  { return $this->request( 'POST', '/api/logout' ); }

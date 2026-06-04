@@ -29,6 +29,9 @@ class Cead_Acad_Rewrites {
 		add_rewrite_rule( '^recuperar/restablecer/?$', 'index.php?' . self::QUERY_VAR . '=recover_reset', 'top' );
 		add_rewrite_rule( '^salir/?$',           'index.php?' . self::QUERY_VAR . '=logout',         'top' );
 
+		// Link corto de invitación: /i/<token> → página de registro con el token.
+		add_rewrite_rule( '^i/([^/]+)/?$',       'index.php?' . self::QUERY_VAR . '=register&cead_acad_t=$matches[1]', 'top' );
+
 		// Panel y sub-rutas (stub en F0; los módulos las van completando).
 		add_rewrite_rule( '^panel/?$',           'index.php?' . self::QUERY_VAR . '=panel',          'top' );
 		add_rewrite_rule( '^panel/(.+?)/?$',     'index.php?' . self::QUERY_VAR . '=panel/$matches[1]', 'top' );
@@ -36,6 +39,7 @@ class Cead_Acad_Rewrites {
 
 	public function query_vars( $vars ) {
 		$vars[] = self::QUERY_VAR;
+		$vars[] = 'cead_acad_t';
 		return $vars;
 	}
 
