@@ -1189,3 +1189,47 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 @media (min-width:900px) {
 	.cead-acad-burger { display:none; }
 }
+
+/* ===================== Modo oscuro — correcciones definitivas ===================== */
+/* Superficies claras (#fff) -> superficie oscura */
+[data-theme="dark"] .cead-acad-panel-section,
+[data-theme="dark"] .cead-acad-card,
+[data-theme="dark"] .cead-acad-task,
+[data-theme="dark"] .cead-acad-quick-item,
+[data-theme="dark"] .cead-acad-panel-topbar,
+[data-theme="dark"] .cead-acad-feed-item,
+[data-theme="dark"] .cead-acad-agenda-item,
+[data-theme="dark"] .cead-acad-cal,
+[data-theme="dark"] .cead-acad-carne,
+[data-theme="dark"] .cead-acad-bulletin,
+[data-theme="dark"] .cead-acad-notif-panel,
+[data-theme="dark"] .cead-acad-subscribe { background:#1d2027; }
+[data-theme="dark"] .cead-acad-panel-content,
+[data-theme="dark"] body.cead-acad-panel { background:#14161b; }
+
+/* Campos de formulario */
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea,
+[data-theme="dark"] .cead-acad-input,
+[data-theme="dark"] .cead-acad-topsearch input,
+[data-theme="dark"] .cead-acad-search-form input { background:#262a32; color:var(--cead-acad-ink); border-color:#343943; }
+
+/* Elementos que usan "ink" como FONDO: deben seguir oscuros (no claros) */
+[data-theme="dark"] .cead-acad-panel-sidebar { background:#0f1115; }
+[data-theme="dark"] .cead-acad-carne-top { background:#0f1115; }
+[data-theme="dark"] .cead-acad-avatar,
+[data-theme="dark"] .cead-acad-carne-photo { background:#343943; color:#fff; }
+[data-theme="dark"] .cead-acad-fav { background:#262a32; }
+
+/* Botones: el primario usa la marca; el fantasma queda con borde/texto claros */
+[data-theme="dark"] .cead-acad-btn:not(.cead-acad-btn--ghost) { background:var(--cead-acad-brand); border-color:var(--cead-acad-brand); color:#fff; }
+[data-theme="dark"] .cead-acad-cats a.is-active,
+[data-theme="dark"] .cead-acad-cal-toggle a.is-active { background:var(--cead-acad-brand); border-color:var(--cead-acad-brand); color:#fff; }
+
+/* Detalles del calendario y hovers */
+[data-theme="dark"] .cead-acad-cal-ev { background:#262a32; }
+[data-theme="dark"] .cead-acad-cal-cell.is-out { background:#101216; }
+[data-theme="dark"] .cead-acad-notif-item:hover,
+[data-theme="dark"] .cead-acad-feed-item:hover,
+[data-theme="dark"] .cead-acad-agenda-item:hover { background:#262a32; }
