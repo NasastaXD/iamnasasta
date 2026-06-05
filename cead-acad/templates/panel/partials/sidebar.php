@@ -12,12 +12,18 @@ $base_items = [
 	[ 'href' => 'panel/comunicados',  'label' => __( 'Comunicados', 'cead-acad' ),  'icon' => 'megaphone' ],
 	[ 'href' => 'panel/encuestas',    'label' => __( 'Encuestas', 'cead-acad' ),    'icon' => 'feedback' ],
 	[ 'href' => 'panel/horarios',     'label' => __( 'Horarios', 'cead-acad' ),     'icon' => 'calendar' ],
+	[ 'href' => 'panel/calendario',   'label' => __( 'Calendario', 'cead-acad' ),   'icon' => 'calendar' ],
 	[ 'href' => 'panel/recursos',     'label' => __( 'Recursos', 'cead-acad' ),     'icon' => 'portfolio' ],
 ];
 
 // Boletín solo para roles con acceso a notas propias.
 if ( current_user_can( 'cead_acad_view_own_grades' ) ) {
 	$base_items[] = [ 'href' => 'panel/boletin', 'label' => __( 'Boletín', 'cead-acad' ), 'icon' => 'clipboard' ];
+}
+
+// Buzón para quien gestiona reportes y/o sugerencias.
+if ( current_user_can( 'cead_acad_manage_reports' ) || current_user_can( 'cead_acad_manage_suggestions' ) ) {
+	$base_items[] = [ 'href' => 'panel/buzon', 'label' => __( 'Buzón', 'cead-acad' ), 'icon' => 'email' ];
 }
 
 $by_role = [

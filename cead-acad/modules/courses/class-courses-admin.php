@@ -35,6 +35,66 @@ class Cead_Acad_Courses_Admin {
 			'side',
 			'default'
 		);
+
+		add_meta_box(
+			'cead_acad_course_horario',
+			__( 'Horario de materias', 'cead-acad' ),
+			[ $this, 'render_horario_metabox' ],
+			Cead_Acad_Courses_CPT::POST_TYPE,
+			'normal',
+			'default'
+		);
+	}
+
+	public function render_horario_metabox( $post ) {
+		$raw   = get_post_meta( $post->ID, '_cead_acad_horario', true );
+		$slots = is_array( $raw ) ? $raw : ( is_string( $raw ) && $raw !== '' ? json_decode( $raw, true ) : [] );
+		$slots = is_array( $slots ) ? $slots : [];
+		$days  = [ 1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 7 => 'Domingo' ];
+		// Filas existentes + 8 vacías para cargar nuevas (sin JS).
+		$rows = $slots;
+		for ( $i = 0; $i < 8; $i++ ) { $rows[] = []; }
+		?>
+		<p class="description"><?php esc_html_e( 'El horario semanal de materias de este curso. Se muestra a sus alumnos en el panel y en el bot. Dejá la materia vacía para borrar una fila.', 'cead-acad' ); ?></p>
+		<table class="widefat striped">
+			<thead><tr>
+				<th style="width:130px"><?php esc_html_e( 'Día', 'cead-acad' ); ?></th>
+				<th style="width:90px"><?php esc_html_e( 'Desde', 'cead-acad' ); ?></th>
+				<th style="width:90px"><?php esc_html_e( 'Hasta', 'cead-acad' ); ?></th>
+				<th><?php esc_html_e( 'Materia', 'cead-acad' ); ?></th>
+				<th><?php esc_html_e( 'Docente (opcional)', 'cead-acad' ); ?></th>
+			</tr></thead>
+			<tbody>
+			<?php foreach ( $rows as $i => $s ) :
+				$dia     = (int) ( $s['dia'] ?? 0 );
+				$inicio  = esc_attr( (string) ( $s['inicio'] ?? '' ) );
+				$fin     = esc_attr( (string) ( $s['fin'] ?? '' ) );
+				$materia = esc_attr( (string) ( $s['materia'] ?? '' ) );
+				$docente = esc_attr( (string) ( $s['docente'] ?? '' ) );
+			?>
+				<tr>
+					<td>
+						<select name="cead_acad_horario[<?php echo (int) $i; ?>][dia]">
+							<option value="0"><?php esc_html_e( '—', 'cead-acad' ); ?></option>
+							<?php foreach ( $days as $dn => $dl ) : ?>
+								<option value="<?php echo (int) $dn; ?>" <?php selected( $dia, $dn ); ?>><?php echo esc_html( $dl ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</td>
+					<td><input type="time" name="cead_acad_horario[<?php echo (int) $i; ?>][inicio]" value="<?php echo $inicio; ?>"></td>
+					<td><input type="time" name="cead_acad_horario[<?php echo (int) $i; ?>][fin]" value="<?php echo $fin; ?>"></td>
+					<td><input type="text" class="regular-text" name="cead_acad_horario[<?php echo (int) $i; ?>][materia]" value="<?php echo $materia; ?>"></td>
+					<td><input type="text" class="regular-text" name="cead_acad_horario[<?php echo (int) $i; ?>][docente]" value="<?php echo $docente; ?>"></td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+		<?php
+	}
+
+	protected function clean_time( $t ) {
+		$t = trim( (string) $t );
+		return preg_match( '/^([01]\d|2[0-3]):[0-5]\d$/', $t ) ? $t : '';
 	}
 
 	public function render_metabox( $post ) {
@@ -127,6 +187,24 @@ class Cead_Acad_Courses_Admin {
 			$val = isset( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '';
 			update_post_meta( $post_id, $key, $val );
 		}
+
+		// Horario de materias (filas; se descartan las que no tengan día o materia).
+		$slots = [];
+		if ( isset( $_POST['cead_acad_horario'] ) && is_array( $_POST['cead_acad_horario'] ) ) {
+			foreach ( $_POST['cead_acad_horario'] as $row ) {
+				$dia     = (int) ( $row['dia'] ?? 0 );
+				$materia = sanitize_text_field( wp_unslash( $row['materia'] ?? '' ) );
+				if ( $dia < 1 || $dia > 7 || $materia === '' ) { continue; }
+				$slots[] = [
+					'dia'     => $dia,
+					'inicio'  => $this->clean_time( wp_unslash( $row['inicio'] ?? '' ) ),
+					'fin'     => $this->clean_time( wp_unslash( $row['fin'] ?? '' ) ),
+					'materia' => $materia,
+					'docente' => sanitize_text_field( wp_unslash( $row['docente'] ?? '' ) ),
+				];
+			}
+		}
+		update_post_meta( $post_id, '_cead_acad_horario', wp_json_encode( $slots ) );
 
 		// Si se asigna delegado/a, asegurar su rol.
 		$delegate_id = (int) ( $_POST['_cead_acad_delegate'] ?? 0 );

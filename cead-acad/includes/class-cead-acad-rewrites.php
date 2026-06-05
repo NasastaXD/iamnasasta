@@ -131,12 +131,20 @@ class Cead_Acad_Rewrites {
 				return;
 
 			case 'horarios':
+				cead_acad_template( 'panel/horarios/list.php' );
+				return;
+
+			case 'calendario':
 				$id = isset( $parts[1] ) ? (int) $parts[1] : 0;
 				if ( $id > 0 ) {
-					cead_acad_template( 'panel/horarios/single.php', [ 'event_id' => $id ] );
+					cead_acad_template( 'panel/calendario/single.php', [ 'event_id' => $id ] );
 				} else {
-					cead_acad_template( 'panel/horarios/list.php' );
+					cead_acad_template( 'panel/calendario/list.php' );
 				}
+				return;
+
+			case 'buzon':
+				cead_acad_template( 'panel/buzon/list.php' );
 				return;
 
 			case 'recursos':

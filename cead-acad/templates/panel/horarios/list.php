@@ -1,74 +1,81 @@
 <?php
 /**
- * /panel/horarios: agenda + lista agrupada por día.
+ * /panel/horarios: horario semanal de materias del curso del alumno.
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 $user = wp_get_current_user();
 
-$from = current_time( 'Y-m-d 00:00:00' );
-$to   = date( 'Y-m-d 23:59:59', strtotime( '+60 days', current_time( 'timestamp' ) ) );
+// Curso del usuario (meta o primer curso del roster).
+$course_id = (int) get_user_meta( $user->ID, '_cead_acad_current_course_id', true );
+if ( ! $course_id && class_exists( 'Cead_Acad_Courses_Roster' ) ) {
+	$courses = Cead_Acad_Courses_Roster::courses_for_user( $user->ID );
+	if ( $courses ) { $course_id = (int) $courses[0]; }
+}
 
-$events  = Cead_Acad_Schedule_Feed::for_user( $user->ID, $from, $to, 200 );
-$by_day  = Cead_Acad_Schedule_Feed::group_by_day( $events );
+$slots = [];
+if ( $course_id ) {
+	$raw   = get_post_meta( $course_id, '_cead_acad_horario', true );
+	$slots = is_array( $raw ) ? $raw : ( is_string( $raw ) && $raw !== '' ? json_decode( $raw, true ) : [] );
+	$slots = is_array( $slots ) ? $slots : [];
+}
 
-$page_title = __( 'Horarios', 'cead-acad' );
+$days   = [ 1 => __( 'Lunes', 'cead-acad' ), 2 => __( 'Martes', 'cead-acad' ), 3 => __( 'Miércoles', 'cead-acad' ), 4 => __( 'Jueves', 'cead-acad' ), 5 => __( 'Viernes', 'cead-acad' ), 6 => __( 'Sábado', 'cead-acad' ), 7 => __( 'Domingo', 'cead-acad' ) ];
+$by_day = [];
+foreach ( $slots as $s ) {
+	$d = (int) ( $s['dia'] ?? 0 );
+	if ( $d < 1 || $d > 7 ) { continue; }
+	$by_day[ $d ][] = $s;
+}
+ksort( $by_day );
+foreach ( $by_day as $d => &$items ) {
+	usort( $items, static function ( $a, $b ) { return strcmp( (string) ( $a['inicio'] ?? '' ), (string) ( $b['inicio'] ?? '' ) ); } );
+}
+unset( $items );
 
-$body = function () use ( $by_day, $events ) {
+$course_title = $course_id ? get_the_title( $course_id ) : '';
+$page_title   = __( 'Horarios', 'cead-acad' );
+
+$body = function () use ( $by_day, $days, $course_title, $course_id ) {
 	?>
 	<section class="cead-acad-panel-section">
-		<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;flex-wrap:wrap">
-			<div>
-				<span class="cead-acad-eyebrow"><?php esc_html_e( 'Próximos 60 días', 'cead-acad' ); ?></span>
-				<h2 class="cead-acad-panel-h"><?php esc_html_e( 'Tu agenda', 'cead-acad' ); ?></h2>
-				<p class="cead-acad-panel-sub"><?php esc_html_e( 'Clases, reuniones, exámenes y eventos dirigidos a vos.', 'cead-acad' ); ?></p>
-			</div>
-			<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=cead_acad_event_ical' ), 'cead_acad_event_ical' ) ); ?>">
-				<?php esc_html_e( 'Exportar iCal', 'cead-acad' ); ?>
-			</a>
-		</div>
+		<span class="cead-acad-eyebrow"><?php esc_html_e( 'Horario de materias', 'cead-acad' ); ?></span>
+		<h2 class="cead-acad-panel-h"><?php echo $course_title ? esc_html( $course_title ) : esc_html__( 'Tu horario', 'cead-acad' ); ?></h2>
+		<p class="cead-acad-panel-sub"><?php esc_html_e( 'Tu horario semanal de clases. Para eventos y reuniones mirá el Calendario.', 'cead-acad' ); ?></p>
 
-		<?php if ( ! $events ) : ?>
+		<?php if ( ! $course_id ) : ?>
 			<div class="cead-acad-card cead-acad-card--empty" style="margin-top:1.5rem">
-				<span class="cead-acad-eyebrow"><?php esc_html_e( 'Sin eventos', 'cead-acad' ); ?></span>
-				<h3><?php esc_html_e( 'Tu agenda está despejada', 'cead-acad' ); ?></h3>
-				<p><?php esc_html_e( 'Cuando dirección o tus docentes publiquen eventos, aparecerán acá.', 'cead-acad' ); ?></p>
+				<h3><?php esc_html_e( 'No estás asignado/a a un curso', 'cead-acad' ); ?></h3>
+				<p><?php esc_html_e( 'Pedile a secretaría que te asigne a tu curso para ver el horario.', 'cead-acad' ); ?></p>
+			</div>
+		<?php elseif ( ! $by_day ) : ?>
+			<div class="cead-acad-card cead-acad-card--empty" style="margin-top:1.5rem">
+				<h3><?php esc_html_e( 'Horario sin cargar', 'cead-acad' ); ?></h3>
+				<p><?php esc_html_e( 'El horario de materias de tu curso todavía no fue cargado.', 'cead-acad' ); ?></p>
 			</div>
 		<?php else : ?>
-			<div class="cead-acad-agenda">
-				<?php foreach ( $by_day as $day => $items ) :
-					$ts = strtotime( $day );
-					$label = $ts ? date_i18n( 'l j \d\e F', $ts ) : __( 'Sin fecha', 'cead-acad' );
-				?>
+			<div class="cead-acad-agenda" style="margin-top:1.5rem">
+				<?php foreach ( $by_day as $d => $items ) : ?>
 					<div class="cead-acad-agenda-day">
 						<div class="cead-acad-agenda-daykey">
-							<span class="cead-acad-agenda-num"><?php echo $ts ? esc_html( date_i18n( 'd', $ts ) ) : '—'; ?></span>
-							<span class="cead-acad-agenda-month"><?php echo $ts ? esc_html( date_i18n( 'M', $ts ) ) : ''; ?></span>
-							<span class="cead-acad-agenda-weekday"><?php echo $ts ? esc_html( date_i18n( 'l', $ts ) ) : ''; ?></span>
+							<span class="cead-acad-agenda-weekday"><?php echo esc_html( $days[ $d ] ); ?></span>
 						</div>
 						<div class="cead-acad-agenda-items">
-							<?php foreach ( $items as $e ) :
-								$start = (string) get_post_meta( $e->ID, '_cead_acad_event_start',    true );
-								$end   = (string) get_post_meta( $e->ID, '_cead_acad_event_end',      true );
-								$loc   = (string) get_post_meta( $e->ID, '_cead_acad_event_location', true );
-								$type  = (string) get_post_meta( $e->ID, '_cead_acad_event_type',     true );
-								$all   = (bool)   get_post_meta( $e->ID, '_cead_acad_event_all_day',  true );
+							<?php foreach ( $items as $it ) :
+								$hi  = (string) ( $it['inicio'] ?? '' );
+								$hf  = (string) ( $it['fin'] ?? '' );
+								$doc = (string) ( $it['docente'] ?? '' );
 							?>
-								<a class="cead-acad-agenda-item cead-acad-agenda-item--<?php echo esc_attr( $type ?: 'evento' ); ?>" href="<?php echo esc_url( cead_acad_url( 'panel/horarios/' . $e->ID ) ); ?>">
+								<div class="cead-acad-agenda-item cead-acad-agenda-item--clase">
 									<div class="cead-acad-agenda-time">
-										<?php if ( $all ) : ?>
-											<span><?php esc_html_e( 'Todo el día', 'cead-acad' ); ?></span>
-										<?php else : ?>
-											<span><?php echo $start ? esc_html( date_i18n( 'H:i', strtotime( $start ) ) ) : '—'; ?></span>
-											<?php if ( $end ) : ?><span class="cead-acad-agenda-time-end">→ <?php echo esc_html( date_i18n( 'H:i', strtotime( $end ) ) ); ?></span><?php endif; ?>
-										<?php endif; ?>
+										<span><?php echo $hi !== '' ? esc_html( $hi ) : '—'; ?></span>
+										<?php if ( $hf !== '' ) : ?><span class="cead-acad-agenda-time-end">→ <?php echo esc_html( $hf ); ?></span><?php endif; ?>
 									</div>
 									<div class="cead-acad-agenda-body">
-										<span class="cead-acad-eyebrow"><?php echo esc_html( Cead_Acad_Schedule_CPT::type_label( $type ?: 'evento' ) ); ?></span>
-										<h3 class="cead-acad-agenda-title"><?php echo esc_html( get_the_title( $e ) ); ?></h3>
-										<?php if ( $loc ) : ?><p class="cead-acad-agenda-loc">📍 <?php echo esc_html( $loc ); ?></p><?php endif; ?>
+										<h3 class="cead-acad-agenda-title"><?php echo esc_html( (string) ( $it['materia'] ?? '' ) ); ?></h3>
+										<?php if ( $doc !== '' ) : ?><p class="cead-acad-agenda-loc">👤 <?php echo esc_html( $doc ); ?></p><?php endif; ?>
 									</div>
-								</a>
+								</div>
 							<?php endforeach; ?>
 						</div>
 					</div>

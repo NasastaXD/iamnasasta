@@ -16,6 +16,9 @@ class Cead_Acad_WA_Engine {
 	/** Buffer de mensajes del turno actual (se entregan juntos en flush_outbox). */
 	private $outbox = [];
 
+	/** Si true, el próximo flush manda un mensaje NUEVO en vez de editar el ancla. */
+	private $force_new = false;
+
 	public function __construct( Cead_Acad_WA_Store $store, Cead_Acad_WA_Bridge_Client $bridge, Cead_Acad_WA_Broadcaster $broadcaster ) {
 		$this->store       = $store;
 		$this->bridge      = $bridge;
@@ -83,6 +86,14 @@ class Cead_Acad_WA_Engine {
 			return;
 		}
 
+		// "cancelar": corta el flujo actual y vuelve al menú (mensaje nuevo).
+		if ( in_array( $lc, [ 'cancelar', 'cancel' ], true ) ) {
+			$this->force_new = true;
+			$this->show_root_menu( $phone, $identity );
+			$this->flush_outbox( $phone );
+			return;
+		}
+
 		// Atajos rápidos de staff (-AA / -AE), solo en estados de menú.
 		if ( $body !== '' && $this->maybe_handle_shortcut( $phone, $body, $state, $identity ) ) {
 			$this->flush_outbox( $phone );
@@ -116,6 +127,7 @@ class Cead_Acad_WA_Engine {
 		}
 		switch ( $state ) {
 			case 'idle':                 $this->idle( $phone, $name, $identity ); break;
+			case 'menu_pending':         $this->menu_pending( $phone, $identity, $context ); break;
 			case 'role_chooser':         $this->role_chooser( $phone, $lc, $context, $identity ); break;
 			// Alumnado
 			case 'student_menu':         $this->student_menu( $phone, $lc, $identity ); break;
@@ -206,12 +218,12 @@ class Cead_Acad_WA_Engine {
 	 * (cap '' = siempre visible). Ver EXTENDING.md, receta 4.
 	 */
 	private function role_menus() {
+		// La gestión de reportes y sugerencias vive en el panel web; el bot ya no
+		// expone bandejas (para no llenar el WhatsApp de coordinación).
 		$full = [
 			[ 'comm',      'Enviar comunicado / anuncio',   'cead_acad_publish_broadcast' ],
 			[ 'event',     'Agregar evento al calendario',  'cead_acad_manage_schedule' ],
 			[ 'articles',  'Artículos del sitio',           'cead_acad_manage_articles' ],
-			[ 'reports',   'Bandeja de reportes',           'cead_acad_manage_reports' ],
-			[ 'sugg',      'Bandeja de sugerencias',        'cead_acad_manage_reports' ],
 			[ 'roles',     'Asignar roles a un número',     'cead_acad_manage_roles' ],
 			[ 'metrics',   'Métricas',                      'cead_acad_view_metrics' ],
 			[ 'shortcuts', 'Atajos rápidos',                '' ],
@@ -225,9 +237,8 @@ class Cead_Acad_WA_Engine {
 				[ 'shortcuts', 'Atajos rápidos',     '' ],
 			] ],
 			'cead_acad_student_council' => [ 'label' => 'Consejo Estudiantil', 'actions' => [
-				[ 'comm',      'Enviar comunicado',                'cead_acad_publish_broadcast' ],
-				[ 'sugg',      'Bandeja de propuestas/sugerencias', 'cead_acad_manage_reports' ],
-				[ 'shortcuts', 'Atajos rápidos',                   '' ],
+				[ 'comm',      'Enviar comunicado', 'cead_acad_publish_broadcast' ],
+				[ 'shortcuts', 'Atajos rápidos',    '' ],
 			] ],
 		];
 	}
@@ -342,27 +353,68 @@ class Cead_Acad_WA_Engine {
 
 	// A1 Horarios
 	private function show_horario( $phone, $identity ) {
-		$now = current_time( 'mysql' );
-		$to  = date( 'Y-m-d H:i:s', strtotime( $now . ' +60 day' ) );
-		$events = [];
-		if ( $identity['user_id'] ) {
-			$events = Cead_Acad_Schedule_Feed::for_user( $identity['user_id'], $now, $to, 50 );
+		$course_id = $this->user_course_id( $identity );
+		if ( ! $course_id ) {
+			$this->send( $phone, $this->m( 'horario_none' ) );
+			if ( ! ( $identity['user_id'] ?? 0 ) ) { $this->send( $phone, $this->m( 'identify_hint' ) ); }
+			$this->back_to_student( $phone );
+			return;
 		}
-		$personalized = ! empty( $events );
-		if ( ! $personalized ) {
-			$events = $this->general_events( 50 );
-		}
-		if ( empty( $events ) ) {
+		$slots = $this->course_horario( $course_id );
+		if ( ! $slots ) {
 			$this->send( $phone, $this->m( 'horario_none' ) );
 			$this->back_to_student( $phone );
 			return;
 		}
-		$header = $personalized ? $this->m( 'horario_header' ) : $this->m( 'horario_general' );
-		$this->send( $phone, $this->build_agenda( $header, $events ) );
-		if ( ! $identity['user_id'] ) {
-			$this->send( $phone, $this->m( 'identify_hint' ) );
-		}
+		$this->send( $phone, $this->render_horario( get_the_title( $course_id ), $slots ) );
 		$this->back_to_student( $phone );
+	}
+
+	/** Curso actual del usuario (meta o primer curso del roster). */
+	private function user_course_id( $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! $uid ) { return 0; }
+		$cid = (int) get_user_meta( $uid, '_cead_acad_current_course_id', true );
+		if ( $cid ) { return $cid; }
+		if ( class_exists( 'Cead_Acad_Courses_Roster' ) ) {
+			$courses = Cead_Acad_Courses_Roster::courses_for_user( $uid );
+			if ( $courses ) { return (int) $courses[0]; }
+		}
+		return 0;
+	}
+
+	/** Horario de materias del curso (meta JSON). Devuelve array de slots. */
+	private function course_horario( $course_id ) {
+		$raw   = get_post_meta( (int) $course_id, '_cead_acad_horario', true );
+		$slots = is_array( $raw ) ? $raw : ( is_string( $raw ) && $raw !== '' ? json_decode( $raw, true ) : [] );
+		return is_array( $slots ) ? $slots : [];
+	}
+
+	/** Render del horario de materias agrupado por día. */
+	private function render_horario( $course_title, $slots ) {
+		$days   = [ 1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 7 => 'Domingo' ];
+		$by_day = [];
+		foreach ( $slots as $s ) {
+			$d = (int) ( $s['dia'] ?? 0 );
+			if ( $d < 1 || $d > 7 ) { continue; }
+			$by_day[ $d ][] = $s;
+		}
+		ksort( $by_day );
+		$out = [ '📚 *Horario — ' . $course_title . '*' ];
+		foreach ( $by_day as $d => $items ) {
+			usort( $items, static function ( $a, $b ) { return strcmp( (string) ( $a['inicio'] ?? '' ), (string) ( $b['inicio'] ?? '' ) ); } );
+			$out[] = "\n*" . $days[ $d ] . '*';
+			foreach ( $items as $it ) {
+				$hi   = (string) ( $it['inicio'] ?? '' );
+				$hf   = (string) ( $it['fin'] ?? '' );
+				$time = trim( $hi . ( $hf ? '-' . $hf : '' ) );
+				$line = trim( $time . ' ' . (string) ( $it['materia'] ?? '' ) );
+				$doc  = (string) ( $it['docente'] ?? '' );
+				if ( $doc !== '' ) { $line .= ' · ' . $doc; }
+				$out[] = $line;
+			}
+		}
+		return implode( "\n", $out );
 	}
 
 	private function build_agenda( $header, $events ) {
@@ -469,8 +521,9 @@ class Cead_Acad_WA_Engine {
 
 	// A5 Reporte
 	private function report_start( $phone ) {
+		$this->force_new = true; // el prompt sale como mensaje nuevo, separado del menú.
 		$this->store->set_state( $phone, 'stu_report_type' );
-		$this->send( $phone, $this->m( 'report_type_prompt' ) );
+		$this->send( $phone, $this->m( 'report_type_prompt' ) . $this->cap_hint() );
 	}
 
 	private function report_type( $phone, $lc ) {
@@ -498,10 +551,10 @@ class Cead_Acad_WA_Engine {
 		$type = (string) ( $context['report_type'] ?? 'anonymous' );
 		$cat  = (string) ( $context['category'] ?? '' );
 		$ref  = $this->store->create_report( $type, $type === 'confidential' ? $phone : null, $cat, $body );
-		$this->forward_report( $ref, $type, $cat, $body, $type === 'confidential' ? $phone : null );
+		// La gestión es solo por panel; ya no se reenvía al WhatsApp de coordinación.
 		$key = $type === 'anonymous' ? 'report_saved_anon' : 'report_saved_conf';
 		$this->send( $phone, $this->interp( $this->m( $key ), [ 'ref' => $ref ] ), 'report_received' );
-		$this->back_to_student( $phone );
+		$this->finish_capture( $phone, 'student' );
 	}
 
 	private function forward_report( $ref, $type, $cat, $body, $contact ) {
@@ -521,15 +574,16 @@ class Cead_Acad_WA_Engine {
 
 	// A6 Sugerencias
 	private function suggestion_start( $phone ) {
+		$this->force_new = true;
 		$this->store->set_state( $phone, 'stu_suggestion_body' );
-		$this->send( $phone, $this->m( 'suggestion_prompt' ) );
+		$this->send( $phone, $this->m( 'suggestion_prompt' ) . $this->cap_hint() );
 	}
 
 	private function suggestion_body( $phone, $body, $lc, $identity ) {
 		if ( $this->is_cancel( $lc ) ) { $this->send( $phone, $this->m( 'suggestion_cancelled' ) ); $this->back_to_student( $phone ); return; }
-		$this->store->create_suggestion( $phone, $body );
+		$this->store->create_suggestion( $phone, $body, 'administracion' );
 		$this->send( $phone, $this->m( 'suggestion_saved' ), 'suggestion_received' );
-		$this->back_to_student( $phone );
+		$this->finish_capture( $phone, 'student' );
 	}
 
 	// A7 FAQ
@@ -554,8 +608,9 @@ class Cead_Acad_WA_Engine {
 
 	private function council_menu( $phone, $lc ) {
 		if ( $lc === '1' ) {
+			$this->force_new = true;
 			$this->store->set_state( $phone, 'stu_council_proposal' );
-			$this->send( $phone, $this->m( 'council_proposal_prompt' ) );
+			$this->send( $phone, $this->m( 'council_proposal_prompt' ) . $this->cap_hint() );
 		} elseif ( $this->is_cancel( $lc ) ) {
 			$this->back_to_student( $phone );
 		} else {
@@ -565,9 +620,9 @@ class Cead_Acad_WA_Engine {
 
 	private function council_proposal( $phone, $body, $lc, $identity ) {
 		if ( $this->is_cancel( $lc ) ) { $this->back_to_student( $phone ); return; }
-		$this->store->create_suggestion( $phone, '[Propuesta al Consejo] ' . $body );
+		$this->store->create_suggestion( $phone, $body, 'consejo' );
 		$this->send( $phone, $this->m( 'council_proposal_saved' ), 'council_proposal' );
-		$this->back_to_student( $phone );
+		$this->finish_capture( $phone, 'student' );
 	}
 
 	// Recordatorios opt-in
@@ -715,8 +770,9 @@ class Cead_Acad_WA_Engine {
 	// D7 Eventos
 	private function event_start( $phone, $identity ) {
 		if ( ! $this->require_cap( $phone, $identity, 'cead_acad_manage_schedule' ) ) { return; }
+		$this->force_new = true;
 		$this->store->set_state( $phone, 'staff_event_title' );
-		$this->send( $phone, $this->m( 'event_title_prompt' ) );
+		$this->send( $phone, $this->m( 'event_title_prompt' ) . $this->cap_hint() );
 	}
 
 	private function event_title( $phone, $body, $lc ) {
@@ -740,7 +796,7 @@ class Cead_Acad_WA_Engine {
 		update_post_meta( $post_id, '_cead_acad_event_type', 'evento' );
 		Cead_Acad_Audiences::set( 'event', $post_id, [ [ 'type' => 'all', 'value' => '*' ] ] );
 		$this->send( $phone, $this->m( 'event_saved' ), 'event_created' );
-		$this->reenter_staff( $phone );
+		$this->finish_capture( $phone, 'staff' );
 	}
 
 	// ---- Artículos del blog WP ----
@@ -1245,7 +1301,45 @@ class Cead_Acad_WA_Engine {
 		$action       = ( is_array( $last ) && $last['action'] !== '' ) ? $last['action'] : 'menu';
 		$message      = implode( "\n\n", $texts );
 		$this->outbox = [];
-		$this->deliver( $phone, $message, $action );
+		$force_new       = $this->force_new;
+		$this->force_new = false;
+		$this->deliver( $phone, $message, $action, $force_new );
+	}
+
+	/** Pie de ayuda para los prompts de captura. */
+	private function cap_hint() {
+		return "\n\n_Escribí *volver* o *cancelar* para salir._";
+	}
+
+	/**
+	 * Cierra una captura (reporte/sugerencia/propuesta/evento): el ✅ ya fue encolado y
+	 * edita el mensaje del prompt; NO se muestra el menú ahora. Queda en 'menu_pending'
+	 * y el menú baja recién con el próximo mensaje del usuario.
+	 */
+	private function finish_capture( $phone, $return = 'student' ) {
+		$this->store->set_state( $phone, 'menu_pending', [ 'return' => $return ] );
+	}
+
+	/** Estado 'menu_pending': ante el próximo mensaje, baja el menú como mensaje nuevo. */
+	private function menu_pending( $phone, $identity, $context ) {
+		$this->force_new = true;
+		if ( ( $context['return'] ?? 'student' ) === 'staff' ) {
+			$this->reenter_staff( $phone );
+		} else {
+			$this->back_to_student( $phone );
+		}
+	}
+
+	/** Muestra el menú raíz que corresponda (rol o alumnado). */
+	private function show_root_menu( $phone, $identity ) {
+		$menus = $this->available_role_menus( $identity );
+		if ( count( $menus ) === 1 ) {
+			$this->enter_role_menu( $phone, array_key_first( $menus ), $identity );
+		} elseif ( $menus ) {
+			$this->enter_role_chooser( $phone, $identity, $menus );
+		} else {
+			$this->back_to_student( $phone );
+		}
 	}
 
 	/** Clave del ancla (último mensaje editable) por número. */

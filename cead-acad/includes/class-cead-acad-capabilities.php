@@ -38,6 +38,7 @@ class Cead_Acad_Capabilities {
 						'cead_acad_record_grade'         => true,
 						'cead_acad_view_course_grades'   => true,
 						'cead_acad_manage_reports'       => true,
+						'cead_acad_manage_suggestions'   => true,
 					]
 				),
 			],
@@ -58,6 +59,7 @@ class Cead_Acad_Capabilities {
 						'cead_acad_record_grade'         => true,
 						'cead_acad_view_course_grades'   => true,
 						'cead_acad_manage_reports'       => true,
+						'cead_acad_manage_suggestions'   => true,
 						'cead_acad_manage_articles'      => true,
 					]
 				),
@@ -110,8 +112,8 @@ class Cead_Acad_Capabilities {
 				'caps'    => array_merge(
 					self::base_caps(),
 					[
-						'cead_acad_publish_broadcast' => true,
-						'cead_acad_manage_reports'    => true,
+						'cead_acad_publish_broadcast'  => true,
+						'cead_acad_manage_suggestions' => true,
 					]
 				),
 			],
@@ -139,6 +141,13 @@ class Cead_Acad_Capabilities {
 				continue;
 			}
 			add_role( $slug, $cfg['display'], $cfg['caps'] );
+		}
+
+		// El Consejo dejó de gestionar reportes (ahora solo sugerencias de su categoría):
+		// quitar la cap vieja en instalaciones que ya la tenían (add_cap no la remueve).
+		$council = get_role( 'cead_acad_student_council' );
+		if ( $council && $council->has_cap( 'cead_acad_manage_reports' ) ) {
+			$council->remove_cap( 'cead_acad_manage_reports' );
 		}
 
 		// Permitir a admin manejar todo lo del plugin.

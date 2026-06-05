@@ -202,9 +202,47 @@ class Cead_Acad_WA_Store {
 		global $wpdb;
 		$t = cead_acad_table( 'wa_reports' );
 		if ( $status !== '' ) {
-			return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE status = %s ORDER BY created_at DESC LIMIT %d", $status, $limit ) ) ?: [];
+			return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE status = %s AND deleted_at IS NULL ORDER BY created_at DESC LIMIT %d", $status, $limit ) ) ?: [];
 		}
-		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} ORDER BY created_at DESC LIMIT %d", $limit ) ) ?: [];
+		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT %d", $limit ) ) ?: [];
+	}
+
+	/** Reportes en papelera (borrado temporal). */
+	public function reports_trashed( $limit = 50 ) {
+		global $wpdb;
+		$t = cead_acad_table( 'wa_reports' );
+		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC LIMIT %d", $limit ) ) ?: [];
+	}
+
+	/** Guarda la respuesta de coordinación y opcionalmente cambia el estado. */
+	public function respond_report( $id, $response, $status = '' ) {
+		global $wpdb;
+		$t    = cead_acad_table( 'wa_reports' );
+		$data = [ 'response' => (string) $response, 'updated_at' => current_time( 'mysql' ) ];
+		if ( $status !== '' ) { $data['status'] = $status; }
+		return (bool) $wpdb->update( $t, $data, [ 'id' => (int) $id ] );
+	}
+
+	public function mark_not_report( $id ) {
+		return $this->update_report_status( (int) $id, 'not_report' );
+	}
+
+	public function soft_delete_report( $id ) {
+		global $wpdb;
+		$t = cead_acad_table( 'wa_reports' );
+		return (bool) $wpdb->update( $t, [ 'deleted_at' => current_time( 'mysql' ) ], [ 'id' => (int) $id ] );
+	}
+
+	public function restore_report( $id ) {
+		global $wpdb;
+		$t = cead_acad_table( 'wa_reports' );
+		return (bool) $wpdb->update( $t, [ 'deleted_at' => null ], [ 'id' => (int) $id ] );
+	}
+
+	public function purge_report( $id ) {
+		global $wpdb;
+		$t = cead_acad_table( 'wa_reports' );
+		return (bool) $wpdb->delete( $t, [ 'id' => (int) $id ] );
 	}
 
 	public function get_report( $id ) {
@@ -239,19 +277,62 @@ class Cead_Acad_WA_Store {
 	}
 
 	// ---- Sugerencias ----
-	public function create_suggestion( $phone, $body ) {
+	public function create_suggestion( $phone, $body, $category = 'administracion' ) {
 		global $wpdb;
-		$t = cead_acad_table( 'wa_suggestions' );
-		return (bool) $wpdb->insert( $t, [ 'phone' => $phone, 'body' => $body, 'status' => 'new', 'created_at' => current_time( 'mysql' ) ] );
+		$t   = cead_acad_table( 'wa_suggestions' );
+		$cat = in_array( $category, [ 'administracion', 'consejo' ], true ) ? $category : 'administracion';
+		return (bool) $wpdb->insert( $t, [ 'phone' => $phone, 'body' => $body, 'category' => $cat, 'status' => 'new', 'created_at' => current_time( 'mysql' ) ] );
 	}
 
 	public function suggestions_by_status( $status = '', $limit = 20 ) {
 		global $wpdb;
 		$t = cead_acad_table( 'wa_suggestions' );
 		if ( $status !== '' ) {
-			return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE status = %s ORDER BY created_at DESC LIMIT %d", $status, $limit ) ) ?: [];
+			return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE status = %s AND deleted_at IS NULL ORDER BY created_at DESC LIMIT %d", $status, $limit ) ) ?: [];
 		}
-		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} ORDER BY created_at DESC LIMIT %d", $limit ) ) ?: [];
+		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT %d", $limit ) ) ?: [];
+	}
+
+	/** Sugerencias activas (no borradas) filtradas por categoría (o todas si ''). */
+	public function suggestions_by_category( $category = '', $limit = 100 ) {
+		global $wpdb;
+		$t = cead_acad_table( 'wa_suggestions' );
+		if ( $category !== '' ) {
+			return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE category = %s AND deleted_at IS NULL ORDER BY created_at DESC LIMIT %d", $category, $limit ) ) ?: [];
+		}
+		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT %d", $limit ) ) ?: [];
+	}
+
+	public function suggestions_trashed( $limit = 50 ) {
+		global $wpdb;
+		$t = cead_acad_table( 'wa_suggestions' );
+		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC LIMIT %d", $limit ) ) ?: [];
+	}
+
+	public function respond_suggestion( $id, $response, $status = '' ) {
+		global $wpdb;
+		$t    = cead_acad_table( 'wa_suggestions' );
+		$data = [ 'response' => (string) $response ];
+		if ( $status !== '' ) { $data['status'] = $status; }
+		return (bool) $wpdb->update( $t, $data, [ 'id' => (int) $id ] );
+	}
+
+	public function soft_delete_suggestion( $id ) {
+		global $wpdb;
+		$t = cead_acad_table( 'wa_suggestions' );
+		return (bool) $wpdb->update( $t, [ 'deleted_at' => current_time( 'mysql' ) ], [ 'id' => (int) $id ] );
+	}
+
+	public function restore_suggestion( $id ) {
+		global $wpdb;
+		$t = cead_acad_table( 'wa_suggestions' );
+		return (bool) $wpdb->update( $t, [ 'deleted_at' => null ], [ 'id' => (int) $id ] );
+	}
+
+	public function purge_suggestion( $id ) {
+		global $wpdb;
+		$t = cead_acad_table( 'wa_suggestions' );
+		return (bool) $wpdb->delete( $t, [ 'id' => (int) $id ] );
 	}
 
 	public function get_suggestion( $id ) {
