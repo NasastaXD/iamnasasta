@@ -56,9 +56,15 @@ $type_color = [
 	'evento'   => '#EDDF58',
 ];
 
+// Feed iCal suscribible.
+$feed_token  = Cead_Acad_Account::feed_token( $user->ID );
+$feed_https  = home_url( '/cal/' . $feed_token . '.ics' );
+$feed_webcal = preg_replace( '#^https?://#', 'webcal://', $feed_https );
+$gcal_url    = 'https://calendar.google.com/calendar/r?cid=' . rawurlencode( $feed_https );
+
 $page_title = __( 'Calendario', 'cead-acad' );
 
-$body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, $by_date, $prev, $next, $cur_ts, $type_color, $by_day, $ag_events ) {
+$body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, $by_date, $prev, $next, $cur_ts, $type_color, $by_day, $ag_events, $feed_https, $feed_webcal, $gcal_url ) {
 	$today_key = date( 'Y-m-d', $cur_ts );
 	$wd = [ __( 'Lun', 'cead-acad' ), __( 'Mar', 'cead-acad' ), __( 'Mié', 'cead-acad' ), __( 'Jue', 'cead-acad' ), __( 'Vie', 'cead-acad' ), __( 'Sáb', 'cead-acad' ), __( 'Dom', 'cead-acad' ) ];
 	$base = cead_acad_url( 'panel/calendario' );
@@ -77,6 +83,22 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 				<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=cead_acad_event_ical' ), 'cead_acad_event_ical' ) ); ?>"><?php esc_html_e( 'iCal', 'cead-acad' ); ?></a>
 			</div>
 		</div>
+
+		<details class="cead-acad-subscribe">
+			<summary>📲 <?php esc_html_e( 'Sincronizar con el calendario de mi celular', 'cead-acad' ); ?></summary>
+			<div class="cead-acad-subscribe-body">
+				<p><?php esc_html_e( 'Agregalo una vez y los eventos del CEAD aparecen (y se actualizan) solos en tu calendario.', 'cead-acad' ); ?></p>
+				<div class="cead-acad-subscribe-actions">
+					<a class="cead-acad-btn" href="<?php echo esc_url( $feed_webcal ); ?>"><?php esc_html_e( 'Agregar (iPhone / Apple)', 'cead-acad' ); ?></a>
+					<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( $gcal_url ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Agregar a Google Calendar', 'cead-acad' ); ?></a>
+				</div>
+				<label class="cead-acad-field" style="margin-top:.75rem">
+					<span><?php esc_html_e( 'O copiá este enlace y agregalo en tu app de calendario:', 'cead-acad' ); ?></span>
+					<input type="text" readonly value="<?php echo esc_attr( $feed_https ); ?>" onclick="this.select()">
+				</label>
+				<p class="cead-acad-subscribe-hint"><?php esc_html_e( 'Android: Google Calendar → Configuración → Agregar calendario → Desde URL. iPhone: el botón de Apple lo agrega directo.', 'cead-acad' ); ?></p>
+			</div>
+		</details>
 
 		<?php if ( 'mes' === $view ) : ?>
 			<div class="cead-acad-cal-nav">

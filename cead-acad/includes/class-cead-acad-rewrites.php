@@ -35,6 +35,14 @@ class Cead_Acad_Rewrites {
 		// Verificación pública del carné: /carne/<token>.
 		add_rewrite_rule( '^carne/([^/]+)/?$',   'index.php?' . self::QUERY_VAR . '=carne&cead_acad_t=$matches[1]', 'top' );
 
+		// PWA: manifest, service worker e íconos.
+		add_rewrite_rule( '^cead-manifest\.webmanifest$', 'index.php?' . self::QUERY_VAR . '=pwa_manifest', 'top' );
+		add_rewrite_rule( '^cead-sw\.js$',                'index.php?' . self::QUERY_VAR . '=pwa_sw',       'top' );
+		add_rewrite_rule( '^cead-icon-([0-9]+)\.png$',    'index.php?' . self::QUERY_VAR . '=pwa_icon&cead_acad_t=$matches[1]', 'top' );
+
+		// Suscripción de calendario (iCal) por token: /cal/<token>.ics
+		add_rewrite_rule( '^cal/([^/]+)\.ics$',  'index.php?' . self::QUERY_VAR . '=calfeed&cead_acad_t=$matches[1]', 'top' );
+
 		// Panel y sub-rutas (stub en F0; los módulos las van completando).
 		add_rewrite_rule( '^panel/?$',           'index.php?' . self::QUERY_VAR . '=panel',          'top' );
 		add_rewrite_rule( '^panel/(.+?)/?$',     'index.php?' . self::QUERY_VAR . '=panel/$matches[1]', 'top' );
@@ -93,6 +101,22 @@ class Cead_Acad_Rewrites {
 			case 'carne' === $route:
 				$token = (string) get_query_var( 'cead_acad_t' );
 				cead_acad_template( 'carne/verify.php', [ 'token' => $token ] );
+				return;
+
+			case 'pwa_manifest' === $route:
+				Cead_Acad_PWA::manifest();
+				return;
+
+			case 'pwa_sw' === $route:
+				Cead_Acad_PWA::service_worker();
+				return;
+
+			case 'pwa_icon' === $route:
+				Cead_Acad_PWA::icon( (int) get_query_var( 'cead_acad_t' ) );
+				return;
+
+			case 'calfeed' === $route:
+				Cead_Acad_Schedule_Feed::output_subscription( (string) get_query_var( 'cead_acad_t' ) );
 				return;
 
 			case 'panel' === $route || str_starts_with( $route, 'panel/' ):
@@ -174,6 +198,18 @@ class Cead_Acad_Rewrites {
 
 			case 'carne':
 				cead_acad_template( 'panel/carne/show.php' );
+				return;
+
+			case 'app':
+				cead_acad_template( 'panel/app/show.php' );
+				return;
+
+			case 'tareas':
+				cead_acad_template( 'panel/tareas/list.php' );
+				return;
+
+			case 'buscar':
+				cead_acad_template( 'panel/buscar/results.php' );
 				return;
 
 			case 'delegado':

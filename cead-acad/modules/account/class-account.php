@@ -8,10 +8,45 @@ class Cead_Acad_Account {
 
 	const AVATAR_META = '_cead_acad_avatar_id';
 	const PHONE_META  = '_cead_acad_phone';
+	const FAV_META    = '_cead_acad_fav_resources';
 
 	public function boot() {
 		add_action( 'admin_post_cead_acad_save_profile', [ $this, 'handle_save_profile' ] );
+		add_action( 'admin_post_cead_acad_toggle_fav',   [ $this, 'handle_toggle_fav' ] );
 		add_filter( 'get_avatar_data', [ $this, 'filter_avatar_data' ], 10, 2 );
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Recursos favoritos                                                  */
+	/* ------------------------------------------------------------------ */
+
+	public static function fav_ids( $user_id ) {
+		$ids = get_user_meta( (int) $user_id, self::FAV_META, true );
+		return is_array( $ids ) ? array_map( 'intval', $ids ) : [];
+	}
+
+	public static function is_fav( $user_id, $resource_id ) {
+		return in_array( (int) $resource_id, self::fav_ids( $user_id ), true );
+	}
+
+	public function handle_toggle_fav() {
+		if ( ! is_user_logged_in() ) { wp_safe_redirect( cead_acad_url( 'login' ) ); exit; }
+		check_admin_referer( 'cead_acad_toggle_fav' );
+
+		$uid = get_current_user_id();
+		$rid = (int) ( $_POST['resource_id'] ?? 0 );
+		if ( $rid ) {
+			$ids = self::fav_ids( $uid );
+			if ( in_array( $rid, $ids, true ) ) {
+				$ids = array_values( array_diff( $ids, [ $rid ] ) );
+			} else {
+				$ids[] = $rid;
+			}
+			update_user_meta( $uid, self::FAV_META, $ids );
+		}
+		$ref = wp_get_referer();
+		wp_safe_redirect( $ref ? $ref : cead_acad_url( 'panel/recursos' ) );
+		exit;
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -83,6 +118,24 @@ class Cead_Acad_Account {
 		}
 		$uid = (int) $m[1];
 		return hash_equals( self::carne_sig( $uid ), $m[2] ) ? $uid : 0;
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Token de suscripción de calendario (iCal)                           */
+	/* ------------------------------------------------------------------ */
+
+	public static function feed_token( $user_id ) {
+		$user_id = (int) $user_id;
+		return $user_id . '-' . substr( hash_hmac( 'sha256', 'cead-feed|' . $user_id, wp_salt( 'auth' ) ), 0, 16 );
+	}
+
+	public static function verify_feed_token( $token ) {
+		if ( ! is_string( $token ) || ! preg_match( '/^(\d+)-([a-f0-9]{16})$/', $token, $m ) ) {
+			return 0;
+		}
+		$uid = (int) $m[1];
+		$sig = substr( hash_hmac( 'sha256', 'cead-feed|' . $uid, wp_salt( 'auth' ) ), 0, 16 );
+		return hash_equals( $sig, $m[2] ) ? $uid : 0;
 	}
 
 	/* ------------------------------------------------------------------ */

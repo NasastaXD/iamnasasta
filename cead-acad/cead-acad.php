@@ -16,8 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CEAD_ACAD_VERSION',    '0.12.2' );
-define( 'CEAD_ACAD_DB_VERSION', '12' );
+define( 'CEAD_ACAD_VERSION',    '0.13.0' );
+define( 'CEAD_ACAD_DB_VERSION', '13' );
 define( 'CEAD_ACAD_FILE',       __FILE__ );
 define( 'CEAD_ACAD_DIR',        plugin_dir_path( __FILE__ ) );
 define( 'CEAD_ACAD_URL',        plugin_dir_url( __FILE__ ) );
@@ -64,6 +64,7 @@ require_once CEAD_ACAD_DIR . 'modules/importers/class-importer-events.php';
 require_once CEAD_ACAD_DIR . 'modules/importers/class-importer-admin.php';
 require_once CEAD_ACAD_DIR . 'modules/grades/class-grades-db.php';
 require_once CEAD_ACAD_DIR . 'modules/panels/class-tasks-cpt.php';
+require_once CEAD_ACAD_DIR . 'modules/panels/class-tasks-frontend.php';
 require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-crypto.php';
 require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-tables.php';
 require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-store.php';
@@ -76,6 +77,8 @@ require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-cron.php';
 require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-admin.php';
 require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-module.php';
 require_once CEAD_ACAD_DIR . 'modules/account/class-account.php';
+require_once CEAD_ACAD_DIR . 'modules/pwa/class-pwa.php';
+require_once CEAD_ACAD_DIR . 'modules/notifications/class-notifications.php';
 require_once CEAD_ACAD_DIR . 'admin/class-admin-menu.php';
 require_once CEAD_ACAD_DIR . 'includes/class-cead-acad-plugin.php';
 

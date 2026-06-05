@@ -71,18 +71,42 @@ class Cead_Acad_Schedule_Feed {
 		if ( ! is_user_logged_in() ) {
 			wp_die( esc_html__( 'Sin acceso.', 'cead-acad' ) );
 		}
-		$user = wp_get_current_user();
+		$user   = wp_get_current_user();
 		$events = self::for_user( $user->ID, null, null, 500 );
 
 		nocache_headers();
 		header( 'Content-Type: text/calendar; charset=UTF-8' );
 		header( 'Content-Disposition: attachment; filename="cead-' . sanitize_title( $user->user_login ) . '.ics"' );
 
-		$lines = [];
+		echo self::build_ical( $events ); // phpcs:ignore WordPress.Security.EscapeOutput
+		exit;
+	}
+
+	/** Feed iCal suscribible (sin login) validado por token firmado. */
+	public static function output_subscription( $token ) {
+		$uid = class_exists( 'Cead_Acad_Account' ) ? Cead_Acad_Account::verify_feed_token( $token ) : 0;
+		if ( ! $uid ) {
+			status_header( 403 );
+			exit;
+		}
+		$events = self::for_user( $uid, null, null, 500 );
+
+		nocache_headers();
+		header( 'Content-Type: text/calendar; charset=UTF-8' );
+
+		echo self::build_ical( $events ); // phpcs:ignore WordPress.Security.EscapeOutput
+		exit;
+	}
+
+	/** Construye el cuerpo iCal a partir de una lista de eventos. */
+	public static function build_ical( $events ) {
+		$lines   = [];
 		$lines[] = 'BEGIN:VCALENDAR';
 		$lines[] = 'VERSION:2.0';
 		$lines[] = 'PRODID:-//CEAD Academico//ES';
 		$lines[] = 'CALSCALE:GREGORIAN';
+		$lines[] = 'METHOD:PUBLISH';
+		$lines[] = 'X-WR-CALNAME:' . self::ical_escape( get_bloginfo( 'name' ) . ' · CEAD' );
 		foreach ( $events as $e ) {
 			$start = (string) get_post_meta( $e->ID, '_cead_acad_event_start', true );
 			$end   = (string) get_post_meta( $e->ID, '_cead_acad_event_end',   true );
@@ -92,7 +116,7 @@ class Cead_Acad_Schedule_Feed {
 			$dt_end   = $end ? self::ical_date( $end ) : self::ical_date( $start, '+1 hour' );
 
 			$lines[] = 'BEGIN:VEVENT';
-			$lines[] = 'UID:cead-event-' . $e->ID . '@' . parse_url( home_url(), PHP_URL_HOST );
+			$lines[] = 'UID:cead-event-' . $e->ID . '@' . wp_parse_url( home_url(), PHP_URL_HOST );
 			$lines[] = 'DTSTAMP:' . gmdate( 'Ymd\THis\Z' );
 			$lines[] = 'DTSTART:' . $dt_start;
 			$lines[] = 'DTEND:'   . $dt_end;
@@ -108,8 +132,7 @@ class Cead_Acad_Schedule_Feed {
 		}
 		$lines[] = 'END:VCALENDAR';
 
-		echo implode( "\r\n", $lines );
-		exit;
+		return implode( "\r\n", $lines );
 	}
 
 	protected static function ical_date( $datetime, $modifier = null ) {

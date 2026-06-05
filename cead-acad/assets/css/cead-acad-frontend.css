@@ -1099,3 +1099,69 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 	.cead-acad-panel-shell, .cead-acad-panel-main, .cead-acad-panel-content { display:block; padding:0; }
 	.cead-acad-carne { box-shadow:none; margin:0; max-width:100%; }
 }
+
+/* ===================== Buscador en topbar ===================== */
+.cead-acad-topsearch input { border:1px solid var(--cead-acad-border); border-radius:10px; padding:.45rem .8rem; background:#fff; color:var(--cead-acad-ink); width:210px; max-width:34vw; }
+@media (max-width:720px){ .cead-acad-topsearch{ display:none; } }
+.cead-acad-search-form { display:flex; gap:.6rem; }
+.cead-acad-search-form input { flex:1; border:1px solid var(--cead-acad-border); border-radius:10px; padding:.7rem 1rem; background:#fff; color:var(--cead-acad-ink); }
+
+/* ===================== Centro de notificaciones ===================== */
+.cead-acad-notif { position:relative; }
+.cead-acad-bell { position:relative; background:transparent; border:1px solid var(--cead-acad-border); border-radius:10px; width:38px; height:38px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:1rem; color:var(--cead-acad-ink); }
+.cead-acad-bell:hover { border-color:var(--cead-acad-brand); }
+.cead-acad-notif-panel { position:absolute; right:0; top:calc(100% + 8px); width:340px; max-width:86vw; background:#fff; border:1px solid var(--cead-acad-border); border-radius:14px; box-shadow:0 18px 50px rgba(0,0,0,.16); padding:.5rem; display:none; z-index:60; }
+.cead-acad-notif.is-open .cead-acad-notif-panel { display:block; }
+.cead-acad-notif-head { display:flex; justify-content:space-between; align-items:center; padding:.4rem .6rem; border-bottom:1px solid var(--cead-acad-border); margin-bottom:.3rem; }
+.cead-acad-notif-head form { margin:0; }
+.cead-acad-notif-clear { background:none; border:0; color:var(--cead-acad-brand-deep); cursor:pointer; font-size:.8rem; font-weight:700; }
+.cead-acad-notif-list { max-height:60vh; overflow:auto; }
+.cead-acad-notif-item { display:flex; gap:.6rem; padding:.55rem .6rem; border-radius:10px; text-decoration:none; color:var(--cead-acad-ink); align-items:flex-start; }
+.cead-acad-notif-item:hover { background:var(--cead-acad-canvas); }
+.cead-acad-notif-ico { font-size:1.05rem; line-height:1.3; }
+.cead-acad-notif-txt { display:flex; flex-direction:column; }
+.cead-acad-notif-title { font-weight:600; font-size:.9rem; line-height:1.25; }
+.cead-acad-notif-when { font-size:.74rem; color:var(--cead-acad-text-muted); }
+.cead-acad-notif-empty { padding:1.1rem; text-align:center; color:var(--cead-acad-text-muted); }
+
+/* ===================== Tareas ===================== */
+.cead-acad-task.is-done { opacity:.72; }
+.cead-acad-task-head { display:flex; justify-content:space-between; gap:.6rem; align-items:flex-start; }
+.cead-acad-prio { font-family:var(--cead-acad-font-display); text-transform:uppercase; font-size:.64rem; letter-spacing:.05em; padding:.18rem .55rem; border-radius:999px; color:#fff; flex:0 0 auto; align-self:flex-start; }
+.cead-acad-prio--alta { background:#E93B3C; }
+.cead-acad-prio--normal { background:#49A3C8; }
+.cead-acad-prio--baja { background:#8E8E8E; }
+.cead-acad-task-due { font-size:.85rem; color:var(--cead-acad-text-soft); margin:.2rem 0; }
+.cead-acad-task-due.is-late { color:#B82A2B; font-weight:700; }
+.cead-acad-task-due.is-soon { color:#B8740B; font-weight:700; }
+.cead-acad-task-actions { display:flex; gap:.6rem; flex-wrap:wrap; margin-top:.7rem; align-items:center; }
+.cead-acad-task-actions form { display:flex; gap:.4rem; align-items:center; margin:0; }
+.cead-acad-task-upload { flex-wrap:wrap; }
+.cead-acad-file-btn input { font-size:.8rem; max-width:170px; }
+.cead-acad-task-sub { margin-top:.5rem; font-size:.85rem; }
+
+/* ===================== Favoritos de recursos ===================== */
+.cead-acad-resource-wrap { position:relative; display:flex; }
+.cead-acad-resource-wrap .cead-acad-resource-card { flex:1; }
+.cead-acad-fav-form { position:absolute; top:.5rem; right:.5rem; z-index:2; margin:0; }
+.cead-acad-fav { background:rgba(255,255,255,.92); border:1px solid var(--cead-acad-border); border-radius:50%; width:34px; height:34px; cursor:pointer; font-size:1rem; line-height:1; color:#8E8E8E; }
+.cead-acad-fav.is-fav { color:#F4B74C; border-color:#F4B74C; }
+
+/* ===================== Suscripción de calendario ===================== */
+.cead-acad-subscribe { margin:1rem 0; border:1px solid var(--cead-acad-border); border-radius:12px; background:#fff; padding:.25rem .9rem; }
+.cead-acad-subscribe summary { cursor:pointer; padding:.65rem 0; font-weight:700; }
+.cead-acad-subscribe-body { padding:.3rem 0 1rem; }
+.cead-acad-subscribe-actions { display:flex; gap:.6rem; flex-wrap:wrap; }
+.cead-acad-subscribe-hint { font-size:.8rem; color:var(--cead-acad-text-muted); margin-top:.5rem; }
+
+/* ===================== Instalar app (tutorial) ===================== */
+.cead-acad-install-cta { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; }
+.cead-acad-steps { margin:.5rem 0 0; padding-left:1.2rem; display:flex; flex-direction:column; gap:.45rem; }
+.cead-acad-steps li { line-height:1.45; }
+
+/* ===================== Modo oscuro: superficies nuevas ===================== */
+[data-theme="dark"] .cead-acad-notif-panel,
+[data-theme="dark"] .cead-acad-subscribe,
+[data-theme="dark"] .cead-acad-topsearch input,
+[data-theme="dark"] .cead-acad-search-form input,
+[data-theme="dark"] .cead-acad-fav { background:#1d2027; color:var(--cead-acad-ink); }
