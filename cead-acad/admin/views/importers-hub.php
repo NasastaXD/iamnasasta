@@ -13,11 +13,6 @@ $jobs      = Cead_Acad_Importer_Job::recent( 20 );
 	<p class="description"><?php esc_html_e( 'Subí un archivo CSV o Excel (.xlsx) y, guiado paso a paso, lo mapeás, validás e importás. Descargá una plantilla para ver el formato esperado.', 'cead-acad' ); ?></p>
 
 	<h2 class="title"><?php esc_html_e( 'Nuevo trabajo', 'cead-acad' ); ?></h2>
-	<?php if ( wp_is_mobile() ) : ?>
-		<div class="notice notice-warning inline cead-acad-import-mobile"><p>
-			<?php esc_html_e( '📵 La importación de archivos solo está disponible desde una computadora. Abrí esta página en una PC para subir el CSV/Excel.', 'cead-acad' ); ?>
-		</p></div>
-	<?php else : ?>
 	<form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<?php wp_nonce_field( 'cead_acad_import_upload' ); ?>
 		<input type="hidden" name="action" value="cead_acad_import_upload">
@@ -43,7 +38,7 @@ $jobs      = Cead_Acad_Importer_Job::recent( 20 );
 			<tr>
 				<th><label for="csv_file"><?php esc_html_e( 'Archivo', 'cead-acad' ); ?></label></th>
 				<td>
-					<input type="file" name="csv_file" id="csv_file" accept="<?php echo $xlsx_ok ? '.csv,.txt,.xlsx' : '.csv,.txt'; ?>" required>
+					<input type="file" name="csv_file" id="csv_file" required style="display:block;max-width:100%;font-size:16px;line-height:1.7;padding:6px 0">
 					<p class="description">
 						<?php
 						echo $xlsx_ok
@@ -56,9 +51,6 @@ $jobs      = Cead_Acad_Importer_Job::recent( 20 );
 		</table>
 		<?php submit_button( __( 'Subir y continuar', 'cead-acad' ) ); ?>
 	</form>
-	<?php endif; ?>
-
-	<style>@media (max-width:782px){.cead-acad-admin-wrap form[enctype]{display:none}}</style>
 
 	<h2 class="title"><?php esc_html_e( 'Importaciones recientes', 'cead-acad' ); ?></h2>
 	<table class="wp-list-table widefat fixed striped">
