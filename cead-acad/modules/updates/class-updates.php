@@ -8,7 +8,10 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class Cead_Acad_Updates {
 
-	const REPO         = 'https://github.com/nasastaxd/iamnasasta/';
+	// OJO: el casing del owner debe coincidir EXACTO con GitHub (NasastaXD), porque
+	// plugin-update-checker compara la URL del asset de forma sensible a mayúsculas
+	// para adjuntar el token en la descarga. Con minúsculas, la descarga da 404.
+	const REPO         = 'https://github.com/NasastaXD/iamnasasta/';
 	const SLUG         = 'cead-acad';
 	const OPTION_TOKEN = 'cead_acad_github_token';
 	const ASSET_REGEX  = '/cead-acad\.zip/';
@@ -164,7 +167,7 @@ class Cead_Acad_Updates {
 	/** Prueba directa contra la API de GitHub con el token configurado. */
 	protected function test_connection() {
 		$token = self::token();
-		$url   = 'https://api.github.com/repos/nasastaxd/iamnasasta/releases/latest';
+		$url   = 'https://api.github.com/repos/NasastaXD/iamnasasta/releases/latest';
 		$args  = [
 			'timeout' => 15,
 			'headers' => [
