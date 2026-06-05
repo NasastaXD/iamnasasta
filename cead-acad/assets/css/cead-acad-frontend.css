@@ -1233,3 +1233,74 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 [data-theme="dark"] .cead-acad-notif-item:hover,
 [data-theme="dark"] .cead-acad-feed-item:hover,
 [data-theme="dark"] .cead-acad-agenda-item:hover { background:#262a32; }
+
+/* ===================== Animaciones del panel ===================== */
+@keyframes cead-fade-up { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+@keyframes cead-fade-in { from { opacity:0; } to { opacity:1; } }
+@keyframes cead-pop     { 0% { opacity:0; transform:scale(.96) translateY(-4px); } 100% { opacity:1; transform:none; } }
+@keyframes cead-badge   { 0% { transform:scale(0); } 60% { transform:scale(1.25); } 100% { transform:scale(1); } }
+
+/* Entrada del contenido al cargar */
+.cead-acad-panel-section { animation: cead-fade-up .42s cubic-bezier(0.34,1.56,0.64,1) both; }
+
+/* Stagger de tarjetas, accesos rápidos y agenda */
+.cead-acad-grid > *,
+.cead-acad-quick > *,
+.cead-acad-agenda-item { animation: cead-fade-up .5s cubic-bezier(0.34,1.56,0.64,1) both; }
+.cead-acad-grid > *:nth-child(1),  .cead-acad-quick > *:nth-child(1)  { animation-delay:.03s; }
+.cead-acad-grid > *:nth-child(2),  .cead-acad-quick > *:nth-child(2)  { animation-delay:.07s; }
+.cead-acad-grid > *:nth-child(3),  .cead-acad-quick > *:nth-child(3)  { animation-delay:.11s; }
+.cead-acad-grid > *:nth-child(4),  .cead-acad-quick > *:nth-child(4)  { animation-delay:.15s; }
+.cead-acad-grid > *:nth-child(5),  .cead-acad-quick > *:nth-child(5)  { animation-delay:.19s; }
+.cead-acad-grid > *:nth-child(6),  .cead-acad-quick > *:nth-child(6)  { animation-delay:.23s; }
+.cead-acad-grid > *:nth-child(n+7) { animation-delay:.27s; }
+
+/* Tarjetas-enlace: elevación al pasar el cursor */
+.cead-acad-card--link { transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+.cead-acad-card--link:hover { transform: translateY(-3px); box-shadow: 0 14px 32px rgba(0,0,0,.12); }
+
+/* Accesos rápidos: el ícono late al pasar */
+.cead-acad-quick-ico { transition: transform .18s cubic-bezier(0.34,1.56,0.64,1); }
+.cead-acad-quick-item:hover .cead-acad-quick-ico { transform: scale(1.18) translateY(-2px); }
+
+/* Botones: micro-feedback */
+.cead-acad-btn { transition: transform .14s ease, box-shadow .18s ease, background .2s ease, color .2s ease, border-color .2s ease; }
+.cead-acad-btn:hover { transform: translateY(-1px); }
+.cead-acad-btn:active { transform: translateY(1px) scale(.99); }
+
+/* Navegación lateral: desliza al hover */
+.cead-acad-panel-nav a { transition: background .18s ease, color .18s ease, transform .18s ease, padding-left .18s ease; }
+.cead-acad-panel-nav a:hover { transform: translateX(3px); }
+.cead-acad-panel-nav li.is-active a { padding-left: .35rem; }
+.cead-acad-panel-nav-dot { transition: transform .18s ease; }
+.cead-acad-panel-nav a:hover .cead-acad-panel-nav-dot { transform: scale(1.5); }
+
+/* Campana, toggle de tema y avatar */
+.cead-acad-theme-toggle, .cead-acad-bell { transition: transform .18s ease, border-color .18s ease, background .2s ease; }
+.cead-acad-theme-toggle:hover { transform: rotate(25deg); }
+.cead-acad-bell:hover { transform: translateY(-1px); }
+.cead-acad-bell-badge { animation: cead-badge .45s cubic-bezier(0.34,1.56,0.64,1) both; }
+.cead-acad-user-chip .cead-acad-avatar { transition: transform .18s ease; }
+.cead-acad-user-chip:hover .cead-acad-avatar { transform: scale(1.08); }
+
+/* Desplegable de notificaciones */
+.cead-acad-notif.is-open .cead-acad-notif-panel { animation: cead-pop .18s ease both; }
+.cead-acad-notif-item { transition: background .15s ease, transform .15s ease; }
+.cead-acad-notif-item:hover { transform: translateX(2px); }
+
+/* Favorito: pop al togglear */
+.cead-acad-fav { transition: transform .15s cubic-bezier(0.34,1.56,0.64,1), color .15s ease, border-color .15s ease; }
+.cead-acad-fav:hover { transform: scale(1.12); }
+.cead-acad-fav:active { transform: scale(.85); }
+
+/* Carné: leve realce */
+.cead-acad-carne { transition: transform .25s ease, box-shadow .25s ease; }
+.cead-acad-carne:hover { transform: translateY(-4px); box-shadow: 0 26px 60px rgba(0,0,0,.16); }
+
+/* Mensajes de estado entran suave */
+.cead-acad-msg { animation: cead-fade-up .35s ease both; }
+
+/* Respeto por usuarios que prefieren menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+	*, *::before, *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
+}
