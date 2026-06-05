@@ -32,6 +32,9 @@ class Cead_Acad_Rewrites {
 		// Link corto de invitación: /i/<token> → página de registro con el token.
 		add_rewrite_rule( '^i/([^/]+)/?$',       'index.php?' . self::QUERY_VAR . '=register&cead_acad_t=$matches[1]', 'top' );
 
+		// Verificación pública del carné: /carne/<token>.
+		add_rewrite_rule( '^carne/([^/]+)/?$',   'index.php?' . self::QUERY_VAR . '=carne&cead_acad_t=$matches[1]', 'top' );
+
 		// Panel y sub-rutas (stub en F0; los módulos las van completando).
 		add_rewrite_rule( '^panel/?$',           'index.php?' . self::QUERY_VAR . '=panel',          'top' );
 		add_rewrite_rule( '^panel/(.+?)/?$',     'index.php?' . self::QUERY_VAR . '=panel/$matches[1]', 'top' );
@@ -86,6 +89,11 @@ class Cead_Acad_Rewrites {
 				wp_logout();
 				wp_safe_redirect( $redirect );
 				exit;
+
+			case 'carne' === $route:
+				$token = (string) get_query_var( 'cead_acad_t' );
+				cead_acad_template( 'carne/verify.php', [ 'token' => $token ] );
+				return;
 
 			case 'panel' === $route || str_starts_with( $route, 'panel/' ):
 				if ( ! is_user_logged_in() ) {
@@ -158,6 +166,14 @@ class Cead_Acad_Rewrites {
 
 			case 'boletin':
 				cead_acad_template( 'panel/boletin/show.php' );
+				return;
+
+			case 'perfil':
+				cead_acad_template( 'panel/perfil/show.php' );
+				return;
+
+			case 'carne':
+				cead_acad_template( 'panel/carne/show.php' );
 				return;
 
 			case 'delegado':

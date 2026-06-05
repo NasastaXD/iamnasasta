@@ -14,6 +14,8 @@ $base_items = [
 	[ 'href' => 'panel/horarios',     'label' => __( 'Horarios', 'cead-acad' ),     'icon' => 'calendar' ],
 	[ 'href' => 'panel/calendario',   'label' => __( 'Calendario', 'cead-acad' ),   'icon' => 'calendar' ],
 	[ 'href' => 'panel/recursos',     'label' => __( 'Recursos', 'cead-acad' ),     'icon' => 'portfolio' ],
+	[ 'href' => 'panel/carne',        'label' => __( 'Mi carné', 'cead-acad' ),     'icon' => 'id' ],
+	[ 'href' => 'panel/perfil',       'label' => __( 'Mi perfil', 'cead-acad' ),    'icon' => 'admin-users' ],
 ];
 
 // Boletín solo para roles con acceso a notas propias.
