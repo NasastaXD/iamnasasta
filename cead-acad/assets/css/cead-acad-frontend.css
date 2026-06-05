@@ -1276,9 +1276,8 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 .cead-acad-panel-nav a:hover .cead-acad-panel-nav-dot { transform: scale(1.5); }
 
 /* Campana, toggle de tema y avatar */
-.cead-acad-theme-toggle, .cead-acad-bell { transition: transform .18s ease, border-color .18s ease, background .2s ease; }
-.cead-acad-theme-toggle:hover { transform: rotate(25deg); }
-.cead-acad-bell:hover { transform: translateY(-1px); }
+.cead-acad-theme-toggle, .cead-acad-bell { transition: border-color .18s ease, background .2s ease; }
+.cead-acad-bell:hover { border-color:var(--cead-acad-brand); }
 .cead-acad-bell-badge { animation: cead-badge .45s cubic-bezier(0.34,1.56,0.64,1) both; }
 .cead-acad-user-chip .cead-acad-avatar { transition: transform .18s ease; }
 .cead-acad-user-chip:hover .cead-acad-avatar { transform: scale(1.08); }
@@ -1354,3 +1353,21 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 @media (prefers-reduced-motion: reduce) {
 	.cead-acad-splash { display:none; }
 }
+
+/* ===================== Fixes táctiles ===================== */
+/* En pantallas táctiles el :hover queda "pegado" tras tocar: anular transforms. */
+@media (hover: none) {
+	.cead-acad-card--link:hover, .cead-acad-quick-item:hover, .cead-acad-carne:hover,
+	.cead-acad-theme-toggle:hover, .cead-acad-bell:hover, .cead-acad-fav:hover,
+	.cead-acad-notif-item:hover, .cead-acad-panel-nav a:hover,
+	.cead-acad-user-chip:hover .cead-acad-avatar,
+	.cead-acad-quick-item:hover .cead-acad-quick-ico,
+	.cead-acad-panel-nav a:hover .cead-acad-panel-nav-dot { transform: none !important; box-shadow: none; }
+}
+/* Sin flash de selección al tocar los controles. */
+.cead-acad-burger, .cead-acad-theme-toggle, .cead-acad-bell, .cead-acad-fav,
+.cead-acad-user-chip, .cead-acad-notif .cead-acad-bell { -webkit-tap-highlight-color: transparent; }
+
+/* Refuerzo de las líneas de la hamburguesa (por si un asset viejo quedó cacheado). */
+.cead-acad-burger { gap: 4px; }
+.cead-acad-burger span { display: block; width: 100%; height: 2px; min-height: 2px; background: currentColor; color: var(--cead-acad-ink); border-radius: 2px; }

@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class Cead_Acad_PWA {
 
-	const CACHE = 'cead-pwa-v1';
+	const CACHE = 'cead-pwa-v2';
 
 	/** Sirve el manifest web. */
 	public static function manifest() {
@@ -44,26 +44,30 @@ class Cead_Acad_PWA {
 const CACHE = '<?php echo esc_js( self::CACHE ); ?>';
 self.addEventListener('install', function (e) { self.skipWaiting(); });
 self.addEventListener('activate', function (e) {
+	// Purga TODOS los caches viejos (incluida la estrategia cache-first anterior).
 	e.waitUntil(
 		caches.keys().then(function (keys) {
-			return Promise.all(keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
+			return Promise.all(keys.map(function (k) { return caches.delete(k); }));
 		}).then(function () { return self.clients.claim(); })
 	);
 });
+// Network-first: online siempre sirve contenido fresco; el cache es solo
+// respaldo para cuando no hay conexión. Así la navegación nunca queda atascada.
 self.addEventListener('fetch', function (e) {
 	var req = e.request;
-	if (req.method !== 'GET' || req.url.indexOf('<?php echo esc_js( $origin ); ?>') !== 0) { return; }
-	if (req.url.indexOf('/wp-admin') !== -1 || req.url.indexOf('admin-ajax') !== -1) { return; }
+	if (req.method !== 'GET') { return; }
+	var url;
+	try { url = new URL(req.url); } catch (err) { return; }
+	if (url.origin !== self.location.origin) { return; }
+	if (url.pathname.indexOf('/wp-admin') === 0 || url.pathname.indexOf('/wp-login') !== -1 || url.pathname.indexOf('admin-ajax') !== -1) { return; }
 	e.respondWith(
-		caches.open(CACHE).then(function (cache) {
-			return cache.match(req).then(function (hit) {
-				var net = fetch(req).then(function (resp) {
-					if (resp && resp.status === 200 && resp.type === 'basic') { cache.put(req, resp.clone()); }
-					return resp;
-				}).catch(function () { return hit; });
-				return hit || net;
-			});
-		})
+		fetch(req).then(function (resp) {
+			if (resp && resp.status === 200 && resp.type === 'basic') {
+				var copy = resp.clone();
+				caches.open(CACHE).then(function (c) { c.put(req, copy); });
+			}
+			return resp;
+		}).catch(function () { return caches.match(req); })
 	);
 });
 		<?php
