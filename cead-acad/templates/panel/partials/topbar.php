@@ -17,7 +17,11 @@ $title  = isset( $page_title ) ? $page_title : __( 'Panel', 'cead-acad' );
 <header class="cead-acad-panel-topbar">
 	<div class="cead-acad-panel-topbar-l">
 		<button type="button" class="cead-acad-burger" aria-label="<?php esc_attr_e( 'Abrir menú', 'cead-acad' ); ?>" aria-expanded="false" onclick="var o=document.body.classList.toggle('cead-acad-nav-open');this.setAttribute('aria-expanded',o);">
-			<span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+			<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+				<line x1="3" y1="6"  x2="21" y2="6"  stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+				<line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+				<line x1="3" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+			</svg>
 		</button>
 		<h1 class="cead-acad-panel-topbar-title"><?php echo esc_html( $title ); ?></h1>
 	</div>

@@ -61,7 +61,10 @@ $current_route = trim( get_query_var( Cead_Acad_Rewrites::QUERY_VAR ), '/' );
 	<ul class="cead-acad-panel-nav">
 		<?php foreach ( $items as $it ) :
 			$href = cead_acad_url( $it['href'] );
-			$active = ( $current_route === $it['href'] ) || str_starts_with( $current_route, $it['href'] . '/' );
+			// "panel" (Inicio) solo se marca activo en la home exacta; si no, sería
+			// prefijo de todas las sub-rutas (panel/encuestas, etc.) y quedarían dos.
+			$active = ( $current_route === $it['href'] )
+				|| ( 'panel' !== $it['href'] && str_starts_with( $current_route, $it['href'] . '/' ) );
 		?>
 			<li class="<?php echo $active ? 'is-active' : ''; ?>">
 				<a href="<?php echo esc_url( $href ); ?>">
