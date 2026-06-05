@@ -14,6 +14,7 @@ $page_title = $page_title ?? __( 'Panel', 'cead-acad' );
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title><?php echo esc_html( $page_title ); ?> · <?php bloginfo( 'name' ); ?></title>
 	<script>try{if(localStorage.getItem('cead_theme')==='dark'){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}</script>
+	<script>try{if(sessionStorage.getItem('cead_splash')){document.documentElement.classList.add('cead-splash-done');}else{sessionStorage.setItem('cead_splash','1');}}catch(e){document.documentElement.classList.add('cead-splash-done');}</script>
 	<link rel="manifest" href="<?php echo esc_url( home_url( '/cead-manifest.webmanifest' ) ); ?>">
 	<meta name="theme-color" content="#E93B3C">
 	<meta name="mobile-web-app-capable" content="yes">
@@ -25,6 +26,20 @@ $page_title = $page_title ?? __( 'Panel', 'cead-acad' );
 	<?php wp_head(); ?>
 </head>
 <body class="cead-acad-panel">
+	<div class="cead-acad-splash" aria-hidden="true">
+		<div class="cead-acad-splash-inner">
+			<div class="cead-acad-splash-word">
+				<span class="cead-acad-splash-tile t-c">C</span>
+				<span class="cead-acad-splash-tile t-e">E</span>
+				<span class="cead-acad-splash-tile t-a">A</span>
+				<span class="cead-acad-splash-tile t-d">D</span>
+			</div>
+			<div class="cead-acad-splash-sub">
+				<span class="cead-acad-splash-sub1"><?php esc_html_e( 'Centro Educativo de Alto Desempeño', 'cead-acad' ); ?></span>
+				<span class="cead-acad-splash-sub2"><?php esc_html_e( 'Félix de Guarania', 'cead-acad' ); ?></span>
+			</div>
+		</div>
+	</div>
 	<div class="cead-acad-panel-shell">
 		<div class="cead-acad-nav-backdrop" onclick="document.body.classList.remove('cead-acad-nav-open');"></div>
 		<?php include CEAD_ACAD_DIR . 'templates/panel/partials/sidebar.php'; ?>
