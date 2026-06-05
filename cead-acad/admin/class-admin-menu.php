@@ -139,6 +139,8 @@ class Cead_Acad_Admin_Menu {
 		switch ( $action ) {
 			case 'create':
 				return $this->do_create();
+			case 'all_courses':
+				return $this->do_create_all_courses();
 			case 'invite_users':
 				return $this->do_invite_registered();
 			case 'resend':
@@ -169,6 +171,30 @@ class Cead_Acad_Admin_Menu {
 			$msg .= ' ' . sprintf( __( 'Email enviado a %s (si el correo del sitio está configurado).', 'cead-acad' ), $email );
 		}
 		return [ 'type' => 'success', 'msg' => $msg ];
+	}
+
+	protected function do_create_all_courses() {
+		$role    = sanitize_text_field( wp_unslash( $_POST['role'] ?? 'cead_acad_student' ) );
+		$expires = max( 1, min( 90, (int) ( $_POST['expires_days'] ?? 14 ) ) );
+		$courses = cead_acad_courses_for_select();
+		if ( ! $courses ) {
+			return [ 'type' => 'error', 'msg' => __( 'No hay cursos cargados todavía. Creá los cursos primero.', 'cead-acad' ) ];
+		}
+		$n = 0;
+		foreach ( $courses as $cid => $ctitle ) {
+			$tokens = Cead_Acad_Invitations::create( [
+				'role'         => $role,
+				'course_id'    => (int) $cid,
+				'expires_days' => $expires,
+				'count'        => 1,
+			] );
+			if ( $tokens ) {
+				// Reusamos el campo "email" del link como etiqueta del curso.
+				$this->last_created_links[] = [ 'url' => Cead_Acad_Invitations::registration_url( $tokens[0] ), 'email' => $ctitle ];
+				$n++;
+			}
+		}
+		return [ 'type' => 'success', 'msg' => sprintf( _n( '%d link generado (uno por curso).', '%d links generados (uno por curso).', $n, 'cead-acad' ), $n ) ];
 	}
 
 	protected function do_invite_registered() {

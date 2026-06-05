@@ -76,6 +76,26 @@ function cead_acad_hash_token( $token ) {
 }
 
 /**
+ * Cursos disponibles para selects (id => título), ordenados por título.
+ */
+function cead_acad_courses_for_select() {
+	$posts = get_posts( [
+		'post_type'        => 'cead_acad_course',
+		'posts_per_page'   => -1,
+		'orderby'          => 'title',
+		'order'            => 'ASC',
+		'post_status'      => [ 'publish', 'private', 'draft' ],
+		'no_found_rows'    => true,
+		'suppress_filters' => false,
+	] );
+	$out = [];
+	foreach ( $posts as $p ) {
+		$out[ (int) $p->ID ] = $p->post_title !== '' ? $p->post_title : ( '#' . $p->ID );
+	}
+	return $out;
+}
+
+/**
  * Carga un template del plugin permitiendo override desde el tema activo en
  * /<theme>/cead-acad/<ruta>.php
  */

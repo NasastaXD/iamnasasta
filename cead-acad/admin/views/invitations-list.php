@@ -10,9 +10,10 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-$roles = Cead_Acad_Capabilities::roles();
-$rows  = Cead_Acad_Invitations::list_recent( 50 );
-$self  = admin_url( 'admin.php?page=cead-acad-invitations' );
+$roles   = Cead_Acad_Capabilities::roles();
+$rows    = Cead_Acad_Invitations::list_recent( 50 );
+$courses = cead_acad_courses_for_select();
+$self    = admin_url( 'admin.php?page=cead-acad-invitations' );
 
 // Usuarios registrados para el selector (limitado).
 $reg_users = get_users( [ 'number' => 300, 'orderby' => 'display_name', 'fields' => [ 'ID', 'display_name', 'user_email' ] ] );
@@ -55,6 +56,18 @@ $reg_users = get_users( [ 'number' => 300, 'orderby' => 'display_name', 'fields'
 				</td>
 			</tr>
 			<tr>
+				<th><label for="course_id"><?php esc_html_e( 'Curso', 'cead-acad' ); ?></label></th>
+				<td>
+					<select name="course_id" id="course_id">
+						<option value=""><?php esc_html_e( '— Sin curso (lo elige al registrarse) —', 'cead-acad' ); ?></option>
+						<?php foreach ( $courses as $cid => $ctitle ) : ?>
+							<option value="<?php echo (int) $cid; ?>"><?php echo esc_html( $ctitle ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<p class="description"><?php esc_html_e( 'Si elegís un curso, todos los que usen este link entran a ese curso. Si lo dejás en "Sin curso" (para Alumno/a o Delegado/a), la persona elige el curso al registrarse.', 'cead-acad' ); ?></p>
+				</td>
+			</tr>
+			<tr>
 				<th><label for="email"><?php esc_html_e( 'Email (opcional)', 'cead-acad' ); ?></label></th>
 				<td>
 					<input type="email" name="email" id="email" class="regular-text" list="cead-acad-emails" placeholder="<?php esc_attr_e( 'destinatario@ejemplo.com', 'cead-acad' ); ?>">
@@ -79,6 +92,29 @@ $reg_users = get_users( [ 'number' => 300, 'orderby' => 'display_name', 'fields'
 			</tr>
 		</table>
 		<?php submit_button( __( 'Generar invitaciones', 'cead-acad' ) ); ?>
+	</form>
+
+	<h2 class="title"><?php esc_html_e( 'Un link por cada curso', 'cead-acad' ); ?></h2>
+	<form method="post" action="<?php echo esc_url( $self ); ?>">
+		<?php wp_nonce_field( 'cead_acad_inv_all_courses', '_cead_inv_nonce' ); ?>
+		<input type="hidden" name="cead_acad_inv_action" value="all_courses" />
+		<table class="form-table" role="presentation">
+			<tr>
+				<th><label for="ac_role"><?php esc_html_e( 'Rol', 'cead-acad' ); ?></label></th>
+				<td>
+					<select name="role" id="ac_role">
+						<option value="cead_acad_student"><?php esc_html_e( 'Alumno/a', 'cead-acad' ); ?></option>
+						<option value="cead_acad_delegate"><?php esc_html_e( 'Delegado/a', 'cead-acad' ); ?></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="ac_expires"><?php esc_html_e( 'Expira en (días)', 'cead-acad' ); ?></label></th>
+				<td><input type="number" name="expires_days" id="ac_expires" value="14" min="1" max="90" class="small-text"></td>
+			</tr>
+		</table>
+		<p class="description"><?php esc_html_e( 'Crea una invitación por cada curso cargado, cada una ya atada a su curso. Ideal para repartir un link a cada división.', 'cead-acad' ); ?></p>
+		<?php submit_button( __( 'Generar 1 link por cada curso', 'cead-acad' ), 'secondary' ); ?>
 	</form>
 
 	<h2 class="title"><?php esc_html_e( 'Invitar a usuarios registrados', 'cead-acad' ); ?></h2>

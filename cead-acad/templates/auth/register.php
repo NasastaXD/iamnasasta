@@ -27,8 +27,14 @@ $panel_intro  = (string) get_option( 'cead_acad_panel_intro', __( 'El panel del 
 $ceadi_intro  = (string) get_option( 'cead_acad_ceadi_intro', __( 'CEADI es el asistente del colegio en WhatsApp. Te acerca comunicados, horarios y novedades, y te deja hacer consultas rápidas cuando las necesites.', 'cead-acad' ) );
 $ceadi_number = preg_replace( '/[^0-9]/', '', (string) get_option( 'cead_acad_wa_bot_number', '' ) );
 
+// Para links de Alumno/a o Delegado/a SIN curso fijo, el usuario elige su curso.
+$needs_course = ( 'valid' === $status )
+	&& in_array( $invitation['role'] ?? '', [ 'cead_acad_student', 'cead_acad_delegate' ], true )
+	&& empty( $invitation['course_id'] );
+$course_list  = $needs_course ? cead_acad_courses_for_select() : [];
+
 $title = __( 'Crear cuenta', 'cead-acad' );
-$body  = function () use ( $token, $invitation, $status, $err, $role_display, $panel_intro, $ceadi_intro, $ceadi_number ) {
+$body  = function () use ( $token, $invitation, $status, $err, $role_display, $panel_intro, $ceadi_intro, $ceadi_number, $needs_course, $course_list ) {
 	?>
 	<h1 class="cead-acad-auth-h"><?php esc_html_e( 'Crear cuenta', 'cead-acad' ); ?></h1>
 
@@ -91,6 +97,7 @@ $body  = function () use ( $token, $invitation, $status, $err, $role_display, $p
 			'invitation_revoked'=> __( 'Esta invitación fue revocada.', 'cead-acad' ),
 			'insert_failed'     => __( 'No se pudo crear la cuenta. Intentá de nuevo o pedí ayuda a la dirección.', 'cead-acad' ),
 			'missing_token'     => __( 'Falta el código de invitación. Volvé a abrir el link que te enviaron.', 'cead-acad' ),
+			'missing_course'    => __( 'Elegí tu curso para continuar.', 'cead-acad' ),
 		];
 		?>
 		<div class="cead-acad-msg cead-acad-msg--err"><?php echo esc_html( $labels[ $err ] ?? __( 'Error.', 'cead-acad' ) ); ?></div>
@@ -121,6 +128,19 @@ $body  = function () use ( $token, $invitation, $status, $err, $role_display, $p
 			<input type="tel" name="phone" required autocomplete="tel" placeholder="<?php esc_attr_e( 'Ej: 0981123456', 'cead-acad' ); ?>" value="<?php echo isset( $_GET['phone'] ) ? esc_attr( wp_unslash( $_GET['phone'] ) ) : ''; ?>">
 			<small class="cead-acad-hint"><?php esc_html_e( 'Tu número de WhatsApp. Ejemplo: 0981123456', 'cead-acad' ); ?></small>
 		</label>
+
+		<?php if ( $needs_course ) : ?>
+		<label class="cead-acad-field">
+			<span class="cead-acad-label"><?php esc_html_e( 'Curso', 'cead-acad' ); ?></span>
+			<select name="course_id" required>
+				<option value=""><?php esc_html_e( 'Elegí tu curso…', 'cead-acad' ); ?></option>
+				<?php foreach ( $course_list as $cid => $ctitle ) : ?>
+					<option value="<?php echo (int) $cid; ?>"><?php echo esc_html( $ctitle ); ?></option>
+				<?php endforeach; ?>
+			</select>
+			<small class="cead-acad-hint"><?php esc_html_e( 'Elegí el curso al que pertenecés.', 'cead-acad' ); ?></small>
+		</label>
+		<?php endif; ?>
 
 		<label class="cead-acad-field">
 			<span class="cead-acad-label"><?php esc_html_e( 'Contraseña', 'cead-acad' ); ?></span>

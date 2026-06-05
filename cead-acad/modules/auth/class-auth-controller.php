@@ -97,6 +97,19 @@ class Cead_Acad_Auth_Controller {
 			$this->bail_to( 'registro', 'email_taken', [ 't' => $token ] );
 		}
 
+		// Curso: el del invite manda; si no trae y es Alumno/a o Delegado/a, el elegido en el form.
+		$needs_course = in_array( $invitation['role'], [ 'cead_acad_student', 'cead_acad_delegate' ], true );
+		$course_id    = ! empty( $invitation['course_id'] ) ? (int) $invitation['course_id'] : 0;
+		if ( ! $course_id && $needs_course ) {
+			$sel = isset( $_POST['course_id'] ) ? (int) $_POST['course_id'] : 0;
+			if ( $sel && get_post_type( $sel ) === 'cead_acad_course' ) {
+				$course_id = $sel;
+			}
+		}
+		if ( $needs_course && ! $course_id ) {
+			$this->bail_to( 'registro', 'missing_course', [ 't' => $token ] );
+		}
+
 		$user_id = wp_insert_user( [
 			'user_login'   => $user_login,
 			'user_pass'    => $password,
@@ -113,8 +126,12 @@ class Cead_Acad_Auth_Controller {
 		update_user_meta( $user_id, '_cead_acad_legal_name', $full_name );
 		update_user_meta( $user_id, '_cead_acad_phone', $phone );
 		update_user_meta( $user_id, '_cead_acad_invited_via', (int) $invitation['id'] );
-		if ( ! empty( $invitation['course_id'] ) ) {
-			update_user_meta( $user_id, '_cead_acad_current_course_id', (int) $invitation['course_id'] );
+		if ( $course_id ) {
+			update_user_meta( $user_id, '_cead_acad_current_course_id', $course_id );
+			$role_in_course = ( $invitation['role'] === 'cead_acad_delegate' ) ? 'delegate' : 'student';
+			if ( class_exists( 'Cead_Acad_Courses_Roster' ) ) {
+				Cead_Acad_Courses_Roster::add( (int) $user_id, $course_id, $role_in_course );
+			}
 		}
 
 		Cead_Acad_Invitations::mark_used( (int) $invitation['id'], (int) $user_id );
