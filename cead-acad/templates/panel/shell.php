@@ -13,6 +13,7 @@ $page_title = $page_title ?? __( 'Panel', 'cead-acad' );
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title><?php echo esc_html( $page_title ); ?> · <?php bloginfo( 'name' ); ?></title>
+	<script>try{if(localStorage.getItem('cead_theme')==='dark'){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}</script>
 	<?php wp_head(); ?>
 </head>
 <body class="cead-acad-panel">

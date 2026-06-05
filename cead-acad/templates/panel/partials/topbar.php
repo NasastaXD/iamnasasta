@@ -17,6 +17,9 @@ $title  = isset( $page_title ) ? $page_title : __( 'Panel', 'cead-acad' );
 		<h1 class="cead-acad-panel-topbar-title"><?php echo esc_html( $title ); ?></h1>
 	</div>
 	<div class="cead-acad-panel-topbar-r">
+		<button type="button" class="cead-acad-theme-toggle" aria-label="<?php esc_attr_e( 'Cambiar tema claro/oscuro', 'cead-acad' ); ?>" onclick="(function(d){var on=d.getAttribute('data-theme')==='dark';if(on){d.removeAttribute('data-theme');}else{d.setAttribute('data-theme','dark');}try{localStorage.setItem('cead_theme',on?'light':'dark');}catch(e){}})(document.documentElement)">
+			<span aria-hidden="true">🌗</span>
+		</button>
 		<a href="<?php echo esc_url( cead_acad_url( 'panel/comunicados' ) ); ?>" class="cead-acad-bell" aria-label="<?php esc_attr_e( 'Comunicados sin leer', 'cead-acad' ); ?>">
 			<span class="cead-acad-bell-icon" aria-hidden="true">!</span>
 			<?php if ( $unread > 0 ) : ?>

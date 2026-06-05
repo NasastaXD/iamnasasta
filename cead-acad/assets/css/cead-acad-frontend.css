@@ -989,3 +989,40 @@ body.cead-acad-panel {
 	flex-wrap: wrap;
 }
 
+
+/* ===================== Dashboard del panel ===================== */
+.cead-acad-quick { display:grid; grid-template-columns:repeat(2,1fr); gap:.75rem; margin-top:1.5rem; }
+@media (min-width:640px){ .cead-acad-quick{ grid-template-columns:repeat(4,1fr); } }
+.cead-acad-quick-item { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.5rem; padding:1.25rem .5rem; background:#fff; border:1px solid var(--cead-acad-border); border-radius:14px; text-decoration:none; color:var(--cead-acad-ink); transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease; }
+.cead-acad-quick-item:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,.08); border-color:var(--cead-acad-brand); }
+.cead-acad-quick-ico { font-size:1.7rem; line-height:1; }
+.cead-acad-quick-lbl { font-family:var(--cead-acad-font-display); text-transform:uppercase; font-size:.95rem; letter-spacing:-.01em; text-align:center; }
+.cead-acad-today { list-style:none; margin:.6rem 0 0; padding:0; display:flex; flex-direction:column; gap:.55rem; }
+.cead-acad-today li { display:flex; flex-wrap:wrap; align-items:baseline; gap:.5rem; padding-bottom:.55rem; border-bottom:1px dashed var(--cead-acad-border); }
+.cead-acad-today li:last-child { border-bottom:0; padding-bottom:0; }
+.cead-acad-today-time { font-family:var(--cead-acad-font-display); color:var(--cead-acad-brand-deep); font-size:.95rem; min-width:96px; }
+.cead-acad-today-mat { font-weight:700; color:var(--cead-acad-ink); text-decoration:none; }
+a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
+.cead-acad-today-doc { color:var(--cead-acad-text-muted); font-size:.85rem; }
+.cead-acad-theme-toggle { background:transparent; border:1px solid var(--cead-acad-border); border-radius:10px; width:38px; height:38px; cursor:pointer; font-size:1.05rem; line-height:1; display:inline-flex; align-items:center; justify-content:center; color:var(--cead-acad-ink); }
+.cead-acad-theme-toggle:hover { border-color:var(--cead-acad-brand); }
+
+/* ===================== Modo oscuro ===================== */
+:root[data-theme="dark"] {
+	--cead-acad-ink:        #eef0f3;
+	--cead-acad-text-soft:  #c3c7cd;
+	--cead-acad-text-muted: #9aa0a8;
+	--cead-acad-canvas:     #14161b;
+	--cead-acad-border:     #2b2f37;
+}
+[data-theme="dark"] body.cead-acad-panel,
+[data-theme="dark"] .cead-acad-panel-content { background:#14161b; }
+[data-theme="dark"] .cead-acad-card,
+[data-theme="dark"] .cead-acad-quick-item,
+[data-theme="dark"] .cead-acad-panel-topbar,
+[data-theme="dark"] .cead-acad-feed-item,
+[data-theme="dark"] .cead-acad-agenda-item,
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea { background:#1d2027; color:var(--cead-acad-ink); }
+[data-theme="dark"] .cead-acad-msg--ok { background:#163521; }
