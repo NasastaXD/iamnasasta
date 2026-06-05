@@ -59,6 +59,7 @@ final class Cead_Acad_Plugin {
 		( new Cead_Acad_Account() )->boot();
 		( new Cead_Acad_Tasks_Frontend() )->boot();
 		( new Cead_Acad_Notifications() )->boot();
+		( new Cead_Acad_Updates() )->boot();
 
 		// Migraciones idempotentes en cambio de versión.
 		if ( get_option( 'cead_acad_db_version' ) !== CEAD_ACAD_DB_VERSION ) {

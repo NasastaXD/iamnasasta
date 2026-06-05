@@ -1,0 +1,35 @@
+name: Empaquetar plugin en cada Release
+
+# Al publicar un Release en GitHub, arma cead-acad.zip (con la carpeta cead-acad/
+# adentro) y lo adjunta como asset. plugin-update-checker lo usa para actualizar
+# el plugin desde WordPress.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-zip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Construir el zip del plugin
+        run: |
+          mkdir -p build/cead-acad
+          cp -r cead-acad/. build/cead-acad/
+          # No incluir artefactos de desarrollo dentro del vendor.
+          rm -rf build/cead-acad/vendor/plugin-update-checker/.git
+          cd build
+          zip -rq ../cead-acad.zip cead-acad -x '*/.git/*' '*/.DS_Store'
+          cd ..
+          ls -la cead-acad.zip
+
+      - name: Adjuntar el zip al Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" cead-acad.zip --clobber
