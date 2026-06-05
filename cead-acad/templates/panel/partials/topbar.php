@@ -16,6 +16,9 @@ $title  = isset( $page_title ) ? $page_title : __( 'Panel', 'cead-acad' );
 ?>
 <header class="cead-acad-panel-topbar">
 	<div class="cead-acad-panel-topbar-l">
+		<button type="button" class="cead-acad-burger" aria-label="<?php esc_attr_e( 'Abrir menú', 'cead-acad' ); ?>" aria-expanded="false" onclick="var o=document.body.classList.toggle('cead-acad-nav-open');this.setAttribute('aria-expanded',o);">
+			<span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+		</button>
 		<h1 class="cead-acad-panel-topbar-title"><?php echo esc_html( $title ); ?></h1>
 	</div>
 	<div class="cead-acad-panel-topbar-r">

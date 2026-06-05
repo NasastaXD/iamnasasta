@@ -26,6 +26,7 @@ $page_title = $page_title ?? __( 'Panel', 'cead-acad' );
 </head>
 <body class="cead-acad-panel">
 	<div class="cead-acad-panel-shell">
+		<div class="cead-acad-nav-backdrop" onclick="document.body.classList.remove('cead-acad-nav-open');"></div>
 		<?php include CEAD_ACAD_DIR . 'templates/panel/partials/sidebar.php'; ?>
 		<div class="cead-acad-panel-main">
 			<?php include CEAD_ACAD_DIR . 'templates/panel/partials/topbar.php'; ?>
