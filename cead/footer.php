@@ -62,6 +62,18 @@
       </div>
     </div>
 
+    <!-- Cómo llegar / mapa -->
+    <?php $cead_map = get_theme_mod( 'cead_map_embed', function_exists( 'cead_default_map_embed' ) ? cead_default_map_embed() : '' ); ?>
+    <?php if ( $cead_map ) : ?>
+      <div id="ComoLlegar" class="footer-map">
+        <div class="eyebrow">— <?php echo esc_html( get_theme_mod( 'cead_map_title', 'Cómo llegar' ) ); ?></div>
+        <div class="footer-map-frame">
+          <iframe src="<?php echo esc_url( $cead_map ); ?>" title="<?php esc_attr_e( 'Mapa del CEAD', 'cead' ); ?>" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+        <p class="footer-map-addr">📍 <?php echo esc_html( get_theme_mod( 'cead_address', 'Caaguazú, Paraguay' ) ); ?></p>
+      </div>
+    <?php endif; ?>
+
     <!-- Formulario de contacto -->
     <div id="Contacto" class="footer-contact">
       <div class="footer-contact-intro">

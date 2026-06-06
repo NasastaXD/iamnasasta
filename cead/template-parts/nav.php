@@ -78,8 +78,27 @@ $default_sections = [
                     <?php endforeach; ?>
                 </ul>
             </div>
-        <?php endforeach;
-    endif;
+        <?php endforeach; ?>
+
+        <?php // Enlaces reales a las secciones públicas nuevas. ?>
+        <div class="mega-menu-col">
+            <div class="mega-menu-col-title"><?php echo esc_html( cead_pad2( count( $default_sections ) + 1 ) . ' — Explorá' ); ?></div>
+            <ul class="mega-menu-list">
+                <?php
+                $cead_explore = [
+                    [ 'Noticias', get_post_type_archive_link( 'cead_noticia' ) ],
+                    [ 'Recursos', get_post_type_archive_link( 'cead_recurso' ) ],
+                    [ 'Galería',  get_post_type_archive_link( 'cead_galeria' ) ],
+                    [ 'Cómo llegar', home_url( '/#ComoLlegar' ) ],
+                    [ 'Contacto', home_url( '/#Contacto' ) ],
+                ];
+                foreach ( $cead_explore as $lnk ) :
+                    if ( empty( $lnk[1] ) ) { continue; } ?>
+                    <li><a href="<?php echo esc_url( $lnk[1] ); ?>"><?php echo esc_html( $lnk[0] ); ?></a></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    <?php endif;
     ?>
   </div>
   <div class="mega-menu-foot">
