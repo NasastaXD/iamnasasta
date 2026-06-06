@@ -6,7 +6,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('CEAD_VERSION', '1.3.0');
+define('CEAD_VERSION', '1.3.1');
 define('CEAD_DIR', get_template_directory());
 define('CEAD_URI', get_template_directory_uri());
 
@@ -65,7 +65,7 @@ function cead_enqueue() {
     }
 
     // JS del tema
-    wp_enqueue_script('cead-main', CEAD_URI . '/assets/js/main.js', ['gsap', 'gsap-scrolltrigger'], CEAD_VERSION, true);
+    wp_enqueue_script('cead-main', CEAD_URI . '/assets/js/main.js', [], CEAD_VERSION, true);
 
     if (is_singular() && comments_open() && get_option('thread_comments')) {
         wp_enqueue_script('comment-reply');

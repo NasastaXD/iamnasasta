@@ -1200,3 +1200,8 @@ p { margin: 0; }
 .footer-map-frame { margin-top: .8rem; border: 1px solid rgba(255,255,255,.15); border-radius: 10px; overflow: hidden; }
 .footer-map-frame iframe { display: block; width: 100%; height: 300px; border: 0; }
 .footer-map-addr { margin-top: .6rem; color: var(--text-muted); }
+
+/* ===================== Admin bar de WordPress ===================== */
+/* Para usuarios logueados, bajar el nav fijo para no taparse con la barra de WP. */
+.admin-bar .site-nav { top: 32px; }
+@media screen and (max-width: 782px) { .admin-bar .site-nav { top: 46px; } }
