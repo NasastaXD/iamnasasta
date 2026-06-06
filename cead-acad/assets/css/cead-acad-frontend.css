@@ -1375,3 +1375,12 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 /* Hamburguesa: ícono SVG (las líneas usan currentColor). */
 .cead-acad-burger { color: var(--cead-acad-ink); }
 .cead-acad-burger svg { display: block; }
+
+/* ===================== Login: ver contraseña ===================== */
+.cead-acad-pass-wrap { position: relative; display: block; }
+.cead-acad-pass-wrap input { width: 100%; padding-right: 2.8rem; }
+.cead-acad-pass-toggle {
+	position: absolute; right: .5rem; top: 50%; transform: translateY(-50%);
+	background: none; border: 0; cursor: pointer; font-size: 1.15rem; line-height: 1;
+	padding: .25rem; -webkit-tap-highlight-color: transparent;
+}

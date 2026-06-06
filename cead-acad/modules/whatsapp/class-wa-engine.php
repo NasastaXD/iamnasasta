@@ -73,6 +73,18 @@ class Cead_Acad_WA_Engine {
 			return;
 		}
 
+		// CEADI solo atiende a números registrados en el panel del CEAD. A los
+		// desconocidos se les avisa una vez (cada 6h) y no se entra a los menús.
+		if ( get_option( 'cead_acad_wa_registered_only', 1 ) && empty( $identity['user_id'] ) ) {
+			$notice_key = 'cead_acad_wa_unreg_' . md5( $phone );
+			if ( ! get_transient( $notice_key ) ) {
+				set_transient( $notice_key, 1, 6 * HOUR_IN_SECONDS );
+				$this->send( $phone, '👋 Este número no está registrado en el panel del CEAD, así que CEADI todavía no puede atenderte por acá. Pedile a la dirección o secretaría que registre tu número.', 'not_registered' );
+				$this->flush_outbox( $phone );
+			}
+			return;
+		}
+
 		// "bajar": reenvía el mensaje actual al final del chat (mensaje nuevo).
 		if ( in_array( $lc, [ 'bajar', 'abajo' ], true ) ) {
 			$this->bring_down( $phone );

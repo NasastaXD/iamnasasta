@@ -27,6 +27,11 @@ class Cead_Acad_Auth_Controller {
 		$password   = (string) ( $_POST['user_pass'] ?? '' );
 		$remember   = ! empty( $_POST['remember'] );
 
+		// Conservar el usuario tipeado para repoblar el formulario si algo falla.
+		if ( $user_login ) {
+			cead_acad_flash( 'login_user', $user_login );
+		}
+
 		if ( ! $user_login || ! $password ) {
 			$this->bail_to( 'login', 'missing_fields' );
 		}

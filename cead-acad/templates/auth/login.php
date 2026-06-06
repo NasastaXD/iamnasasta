@@ -15,7 +15,8 @@ $ok   = isset( $_GET['ok'] )  ? sanitize_key( $_GET['ok'] )  : '';
 $next = isset( $_GET['next'] ) ? esc_url_raw( wp_unslash( $_GET['next'] ) ) : '';
 
 $title = __( 'Ingresar al panel', 'cead-acad' );
-$body  = function () use ( $err, $ok, $next ) {
+$prefill_user = function_exists( 'cead_acad_flash' ) ? (string) cead_acad_flash( 'login_user' ) : '';
+$body  = function () use ( $err, $ok, $next, $prefill_user ) {
 	?>
 	<h1 class="cead-acad-auth-h"><?php esc_html_e( 'Ingresar', 'cead-acad' ); ?></h1>
 	<p class="cead-acad-auth-sub"><?php esc_html_e( 'Accedé con tu usuario y contraseña.', 'cead-acad' ); ?></p>
@@ -44,12 +45,15 @@ $body  = function () use ( $err, $ok, $next ) {
 
 		<label class="cead-acad-field">
 			<span class="cead-acad-label"><?php esc_html_e( 'Usuario o email', 'cead-acad' ); ?></span>
-			<input type="text" name="user_login" required autocomplete="username" autofocus>
+			<input type="text" name="user_login" value="<?php echo esc_attr( $prefill_user ); ?>" required autocomplete="username" <?php echo $prefill_user ? '' : 'autofocus'; ?>>
 		</label>
 
 		<label class="cead-acad-field">
 			<span class="cead-acad-label"><?php esc_html_e( 'Contraseña', 'cead-acad' ); ?></span>
-			<input type="password" name="user_pass" required autocomplete="current-password">
+			<span class="cead-acad-pass-wrap">
+				<input type="password" name="user_pass" id="cead-acad-pass" required autocomplete="current-password" <?php echo $prefill_user ? 'autofocus' : ''; ?>>
+				<button type="button" class="cead-acad-pass-toggle" aria-label="<?php esc_attr_e( 'Mostrar u ocultar contraseña', 'cead-acad' ); ?>" onclick="var i=document.getElementById('cead-acad-pass');var s=i.type==='password';i.type=s?'text':'password';this.textContent=s?'🙈':'👁';"><?php echo '👁'; ?></button>
+			</span>
 		</label>
 
 		<label class="cead-acad-checkbox">
