@@ -10,11 +10,85 @@ class Cead_Acad_Account {
 	const PHONE_META  = '_cead_acad_phone';
 	const FAV_META    = '_cead_acad_fav_resources';
 
+	const VCODE_META    = '_cead_acad_wa_code';
+	const VEXP_META     = '_cead_acad_wa_code_exp';
+	const VERIFIED_META = '_cead_acad_phone_verified';
+
 	public function boot() {
 		add_action( 'admin_post_cead_acad_save_profile', [ $this, 'handle_save_profile' ] );
 		add_action( 'admin_post_cead_acad_toggle_fav',   [ $this, 'handle_toggle_fav' ] );
 		add_action( 'admin_post_cead_acad_send_message',  [ $this, 'handle_send_message' ] );
+		add_action( 'admin_post_cead_acad_send_wa_code',   [ $this, 'handle_send_wa_code' ] );
+		add_action( 'admin_post_cead_acad_verify_wa_code', [ $this, 'handle_verify_wa_code' ] );
 		add_filter( 'get_avatar_data', [ $this, 'filter_avatar_data' ], 10, 2 );
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Verificación del teléfono por WhatsApp (CEADI)                      */
+	/* ------------------------------------------------------------------ */
+
+	public static function is_phone_verified( $user_id ) {
+		return (bool) get_user_meta( (int) $user_id, self::VERIFIED_META, true );
+	}
+
+	/** Envía un código de 6 dígitos por CEADI al teléfono del perfil. */
+	public function handle_send_wa_code() {
+		if ( ! is_user_logged_in() ) { wp_safe_redirect( cead_acad_url( 'login' ) ); exit; }
+		check_admin_referer( 'cead_acad_send_wa_code' );
+
+		$uid   = get_current_user_id();
+		$dest  = cead_acad_url( 'panel/perfil' );
+		$phone = preg_replace( '/[^0-9]/', '', (string) get_user_meta( $uid, self::PHONE_META, true ) );
+
+		if ( strlen( $phone ) < 7 ) {
+			wp_safe_redirect( add_query_arg( 'verr', 'nophone', $dest ) );
+			exit;
+		}
+		// Anti-spam: un envío por minuto.
+		if ( get_transient( 'cead_acad_wa_code_throttle_' . $uid ) ) {
+			wp_safe_redirect( add_query_arg( 'verr', 'throttle', $dest ) );
+			exit;
+		}
+
+		$code = (string) wp_rand( 100000, 999999 );
+		update_user_meta( $uid, self::VCODE_META, wp_hash( $code ) );
+		update_user_meta( $uid, self::VEXP_META, time() + 600 );
+		set_transient( 'cead_acad_wa_code_throttle_' . $uid, 1, 60 );
+
+		$sent = false;
+		if ( class_exists( 'Cead_Acad_WA_Module' ) ) {
+			$sent = (bool) Cead_Acad_WA_Module::notify( $phone, "🔐 Tu código de verificación CEADI es: *{$code}*\n\nVence en 10 minutos. Si no lo pediste, ignorá este mensaje." );
+		}
+		wp_safe_redirect( add_query_arg( $sent ? [ 'vsent' => 1 ] : [ 'verr' => 'send' ], $dest ) );
+		exit;
+	}
+
+	/** Verifica el código ingresado en el panel. */
+	public function handle_verify_wa_code() {
+		if ( ! is_user_logged_in() ) { wp_safe_redirect( cead_acad_url( 'login' ) ); exit; }
+		check_admin_referer( 'cead_acad_verify_wa_code' );
+
+		$uid  = get_current_user_id();
+		$dest = cead_acad_url( 'panel/perfil' );
+		$code = preg_replace( '/[^0-9]/', '', (string) ( $_POST['code'] ?? '' ) );
+
+		$stored = (string) get_user_meta( $uid, self::VCODE_META, true );
+		$exp    = (int) get_user_meta( $uid, self::VEXP_META, true );
+
+		if ( ! $stored || ! $exp || time() > $exp ) {
+			wp_safe_redirect( add_query_arg( 'verr', 'expired', $dest ) );
+			exit;
+		}
+		if ( ! hash_equals( $stored, wp_hash( $code ) ) ) {
+			wp_safe_redirect( add_query_arg( 'verr', 'bad', $dest ) );
+			exit;
+		}
+
+		update_user_meta( $uid, self::VERIFIED_META, 1 );
+		delete_user_meta( $uid, self::VCODE_META );
+		delete_user_meta( $uid, self::VEXP_META );
+		wp_safe_redirect( add_query_arg( 'vok', 1, $dest ) );
+		exit;
 	}
 
 	/* ------------------------------------------------------------------ */

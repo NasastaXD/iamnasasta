@@ -147,6 +147,8 @@ class Cead_Acad_WA_Engine {
 			case 'stu_report_cat':       $this->report_cat( $phone, $lc, $context ); break;
 			case 'stu_report_body':      $this->report_body( $phone, $body, $lc, $context ); break;
 			case 'stu_suggestion_body':  $this->suggestion_body( $phone, $body, $lc, $identity ); break;
+			case 'stu_msg_to':           $this->msg_to( $phone, $lc, $identity ); break;
+			case 'stu_msg_body':         $this->msg_body( $phone, $body, $lc, $context, $identity ); break;
 			case 'stu_council_menu':     $this->council_menu( $phone, $lc ); break;
 			case 'stu_council_proposal': $this->council_proposal( $phone, $body, $lc, $identity ); break;
 			// Staff
@@ -587,8 +589,31 @@ class Cead_Acad_WA_Engine {
 	// A6 Sugerencias
 	private function suggestion_start( $phone ) {
 		$this->force_new = true;
-		$this->store->set_state( $phone, 'stu_suggestion_body' );
-		$this->send( $phone, $this->m( 'suggestion_prompt' ) . $this->cap_hint() );
+		$this->store->set_state( $phone, 'stu_msg_to' );
+		$this->send( $phone, "✉️ *Escribir a un encargado*\n\n¿A quién querés escribirle?\n\n1. Administración / Secretaría\n2. Consejo Estudiantil\n3. Dirección\n\nEnviá *0* para cancelar." );
+	}
+
+	/** Elige destinatario del mensaje (#1). */
+	private function msg_to( $phone, $lc, $identity ) {
+		if ( $this->is_cancel( $lc ) ) { $this->back_to_student( $phone ); return; }
+		$map = [ '1' => 'administracion', '2' => 'consejo', '3' => 'direccion' ];
+		if ( ! isset( $map[ $lc ] ) ) { $this->invalid( $phone ); return; }
+		$labels = [ 'administracion' => 'Administración', 'consejo' => 'Consejo Estudiantil', 'direccion' => 'Dirección' ];
+		$cat    = $map[ $lc ];
+		$this->store->set_state( $phone, 'stu_msg_body', [ 'category' => $cat ] );
+		$this->send( $phone, sprintf( "Escribí tu mensaje para *%s* (0 para cancelar):", $labels[ $cat ] ) . $this->cap_hint() );
+	}
+
+	/** Captura el mensaje y lo guarda en el buzón con el remitente (#1). */
+	private function msg_body( $phone, $body, $lc, $context, $identity ) {
+		if ( $this->is_cancel( $lc ) ) { $this->back_to_student( $phone ); return; }
+		$cat  = (string) ( $context['category'] ?? 'administracion' );
+		$uid  = (int) ( $identity['user_id'] ?? 0 );
+		$who  = $uid ? ( get_userdata( $uid )->display_name ?? '' ) : '';
+		$text = ( $who !== '' ? "✉️ De {$who}:\n\n" : '' ) . $body;
+		$this->store->create_suggestion( $phone, $text, $cat );
+		$this->send( $phone, '✅ Tu mensaje fue enviado. Te van a responder por acá o en el panel.', 'suggestion_received' );
+		$this->finish_capture( $phone, 'student' );
 	}
 
 	private function suggestion_body( $phone, $body, $lc, $identity ) {
@@ -1233,7 +1258,7 @@ class Cead_Acad_WA_Engine {
 	// --------------------------------------------------- filtro de lenguaje
 	/** Estados donde el usuario escribe texto libre que se guarda/reenvía. */
 	private function is_free_text_state( $state ) {
-		return in_array( $state, [ 'stu_report_body', 'stu_suggestion_body', 'stu_council_proposal', 'staff_comm_compose' ], true );
+		return in_array( $state, [ 'stu_report_body', 'stu_suggestion_body', 'stu_msg_body', 'stu_council_proposal', 'staff_comm_compose' ], true );
 	}
 
 	/** Lista de palabras prohibidas configurable (una por línea o separadas por coma). */
@@ -1407,7 +1432,7 @@ class Cead_Acad_WA_Engine {
 
 	/** Comando "volver": sube un nivel de menú según el estado actual. */
 	private function go_back( $phone, $state, $identity ) {
-		$student_sub = [ 'stu_report_type', 'stu_report_cat', 'stu_report_body', 'stu_suggestion_body', 'stu_council_menu', 'stu_council_proposal' ];
+		$student_sub = [ 'stu_report_type', 'stu_report_cat', 'stu_report_body', 'stu_suggestion_body', 'stu_msg_to', 'stu_msg_body', 'stu_council_menu', 'stu_council_proposal' ];
 		$staff_sub   = [
 			'staff_comm_compose', 'staff_comm_template', 'staff_comm_audience', 'staff_comm_when', 'staff_comm_confirm', 'staff_comm_schedule',
 			'staff_event_title', 'staff_event_date', 'staff_article_menu', 'staff_article_title', 'staff_article_body',

@@ -82,6 +82,56 @@ $body = function () use ( $user, $rdisp, $avatar, $phone, $doc ) {
 				<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( cead_acad_url( 'panel/carne' ) ); ?>"><?php esc_html_e( 'Ver mi carné', 'cead-acad' ); ?></a>
 			</div>
 		</form>
+
+		<?php
+		// Verificación del teléfono por WhatsApp (CEADI).
+		$verified = Cead_Acad_Account::is_phone_verified( $user->ID );
+		$vok      = isset( $_GET['vok'] );
+		$vsent    = isset( $_GET['vsent'] );
+		$verr     = isset( $_GET['verr'] ) ? sanitize_key( (string) $_GET['verr'] ) : '';
+		$verrs    = [
+			'nophone'  => __( 'Primero cargá y guardá tu teléfono arriba.', 'cead-acad' ),
+			'throttle' => __( 'Esperá un minuto antes de pedir otro código.', 'cead-acad' ),
+			'send'     => __( 'No se pudo enviar el código (¿CEADI está conectado?).', 'cead-acad' ),
+			'expired'  => __( 'El código venció. Pedí uno nuevo.', 'cead-acad' ),
+			'bad'      => __( 'Código incorrecto. Revisá e intentá de nuevo.', 'cead-acad' ),
+		];
+		?>
+		<div class="cead-acad-card" style="margin-top:1.5rem">
+			<span class="cead-acad-eyebrow"><?php esc_html_e( 'WhatsApp', 'cead-acad' ); ?></span>
+			<h3>
+				<?php esc_html_e( 'Verificación de tu número', 'cead-acad' ); ?>
+				<?php if ( $verified ) : ?><span class="cead-acad-pill">✅ <?php esc_html_e( 'Verificado', 'cead-acad' ); ?></span><?php endif; ?>
+			</h3>
+			<p><?php esc_html_e( 'Verificá tu teléfono para confirmar que es tuyo y que CEADI pueda atenderte por WhatsApp.', 'cead-acad' ); ?></p>
+
+			<?php if ( $vok ) : ?>
+				<div class="cead-acad-msg cead-acad-msg--ok"><?php esc_html_e( '¡Número verificado! 🎉', 'cead-acad' ); ?></div>
+			<?php elseif ( $vsent ) : ?>
+				<div class="cead-acad-msg cead-acad-msg--ok"><?php esc_html_e( 'Te enviamos un código por WhatsApp. Ingresalo abajo.', 'cead-acad' ); ?></div>
+			<?php elseif ( $verr && isset( $verrs[ $verr ] ) ) : ?>
+				<div class="cead-acad-msg cead-acad-msg--err"><?php echo esc_html( $verrs[ $verr ] ); ?></div>
+			<?php endif; ?>
+
+			<?php if ( ! $verified ) : ?>
+				<div class="cead-acad-profile-actions" style="align-items:flex-end;gap:1rem">
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="cead_acad_send_wa_code">
+						<?php wp_nonce_field( 'cead_acad_send_wa_code' ); ?>
+						<button type="submit" class="cead-acad-btn cead-acad-btn--ghost"><?php esc_html_e( 'Enviarme un código por WhatsApp', 'cead-acad' ); ?></button>
+					</form>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:flex;gap:.5rem;align-items:flex-end">
+						<input type="hidden" name="action" value="cead_acad_verify_wa_code">
+						<?php wp_nonce_field( 'cead_acad_verify_wa_code' ); ?>
+						<label class="cead-acad-field" style="margin:0">
+							<span><?php esc_html_e( 'Código', 'cead-acad' ); ?></span>
+							<input type="text" name="code" inputmode="numeric" maxlength="6" pattern="[0-9]*" placeholder="123456" required>
+						</label>
+						<button type="submit" class="cead-acad-btn"><?php esc_html_e( 'Verificar', 'cead-acad' ); ?></button>
+					</form>
+				</div>
+			<?php endif; ?>
+		</div>
 	</section>
 	<?php
 };
