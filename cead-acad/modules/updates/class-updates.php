@@ -46,7 +46,25 @@ class Cead_Acad_Updates {
 		// al Release (asset) en vez del código fuente completo del repo.
 		$api = $this->checker->getVcsApi();
 		if ( $api && method_exists( $api, 'enableReleaseAssets' ) ) {
-			$api->enableReleaseAssets( self::ASSET_REGEX );
+			// REQUIRE: nunca caer al zip del código fuente (monorepo) si falta el asset.
+			$api->enableReleaseAssets( self::ASSET_REGEX, 2 /* REQUIRE_RELEASE_ASSETS */ );
+		}
+		// Considerar solo Releases que tengan el asset del plugin. Así los Releases
+		// del TEMA (cead-theme.zip) del mismo repo no afectan al plugin.
+		if ( $api && method_exists( $api, 'setReleaseFilter' ) ) {
+			$api->setReleaseFilter(
+				function ( $version, $release ) {
+					if ( ! is_object( $release ) || empty( $release->assets ) || ! is_array( $release->assets ) ) {
+						return false;
+					}
+					foreach ( $release->assets as $asset ) {
+						if ( isset( $asset->name ) && $asset->name === 'cead-acad.zip' ) {
+							return true;
+						}
+					}
+					return false;
+				}
+			);
 		}
 	}
 

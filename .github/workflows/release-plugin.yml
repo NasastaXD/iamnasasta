@@ -1,35 +1,36 @@
-name: Empaquetar plugin en cada Release
+name: Empaquetar plugin y tema
 
-# Al publicar un Release en GitHub, arma cead-acad.zip (con la carpeta cead-acad/
-# adentro) y lo adjunta como asset. plugin-update-checker lo usa para actualizar
-# el plugin desde WordPress.
+# Manual: arma cead-acad.zip (plugin) y cead-theme.zip (tema) como artefactos
+# descargables. Los Releases se crean aparte, adjuntando el zip que corresponda
+# (plugin → cead-acad.zip; tema → cead-theme.zip, marcado como prerelease).
+#
+# Nota: NO se dispara en "release: published" a propósito, porque en este
+# monorepo conviven plugin y tema; adjuntar el asset equivocado rompería el
+# auto-update. El asset se sube al crear cada Release.
 
 on:
-  release:
-    types: [published]
-
-permissions:
-  contents: write
+  workflow_dispatch:
 
 jobs:
-  build-zip:
+  build-zips:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Construir el zip del plugin
+      - name: Construir zips
         run: |
-          mkdir -p build/cead-acad
+          mkdir -p build/cead-acad build/cead
           cp -r cead-acad/. build/cead-acad/
-          # No incluir artefactos de desarrollo dentro del vendor.
-          rm -rf build/cead-acad/vendor/plugin-update-checker/.git
-          cd build
-          zip -rq ../cead-acad.zip cead-acad -x '*/.git/*' '*/.DS_Store'
-          cd ..
-          ls -la cead-acad.zip
+          cp -r cead/. build/cead/
+          ( cd build && zip -rq ../cead-acad.zip cead-acad -x '*/.git/*' '*/.DS_Store' )
+          ( cd build && zip -rq ../cead-theme.zip cead   -x '*/.git/*' '*/.DS_Store' )
+          ls -la cead-acad.zip cead-theme.zip
 
-      - name: Adjuntar el zip al Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" cead-acad.zip --clobber
+      - name: Subir artefactos
+        uses: actions/upload-artifact@v4
+        with:
+          name: cead-zips
+          path: |
+            cead-acad.zip
+            cead-theme.zip
