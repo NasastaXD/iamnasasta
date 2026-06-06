@@ -6,7 +6,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('CEAD_VERSION', '1.2.2');
+define('CEAD_VERSION', '1.3.0');
 define('CEAD_DIR', get_template_directory());
 define('CEAD_URI', get_template_directory_uri());
 
@@ -81,6 +81,7 @@ require_once CEAD_DIR . '/inc/helpers.php';
 require_once CEAD_DIR . '/inc/elementor.php';
 require_once CEAD_DIR . '/inc/public.php';
 require_once CEAD_DIR . '/inc/updates.php';
+require_once CEAD_DIR . '/inc/pages.php';
 
 /* ---------- Seeders al activar el tema ----------
  * Marca un flag al activar, e inserta los CPT en el siguiente `init`

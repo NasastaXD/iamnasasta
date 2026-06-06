@@ -3,13 +3,26 @@
  * Header / nav fijo + mega menú.
  * Si hay menú "primary" asignado, lo usa; si no, hardcodea las 5 secciones del original.
  */
-$default_sections = [
-    ['label' => 'Creemos',    'items' => ['Sobre CEAD', 'Misión y Visión', 'Honor Code', 'Historia']],
-    ['label' => 'Admisión',   'items' => ['Proceso', 'Calendario', 'Requisitos', 'Visitas']],
-    ['label' => 'Divisiones', 'items' => ['Ciencias Básicas', 'Ciencias Sociales', 'Letras y Artes', 'Servicios Turísticos']],
-    ['label' => 'Comunidad',  'items' => ['Estudiantes', 'Docentes', 'Familias', 'Egresados']],
-    ['label' => 'Vida',       'items' => ['Cultural', 'Deporte', 'Académico', 'Clubes']],
-];
+// Secciones con enlaces REALES: páginas (Creemos/Admisión/Comunidad/Vida) +
+// Divisiones desde el CPT. Cada item: ['label'=>..., 'url'=>...].
+$default_sections = [];
+$page_sections = function_exists( 'cead_nav_page_sections' ) ? cead_nav_page_sections() : [];
+foreach ( $page_sections as $label => $items ) {
+    $links = [];
+    foreach ( $items as $it ) {
+        $links[] = [ 'label' => $it[0], 'url' => cead_page_url( $it[1] ) ];
+    }
+    $default_sections[] = [ 'label' => $label, 'items' => $links ];
+}
+// Divisiones (CPT) → insertarlas después de "Admisión".
+$cead_divs = get_posts( [ 'post_type' => 'cead_division', 'posts_per_page' => 8, 'orderby' => 'menu_order', 'order' => 'ASC' ] );
+if ( $cead_divs ) {
+    $dlinks = [];
+    foreach ( $cead_divs as $d ) {
+        $dlinks[] = [ 'label' => get_the_title( $d ), 'url' => get_permalink( $d ) ];
+    }
+    array_splice( $default_sections, 2, 0, [ [ 'label' => 'Divisiones', 'items' => $dlinks ] ] );
+}
 ?>
 <header id="site-nav" class="site-nav">
   <div class="container site-nav-inner">
@@ -27,8 +40,10 @@ $default_sections = [
             'fallback_cb'    => false,
         ]); ?>
       <?php else: ?>
-        <?php foreach ($default_sections as $s): ?>
-          <a href="#<?php echo esc_attr(sanitize_title($s['label'])); ?>" class="site-nav-link underline-brand">
+        <?php foreach ($default_sections as $s):
+            $top_url = ! empty( $s['items'][0]['url'] ) ? $s['items'][0]['url'] : home_url( '/' );
+        ?>
+          <a href="<?php echo esc_url( $top_url ); ?>" class="site-nav-link underline-brand">
             <?php echo esc_html($s['label']); ?>
           </a>
         <?php endforeach; ?>
@@ -74,7 +89,7 @@ $default_sections = [
                 </div>
                 <ul class="mega-menu-list">
                     <?php foreach ($s['items'] as $it): ?>
-                        <li><a href="#"><?php echo esc_html($it); ?></a></li>
+                        <li><a href="<?php echo esc_url( $it['url'] ); ?>"><?php echo esc_html( $it['label'] ); ?></a></li>
                     <?php endforeach; ?>
                 </ul>
             </div>
