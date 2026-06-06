@@ -17,6 +17,10 @@ class Cead_Acad_Rewrites {
 
 		// Bloquear wp-login.php para usuarios del plugin (toggle vía settings, default ON).
 		add_action( 'login_init', [ $this, 'block_wp_login' ] );
+
+		// Evitar que WordPress, ante una URL que no encuentra, "adivine" y redirija
+		// a un post al azar (ej.: "Hello World"). Mejor un 404 limpio.
+		add_filter( 'redirect_guess_404_permalink', '__return_false' );
 	}
 
 	public function register() {
@@ -214,6 +218,10 @@ class Cead_Acad_Rewrites {
 
 			case 'contacto':
 				cead_acad_template( 'panel/contacto/show.php' );
+				return;
+
+			case 'faq':
+				cead_acad_template( 'panel/faq/list.php' );
 				return;
 
 			case 'delegado':

@@ -147,6 +147,43 @@ function cead_acad_flash( $key, $value = null ) {
 }
 
 /**
+ * Lista de palabras prohibidas (configurable en CEAD Académico → WhatsApp).
+ * Si está vacía, usa una base por defecto.
+ *
+ * @return string[]
+ */
+function cead_acad_banned_words_list() {
+	$raw = (string) get_option( 'cead_acad_banned_words', '' );
+	$list = preg_split( '/[\r\n,]+/', $raw );
+	$list = array_values( array_filter( array_map( 'trim', (array) $list ), static function ( $w ) { return $w !== ''; } ) );
+	if ( ! $list ) {
+		// Base mínima (editable desde el panel del bot). Sin tildes para el match.
+		$list = [ 'puto', 'puta', 'pija', 'concha', 'mierda', 'verga', 'carajo', 'idiota', 'estupido', 'imbecil', 'pelotudo', 'forro', 'cagar', 'culo', 'tarado' ];
+	}
+	return $list;
+}
+
+/**
+ * ¿El texto contiene alguna palabra prohibida? (match por palabra, sin tildes,
+ * sin distinción de mayúsculas). Reutilizable en panel, formularios y usuarios.
+ */
+function cead_acad_has_banned_words( $text ) {
+	$text = (string) $text;
+	if ( $text === '' ) { return false; }
+	$norm = strtolower( $text );
+	// Quitar tildes para que "imbécil" matchee "imbecil".
+	$norm = strtr( $norm, [ 'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ü'=>'u' ] );
+	foreach ( cead_acad_banned_words_list() as $w ) {
+		$wn = strtolower( strtr( $w, [ 'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ü'=>'u' ] ) );
+		if ( $wn === '' ) { continue; }
+		if ( preg_match( '/\b' . preg_quote( $wn, '/' ) . '\b/u', $norm ) ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
  * Verifica un nonce simple con action.
  */
 function cead_acad_verify_nonce( $field, $action ) {

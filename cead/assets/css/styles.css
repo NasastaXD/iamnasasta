@@ -185,14 +185,14 @@ p { margin: 0; }
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 40;
-  transition: all .5s ease;
+  transition: background .35s ease, box-shadow .35s ease, backdrop-filter .35s ease;
   background: transparent;
 }
 .site-nav.is-scrolled {
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border-cead);
-  box-shadow: 0 1px 0 rgba(0,0,0,.02);
+  /* Sombra en vez de border-bottom para no empujar el layout (evita el "salto"). */
+  box-shadow: 0 1px 0 var(--border-cead), 0 6px 24px rgba(0,0,0,.04);
 }
 .site-nav-inner {
   height: 5rem;

@@ -273,8 +273,38 @@ class Cead_Acad_Admin_Menu {
 		switch ( $action ) {
 			case 'create': return $this->do_create_user();
 			case 'edit':   return $this->do_edit_user();
+			case 'delete': return $this->do_delete_user();
 		}
 		return null;
+	}
+
+	/**
+	 * Elimina un usuario del plugin. Gated a quien gestiona roles. No permite
+	 * borrarse a sí mismo ni a administradores de WordPress.
+	 */
+	protected function do_delete_user() {
+		if ( ! current_user_can( 'cead_acad_manage_roles' ) && ! current_user_can( 'manage_options' ) ) {
+			return [ 'type' => 'error', 'msg' => __( 'No tenés permiso para eliminar usuarios.', 'cead-acad' ) ];
+		}
+		$user_id = (int) ( $_POST['user_id'] ?? 0 );
+		$user    = $user_id ? get_user_by( 'id', $user_id ) : null;
+		if ( ! $user ) {
+			return [ 'type' => 'error', 'msg' => __( 'Usuario inválido.', 'cead-acad' ) ];
+		}
+		if ( $user_id === get_current_user_id() ) {
+			return [ 'type' => 'error', 'msg' => __( 'No podés eliminar tu propia cuenta.', 'cead-acad' ) ];
+		}
+		if ( in_array( 'administrator', (array) $user->roles, true ) ) {
+			return [ 'type' => 'error', 'msg' => __( 'No se puede eliminar a un administrador desde acá.', 'cead-acad' ) ];
+		}
+
+		require_once ABSPATH . 'wp-admin/includes/user.php';
+		// Reasigna su contenido al usuario actual para no perder nada.
+		$ok = wp_delete_user( $user_id, get_current_user_id() );
+
+		return $ok
+			? [ 'type' => 'success', 'msg' => sprintf( __( 'Usuario «%s» eliminado.', 'cead-acad' ), $user->display_name ) ]
+			: [ 'type' => 'error', 'msg' => __( 'No se pudo eliminar el usuario.', 'cead-acad' ) ];
 	}
 
 	protected function do_create_user() {
@@ -286,6 +316,9 @@ class Cead_Acad_Admin_Menu {
 
 		if ( ! $full_name || ! $user_login ) {
 			return [ 'type' => 'error', 'msg' => __( 'Nombre y usuario son obligatorios.', 'cead-acad' ) ];
+		}
+		if ( cead_acad_has_banned_words( $full_name ) || cead_acad_has_banned_words( $user_login ) ) {
+			return [ 'type' => 'error', 'msg' => __( 'El nombre o el usuario contienen lenguaje no permitido.', 'cead-acad' ) ];
 		}
 		if ( username_exists( $user_login ) ) {
 			return [ 'type' => 'error', 'msg' => __( 'Ese nombre de usuario ya está en uso.', 'cead-acad' ) ];
@@ -333,10 +366,31 @@ class Cead_Acad_Admin_Menu {
 			return [ 'type' => 'error', 'msg' => __( 'Usuario inválido.', 'cead-acad' ) ];
 		}
 
-		$phone = sanitize_text_field( wp_unslash( $_POST['phone'] ?? '' ) );
-		$role  = sanitize_key( wp_unslash( $_POST['role'] ?? '' ) );
+		$phone   = sanitize_text_field( wp_unslash( $_POST['phone'] ?? '' ) );
+		$role    = sanitize_key( wp_unslash( $_POST['role'] ?? '' ) );
+		$name    = sanitize_text_field( wp_unslash( $_POST['display_name'] ?? '' ) );
+		$email   = sanitize_email( wp_unslash( $_POST['email'] ?? '' ) );
+		$resetpw = ! empty( $_POST['reset_password'] );
+
+		if ( $name !== '' && cead_acad_has_banned_words( $name ) ) {
+			return [ 'type' => 'error', 'msg' => __( 'El nombre contiene lenguaje no permitido.', 'cead-acad' ) ];
+		}
+		if ( $email && email_exists( $email ) && (int) email_exists( $email ) !== $user_id ) {
+			return [ 'type' => 'error', 'msg' => __( 'Ya hay otra cuenta con ese email.', 'cead-acad' ) ];
+		}
 
 		update_user_meta( $user_id, '_cead_acad_phone', $phone );
+
+		// Datos básicos (nombre / email).
+		$update = [ 'ID' => $user_id ];
+		if ( $name !== '' ) { $update['display_name'] = $name; $update['first_name'] = $name; }
+		if ( $email !== '' ) { $update['user_email'] = $email; }
+		if ( count( $update ) > 1 ) {
+			$res = wp_update_user( $update );
+			if ( is_wp_error( $res ) ) {
+				return [ 'type' => 'error', 'msg' => $res->get_error_message() ];
+			}
+		}
 
 		if ( $role !== '' ) {
 			$valid_roles = array_keys( Cead_Acad_Capabilities::roles() );
@@ -350,6 +404,14 @@ class Cead_Acad_Admin_Menu {
 				}
 				$user->add_role( $role );
 			}
+		}
+
+		// Resetear contraseña (opcional): se muestra una sola vez.
+		if ( $resetpw ) {
+			$newpass = wp_generate_password( 12, false );
+			wp_set_password( $newpass, $user_id );
+			$this->last_created_password = $newpass;
+			return [ 'type' => 'success', 'msg' => __( 'Usuario actualizado. Nueva contraseña generada (abajo).', 'cead-acad' ) ];
 		}
 
 		return [ 'type' => 'success', 'msg' => __( 'Usuario actualizado.', 'cead-acad' ) ];

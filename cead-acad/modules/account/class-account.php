@@ -122,6 +122,10 @@ class Cead_Acad_Account {
 			wp_safe_redirect( add_query_arg( 'err', 'vacio', $dest ) );
 			exit;
 		}
+		if ( function_exists( 'cead_acad_has_banned_words' ) && cead_acad_has_banned_words( $msg ) ) {
+			wp_safe_redirect( add_query_arg( 'err', 'vulgar', $dest ) );
+			exit;
+		}
 
 		$roles = Cead_Acad_Capabilities::roles();
 		$role  = cead_acad_user_role( $uid );

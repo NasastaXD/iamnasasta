@@ -1401,3 +1401,14 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 	.cead-acad-buzon-actions .cead-acad-btn { flex: 1 1 auto; text-align: center; }
 }
 [data-theme="dark"] .cead-acad-buzon-reply textarea { background: #262a32; border-color: #343943; }
+
+/* ===================== FAQ (panel) ===================== */
+.cead-acad-faq { display:flex; flex-direction:column; gap:.6rem; margin-top:1.5rem; }
+.cead-acad-faq-item { border:1px solid var(--cead-acad-border); border-radius:12px; background:#fff; overflow:hidden; }
+.cead-acad-faq-q { cursor:pointer; font-weight:700; padding:1rem 1.1rem; list-style:none; display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+.cead-acad-faq-q::-webkit-details-marker { display:none; }
+.cead-acad-faq-q::after { content:'+'; font-family:var(--cead-acad-font-display); color:var(--cead-acad-brand); font-size:1.5rem; line-height:1; }
+.cead-acad-faq-item[open] .cead-acad-faq-q::after { content:'\2013'; }
+.cead-acad-faq-a { padding:0 1.1rem 1.2rem; color:var(--cead-acad-text-soft); }
+.cead-acad-faq-a p { margin:0 0 .6rem; }
+[data-theme="dark"] .cead-acad-faq-item { background:#1d2027; }

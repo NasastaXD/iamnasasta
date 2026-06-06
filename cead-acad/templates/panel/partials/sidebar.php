@@ -16,6 +16,7 @@ $base_items = [
 	[ 'href' => 'panel/calendario',   'label' => __( 'Calendario', 'cead-acad' ),   'icon' => 'calendar' ],
 	[ 'href' => 'panel/tareas',       'label' => __( 'Mis tareas', 'cead-acad' ),   'icon' => 'clipboard' ],
 	[ 'href' => 'panel/recursos',     'label' => __( 'Recursos', 'cead-acad' ),     'icon' => 'portfolio' ],
+	[ 'href' => 'panel/faq',          'label' => __( 'Preguntas frecuentes', 'cead-acad' ), 'icon' => 'editor-help' ],
 	[ 'href' => 'panel/carne',        'label' => __( 'Mi carné', 'cead-acad' ),     'icon' => 'id' ],
 	[ 'href' => 'panel/perfil',       'label' => __( 'Mi perfil', 'cead-acad' ),    'icon' => 'admin-users' ],
 	[ 'href' => 'panel/app',          'label' => __( 'Instalar app', 'cead-acad' ), 'icon' => 'smartphone' ],

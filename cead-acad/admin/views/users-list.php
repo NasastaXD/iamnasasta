@@ -50,6 +50,14 @@ $page_url   = admin_url( 'admin.php?page=cead-acad-users' );
 			<input type="hidden" name="user_id" value="<?php echo esc_attr( $editing_user->ID ); ?>">
 			<table class="form-table" role="presentation">
 				<tr>
+					<th scope="row"><label for="edit_name"><?php esc_html_e( 'Nombre a mostrar', 'cead-acad' ); ?></label></th>
+					<td><input type="text" id="edit_name" name="display_name" class="regular-text" value="<?php echo esc_attr( $editing_user->display_name ); ?>"></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="edit_email"><?php esc_html_e( 'Email', 'cead-acad' ); ?></label></th>
+					<td><input type="email" id="edit_email" name="email" class="regular-text" value="<?php echo esc_attr( $editing_user->user_email ); ?>"></td>
+				</tr>
+				<tr>
 					<th scope="row"><label for="edit_phone"><?php esc_html_e( 'Teléfono (WhatsApp)', 'cead-acad' ); ?></label></th>
 					<td>
 						<input type="text" id="edit_phone" name="phone" class="regular-text"
@@ -83,6 +91,10 @@ $page_url   = admin_url( 'admin.php?page=cead-acad-users' );
 					</td>
 				</tr>
 				<?php endif; ?>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Contraseña', 'cead-acad' ); ?></th>
+					<td><label><input type="checkbox" name="reset_password" value="1"> <?php esc_html_e( 'Generar una nueva contraseña', 'cead-acad' ); ?></label></td>
+				</tr>
 			</table>
 			<p class="submit">
 				<?php submit_button( __( 'Guardar cambios', 'cead-acad' ), 'primary', 'submit', false ); ?>
@@ -192,6 +204,17 @@ $page_url   = admin_url( 'admin.php?page=cead-acad-users' );
 					<a href="<?php echo esc_url( $edit_url ); ?>" class="button button-small">
 						<?php esc_html_e( 'Editar', 'cead-acad' ); ?>
 					</a>
+				<?php
+					$is_admin_row = in_array( 'administrator', (array) $u->roles, true );
+					$can_delete   = ( current_user_can( 'cead_acad_manage_roles' ) || current_user_can( 'manage_options' ) ) && $u->ID !== get_current_user_id() && ! $is_admin_row;
+					if ( $can_delete ) : ?>
+						<form method="post" action="<?php echo esc_url( $page_url ); ?>" style="display:inline" onsubmit="return confirm('<?php echo esc_js( sprintf( __( 'Eliminar a %s? Esta accion no se puede deshacer.', 'cead-acad' ), $u->display_name ) ); ?>');">
+							<?php wp_nonce_field( 'cead_acad_users_delete', '_cead_users_nonce' ); ?>
+							<input type="hidden" name="cead_acad_users_action" value="delete">
+							<input type="hidden" name="user_id" value="<?php echo esc_attr( $u->ID ); ?>">
+							<button type="submit" class="button button-small button-link-delete"><?php esc_html_e( 'Eliminar', 'cead-acad' ); ?></button>
+						</form>
+					<?php endif; ?>
 				</td>
 			</tr>
 		<?php endforeach; ?>

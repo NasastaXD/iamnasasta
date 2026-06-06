@@ -59,6 +59,7 @@ final class Cead_Acad_Plugin {
 		( new Cead_Acad_Account() )->boot();
 		( new Cead_Acad_Tasks_Frontend() )->boot();
 		( new Cead_Acad_Notifications() )->boot();
+		( new Cead_Acad_FAQ() )->boot();
 		( new Cead_Acad_Updates() )->boot();
 		( new Cead_Acad_Admin_Dashboard() )->boot();
 

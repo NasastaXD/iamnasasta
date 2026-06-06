@@ -25,6 +25,8 @@ $body = function () {
 			<div class="cead-acad-msg cead-acad-msg--ok"><?php esc_html_e( 'Mensaje enviado. Te van a responder pronto.', 'cead-acad' ); ?></div>
 		<?php elseif ( 'vacio' === $err ) : ?>
 			<div class="cead-acad-msg cead-acad-msg--err"><?php esc_html_e( 'Escribí un mensaje antes de enviar.', 'cead-acad' ); ?></div>
+		<?php elseif ( 'vulgar' === $err ) : ?>
+			<div class="cead-acad-msg cead-acad-msg--err"><?php esc_html_e( 'Tu mensaje contiene lenguaje no permitido. Reformulalo, por favor.', 'cead-acad' ); ?></div>
 		<?php endif; ?>
 
 		<form class="cead-acad-card" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:1.5rem;gap:1.1rem">
