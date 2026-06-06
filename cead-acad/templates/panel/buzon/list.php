@@ -116,7 +116,8 @@ $status_label = static function ( $s ) {
 	return $map[ $s ] ?? $s;
 };
 $cat_label = static function ( $c ) {
-	return $c === 'consejo' ? __( 'Consejo', 'cead-acad' ) : __( 'Administración', 'cead-acad' );
+	$map = [ 'consejo' => __( 'Consejo', 'cead-acad' ), 'direccion' => __( 'Dirección', 'cead-acad' ), 'administracion' => __( 'Administración', 'cead-acad' ) ];
+	return $map[ $c ] ?? __( 'Administración', 'cead-acad' );
 };
 
 $page_title = __( 'Buzón', 'cead-acad' );

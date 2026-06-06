@@ -280,7 +280,7 @@ class Cead_Acad_WA_Store {
 	public function create_suggestion( $phone, $body, $category = 'administracion' ) {
 		global $wpdb;
 		$t   = cead_acad_table( 'wa_suggestions' );
-		$cat = in_array( $category, [ 'administracion', 'consejo' ], true ) ? $category : 'administracion';
+		$cat = in_array( $category, [ 'administracion', 'consejo', 'direccion' ], true ) ? $category : 'administracion';
 		return (bool) $wpdb->insert( $t, [ 'phone' => $phone, 'body' => $body, 'category' => $cat, 'status' => 'new', 'created_at' => current_time( 'mysql' ) ] );
 	}
 

@@ -100,12 +100,9 @@ class Cead_Acad_Capabilities {
 			],
 			'cead_acad_guardian' => [
 				'display' => 'Familia',
-				'caps'    => array_merge(
-					self::base_caps(),
-					[
-						'cead_acad_view_own_grades' => true,
-					]
-				),
+				// Las familias ven calendario, eventos, comunicados y tareas a nivel
+				// colegio, pero NO calificaciones (para evitar conflictos).
+				'caps'    => self::base_caps(),
 			],
 			'cead_acad_student_council' => [
 				'display' => 'Consejo Estudiantil',
@@ -148,6 +145,13 @@ class Cead_Acad_Capabilities {
 		$council = get_role( 'cead_acad_student_council' );
 		if ( $council && $council->has_cap( 'cead_acad_manage_reports' ) ) {
 			$council->remove_cap( 'cead_acad_manage_reports' );
+		}
+
+		// Las familias ya no ven calificaciones: quitar la cap en instalaciones
+		// que ya la tenían (add_cap no la remueve).
+		$guardian = get_role( 'cead_acad_guardian' );
+		if ( $guardian && $guardian->has_cap( 'cead_acad_view_own_grades' ) ) {
+			$guardian->remove_cap( 'cead_acad_view_own_grades' );
 		}
 
 		// Permitir a admin manejar todo lo del plugin.

@@ -10,6 +10,7 @@ $role = cead_acad_user_role( $user->ID );
 $base_items = [
 	[ 'href' => 'panel',              'label' => __( 'Inicio', 'cead-acad' ),       'icon' => 'home' ],
 	[ 'href' => 'panel/comunicados',  'label' => __( 'Comunicados', 'cead-acad' ),  'icon' => 'megaphone' ],
+	[ 'href' => 'panel/contacto',     'label' => __( 'Escribir al CEAD', 'cead-acad' ), 'icon' => 'email' ],
 	[ 'href' => 'panel/encuestas',    'label' => __( 'Encuestas', 'cead-acad' ),    'icon' => 'feedback' ],
 	[ 'href' => 'panel/horarios',     'label' => __( 'Horarios', 'cead-acad' ),     'icon' => 'calendar' ],
 	[ 'href' => 'panel/calendario',   'label' => __( 'Calendario', 'cead-acad' ),   'icon' => 'calendar' ],

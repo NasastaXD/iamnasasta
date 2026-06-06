@@ -212,6 +212,10 @@ class Cead_Acad_Rewrites {
 				cead_acad_template( 'panel/buscar/results.php' );
 				return;
 
+			case 'contacto':
+				cead_acad_template( 'panel/contacto/show.php' );
+				return;
+
 			case 'delegado':
 				cead_acad_template( 'panel/delegado/dashboard.php' );
 				return;

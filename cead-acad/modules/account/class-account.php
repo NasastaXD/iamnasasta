@@ -13,6 +13,7 @@ class Cead_Acad_Account {
 	public function boot() {
 		add_action( 'admin_post_cead_acad_save_profile', [ $this, 'handle_save_profile' ] );
 		add_action( 'admin_post_cead_acad_toggle_fav',   [ $this, 'handle_toggle_fav' ] );
+		add_action( 'admin_post_cead_acad_send_message',  [ $this, 'handle_send_message' ] );
 		add_filter( 'get_avatar_data', [ $this, 'filter_avatar_data' ], 10, 2 );
 	}
 
@@ -27,6 +28,38 @@ class Cead_Acad_Account {
 
 	public static function is_fav( $user_id, $resource_id ) {
 		return in_array( (int) $resource_id, self::fav_ids( $user_id ), true );
+	}
+
+	/** Mensaje directo a un rol (Dirección / Consejo / Administración) → buzón. */
+	public function handle_send_message() {
+		if ( ! is_user_logged_in() ) { wp_safe_redirect( cead_acad_url( 'login' ) ); exit; }
+		check_admin_referer( 'cead_acad_send_message' );
+
+		$uid  = get_current_user_id();
+		$user = wp_get_current_user();
+		$dest = cead_acad_url( 'panel/contacto' );
+
+		$to  = sanitize_key( (string) ( $_POST['recipient'] ?? '' ) );
+		if ( ! in_array( $to, [ 'direccion', 'consejo', 'administracion' ], true ) ) {
+			$to = 'direccion';
+		}
+		$msg = trim( sanitize_textarea_field( wp_unslash( $_POST['message'] ?? '' ) ) );
+		if ( $msg === '' ) {
+			wp_safe_redirect( add_query_arg( 'err', 'vacio', $dest ) );
+			exit;
+		}
+
+		$roles = Cead_Acad_Capabilities::roles();
+		$role  = cead_acad_user_role( $uid );
+		$rdisp = $roles[ $role ]['display'] ?? $role;
+		$phone = (string) get_user_meta( $uid, self::PHONE_META, true );
+
+		$body = sprintf( "✉️ De %s (%s)\n\n%s", $user->display_name, $rdisp, $msg );
+
+		( new Cead_Acad_WA_Store() )->create_suggestion( $phone !== '' ? $phone : null, $body, $to );
+
+		wp_safe_redirect( add_query_arg( 'done', 1, $dest ) );
+		exit;
 	}
 
 	public function handle_toggle_fav() {
