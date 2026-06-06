@@ -17,13 +17,23 @@ class Cead_Acad_Schedule_Feed {
 	 *
 	 * @return WP_Post[]
 	 */
-	public static function for_user( $user_id, $from = null, $to = null, $limit = 200 ) {
+	public static function for_user( $user_id, $from = null, $to = null, $limit = 200, $exclude_classes = true ) {
 		$ids = Cead_Acad_Audiences::subjects_for_user( 'event', $user_id );
 		if ( ! $ids ) {
 			return [];
 		}
 
 		$meta_query = [];
+
+		// El calendario muestra solo eventos; las clases (horario semanal) viven en
+		// el curso y se ven en "Horarios".
+		if ( $exclude_classes ) {
+			$meta_query[] = [
+				'relation' => 'OR',
+				[ 'key' => '_cead_acad_event_type', 'value' => 'clase', 'compare' => '!=' ],
+				[ 'key' => '_cead_acad_event_type', 'compare' => 'NOT EXISTS' ],
+			];
+		}
 		if ( $from ) {
 			$meta_query[] = [
 				'key'     => '_cead_acad_event_start',

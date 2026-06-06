@@ -24,8 +24,8 @@ class Cead_Acad_Schedule_CPT {
 		echo '<div class="notice notice-info"><p>';
 		printf(
 			/* translators: %s URL del importador */
-			esc_html__( 'Los horarios se crean masivamente vía %s.', 'cead-acad' ),
-			'<a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-importers' ) ) . '"><strong>' . esc_html__( 'Importadores → Horarios CSV', 'cead-acad' ) . '</strong></a>'
+			esc_html__( 'Los eventos del calendario se crean masivamente vía %s. El horario semanal de clases se carga en cada Curso.', 'cead-acad' ),
+			'<a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-importers' ) ) . '"><strong>' . esc_html__( 'Importadores', 'cead-acad' ) . '</strong></a>'
 		);
 		echo '</p></div>';
 	}
@@ -33,10 +33,10 @@ class Cead_Acad_Schedule_CPT {
 	public function register() {
 		register_post_type( self::POST_TYPE, [
 			'labels' => [
-				'name'          => __( 'Horarios y eventos', 'cead-acad' ),
+				'name'          => __( 'Eventos', 'cead-acad' ),
 				'singular_name' => __( 'Evento', 'cead-acad' ),
 				'edit_item'     => __( 'Editar evento', 'cead-acad' ),
-				'menu_name'     => __( 'Horarios', 'cead-acad' ),
+				'menu_name'     => __( 'Eventos', 'cead-acad' ),
 				'not_found'     => __( 'Sin eventos.', 'cead-acad' ),
 			],
 			'public'              => false,
