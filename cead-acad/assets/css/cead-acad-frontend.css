@@ -1384,3 +1384,20 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 	background: none; border: 0; cursor: pointer; font-size: 1.15rem; line-height: 1;
 	padding: .25rem; -webkit-tap-highlight-color: transparent;
 }
+
+/* ===================== Buzón: responder cómodo ===================== */
+.cead-acad-buzon-meta { color: var(--cead-acad-text-muted); margin: 0 0 .4em; font-size: .85rem; }
+.cead-acad-buzon-quote { border-left: 3px solid var(--cead-acad-brand); padding-left: 12px; margin: .4em 0; }
+.cead-acad-buzon-reply { display: flex; flex-direction: column; gap: .6rem; margin-top: .6rem; }
+.cead-acad-buzon-reply textarea {
+	width: 100%; min-height: 96px; resize: vertical;
+	font-size: 16px; line-height: 1.5; padding: .7rem .9rem;
+	border: 1px solid var(--cead-acad-border); border-radius: 10px;
+	background: #fff; color: var(--cead-acad-ink); font-family: inherit;
+}
+.cead-acad-buzon-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+@media (max-width: 560px) {
+	.cead-acad-buzon-reply textarea { min-height: 120px; }
+	.cead-acad-buzon-actions .cead-acad-btn { flex: 1 1 auto; text-align: center; }
+}
+[data-theme="dark"] .cead-acad-buzon-reply textarea { background: #262a32; border-color: #343943; }
