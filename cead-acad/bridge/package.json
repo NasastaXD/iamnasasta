@@ -1,0 +1,22 @@
+{
+  "name": "cead-acad-whatsapp-bridge",
+  "version": "1.0.0",
+  "description": "Bridge de WhatsApp (Baileys) para el módulo WhatsApp del plugin WordPress CEAD Académico",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.0",
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.0",
+    "express": "^4.19.0",
+    "pino": "^9.0.0",
+    "qrcode": "^1.5.3",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

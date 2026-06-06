@@ -1,0 +1,7 @@
+/* CEAD Académico — estilos para pantallas wp-admin del plugin */
+
+.cead-acad-admin-wrap code {
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 0.9em;
+}
+.cead-acad-admin-wrap .wp-list-table th { font-weight: 600; }
