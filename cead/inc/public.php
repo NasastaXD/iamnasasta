@@ -195,33 +195,7 @@ add_shortcode( 'cead_eventos', function ( $atts ) {
 } );
 
 /* ============================================================
- * 4) Customizer — Mapa / Cómo llegar + intros de archives
- * ============================================================ */
-
-add_action( 'customize_register', function ( $wp ) {
-	$wp->add_section( 'cead_sec_map', [ 'title' => 'CEAD — Mapa / Cómo llegar', 'priority' => 165 ] );
-
-	$wp->add_setting( 'cead_map_title', [ 'default' => 'Cómo llegar', 'sanitize_callback' => 'sanitize_text_field' ] );
-	$wp->add_control( 'cead_map_title', [ 'label' => 'Título', 'section' => 'cead_sec_map', 'type' => 'text' ] );
-
-	$wp->add_setting( 'cead_address', [ 'default' => 'Caaguazú, Paraguay', 'sanitize_callback' => 'sanitize_text_field' ] );
-	$wp->add_control( 'cead_address', [ 'label' => 'Dirección', 'section' => 'cead_sec_map', 'type' => 'text' ] );
-
-	$wp->add_setting( 'cead_map_embed', [ 'default' => cead_default_map_embed(), 'sanitize_callback' => 'esc_url_raw' ] );
-	$wp->add_control( 'cead_map_embed', [
-		'label'       => 'URL de "embed" del mapa',
-		'description' => 'Google Maps → Compartir → Insertar mapa → copiá solo el valor de src. (Por defecto: OpenStreetMap de Caaguazú.)',
-		'section'     => 'cead_sec_map',
-		'type'        => 'url',
-	] );
-} );
-
-function cead_default_map_embed() {
-	return 'https://www.openstreetmap.org/export/embed.html?bbox=-56.0700%2C-25.5050%2C-55.9650%2C-25.4250&layer=mapnik&marker=-25.4660%2C-56.0160';
-}
-
-/* ============================================================
- * 5) Filtro de categoría en el archivo de recursos (?rc=slug)
+ * 4) Filtro de categoría en el archivo de recursos (?rc=slug)
  * ============================================================ */
 
 add_action( 'pre_get_posts', function ( $q ) {

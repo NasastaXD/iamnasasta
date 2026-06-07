@@ -104,7 +104,6 @@ if ( $cead_divs ) {
                     [ 'Noticias', get_post_type_archive_link( 'cead_noticia' ) ],
                     [ 'Recursos', get_post_type_archive_link( 'cead_recurso' ) ],
                     [ 'Galería',  get_post_type_archive_link( 'cead_galeria' ) ],
-                    [ 'Cómo llegar', home_url( '/#ComoLlegar' ) ],
                     [ 'Contacto', home_url( '/#Contacto' ) ],
                 ];
                 foreach ( $cead_explore as $lnk ) :
