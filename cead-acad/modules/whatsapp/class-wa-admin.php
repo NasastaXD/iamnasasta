@@ -64,6 +64,9 @@ class Cead_Acad_WA_Admin {
 				update_option( 'cead_acad_panel_intro', sanitize_textarea_field( wp_unslash( $_POST['panel_intro'] ?? '' ) ), false );
 				update_option( 'cead_acad_ceadi_intro', sanitize_textarea_field( wp_unslash( $_POST['ceadi_intro'] ?? '' ) ), false );
 				update_option( 'cead_acad_banned_words', sanitize_textarea_field( wp_unslash( $_POST['banned_words'] ?? '' ) ), false );
+				update_option( 'cead_acad_wa_ai_enabled', ! empty( $_POST['ai_enabled'] ) ? 1 : 0, false );
+				update_option( 'cead_acad_wa_ai_key', sanitize_text_field( wp_unslash( $_POST['ai_key'] ?? '' ) ), false );
+				update_option( 'cead_acad_wa_ai_model', sanitize_text_field( wp_unslash( $_POST['ai_model'] ?? '' ) ) ?: 'deepseek-chat', false );
 				$notice = [ 'ok', __( 'Configuración guardada.', 'cead-acad' ) ];
 			} elseif ( $action === 'restart' ) {
 				$res = $this->bridge->restart();
@@ -126,6 +129,14 @@ class Cead_Acad_WA_Admin {
 			$this->field_textarea( 'panel_intro', __( 'Landing: ¿qué es el panel del CEAD?', 'cead-acad' ), get_option( 'cead_acad_panel_intro', '' ) );
 			$this->field_textarea( 'ceadi_intro', __( 'Landing: ¿qué es CEADI?', 'cead-acad' ), get_option( 'cead_acad_ceadi_intro', '' ) );
 			$this->field_textarea( 'banned_words', __( 'Palabras prohibidas (una por línea)', 'cead-acad' ), get_option( 'cead_acad_banned_words', '' ) );
+
+			// --- IA (CEADI inteligente) ---
+			echo '<tr><th scope="row">' . esc_html__( 'CEADI inteligente (IA)', 'cead-acad' ) . '</th><td>';
+			echo '<label><input type="checkbox" name="ai_enabled" value="1" ' . checked( get_option( 'cead_acad_wa_ai_enabled', 0 ), 1, false ) . '> ' . esc_html__( 'Entender lenguaje natural con IA (además del menú numérico)', 'cead-acad' ) . '</label>';
+			echo '<p class="description">' . esc_html__( 'Si está activo y hay API key, cuando el alumno escribe en vez de elegir un número, la IA interpreta y dispara la función o responde dudas con las FAQ.', 'cead-acad' ) . '</p>';
+			echo '</td></tr>';
+			$this->field( 'ai_key', __( 'API key de IA (DeepSeek u OpenAI-compatible)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_key', '' ), 'sk-...', 'password' );
+			$this->field( 'ai_model', __( 'Modelo', 'cead-acad' ), get_option( 'cead_acad_wa_ai_model', 'deepseek-chat' ), 'deepseek-chat' );
 		echo '</tbody></table>';
 		submit_button( __( 'Guardar configuración', 'cead-acad' ) );
 		echo '</form></div>';

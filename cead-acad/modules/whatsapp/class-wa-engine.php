@@ -138,11 +138,11 @@ class Cead_Acad_WA_Engine {
 			}
 		}
 		switch ( $state ) {
-			case 'idle':                 $this->idle( $phone, $name, $identity ); break;
+			case 'idle':                 $this->idle( $phone, $name, $identity, $body ); break;
 			case 'menu_pending':         $this->menu_pending( $phone, $identity, $context ); break;
 			case 'role_chooser':         $this->role_chooser( $phone, $lc, $context, $identity ); break;
 			// Alumnado
-			case 'student_menu':         $this->student_menu( $phone, $lc, $identity ); break;
+			case 'student_menu':         $this->student_menu( $phone, $lc, $identity, $body ); break;
 			case 'stu_report_type':      $this->report_type( $phone, $lc ); break;
 			case 'stu_report_cat':       $this->report_cat( $phone, $lc, $context ); break;
 			case 'stu_report_body':      $this->report_body( $phone, $body, $lc, $context ); break;
@@ -214,16 +214,34 @@ class Cead_Acad_WA_Engine {
 	}
 
 	// ---------------------------------------------------------------- idle
-	private function idle( $phone, $name, $identity ) {
+	private function idle( $phone, $name, $identity, $body = '' ) {
 		$menus = $this->available_role_menus( $identity );
 		if ( $menus ) {
 			$greeting = $this->interp( $this->m( 'greeting_staff' ), [ 'name' => $name ?: 'Profe' ] );
 			$this->enter_role_chooser( $phone, $identity, $menus, $greeting );
 			return;
 		}
-		$greeting = $this->interp( $this->m( 'greeting_student' ), [ 'name' => $name ?: 'che' ] );
 		$this->store->set_state( $phone, 'student_menu' );
+
+		// Si el primer mensaje ya es una consulta concreta (no un simple "hola"),
+		// dejamos que la IA la resuelva directamente.
+		if ( $this->looks_like_query( $body ) && $this->ai_try( $phone, $body, $identity ) ) {
+			return;
+		}
+
+		$greeting = $this->interp( $this->m( 'greeting_student' ), [ 'name' => $name ?: 'che' ] );
 		$this->send_menu( $phone, $greeting . "\n\n" . $this->m( 'student_menu' ) . "\n\n" . $this->m( 'panel_promo' ), 'student_menu' );
+	}
+
+	/** Heurística: ¿el texto parece una consulta y no un saludo suelto? */
+	private function looks_like_query( $body ) {
+		$body = trim( (string) $body );
+		if ( mb_strlen( $body ) < 9 ) { return false; }
+		$lc = strtolower( $body );
+		foreach ( [ 'hola', 'buenas', 'buen dia', 'buen día', 'buenos dias', 'buenas tardes', 'buenas noches', 'que tal', 'qué tal', 'hello', 'hi', 'menu', 'menú' ] as $greet ) {
+			if ( $lc === $greet ) { return false; }
+		}
+		return true;
 	}
 
 	// --------------------------------------------------- selector de menú por rol
@@ -339,7 +357,7 @@ class Cead_Acad_WA_Engine {
 	}
 
 	// ---------------------------------------------------------------- alumnado
-	private function student_menu( $phone, $lc, $identity ) {
+	private function student_menu( $phone, $lc, $identity, $body = '' ) {
 		switch ( $lc ) {
 			case '1':  $this->show_horario( $phone, $identity ); break;
 			case '2':  $this->show_links( $phone ); break;
@@ -356,8 +374,66 @@ class Cead_Acad_WA_Engine {
 				$this->store->reset_state( $phone );
 				$this->send( $phone, $this->m( 'goodbye' ) );
 				break;
-			default: $this->invalid( $phone );
+			case 'menu': case 'menú': case 'hola': case 'inicio':
+				$this->back_to_student( $phone );
+				break;
+			default:
+				// Texto libre: intentar resolverlo con IA; si no, opción inválida.
+				if ( ! $this->ai_try( $phone, ( $body !== '' ? $body : $lc ), $identity ) ) {
+					$this->invalid( $phone );
+				}
 		}
+	}
+
+	/* ---------------------------------------------------- IA (CEADI inteligente) */
+
+	/**
+	 * Intenta resolver un mensaje en lenguaje natural con la IA. Devuelve true si
+	 * lo manejó (disparó una función o respondió), false para caer al menú/inválido.
+	 */
+	private function ai_try( $phone, $text, $identity ) {
+		if ( ! class_exists( 'Cead_Acad_WA_AI' ) || ! Cead_Acad_WA_AI::enabled() ) {
+			return false;
+		}
+		$res = Cead_Acad_WA_AI::route( $text, $this->faq_context() );
+		if ( ! is_array( $res ) || empty( $res['intent'] ) ) {
+			return false;
+		}
+		$reply = isset( $res['reply'] ) ? trim( (string) $res['reply'] ) : '';
+
+		switch ( $res['intent'] ) {
+			case 'horario':       $this->show_horario( $phone, $identity ); return true;
+			case 'eventos':       $this->show_events( $phone, $identity ); return true;
+			case 'comunicados':   $this->show_comunicados( $phone, $identity ); return true;
+			case 'sitio':         $this->show_links( $phone ); return true;
+			case 'contacto':      $this->show_contacts( $phone ); return true;
+			case 'reportar':      $this->report_start( $phone ); return true;
+			case 'escribir':      $this->suggestion_start( $phone ); return true;
+			case 'faq':           $this->show_faq( $phone ); return true;
+			case 'consejo':       $this->council_open( $phone ); return true;
+			case 'recordatorios': $this->reminders_toggle( $phone ); return true;
+			case 'panel':         $this->show_panel( $phone ); return true;
+			case 'chat':
+				if ( $reply !== '' ) {
+					$this->store->set_state( $phone, 'student_menu' );
+					$this->send( $phone, $reply . "\n\n" . '_Escribí *menú* para ver todas las opciones._', 'ai_chat' );
+					return true;
+				}
+				return false;
+			default: // 'menu' u otra → que el caller muestre el menú/inválido.
+				return false;
+		}
+	}
+
+	/** Contexto compacto de las FAQ para que la IA responda dudas generales. */
+	private function faq_context() {
+		if ( ! class_exists( 'Cead_Acad_FAQ' ) ) { return ''; }
+		$out = [];
+		foreach ( array_slice( Cead_Acad_FAQ::all(), 0, 20 ) as $f ) {
+			$ans = wp_strip_all_tags( $f->post_content );
+			$out[] = '- ' . get_the_title( $f ) . ': ' . wp_trim_words( $ans, 60 );
+		}
+		return implode( "\n", $out );
 	}
 
 	private function back_to_student( $phone ) {
