@@ -51,6 +51,14 @@ class Cead_Acad_WA_AI {
 	public static function knowledge() {
 		return trim( (string) get_option( 'cead_acad_wa_ai_knowledge', '' ) );
 	}
+	/** Turnos de conversación a recordar (0 = sin memoria). */
+	public static function memory_turns() {
+		return max( 0, min( 20, (int) get_option( 'cead_acad_wa_ai_memory', 0 ) ) );
+	}
+	/** Minutos que dura la memoria de una charla. */
+	public static function memory_ttl() {
+		return 30 * MINUTE_IN_SECONDS;
+	}
 
 	/* ---------------- Prompts ---------------- */
 
@@ -98,7 +106,7 @@ class Cead_Acad_WA_AI {
 	 * Llamada cruda. Devuelve un array de depuración:
 	 * [ ok, code, error, intent, reply, content ].
 	 */
-	public static function call( $message, $faq_context = '', $key = null, $endpoint = null, $model = null ) {
+	public static function call( $message, $faq_context = '', $key = null, $endpoint = null, $model = null, $history = [] ) {
 		$key      = $key !== null ? $key : self::key();
 		$endpoint = $endpoint !== null && $endpoint !== '' ? $endpoint : self::endpoint();
 		$model    = $model !== null && $model !== '' ? $model : self::model();
@@ -108,15 +116,20 @@ class Cead_Acad_WA_AI {
 		if ( $key === '' ) { $out['error'] = 'Falta la API key.'; return $out; }
 		if ( $message === '' ) { $out['error'] = 'Mensaje vacío.'; return $out; }
 
+		$messages = [ [ 'role' => 'system', 'content' => self::build_system( $faq_context ) ] ];
+		foreach ( (array) $history as $h ) {
+			if ( isset( $h['role'], $h['content'] ) && in_array( $h['role'], [ 'user', 'assistant' ], true ) ) {
+				$messages[] = [ 'role' => $h['role'], 'content' => (string) $h['content'] ];
+			}
+		}
+		$messages[] = [ 'role' => 'user', 'content' => mb_substr( $message, 0, 1200 ) ];
+
 		$payload = [
 			'model'           => $model,
 			'temperature'     => self::temperature(),
 			'max_tokens'      => self::max_tokens(),
 			'response_format' => [ 'type' => 'json_object' ],
-			'messages'        => [
-				[ 'role' => 'system', 'content' => self::build_system( $faq_context ) ],
-				[ 'role' => 'user',   'content' => mb_substr( $message, 0, 1200 ) ],
-			],
+			'messages'        => $messages,
 		];
 
 		$res = wp_remote_post( $endpoint, [
@@ -158,10 +171,47 @@ class Cead_Acad_WA_AI {
 		return $out;
 	}
 
-	/** Clasificación para el motor. Devuelve [intent, reply] o null. */
-	public static function route( $message, $faq_context = '' ) {
-		$r = self::call( $message, $faq_context );
-		return $r['ok'] ? [ 'intent' => $r['intent'], 'reply' => $r['reply'] ] : null;
+	/** Clasificación para el motor. Devuelve [intent, reply] o null. Usa memoria si está activa y hay $phone. */
+	public static function route( $message, $faq_context = '', $phone = '' ) {
+		$history = ( $phone !== '' ) ? self::load_memory( $phone ) : [];
+		$r = self::call( $message, $faq_context, null, null, null, $history );
+		if ( ! $r['ok'] ) {
+			return null;
+		}
+		if ( $phone !== '' && self::memory_turns() > 0 ) {
+			self::save_memory( $phone, $message, $r['content'] );
+		}
+		return [ 'intent' => $r['intent'], 'reply' => $r['reply'] ];
+	}
+
+	/* ---------------- Memoria conversacional (por número, con expiración) ---------------- */
+
+	protected static function memory_key( $phone ) {
+		return 'cead_acad_wa_aimem_' . md5( (string) $phone );
+	}
+
+	protected static function load_memory( $phone ) {
+		if ( self::memory_turns() <= 0 ) { return []; }
+		$m = get_transient( self::memory_key( $phone ) );
+		return is_array( $m ) ? $m : [];
+	}
+
+	protected static function save_memory( $phone, $user_message, $assistant_content ) {
+		$turns = self::memory_turns();
+		if ( $turns <= 0 ) { return; }
+		$m   = self::load_memory( $phone );
+		$m[] = [ 'role' => 'user',      'content' => mb_substr( (string) $user_message, 0, 1000 ) ];
+		$m[] = [ 'role' => 'assistant', 'content' => mb_substr( (string) $assistant_content, 0, 1000 ) ];
+		$max = $turns * 2;
+		if ( count( $m ) > $max ) {
+			$m = array_slice( $m, -$max );
+		}
+		set_transient( self::memory_key( $phone ), $m, self::memory_ttl() );
+	}
+
+	/** Borra la memoria de un número. */
+	public static function clear_memory( $phone ) {
+		delete_transient( self::memory_key( $phone ) );
 	}
 
 	/** Prueba desde el admin: resumen legible. */

@@ -372,6 +372,7 @@ class Cead_Acad_WA_Engine {
 			case '11': $this->show_panel( $phone ); break;
 			case '0': case 'salir': case 'adios': case 'adiós':
 				$this->store->reset_state( $phone );
+				if ( class_exists( 'Cead_Acad_WA_AI' ) ) { Cead_Acad_WA_AI::clear_memory( $phone ); }
 				$this->send( $phone, $this->m( 'goodbye' ) );
 				break;
 			case 'menu': case 'menú': case 'hola': case 'inicio':
@@ -395,7 +396,7 @@ class Cead_Acad_WA_Engine {
 		if ( ! class_exists( 'Cead_Acad_WA_AI' ) || ! Cead_Acad_WA_AI::enabled() ) {
 			return false;
 		}
-		$res = Cead_Acad_WA_AI::route( $text, $this->faq_context() );
+		$res = Cead_Acad_WA_AI::route( $text, $this->faq_context(), $phone );
 		if ( ! is_array( $res ) || empty( $res['intent'] ) ) {
 			return false;
 		}

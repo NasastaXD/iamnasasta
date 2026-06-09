@@ -73,6 +73,7 @@ class Cead_Acad_WA_Admin {
 				update_option( 'cead_acad_wa_ai_maxtokens', max( 50, (int) ( $_POST['ai_maxtokens'] ?? 500 ) ), false );
 				update_option( 'cead_acad_wa_ai_prompt', sanitize_textarea_field( wp_unslash( $_POST['ai_prompt'] ?? '' ) ), false );
 				update_option( 'cead_acad_wa_ai_knowledge', sanitize_textarea_field( wp_unslash( $_POST['ai_knowledge'] ?? '' ) ), false );
+				update_option( 'cead_acad_wa_ai_memory', max( 0, min( 20, (int) ( $_POST['ai_memory'] ?? 0 ) ) ), false );
 
 				if ( $action === 'ai_test' ) {
 					$msg = sanitize_text_field( wp_unslash( $_POST['ai_test_message'] ?? '' ) ) ?: '¿qué clases tengo hoy?';
@@ -159,6 +160,8 @@ class Cead_Acad_WA_Admin {
 			echo '<tr><th></th><td><p class="description">' . esc_html__( 'Definí el tono y rol de CEADI. El formato de salida (ruteo en JSON) se agrega automáticamente, no hace falta escribirlo.', 'cead-acad' ) . '</p></td></tr>';
 			$this->field_textarea( 'ai_knowledge', __( 'Conocimiento (base de datos para responder)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_knowledge', '' ), 8 );
 			echo '<tr><th></th><td><p class="description">' . esc_html__( 'Texto libre con info del colegio (horarios generales, reglas, contactos, fechas, etc.). La IA lo usa para responder dudas. Las FAQ del panel se suman a esto.', 'cead-acad' ) . '</p></td></tr>';
+			$this->field( 'ai_memory', __( 'Memoria (turnos a recordar)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_memory', 0 ), '0', 'number' );
+			echo '<tr><th></th><td><p class="description">' . esc_html__( '0 = sin memoria (cada mensaje es independiente). Ej. 5 = recuerda los últimos 5 intercambios de esa persona, por 30 minutos. Útil para conversaciones; usa más tokens.', 'cead-acad' ) . '</p></td></tr>';
 			echo '<tr><th scope="row">' . esc_html__( 'Probar', 'cead-acad' ) . '</th><td>';
 			echo '<input type="text" name="ai_test_message" class="regular-text" placeholder="' . esc_attr__( '¿qué clases tengo hoy?', 'cead-acad' ) . '">';
 			echo ' <button type="submit" class="button" name="cead_acad_wa_action" value="ai_test">' . esc_html__( 'Guardar y probar IA', 'cead-acad' ) . '</button>';
