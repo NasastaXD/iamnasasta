@@ -28,7 +28,6 @@ class Cead_Acad_WA_Admin {
 		}
 		add_submenu_page( 'cead-acad', __( 'WhatsApp', 'cead-acad' ), __( 'WhatsApp', 'cead-acad' ), 'read', 'cead-acad-whatsapp', [ $this, 'page_status' ] );
 		add_submenu_page( 'cead-acad', __( 'WA · Comunicados', 'cead-acad' ), __( 'WA · Comunicados', 'cead-acad' ), 'cead_acad_publish_broadcast', 'cead-acad-wa-broadcast', [ $this, 'page_broadcast' ] );
-		add_submenu_page( 'cead-acad', __( 'WA · Reportes', 'cead-acad' ), __( 'WA · Reportes', 'cead-acad' ), 'cead_acad_manage_reports', 'cead-acad-wa-reports', [ $this, 'page_reports' ] );
 		add_submenu_page( 'cead-acad', __( 'WA · Mensajes', 'cead-acad' ), __( 'WA · Mensajes', 'cead-acad' ), 'manage_options', 'cead-acad-wa-messages', [ $this, 'page_messages' ] );
 		add_submenu_page( 'cead-acad', __( 'WA · Métricas', 'cead-acad' ), __( 'WA · Métricas', 'cead-acad' ), 'cead_acad_view_metrics', 'cead-acad-wa-metrics', [ $this, 'page_metrics' ] );
 		add_submenu_page( 'cead-acad', __( 'WA · Mensaje directo', 'cead-acad' ), __( 'WA · Mensaje directo', 'cead-acad' ), 'cead_acad_publish_broadcast', 'cead-acad-wa-direct', [ $this, 'page_direct' ] );
@@ -57,7 +56,6 @@ class Cead_Acad_WA_Admin {
 					'bridge_url'   => esc_url_raw( wp_unslash( $_POST['bridge_url'] ?? '' ) ),
 					'shared_token' => sanitize_text_field( wp_unslash( $_POST['shared_token'] ?? '' ) ),
 				] );
-				update_option( 'cead_acad_wa_report_forward_number', preg_replace( '/[^0-9]/', '', (string) ( $_POST['report_forward_number'] ?? '' ) ), false );
 				update_option( 'cead_acad_wa_reminder_days', max( 1, (int) ( $_POST['reminder_days'] ?? 1 ) ), false );
 				update_option( 'cead_acad_wa_country_code', preg_replace( '/[^0-9]/', '', (string) ( $_POST['country_code'] ?? '595' ) ) ?: '595', false );
 				update_option( 'cead_acad_wa_bot_number', preg_replace( '/[^0-9]/', '', (string) ( $_POST['bot_number'] ?? '' ) ), false );
@@ -136,7 +134,6 @@ class Cead_Acad_WA_Admin {
 		echo '<table class="form-table"><tbody>';
 		$this->field( 'bridge_url', __( 'URL del bridge', 'cead-acad' ), $s->bridge_url ?? '', 'https://tu-tunnel.trycloudflare.com' );
 		$this->field( 'shared_token', __( 'Token compartido (X-Caag-Token)', 'cead-acad' ), $s->shared_token ?? '', '', 'text' );
-		$this->field( 'report_forward_number', __( 'Número que recibe reportes', 'cead-acad' ), get_option( 'cead_acad_wa_report_forward_number', '' ), '595991123456' );
 		$this->field( 'reminder_days', __( 'Días de anticipación de recordatorios', 'cead-acad' ), get_option( 'cead_acad_wa_reminder_days', 1 ), '', 'number' );
 		$this->field( 'country_code', __( 'Código de país (para reconocer alumnos)', 'cead-acad' ), get_option( 'cead_acad_wa_country_code', '595' ), '595' );
 			$this->field( 'bot_number', __( 'Número de CEADI (botón «Agregar a CEADI»)', 'cead-acad' ), get_option( 'cead_acad_wa_bot_number', '' ), '595991123456' );
@@ -324,71 +321,6 @@ class Cead_Acad_WA_Admin {
 		echo '</form></div></div>';
 	}
 
-	// -------------------------------------------------- Reportes
-	public function page_reports() {
-		$this->guard( 'cead_acad_manage_reports' );
-		$notice = null;
-		if ( isset( $_POST['cead_acad_wa_report_id'] ) && check_admin_referer( 'cead_acad_wa_reports' ) ) {
-			$id  = (int) $_POST['cead_acad_wa_report_id'];
-			$act = sanitize_key( wp_unslash( $_POST['report_action'] ?? '' ) );
-			if ( $act === 'status' ) {
-				$st = in_array( $_POST['status'] ?? '', [ 'new', 'in_review', 'resolved' ], true ) ? $_POST['status'] : 'new';
-				$this->store->update_report_status( $id, $st );
-				$notice = [ 'ok', __( 'Estado actualizado.', 'cead-acad' ) ];
-			} elseif ( $act === 'note' ) {
-				$note = sanitize_textarea_field( wp_unslash( $_POST['note'] ?? '' ) );
-				if ( $note !== '' ) {
-					$this->store->append_report_note( $id, $note );
-					$notice = [ 'ok', __( 'Nota agregada.', 'cead-acad' ) ];
-				}
-			}
-		}
-
-		echo '<div class="wrap"><h1>' . esc_html__( 'WhatsApp — Bandeja de reportes', 'cead-acad' ) . '</h1>';
-		if ( $notice ) {
-			$this->notice( $notice[1], $notice[0] === 'ok' ? 'success' : 'error' );
-		}
-		$counts = $this->store->count_reports_by_status();
-		echo '<p>🆕 ' . (int) $counts['new'] . ' · 🔎 ' . (int) $counts['in_review'] . ' · ✅ ' . (int) $counts['resolved'] . '</p>';
-
-		$reports = $this->store->reports_by_status( '', 50 );
-		if ( ! $reports ) {
-			echo '<p>' . esc_html__( 'No hay reportes.', 'cead-acad' ) . '</p></div>';
-			return;
-		}
-		foreach ( $reports as $r ) {
-			$body = Cead_Acad_WA_Crypto::decrypt( (string) $r->body_enc );
-			echo '<div class="card" style="max-width:760px;margin-bottom:14px">';
-			echo '<h3 style="margin:0">' . esc_html( $r->ref_code ) . ' — ' . esc_html( $r->type === 'confidential' ? 'Confidencial' : 'Anónimo' ) . '</h3>';
-			echo '<p style="color:#666;margin:.3em 0">' . esc_html( $r->category ?: '—' ) . ' · ' . esc_html( $r->created_at ) . ' · ' . esc_html( $r->status ) . '</p>';
-			if ( $r->type === 'confidential' && ! empty( $r->phone ) ) {
-				echo '<p><strong>' . esc_html__( 'Contacto', 'cead-acad' ) . ':</strong> +' . esc_html( $r->phone ) . '</p>';
-			}
-			echo '<blockquote style="border-left:3px solid #E93B3C;padding-left:12px">' . nl2br( esc_html( $body !== null ? $body : '⚠️ No se pudo descifrar.' ) ) . '</blockquote>';
-			if ( trim( (string) $r->note ) !== '' ) {
-				echo '<p><strong>' . esc_html__( 'Notas', 'cead-acad' ) . ':</strong><br/>' . nl2br( esc_html( $r->note ) ) . '</p>';
-			}
-			echo '<form method="post" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
-			wp_nonce_field( 'cead_acad_wa_reports' );
-			echo '<input type="hidden" name="cead_acad_wa_report_id" value="' . (int) $r->id . '" />';
-			echo '<input type="hidden" name="report_action" value="status" />';
-			echo '<select name="status">';
-			foreach ( [ 'new' => 'Nuevo', 'in_review' => 'En revisión', 'resolved' => 'Resuelto' ] as $k => $lbl ) {
-				echo '<option value="' . esc_attr( $k ) . '" ' . selected( $r->status, $k, false ) . '>' . esc_html( $lbl ) . '</option>';
-			}
-			echo '</select> <button class="button">' . esc_html__( 'Actualizar estado', 'cead-acad' ) . '</button>';
-			echo '</form>';
-			echo '<form method="post" style="margin-top:8px">';
-			wp_nonce_field( 'cead_acad_wa_reports' );
-			echo '<input type="hidden" name="cead_acad_wa_report_id" value="' . (int) $r->id . '" />';
-			echo '<input type="hidden" name="report_action" value="note" />';
-			echo '<input type="text" name="note" class="regular-text" placeholder="' . esc_attr__( 'Agregar nota…', 'cead-acad' ) . '" /> <button class="button">' . esc_html__( 'Guardar nota', 'cead-acad' ) . '</button>';
-			echo '</form>';
-			echo '</div>';
-		}
-		echo '</div>';
-	}
-
 	// -------------------------------------------------- Mensajes del bot
 	public function page_messages() {
 		$this->guard( 'manage_options' );
@@ -446,15 +378,12 @@ class Cead_Acad_WA_Admin {
 		$in  = $this->store->count_messages( 'in', 30 );
 		$out = $this->store->count_messages( 'out', 30 );
 		$usr = $this->store->count_unique_users( 30 );
-		$rep = $this->store->count_reports_by_status();
 		$sug = $this->store->count_suggestions_by_status();
 		echo '<div class="wrap"><h1>' . esc_html__( 'WhatsApp — Métricas (30 días)', 'cead-acad' ) . '</h1>';
 		echo '<div style="display:flex;gap:14px;flex-wrap:wrap">';
 		$this->metric_card( __( 'Mensajes entrantes', 'cead-acad' ), $in );
 		$this->metric_card( __( 'Mensajes salientes', 'cead-acad' ), $out );
 		$this->metric_card( __( 'Usuarios activos', 'cead-acad' ), $usr );
-		$this->metric_card( __( 'Reportes nuevos', 'cead-acad' ), $rep['new'] );
-		$this->metric_card( __( 'Reportes en revisión', 'cead-acad' ), $rep['in_review'] );
 		$this->metric_card( __( 'Sugerencias nuevas', 'cead-acad' ), $sug['new'] );
 		echo '</div>';
 		echo '<h2>' . esc_html__( 'Últimos mensajes', 'cead-acad' ) . '</h2><table class="widefat striped"><thead><tr><th>Fecha</th><th>Número</th><th>Dir.</th><th>Acción</th></tr></thead><tbody>';

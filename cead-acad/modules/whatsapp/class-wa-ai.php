@@ -22,7 +22,7 @@ class Cead_Acad_WA_AI {
 	const MODEL_DEFAULT    = 'deepseek-chat';
 
 	/** Intenciones válidas (mapean a handlers del motor). */
-	const INTENTS = [ 'horario', 'eventos', 'comunicados', 'sitio', 'contacto', 'reportar', 'escribir', 'faq', 'consejo', 'recordatorios', 'panel', 'chat', 'menu' ];
+	const INTENTS = [ 'horario', 'eventos', 'comunicados', 'sitio', 'contacto', 'escribir', 'faq', 'consejo', 'recordatorios', 'panel', 'chat', 'menu' ];
 
 	/* ---------------- Config ---------------- */
 
@@ -79,7 +79,7 @@ class Cead_Acad_WA_AI {
 		$intents = implode( ', ', self::INTENTS );
 		return "Tu tarea operativa: leé el mensaje del alumno y elegí UNA intención de esta lista: {$intents}.\n"
 			. "Significados: horario=su horario de clases; eventos=calendario de eventos; comunicados=avisos del colegio; "
-			. "sitio=enlaces/sitio web; contacto=teléfonos y contactos del colegio; reportar=hacer un reporte/denuncia; "
+			. "sitio=enlaces/sitio web; contacto=teléfonos y contactos del colegio; "
 			. "escribir=mandar un mensaje a Dirección, Consejo o Administración; faq=preguntas frecuentes; consejo=Consejo Estudiantil; "
 			. "recordatorios=activar o desactivar recordatorios de eventos; panel=su panel web; menu=mostrar el menú; "
 			. "chat=responder vos mismo una duda general usando el CONOCIMIENTO/FAQ de abajo.\n"

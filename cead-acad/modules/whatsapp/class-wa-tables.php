@@ -19,6 +19,8 @@ class Cead_Acad_WA_Tables {
 		$messages    = cead_acad_table( 'wa_messages' );
 		$reports     = cead_acad_table( 'wa_reports' );
 		$suggestions = cead_acad_table( 'wa_suggestions' );
+		// Eliminar la tabla de reportes si existe (reportes quitados en v0.21).
+		$wpdb->query( "DROP TABLE IF EXISTS {$reports}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$scheduled   = cead_acad_table( 'wa_scheduled' );
 		$logs        = cead_acad_table( 'wa_logs' );
 
@@ -67,24 +69,6 @@ class Cead_Acad_WA_Tables {
 			updated_at  DATETIME NOT NULL,
 			PRIMARY KEY (id),
 			UNIQUE KEY msg_key (msg_key)
-		) {$charset};" );
-
-		dbDelta( "CREATE TABLE {$reports} (
-			id         BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-			ref_code   VARCHAR(20) NOT NULL,
-			type       VARCHAR(20) NOT NULL DEFAULT 'anonymous',
-			phone      VARCHAR(30) NULL,
-			category   VARCHAR(60) DEFAULT '',
-			body_enc   LONGTEXT NOT NULL,
-			status     VARCHAR(20) NOT NULL DEFAULT 'new',
-			note       LONGTEXT NULL,
-			response   LONGTEXT NULL,
-			deleted_at DATETIME NULL,
-			created_at DATETIME NOT NULL,
-			updated_at DATETIME NOT NULL,
-			PRIMARY KEY (id),
-			UNIQUE KEY ref_code (ref_code),
-			KEY status (status)
 		) {$charset};" );
 
 		dbDelta( "CREATE TABLE {$suggestions} (
@@ -163,9 +147,6 @@ class Cead_Acad_WA_Tables {
 				[ 'name' => 'Consejo Estudiantil', 'detail' => 'consejo@cead.caaguazu.net' ],
 			], false );
 		}
-		if ( get_option( 'cead_acad_wa_report_categories', null ) === null ) {
-			update_option( 'cead_acad_wa_report_categories', [ 'Bullying / acoso', 'Seguridad', 'Infraestructura', 'Otro' ], false );
-		}
 		if ( get_option( 'cead_acad_wa_faq', null ) === null ) {
 			update_option( 'cead_acad_wa_faq', [
 				[ 'q' => '¿Cómo pido una constancia de alumno regular?', 'a' => 'Solicitala en Secretaría de lunes a viernes de 7:00 a 13:00.' ],
@@ -177,9 +158,6 @@ class Cead_Acad_WA_Tables {
 		}
 		if ( get_option( 'cead_acad_wa_reminder_days', null ) === null ) {
 			update_option( 'cead_acad_wa_reminder_days', 1, false );
-		}
-		if ( get_option( 'cead_acad_wa_report_forward_number', null ) === null ) {
-			update_option( 'cead_acad_wa_report_forward_number', '', false );
 		}
 		if ( get_option( 'cead_acad_wa_country_code', null ) === null ) {
 			update_option( 'cead_acad_wa_country_code', '595', false );
@@ -225,7 +203,6 @@ class Cead_Acad_WA_Tables {
 			'menus'         => __( 'Menú principal', 'cead-acad' ),
 			'sistema'       => __( 'Saludos y sistema', 'cead-acad' ),
 			'info'          => __( 'Información para alumnado', 'cead-acad' ),
-			'reportes'      => __( 'Reportes', 'cead-acad' ),
 			'sugerencias'   => __( 'Sugerencias y Consejo', 'cead-acad' ),
 			'recordatorios' => __( 'Recordatorios', 'cead-acad' ),
 			'staff'         => __( 'Personal (staff)', 'cead-acad' ),
@@ -248,6 +225,7 @@ class Cead_Acad_WA_Tables {
 			'error_generic'     => [ 'sistema', 'Error genérico' ],
 			'identify_hint'     => [ 'sistema', 'Aviso de respuesta general (número no reconocido)' ],
 			'access_denied'     => [ 'sistema', 'Sin permisos' ],
+			'vulgar_detected'   => [ 'sistema', 'Filtro de lenguaje: palabra prohibida detectada (usa {words})' ],
 			// Info alumnado
 			'horario_none'      => [ 'info', 'Horarios: sin eventos' ],
 			'horario_header'    => [ 'info', 'Horarios: encabezado personalizado' ],
@@ -260,14 +238,6 @@ class Cead_Acad_WA_Tables {
 			'contact_header'    => [ 'info', 'Contacto: encabezado' ],
 			'comm_read_header'  => [ 'info', 'Comunicados (lectura): encabezado' ],
 			'comm_read_none'    => [ 'info', 'Comunicados (lectura): sin comunicados' ],
-			// Reportes
-			'report_type_prompt'     => [ 'reportes', 'Pregunta tipo de reporte' ],
-			'report_category_prompt' => [ 'reportes', 'Pregunta categoría del reporte' ],
-			'report_body_prompt'     => [ 'reportes', 'Pedido del texto del reporte' ],
-			'report_saved_conf'      => [ 'reportes', 'Reporte confidencial guardado' ],
-			'report_saved_anon'      => [ 'reportes', 'Reporte anónimo guardado' ],
-			'report_cancelled'       => [ 'reportes', 'Reporte cancelado' ],
-			'vulgar_detected'        => [ 'reportes', 'Filtro de lenguaje: palabra prohibida detectada (usa {words})' ],
 			// Sugerencias / Consejo
 			'suggestion_prompt'       => [ 'sugerencias', 'Pedido de sugerencia' ],
 			'suggestion_saved'        => [ 'sugerencias', 'Sugerencia guardada' ],
@@ -294,12 +264,6 @@ class Cead_Acad_WA_Tables {
 			'event_date_prompt'     => [ 'staff', 'Evento: pedir fecha' ],
 			'event_date_invalid'    => [ 'staff', 'Evento: fecha inválida' ],
 			'event_saved'           => [ 'staff', 'Evento: guardado' ],
-			'reports_inbox_header'  => [ 'staff', 'Reportes: encabezado de bandeja (usa {new}/{in_review}/{resolved})' ],
-			'reports_list_prompt'   => [ 'staff', 'Reportes: lista (usa {report_list})' ],
-			'reports_empty'         => [ 'staff', 'Reportes: bandeja vacía' ],
-			'report_actions_prompt' => [ 'staff', 'Reportes: acciones' ],
-			'report_note_prompt'    => [ 'staff', 'Reportes: pedir nota' ],
-			'report_updated'        => [ 'staff', 'Reportes: actualizado' ],
 			'sugg_list_prompt'      => [ 'staff', 'Sugerencias: lista (usa {sugg_list})' ],
 			'sugg_empty'            => [ 'staff', 'Sugerencias: bandeja vacía' ],
 			'sugg_actions_prompt'   => [ 'staff', 'Sugerencias: acciones' ],
@@ -348,7 +312,7 @@ class Cead_Acad_WA_Tables {
 			'greeting_staff'   => 'Hola {name}! 👋 Panel del personal del CEAD.',
 			'staff_menu_header'=> '*Panel del personal* — ¿qué querés hacer?',
 			'greeting_student' => 'Hola {name}! 👋 Bienvenido/a al bot del CEAD. ¿En qué te ayudo?',
-			'student_menu'     => "*Menú CEAD*\n1. Horarios\n2. Sitio web\n3. Calendario de eventos\n4. Contacto\n5. Comunicados\n6. Reportar algo\n7. Sugerencias y quejas\n8. Preguntas frecuentes\n9. Consejo Estudiantil\n10. Recordatorios de eventos\n11. Mi panel web\n0. Salir\n\nEnviá *BAJA* para no recibir mensajes.",
+			'student_menu'     => "*Menú CEAD*\n1. Horarios\n2. Sitio web\n3. Calendario de eventos\n4. Contacto\n5. Comunicados\n6. Sugerencias y quejas\n7. Preguntas frecuentes\n8. Consejo Estudiantil\n9. Recordatorios de eventos\n10. Mi panel web\n0. Salir\n\nEnviá *BAJA* para no recibir mensajes.",
 			'opt_out_confirmed'=> 'Listo, ya no vas a recibir mensajes de este bot. Escribinos de nuevo para volver.',
 			'goodbye'          => '¡Hasta luego! 👋 Escribí cuando quieras para volver al menú.',
 			'invalid_option'   => 'Opción no válida. Elegí una de las opciones del menú.',
@@ -372,14 +336,6 @@ class Cead_Acad_WA_Tables {
 			// Comunicados (lectura alumno)
 			'comm_read_header' => '📣 *Últimos comunicados*',
 			'comm_read_none'   => 'No tenés comunicados por ahora.',
-
-			// Reporte (A5)
-			'report_type_prompt'    => "🛡️ Canal para reportar situaciones (bullying, seguridad, etc.).\n¿Cómo querés enviarlo?\n1. Anónimo total\n2. Confidencial (quiero que me contacten)\n0. Cancelar",
-			'report_category_prompt'=> "¿Sobre qué es el reporte?\n{category_list}\n0. Cancelar",
-			'report_body_prompt'    => 'Escribí tu reporte con el mayor detalle posible. Se trata con confidencialidad. (0 para cancelar)',
-			'report_saved_conf'     => "✅ Reporte recibido. Código de seguimiento: *{ref}*.\nEl equipo de moderación podrá contactarte.",
-			'report_saved_anon'     => "✅ Reporte anónimo recibido. Gracias por confiar.\nCódigo de referencia: *{ref}*.",
-			'report_cancelled'      => 'Reporte cancelado. No se guardó nada.',
 
 			// Sugerencias (A6)
 			'suggestion_prompt'  => 'Escribí tu sugerencia o queja (0 para cancelar):',
@@ -422,14 +378,6 @@ class Cead_Acad_WA_Tables {
 			'event_date_prompt'  => 'Fecha y hora del evento (AAAA-MM-DD HH:MM), ej. 2026-07-15 07:00:',
 			'event_date_invalid' => 'Formato inválido. Usá AAAA-MM-DD HH:MM.',
 			'event_saved'        => '✅ Evento agregado al calendario.',
-
-			// Staff: bandeja reportes (D5)
-			'reports_inbox_header' => "📥 *Bandeja de reportes*\nNuevos: {new} · En revisión: {in_review} · Resueltos: {resolved}",
-			'reports_list_prompt'  => "Elegí un reporte:\n{report_list}\n0. Volver",
-			'reports_empty'        => 'No hay reportes nuevos ni en revisión.',
-			'report_actions_prompt'=> "1. Marcar en revisión\n2. Marcar resuelto\n3. Agregar nota\n0. Volver",
-			'report_note_prompt'   => 'Escribí la nota de seguimiento (0 para cancelar):',
-			'report_updated'       => '✅ Reporte actualizado.',
 
 			// Staff: bandeja sugerencias (D6)
 			'sugg_list_prompt'  => "Elegí una sugerencia:\n{sugg_list}\n0. Volver",

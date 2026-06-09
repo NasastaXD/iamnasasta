@@ -117,19 +117,11 @@ class Cead_Acad_WA_Engine {
 	}
 
 	private function log_inbound( $phone, $state, $context, $body ) {
-		if ( $state === 'stu_report_body' ) {
-			$type = $context['report_type'] ?? 'anonymous';
-			if ( $type === 'anonymous' ) {
-				return; // no dejar rastro del contenido anónimo
-			}
-			$this->store->log( $phone, 'in', '[reporte confidencial]' );
-			return;
-		}
 		$this->store->log( $phone, 'in', $body );
 	}
 
 	private function dispatch( $phone, $body, $lc, $state, $context, $name, $identity, $media = null ) {
-		// Filtro de lenguaje en estados de texto libre (reportes, sugerencias, comunicados).
+		// Filtro de lenguaje en estados de texto libre (sugerencias, comunicados).
 		if ( $body !== '' && $this->is_free_text_state( $state ) ) {
 			$hits = $this->detect_banned_words( $body );
 			if ( $hits ) {
@@ -143,9 +135,6 @@ class Cead_Acad_WA_Engine {
 			case 'role_chooser':         $this->role_chooser( $phone, $lc, $context, $identity ); break;
 			// Alumnado
 			case 'student_menu':         $this->student_menu( $phone, $lc, $identity, $body ); break;
-			case 'stu_report_type':      $this->report_type( $phone, $lc ); break;
-			case 'stu_report_cat':       $this->report_cat( $phone, $lc, $context ); break;
-			case 'stu_report_body':      $this->report_body( $phone, $body, $lc, $context ); break;
 			case 'stu_suggestion_body':  $this->suggestion_body( $phone, $body, $lc, $identity ); break;
 			case 'stu_msg_to':           $this->msg_to( $phone, $lc, $identity ); break;
 			case 'stu_msg_body':         $this->msg_body( $phone, $body, $lc, $context, $identity ); break;
@@ -170,9 +159,6 @@ class Cead_Acad_WA_Engine {
 			case 'staff_article_del_confirm': $this->article_del_confirm( $phone, $lc, $context ); break;
 			case 'staff_role_phone':     $this->role_phone( $phone, $body, $lc ); break;
 			case 'staff_role_choose':    $this->role_choose( $phone, $lc, $context, $identity ); break;
-			case 'staff_reports_list':   $this->reports_list( $phone, $lc, $context ); break;
-			case 'staff_report_view':    $this->report_view( $phone, $lc, $context ); break;
-			case 'staff_report_note':    $this->report_note( $phone, $body, $lc, $context ); break;
 			case 'staff_sugg_list':      $this->sugg_list( $phone, $lc, $context ); break;
 			case 'staff_sugg_view':      $this->sugg_view( $phone, $lc, $context ); break;
 			default:                     $this->idle( $phone, $name, $identity );
@@ -364,12 +350,11 @@ class Cead_Acad_WA_Engine {
 			case '3':  $this->show_events( $phone, $identity ); break;
 			case '4':  $this->show_contacts( $phone ); break;
 			case '5':  $this->show_comunicados( $phone, $identity ); break;
-			case '6':  $this->report_start( $phone ); break;
-			case '7':  $this->suggestion_start( $phone ); break;
-			case '8':  $this->show_faq( $phone ); break;
-			case '9':  $this->council_open( $phone ); break;
-			case '10': $this->reminders_toggle( $phone ); break;
-			case '11': $this->show_panel( $phone ); break;
+			case '6':  $this->suggestion_start( $phone ); break;
+			case '7':  $this->show_faq( $phone ); break;
+			case '8':  $this->council_open( $phone ); break;
+			case '9':  $this->reminders_toggle( $phone ); break;
+			case '10': $this->show_panel( $phone ); break;
 			case '0': case 'salir': case 'adios': case 'adiós':
 				$this->store->reset_state( $phone );
 				if ( class_exists( 'Cead_Acad_WA_AI' ) ) { Cead_Acad_WA_AI::clear_memory( $phone ); }
@@ -408,7 +393,6 @@ class Cead_Acad_WA_Engine {
 			case 'comunicados':   $this->show_comunicados( $phone, $identity ); return true;
 			case 'sitio':         $this->show_links( $phone ); return true;
 			case 'contacto':      $this->show_contacts( $phone ); return true;
-			case 'reportar':      $this->report_start( $phone ); return true;
 			case 'escribir':      $this->suggestion_start( $phone ); return true;
 			case 'faq':           $this->show_faq( $phone ); return true;
 			case 'consejo':       $this->council_open( $phone ); return true;
@@ -610,59 +594,6 @@ class Cead_Acad_WA_Engine {
 		$this->back_to_student( $phone );
 	}
 
-	// A5 Reporte
-	private function report_start( $phone ) {
-		$this->force_new = true; // el prompt sale como mensaje nuevo, separado del menú.
-		$this->store->set_state( $phone, 'stu_report_type' );
-		$this->send( $phone, $this->m( 'report_type_prompt' ) . $this->cap_hint() );
-	}
-
-	private function report_type( $phone, $lc ) {
-		if ( $this->is_cancel( $lc ) ) { $this->back_to_student( $phone ); return; }
-		$type = $lc === '1' ? 'anonymous' : ( $lc === '2' ? 'confidential' : '' );
-		if ( $type === '' ) { $this->invalid( $phone ); return; }
-		$cats = $this->report_categories();
-		$this->store->set_state( $phone, 'stu_report_cat', [ 'report_type' => $type, 'categories' => $cats ] );
-		$lines = [];
-		foreach ( $cats as $i => $c ) { $lines[] = ( $i + 1 ) . '. ' . $c; }
-		$this->send( $phone, $this->interp( $this->m( 'report_category_prompt' ), [ 'category_list' => implode( "\n", $lines ) ] ) );
-	}
-
-	private function report_cat( $phone, $lc, $context ) {
-		if ( $this->is_cancel( $lc ) ) { $this->send( $phone, $this->m( 'report_cancelled' ) ); $this->back_to_student( $phone ); return; }
-		$cats = $context['categories'] ?? [];
-		$idx  = (int) $lc - 1;
-		if ( ! isset( $cats[ $idx ] ) ) { $this->invalid( $phone ); return; }
-		$this->store->set_state( $phone, 'stu_report_body', [ 'report_type' => $context['report_type'] ?? 'anonymous', 'category' => (string) $cats[ $idx ] ] );
-		$this->send( $phone, $this->m( 'report_body_prompt' ) );
-	}
-
-	private function report_body( $phone, $body, $lc, $context ) {
-		if ( $this->is_cancel( $lc ) ) { $this->send( $phone, $this->m( 'report_cancelled' ) ); $this->back_to_student( $phone ); return; }
-		$type = (string) ( $context['report_type'] ?? 'anonymous' );
-		$cat  = (string) ( $context['category'] ?? '' );
-		$ref  = $this->store->create_report( $type, $type === 'confidential' ? $phone : null, $cat, $body );
-		// La gestión es solo por panel; ya no se reenvía al WhatsApp de coordinación.
-		$key = $type === 'anonymous' ? 'report_saved_anon' : 'report_saved_conf';
-		$this->send( $phone, $this->interp( $this->m( $key ), [ 'ref' => $ref ] ), 'report_received' );
-		$this->finish_capture( $phone, 'student' );
-	}
-
-	private function forward_report( $ref, $type, $cat, $body, $contact ) {
-		$to = preg_replace( '/[^0-9]/', '', (string) get_option( 'cead_acad_wa_report_forward_number', '' ) );
-		if ( $to === '' || strlen( $to ) < 7 ) { return; }
-		$lines = [ '🛡️ *Nuevo reporte* ' . $ref, 'Tipo: ' . ( $type === 'confidential' ? 'Confidencial' : 'Anónimo' ), 'Tema: ' . ( $cat !== '' ? $cat : '—' ) ];
-		if ( $type === 'confidential' && $contact ) { $lines[] = 'Contacto: +' . $contact; }
-		$lines[] = ''; $lines[] = $body;
-		$this->bridge->send_message( $to, implode( "\n", $lines ) );
-		$this->store->log( $to, 'out', '[reporte reenviado] ' . $ref, 'report_forwarded' );
-	}
-
-	private function report_categories() {
-		$c = get_option( 'cead_acad_wa_report_categories', [] );
-		return is_array( $c ) && $c ? array_values( $c ) : [ 'Bullying / acoso', 'Seguridad', 'Otro' ];
-	}
-
 	// A6 Sugerencias
 	private function suggestion_start( $phone ) {
 		$this->force_new = true;
@@ -767,7 +698,6 @@ class Cead_Acad_WA_Engine {
 			case 'comm':      $this->comm_start( $phone, $identity ); break;
 			case 'event':     $this->event_start( $phone, $identity ); break;
 			case 'articles':  $this->articles_start( $phone, $identity ); break;
-			case 'reports':   $this->reports_open( $phone, $identity ); break;
 			case 'sugg':      $this->sugg_open( $phone, $identity ); break;
 			case 'roles':     $this->roles_start( $phone, $identity ); break;
 			case 'metrics':   $this->metrics_show( $phone, $identity ); break;
@@ -1054,83 +984,6 @@ class Cead_Acad_WA_Engine {
 		return [ 'created' => true, 'label' => $labels[ $role ] ?? $role ];
 	}
 
-	// D5 Bandeja de reportes
-	private function reports_open( $phone, $identity ) {
-		if ( ! $this->require_cap( $phone, $identity, 'cead_acad_manage_reports' ) ) { return; }
-		$counts  = $this->store->count_reports_by_status();
-		$reports = array_merge( $this->store->reports_by_status( 'new', 15 ), $this->store->reports_by_status( 'in_review', 15 ) );
-		$header  = $this->interp( $this->m( 'reports_inbox_header' ), [ 'new' => $counts['new'], 'in_review' => $counts['in_review'], 'resolved' => $counts['resolved'] ] );
-		if ( empty( $reports ) ) { $this->send( $phone, $header . "\n\n" . $this->m( 'reports_empty' ) ); $this->reenter_staff( $phone ); return; }
-		$ids = []; $lines = [];
-		foreach ( $reports as $i => $r ) {
-			$ids[] = (int) $r->id;
-			$lines[] = ( $i + 1 ) . '. ' . $r->ref_code . ' · ' . ( $r->type === 'confidential' ? 'Confidencial' : 'Anónimo' ) . ' · ' . $this->status_label( $r->status );
-		}
-		$this->store->set_state( $phone, 'staff_reports_list', [ 'ids' => $ids ] );
-		$this->send( $phone, $header );
-		$this->send( $phone, $this->interp( $this->m( 'reports_list_prompt' ), [ 'report_list' => implode( "\n", $lines ) ] ) );
-	}
-
-	private function reports_list( $phone, $lc, $context ) {
-		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
-		$ids = $context['ids'] ?? [];
-		$idx = (int) $lc - 1;
-		if ( ! isset( $ids[ $idx ] ) ) { $this->invalid( $phone ); return; }
-		$this->show_report( $phone, (int) $ids[ $idx ] );
-	}
-
-	private function show_report( $phone, $id ) {
-		$r = $this->store->get_report( $id );
-		if ( ! $r ) { $this->send( $phone, $this->m( 'error_generic' ) ); return; }
-		$body = Cead_Acad_WA_Crypto::decrypt( (string) $r->body_enc );
-		$lines = [ '📄 *' . $r->ref_code . '*', 'Tipo: ' . ( $r->type === 'confidential' ? 'Confidencial' : 'Anónimo' ), 'Estado: ' . $this->status_label( $r->status ), 'Tema: ' . ( $r->category !== '' ? $r->category : '—' ) ];
-		if ( $r->type === 'confidential' && ! empty( $r->phone ) ) { $lines[] = 'Contacto: +' . $r->phone; }
-		$lines[] = ''; $lines[] = $body !== null ? $body : '⚠️ No se pudo descifrar (clave cambiada).';
-		if ( trim( (string) $r->note ) !== '' ) { $lines[] = ''; $lines[] = '📝 Notas:'; $lines[] = (string) $r->note; }
-		$this->store->set_state( $phone, 'staff_report_view', [ 'report_id' => $id ] );
-		$this->send( $phone, implode( "\n", $lines ) );
-		$this->send( $phone, $this->m( 'report_actions_prompt' ) );
-	}
-
-	private function report_view( $phone, $lc, $context ) {
-		$id = (int) ( $context['report_id'] ?? 0 );
-		switch ( $lc ) {
-			case '1': $this->store->update_report_status( $id, 'in_review' ); $this->send( $phone, $this->m( 'report_updated' ) ); $this->show_report( $phone, $id ); break;
-			case '2': $this->store->update_report_status( $id, 'resolved' ); $this->send( $phone, $this->m( 'report_updated' ) ); $this->reports_open_keep( $phone ); break;
-			case '3': $this->store->set_state( $phone, 'staff_report_note', [ 'report_id' => $id ] ); $this->send( $phone, $this->m( 'report_note_prompt' ) ); break;
-			case '0': case 'volver': $this->reports_open_keep( $phone ); break;
-			default: $this->invalid( $phone );
-		}
-	}
-
-	private function reports_open_keep( $phone ) {
-		// Reabrir la bandeja sin recomputar caps (ya validadas al entrar).
-		$counts  = $this->store->count_reports_by_status();
-		$reports = array_merge( $this->store->reports_by_status( 'new', 15 ), $this->store->reports_by_status( 'in_review', 15 ) );
-		$header  = $this->interp( $this->m( 'reports_inbox_header' ), [ 'new' => $counts['new'], 'in_review' => $counts['in_review'], 'resolved' => $counts['resolved'] ] );
-		if ( empty( $reports ) ) {
-			$this->send( $phone, $header . "\n\n" . $this->m( 'reports_empty' ) );
-			$this->store->set_state( $phone, 'idle' );
-			$this->send( $phone, $this->m( 'goodbye' ) );
-			return;
-		}
-		$ids = []; $lines = [];
-		foreach ( $reports as $i => $r ) {
-			$ids[] = (int) $r->id;
-			$lines[] = ( $i + 1 ) . '. ' . $r->ref_code . ' · ' . $this->status_label( $r->status );
-		}
-		$this->store->set_state( $phone, 'staff_reports_list', [ 'ids' => $ids ] );
-		$this->send( $phone, $this->interp( $this->m( 'reports_list_prompt' ), [ 'report_list' => implode( "\n", $lines ) ] ) );
-	}
-
-	private function report_note( $phone, $body, $lc, $context ) {
-		$id = (int) ( $context['report_id'] ?? 0 );
-		if ( $this->is_cancel( $lc ) ) { $this->show_report( $phone, $id ); return; }
-		$this->store->append_report_note( $id, $body );
-		$this->send( $phone, $this->m( 'report_updated' ) );
-		$this->show_report( $phone, $id );
-	}
-
 	// D6 Bandeja de sugerencias
 	private function sugg_open( $phone, $identity ) {
 		if ( ! $this->require_cap( $phone, $identity, 'cead_acad_manage_reports' ) ) { return; }
@@ -1178,12 +1031,10 @@ class Cead_Acad_WA_Engine {
 		$in   = $this->store->count_messages( 'in', 30 );
 		$out  = $this->store->count_messages( 'out', 30 );
 		$usr  = $this->store->count_unique_users( 30 );
-		$rep  = $this->store->count_reports_by_status();
 		$sug  = $this->store->count_suggestions_by_status();
 		$lines = [ $this->m( 'metrics_header' ) ];
 		$lines[] = "💬 Mensajes: {$in} entrantes · {$out} salientes";
 		$lines[] = "👤 Usuarios activos: {$usr}";
-		$lines[] = "📥 Reportes: {$rep['new']} nuevos · {$rep['in_review']} en revisión · {$rep['resolved']} resueltos";
 		$lines[] = "💡 Sugerencias: {$sug['new']} nuevas · {$sug['in_review']} en revisión · {$sug['resolved']} resueltas";
 		$this->send( $phone, implode( "\n", $lines ) );
 		$this->reenter_staff( $phone );
@@ -1335,7 +1186,7 @@ class Cead_Acad_WA_Engine {
 	// --------------------------------------------------- filtro de lenguaje
 	/** Estados donde el usuario escribe texto libre que se guarda/reenvía. */
 	private function is_free_text_state( $state ) {
-		return in_array( $state, [ 'stu_report_body', 'stu_suggestion_body', 'stu_msg_body', 'stu_council_proposal', 'staff_comm_compose' ], true );
+		return in_array( $state, [ 'stu_suggestion_body', 'stu_msg_body', 'stu_council_proposal', 'staff_comm_compose' ], true );
 	}
 
 	/** Lista de palabras prohibidas configurable (una por línea o separadas por coma). */
@@ -1509,12 +1360,12 @@ class Cead_Acad_WA_Engine {
 
 	/** Comando "volver": sube un nivel de menú según el estado actual. */
 	private function go_back( $phone, $state, $identity ) {
-		$student_sub = [ 'stu_report_type', 'stu_report_cat', 'stu_report_body', 'stu_suggestion_body', 'stu_msg_to', 'stu_msg_body', 'stu_council_menu', 'stu_council_proposal' ];
+		$student_sub = [ 'stu_suggestion_body', 'stu_msg_to', 'stu_msg_body', 'stu_council_menu', 'stu_council_proposal' ];
 		$staff_sub   = [
 			'staff_comm_compose', 'staff_comm_template', 'staff_comm_audience', 'staff_comm_when', 'staff_comm_confirm', 'staff_comm_schedule',
 			'staff_event_title', 'staff_event_date', 'staff_article_menu', 'staff_article_title', 'staff_article_body',
 			'staff_article_edit_pick', 'staff_article_edit_body', 'staff_article_del_pick', 'staff_article_del_confirm',
-			'staff_role_phone', 'staff_role_choose', 'staff_reports_list', 'staff_report_view', 'staff_report_note',
+			'staff_role_phone', 'staff_role_choose',
 			'staff_sugg_list', 'staff_sugg_view',
 		];
 		if ( in_array( $state, $student_sub, true ) ) {
