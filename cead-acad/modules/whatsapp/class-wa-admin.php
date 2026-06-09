@@ -52,7 +52,7 @@ class Cead_Acad_WA_Admin {
 
 		if ( isset( $_POST['cead_acad_wa_action'] ) && check_admin_referer( 'cead_acad_wa_status' ) ) {
 			$action = sanitize_key( wp_unslash( $_POST['cead_acad_wa_action'] ) );
-			if ( $action === 'save_settings' ) {
+			if ( $action === 'save_settings' || $action === 'ai_test' ) {
 				$this->store->update_session( [
 					'bridge_url'   => esc_url_raw( wp_unslash( $_POST['bridge_url'] ?? '' ) ),
 					'shared_token' => sanitize_text_field( wp_unslash( $_POST['shared_token'] ?? '' ) ),
@@ -64,10 +64,23 @@ class Cead_Acad_WA_Admin {
 				update_option( 'cead_acad_panel_intro', sanitize_textarea_field( wp_unslash( $_POST['panel_intro'] ?? '' ) ), false );
 				update_option( 'cead_acad_ceadi_intro', sanitize_textarea_field( wp_unslash( $_POST['ceadi_intro'] ?? '' ) ), false );
 				update_option( 'cead_acad_banned_words', sanitize_textarea_field( wp_unslash( $_POST['banned_words'] ?? '' ) ), false );
+				// --- IA ---
 				update_option( 'cead_acad_wa_ai_enabled', ! empty( $_POST['ai_enabled'] ) ? 1 : 0, false );
 				update_option( 'cead_acad_wa_ai_key', sanitize_text_field( wp_unslash( $_POST['ai_key'] ?? '' ) ), false );
 				update_option( 'cead_acad_wa_ai_model', sanitize_text_field( wp_unslash( $_POST['ai_model'] ?? '' ) ) ?: 'deepseek-chat', false );
-				$notice = [ 'ok', __( 'Configuración guardada.', 'cead-acad' ) ];
+				update_option( 'cead_acad_wa_ai_endpoint', esc_url_raw( wp_unslash( $_POST['ai_endpoint'] ?? '' ) ), false );
+				update_option( 'cead_acad_wa_ai_temp', is_numeric( $_POST['ai_temp'] ?? '' ) ? (float) $_POST['ai_temp'] : 0.2, false );
+				update_option( 'cead_acad_wa_ai_maxtokens', max( 50, (int) ( $_POST['ai_maxtokens'] ?? 500 ) ), false );
+				update_option( 'cead_acad_wa_ai_prompt', sanitize_textarea_field( wp_unslash( $_POST['ai_prompt'] ?? '' ) ), false );
+				update_option( 'cead_acad_wa_ai_knowledge', sanitize_textarea_field( wp_unslash( $_POST['ai_knowledge'] ?? '' ) ), false );
+
+				if ( $action === 'ai_test' ) {
+					$msg = sanitize_text_field( wp_unslash( $_POST['ai_test_message'] ?? '' ) ) ?: '¿qué clases tengo hoy?';
+					$t   = Cead_Acad_WA_AI::test( $msg );
+					$notice = [ $t['ok'] ? 'ok' : 'err', __( 'Prueba IA', 'cead-acad' ) . ': ' . $t['summary'] ];
+				} else {
+					$notice = [ 'ok', __( 'Configuración guardada.', 'cead-acad' ) ];
+				}
 			} elseif ( $action === 'restart' ) {
 				$res = $this->bridge->restart();
 				$notice = isset( $res['error'] ) ? [ 'err', $res['error'] ] : [ 'ok', __( 'Reinicio solicitado.', 'cead-acad' ) ];
@@ -131,12 +144,25 @@ class Cead_Acad_WA_Admin {
 			$this->field_textarea( 'banned_words', __( 'Palabras prohibidas (una por línea)', 'cead-acad' ), get_option( 'cead_acad_banned_words', '' ) );
 
 			// --- IA (CEADI inteligente) ---
-			echo '<tr><th scope="row">' . esc_html__( 'CEADI inteligente (IA)', 'cead-acad' ) . '</th><td>';
+			echo '<tr><th colspan="2" style="padding-top:1.5em"><h3 style="margin:0">' . esc_html__( '🤖 CEADI inteligente (IA)', 'cead-acad' ) . '</h3></th></tr>';
+			echo '<tr><th scope="row">' . esc_html__( 'Activar', 'cead-acad' ) . '</th><td>';
 			echo '<label><input type="checkbox" name="ai_enabled" value="1" ' . checked( get_option( 'cead_acad_wa_ai_enabled', 0 ), 1, false ) . '> ' . esc_html__( 'Entender lenguaje natural con IA (además del menú numérico)', 'cead-acad' ) . '</label>';
-			echo '<p class="description">' . esc_html__( 'Si está activo y hay API key, cuando el alumno escribe en vez de elegir un número, la IA interpreta y dispara la función o responde dudas con las FAQ.', 'cead-acad' ) . '</p>';
+			echo '<p class="description">' . esc_html__( 'Cuando el alumno escribe en vez de elegir un número, la IA interpreta y dispara la función o responde con el conocimiento/FAQ. Si falla o está apagada, usa el menú.', 'cead-acad' ) . '</p>';
 			echo '</td></tr>';
-			$this->field( 'ai_key', __( 'API key de IA (DeepSeek u OpenAI-compatible)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_key', '' ), 'sk-...', 'password' );
+			$this->field( 'ai_endpoint', __( 'Endpoint (API compatible OpenAI)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_endpoint', '' ), Cead_Acad_WA_AI::ENDPOINT_DEFAULT, 'url' );
+			echo '<tr><th></th><td><p class="description">' . esc_html__( 'Ej.: DeepSeek https://api.deepseek.com/chat/completions · OpenRouter https://openrouter.ai/api/v1/chat/completions · tokenlb https://tokenlb.net/v1/chat/completions · OpenAI https://api.openai.com/v1/chat/completions', 'cead-acad' ) . '</p></td></tr>';
 			$this->field( 'ai_model', __( 'Modelo', 'cead-acad' ), get_option( 'cead_acad_wa_ai_model', 'deepseek-chat' ), 'deepseek-chat' );
+			$this->field( 'ai_key', __( 'API key', 'cead-acad' ), get_option( 'cead_acad_wa_ai_key', '' ), 'sk-... (o definir CEAD_ACAD_AI_KEY en wp-config)', 'password' );
+			$this->field( 'ai_temp', __( 'Temperatura (0–1)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_temp', '0.2' ), '0.2', 'text' );
+			$this->field( 'ai_maxtokens', __( 'Máx. tokens de respuesta', 'cead-acad' ), get_option( 'cead_acad_wa_ai_maxtokens', 500 ), '500', 'number' );
+			$this->field_textarea( 'ai_prompt', __( 'System prompt (personalidad / instrucciones)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_prompt', '' ) ?: Cead_Acad_WA_AI::default_persona(), 6 );
+			echo '<tr><th></th><td><p class="description">' . esc_html__( 'Definí el tono y rol de CEADI. El formato de salida (ruteo en JSON) se agrega automáticamente, no hace falta escribirlo.', 'cead-acad' ) . '</p></td></tr>';
+			$this->field_textarea( 'ai_knowledge', __( 'Conocimiento (base de datos para responder)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_knowledge', '' ), 8 );
+			echo '<tr><th></th><td><p class="description">' . esc_html__( 'Texto libre con info del colegio (horarios generales, reglas, contactos, fechas, etc.). La IA lo usa para responder dudas. Las FAQ del panel se suman a esto.', 'cead-acad' ) . '</p></td></tr>';
+			echo '<tr><th scope="row">' . esc_html__( 'Probar', 'cead-acad' ) . '</th><td>';
+			echo '<input type="text" name="ai_test_message" class="regular-text" placeholder="' . esc_attr__( '¿qué clases tengo hoy?', 'cead-acad' ) . '">';
+			echo ' <button type="submit" class="button" name="cead_acad_wa_action" value="ai_test">' . esc_html__( 'Guardar y probar IA', 'cead-acad' ) . '</button>';
+			echo '<p class="description">' . esc_html__( 'Guarda la configuración y hace una consulta de prueba a la API; el resultado aparece arriba.', 'cead-acad' ) . '</p></td></tr>';
 		echo '</tbody></table>';
 		submit_button( __( 'Guardar configuración', 'cead-acad' ) );
 		echo '</form></div>';

@@ -1,11 +1,17 @@
 <?php
 /**
- * Capa de IA opcional para CEADI. Interpreta el lenguaje natural del alumno y
- * decide qué función del menú disparar, o responde dudas generales con el
- * contexto de las FAQ. Usa una API compatible con OpenAI (por defecto DeepSeek).
+ * Capa de IA configurable para CEADI. Interpreta lenguaje natural y decide qué
+ * función del menú disparar, o responde dudas con el conocimiento/FAQ.
  *
- * Es 100% opcional: si no hay API key o está desactivada, el bot funciona con su
- * menú numérico de siempre.
+ * Proveedor LIBRE: cualquier API compatible con OpenAI (DeepSeek, OpenRouter,
+ * tokenlb, OpenAI, etc.). Se configura endpoint + modelo + API key. Todo
+ * editable desde CEAD Académico → WhatsApp:
+ *   - Endpoint (ej. https://tokenlb.net/v1/chat/completions)
+ *   - Modelo, API key, temperatura, máx. tokens
+ *   - System prompt (la "personalidad"/instrucciones)
+ *   - Conocimiento (base de datos de texto que la IA usa para responder)
+ *
+ * 100% opcional: sin key o desactivada, el bot usa su menú numérico de siempre.
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
@@ -15,51 +21,106 @@ class Cead_Acad_WA_AI {
 	const ENDPOINT_DEFAULT = 'https://api.deepseek.com/chat/completions';
 	const MODEL_DEFAULT    = 'deepseek-chat';
 
-	/** Intenciones válidas que la IA puede devolver (mapean a handlers del motor). */
+	/** Intenciones válidas (mapean a handlers del motor). */
 	const INTENTS = [ 'horario', 'eventos', 'comunicados', 'sitio', 'contacto', 'reportar', 'escribir', 'faq', 'consejo', 'recordatorios', 'panel', 'chat', 'menu' ];
+
+	/* ---------------- Config ---------------- */
 
 	public static function enabled() {
 		return (bool) get_option( 'cead_acad_wa_ai_enabled', 0 ) && self::key() !== '';
 	}
-
 	public static function key() {
 		if ( defined( 'CEAD_ACAD_AI_KEY' ) && CEAD_ACAD_AI_KEY ) {
 			return (string) CEAD_ACAD_AI_KEY;
 		}
 		return (string) get_option( 'cead_acad_wa_ai_key', '' );
 	}
-
 	public static function model() {
 		return (string) ( get_option( 'cead_acad_wa_ai_model', '' ) ?: self::MODEL_DEFAULT );
 	}
-
 	public static function endpoint() {
 		return (string) ( get_option( 'cead_acad_wa_ai_endpoint', '' ) ?: self::ENDPOINT_DEFAULT );
 	}
+	public static function temperature() {
+		$t = get_option( 'cead_acad_wa_ai_temp', '' );
+		return ( $t === '' ) ? 0.2 : (float) $t;
+	}
+	public static function max_tokens() {
+		return max( 50, (int) ( get_option( 'cead_acad_wa_ai_maxtokens', 0 ) ?: 500 ) );
+	}
+	public static function knowledge() {
+		return trim( (string) get_option( 'cead_acad_wa_ai_knowledge', '' ) );
+	}
+
+	/* ---------------- Prompts ---------------- */
+
+	/** Persona/instrucciones editables (default si está vacío). */
+	public static function persona() {
+		$p = trim( (string) get_option( 'cead_acad_wa_ai_prompt', '' ) );
+		return $p !== '' ? $p : self::default_persona();
+	}
+
+	public static function default_persona() {
+		return "Sos CEADI, el asistente de WhatsApp del CEAD «Félix de Guarania», un colegio secundario de alto desempeño de Caaguazú, Paraguay. "
+			. "Hablás en español de Paraguay, en tono breve, claro y amable. Ayudás a los alumnos con todo lo del colegio. "
+			. "No inventes datos que no tengas; si no sabés algo, sugerí escribir a un encargado o ver el panel.";
+	}
+
+	/** Contrato de salida (SIEMPRE se agrega: garantiza el ruteo en JSON). */
+	protected static function routing_instructions() {
+		$intents = implode( ', ', self::INTENTS );
+		return "Tu tarea operativa: leé el mensaje del alumno y elegí UNA intención de esta lista: {$intents}.\n"
+			. "Significados: horario=su horario de clases; eventos=calendario de eventos; comunicados=avisos del colegio; "
+			. "sitio=enlaces/sitio web; contacto=teléfonos y contactos del colegio; reportar=hacer un reporte/denuncia; "
+			. "escribir=mandar un mensaje a Dirección, Consejo o Administración; faq=preguntas frecuentes; consejo=Consejo Estudiantil; "
+			. "recordatorios=activar o desactivar recordatorios de eventos; panel=su panel web; menu=mostrar el menú; "
+			. "chat=responder vos mismo una duda general usando el CONOCIMIENTO/FAQ de abajo.\n"
+			. "Si la duda se puede contestar con el conocimiento o las FAQ, usá intent \"chat\" y poné la respuesta en \"reply\" (máx 3 frases). "
+			. "Si pide una función concreta, devolvé esa intención con \"reply\" vacío. Si no entendés, usá intent \"menu\".\n"
+			. "Respondé EXCLUSIVAMENTE un JSON válido: {\"intent\":\"...\",\"reply\":\"...\"}. Nada de texto fuera del JSON.";
+	}
+
+	protected static function build_system( $faq_context = '' ) {
+		$p = self::persona() . "\n\n" . self::routing_instructions();
+		$kn = self::knowledge();
+		if ( $kn !== '' ) {
+			$p .= "\n\n[CONOCIMIENTO DEL COLEGIO]\n" . mb_substr( $kn, 0, 5000 );
+		}
+		if ( trim( (string) $faq_context ) !== '' ) {
+			$p .= "\n\n[FAQ]\n" . mb_substr( (string) $faq_context, 0, 2500 );
+		}
+		return $p;
+	}
+
+	/* ---------------- Llamada ---------------- */
 
 	/**
-	 * Clasifica el mensaje. Devuelve [ 'intent' => string, 'reply' => string ] o null.
+	 * Llamada cruda. Devuelve un array de depuración:
+	 * [ ok, code, error, intent, reply, content ].
 	 */
-	public static function route( $message, $faq_context = '' ) {
-		$key = self::key();
-		$message = trim( (string) $message );
-		if ( $key === '' || $message === '' ) {
-			return null;
-		}
+	public static function call( $message, $faq_context = '', $key = null, $endpoint = null, $model = null ) {
+		$key      = $key !== null ? $key : self::key();
+		$endpoint = $endpoint !== null && $endpoint !== '' ? $endpoint : self::endpoint();
+		$model    = $model !== null && $model !== '' ? $model : self::model();
+		$message  = trim( (string) $message );
+
+		$out = [ 'ok' => false, 'code' => 0, 'error' => '', 'intent' => '', 'reply' => '', 'content' => '' ];
+		if ( $key === '' ) { $out['error'] = 'Falta la API key.'; return $out; }
+		if ( $message === '' ) { $out['error'] = 'Mensaje vacío.'; return $out; }
 
 		$payload = [
-			'model'           => self::model(),
-			'temperature'     => 0.2,
-			'max_tokens'      => 400,
+			'model'           => $model,
+			'temperature'     => self::temperature(),
+			'max_tokens'      => self::max_tokens(),
 			'response_format' => [ 'type' => 'json_object' ],
 			'messages'        => [
-				[ 'role' => 'system', 'content' => self::system_prompt( $faq_context ) ],
-				[ 'role' => 'user',   'content' => mb_substr( $message, 0, 1000 ) ],
+				[ 'role' => 'system', 'content' => self::build_system( $faq_context ) ],
+				[ 'role' => 'user',   'content' => mb_substr( $message, 0, 1200 ) ],
 			],
 		];
 
-		$res = wp_remote_post( self::endpoint(), [
-			'timeout' => 15,
+		$res = wp_remote_post( $endpoint, [
+			'timeout' => 20,
 			'headers' => [
 				'Authorization' => 'Bearer ' . $key,
 				'Content-Type'  => 'application/json',
@@ -68,44 +129,47 @@ class Cead_Acad_WA_AI {
 		] );
 
 		if ( is_wp_error( $res ) ) {
-			error_log( '[CeadAcadWA][AI] ' . $res->get_error_message() );
-			return null;
+			$out['error'] = $res->get_error_message();
+			error_log( '[CeadAcadWA][AI] ' . $out['error'] );
+			return $out;
 		}
-		if ( (int) wp_remote_retrieve_response_code( $res ) !== 200 ) {
-			error_log( '[CeadAcadWA][AI] HTTP ' . wp_remote_retrieve_response_code( $res ) );
-			return null;
+		$out['code'] = (int) wp_remote_retrieve_response_code( $res );
+		$bodyraw     = wp_remote_retrieve_body( $res );
+		if ( $out['code'] !== 200 ) {
+			$out['error'] = 'HTTP ' . $out['code'] . ' — ' . mb_substr( wp_strip_all_tags( (string) $bodyraw ), 0, 300 );
+			return $out;
 		}
 
-		$data    = json_decode( wp_remote_retrieve_body( $res ), true );
+		$data    = json_decode( $bodyraw, true );
 		$content = $data['choices'][0]['message']['content'] ?? '';
-		if ( ! $content ) {
-			return null;
-		}
+		$out['content'] = (string) $content;
+		if ( ! $content ) { $out['error'] = 'Respuesta vacía del modelo.'; return $out; }
+
 		$parsed = json_decode( (string) $content, true );
-		if ( ! is_array( $parsed ) ) {
-			return null;
-		}
+		if ( ! is_array( $parsed ) ) { $out['error'] = 'El modelo no devolvió JSON válido.'; return $out; }
 
 		$intent = isset( $parsed['intent'] ) ? sanitize_key( $parsed['intent'] ) : '';
 		$reply  = isset( $parsed['reply'] ) ? sanitize_textarea_field( $parsed['reply'] ) : '';
-		if ( ! in_array( $intent, self::INTENTS, true ) ) {
-			return null;
-		}
-		return [ 'intent' => $intent, 'reply' => $reply ];
+		if ( ! in_array( $intent, self::INTENTS, true ) ) { $out['error'] = 'Intención no reconocida: ' . $intent; return $out; }
+
+		$out['ok']     = true;
+		$out['intent'] = $intent;
+		$out['reply']  = $reply;
+		return $out;
 	}
 
-	protected static function system_prompt( $faq_context ) {
-		$intents = implode( ', ', self::INTENTS );
-		$p  = "Sos CEADI, el asistente de WhatsApp del CEAD «Félix de Guarania», un colegio secundario de alto desempeño de Caaguazú, Paraguay. ";
-		$p .= "Hablás en español de Paraguay, en tono breve, claro y amable. ";
-		$p .= "Tarea: leé el mensaje del alumno y elegí UNA intención de esta lista: {$intents}. ";
-		$p .= "Significados: horario=su horario de clases; eventos=calendario de eventos; comunicados=avisos del colegio; sitio=enlaces/sitio web; contacto=teléfonos y contactos del colegio; reportar=hacer un reporte/denuncia; escribir=mandar un mensaje a Dirección, Consejo o Administración; faq=preguntas frecuentes; consejo=Consejo Estudiantil; recordatorios=activar o desactivar recordatorios de eventos; panel=su panel web; menu=mostrar el menú; chat=responder vos mismo una duda general. ";
-		$p .= "Si la pregunta se puede contestar con las FAQ de abajo o con conocimiento general del colegio, usá intent \"chat\" y escribí la respuesta en \"reply\" (máximo 3 frases, sin inventar datos que no tengas). ";
-		$p .= "Si pide una función concreta, devolvé esa intención con \"reply\" vacío. Si no entendés, usá intent \"menu\". ";
-		$p .= "Respondé EXCLUSIVAMENTE un JSON válido con esta forma: {\"intent\":\"...\",\"reply\":\"...\"}. Nada de texto fuera del JSON.";
-		if ( trim( (string) $faq_context ) !== '' ) {
-			$p .= "\n\nFAQ del colegio (para respuestas tipo \"chat\"):\n" . mb_substr( (string) $faq_context, 0, 2500 );
+	/** Clasificación para el motor. Devuelve [intent, reply] o null. */
+	public static function route( $message, $faq_context = '' ) {
+		$r = self::call( $message, $faq_context );
+		return $r['ok'] ? [ 'intent' => $r['intent'], 'reply' => $r['reply'] ] : null;
+	}
+
+	/** Prueba desde el admin: resumen legible. */
+	public static function test( $message = '¿qué clases tengo hoy?' ) {
+		$r = self::call( $message );
+		if ( $r['ok'] ) {
+			return [ 'ok' => true, 'summary' => sprintf( 'OK · intención: "%s"%s', $r['intent'], $r['reply'] !== '' ? ' · respuesta: ' . mb_substr( $r['reply'], 0, 160 ) : '' ) ];
 		}
-		return $p;
+		return [ 'ok' => false, 'summary' => $r['error'] ?: 'Error desconocido.' ];
 	}
 }
