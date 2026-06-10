@@ -214,6 +214,7 @@ class Cead_Acad_WA_Admin {
 				} elseif ( empty( $res['queued'] ) ) {
 					$notice = [ 'err', __( 'No hay destinatarios para esa audiencia.', 'cead-acad' ) ];
 				} else {
+					/* translators: %d: cantidad de destinatarios */
 					$notice = [ 'ok', sprintf( __( 'Comunicado publicado y encolado para %d destinatario(s).', 'cead-acad' ), (int) $res['total'] ) ];
 				}
 			}
@@ -225,6 +226,7 @@ class Cead_Acad_WA_Admin {
 			$this->notice( $notice[1], $notice[0] === 'ok' ? 'success' : 'error' );
 		}
 		if ( ( $progress['status'] ?? '' ) === 'running' ) {
+			/* translators: 1: mensajes enviados, 2: total a enviar */
 			$this->notice( sprintf( __( 'Envío en curso: %1$d/%2$d enviados.', 'cead-acad' ), $progress['sent'], $progress['total'] ), 'info' );
 		}
 		echo '<div class="card" style="max-width:720px"><form method="post">';
@@ -262,6 +264,7 @@ class Cead_Acad_WA_Admin {
 					$notice = [ 'err', $res['error'] ?? __( 'No se pudo enviar (¿el bridge está conectado?).', 'cead-acad' ) ];
 				} else {
 					$this->store->log( $digits, 'out', $message, 'direct' );
+					/* translators: %s: número de teléfono destino */
 					$notice = [ 'ok', sprintf( __( 'Mensaje enviado a +%s.', 'cead-acad' ), $digits ) ];
 				}
 			}

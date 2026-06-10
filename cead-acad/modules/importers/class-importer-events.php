@@ -32,18 +32,22 @@ class Cead_Acad_Importer_Events extends Cead_Acad_Importer_Base {
 			return [ 'level' => 'error', 'message' => __( 'Falta título o fecha de inicio.', 'cead-acad' ) ];
 		}
 		if ( ! strtotime( $inicio ) ) {
+			/* translators: %s: valor de fecha leído del archivo */
 			return [ 'level' => 'error', 'message' => sprintf( __( 'Fecha de inicio inválida: %s', 'cead-acad' ), $inicio ) ];
 		}
 		$fin = trim( (string) ( $row['fin'] ?? '' ) );
 		if ( $fin !== '' && ! strtotime( $fin ) ) {
+			/* translators: %s: valor de fecha leído del archivo */
 			return [ 'level' => 'error', 'message' => sprintf( __( 'Fecha de fin inválida: %s', 'cead-acad' ), $fin ) ];
 		}
 		$tipo = strtolower( trim( (string) ( $row['tipo'] ?? '' ) ) );
 		if ( $tipo !== '' && ! in_array( $tipo, Cead_Acad_Schedule_CPT::TYPES, true ) ) {
+			/* translators: %s: tipo de evento leído del archivo */
 			return [ 'level' => 'warn', 'message' => sprintf( __( 'Tipo desconocido "%s" — se usa "evento".', 'cead-acad' ), $tipo ) ];
 		}
 		$curso = trim( (string) ( $row['curso'] ?? '' ) );
 		if ( $curso !== '' && ! $this->resolve_course_id( $curso ) ) {
+			/* translators: %s: nombre del curso leído del archivo */
 			return [ 'level' => 'warn', 'message' => sprintf( __( 'Curso "%s" no encontrado — el evento se crea sin audiencia.', 'cead-acad' ), $curso ) ];
 		}
 		return [ 'level' => 'ok' ];

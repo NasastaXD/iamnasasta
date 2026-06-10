@@ -24,6 +24,7 @@ $body = function () use ( $pendientes, $hechas, $courses ) {
 		<p class="cead-acad-panel-sub">
 			<?php if ( $courses ) :
 				$titles = array_filter( array_map( fn( $id ) => get_the_title( $id ), $courses ) );
+				/* translators: %s: lista de cursos asignados al delegado */
 				printf( esc_html__( 'Cursos a tu cargo: %s.', 'cead-acad' ), '<strong>' . esc_html( implode( ', ', $titles ) ) . '</strong>' );
 			else :
 				esc_html_e( 'Todavía no estás asignado/a a un curso.', 'cead-acad' );
@@ -52,6 +53,7 @@ $body = function () use ( $pendientes, $hechas, $courses ) {
 							<span class="cead-acad-eyebrow"><?php echo esc_html( Cead_Acad_Tasks_CPT::status_label( $status ) ); ?></span>
 							<?php if ( $due ) : ?>
 								<span class="cead-acad-task-due"><?php
+									/* translators: %s: fecha de vencimiento de la tarea */
 									printf( esc_html__( 'Vence: %s', 'cead-acad' ), esc_html( date_i18n( 'j M Y', strtotime( $due ) ) ) );
 								?></span>
 							<?php endif; ?>

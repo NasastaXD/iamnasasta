@@ -28,9 +28,9 @@ $body = function () {
 				<h3><?php esc_html_e( 'Paso a paso', 'cead-acad' ); ?></h3>
 				<ol class="cead-acad-steps">
 					<li><?php esc_html_e( 'Abrí este panel en Chrome (no dentro de Instagram/Facebook).', 'cead-acad' ); ?></li>
-					<li><?php printf( esc_html__( 'Tocá el menú %s (tres puntos, arriba a la derecha).', 'cead-acad' ), '<strong>⋮</strong>' ); ?></li>
-					<li><?php printf( esc_html__( 'Elegí %s.', 'cead-acad' ), '<strong>' . esc_html__( 'Agregar a la pantalla principal', 'cead-acad' ) . '</strong>' ); ?></li>
-					<li><?php printf( esc_html__( 'Confirmá tocando %s.', 'cead-acad' ), '<strong>' . esc_html__( 'Instalar / Agregar', 'cead-acad' ) . '</strong>' ); ?></li>
+					<li><?php /* translators: %s: ícono del menú del navegador */ printf( esc_html__( 'Tocá el menú %s (tres puntos, arriba a la derecha).', 'cead-acad' ), '<strong>⋮</strong>' ); ?></li>
+					<li><?php /* translators: %s: nombre de la opción del menú */ printf( esc_html__( 'Elegí %s.', 'cead-acad' ), '<strong>' . esc_html__( 'Agregar a la pantalla principal', 'cead-acad' ) . '</strong>' ); ?></li>
+					<li><?php /* translators: %s: etiqueta del botón de confirmación */ printf( esc_html__( 'Confirmá tocando %s.', 'cead-acad' ), '<strong>' . esc_html__( 'Instalar / Agregar', 'cead-acad' ) . '</strong>' ); ?></li>
 					<li><?php esc_html_e( 'Listo: vas a ver el ícono del CEAD junto a tus otras apps.', 'cead-acad' ); ?></li>
 				</ol>
 			</div>
@@ -41,9 +41,9 @@ $body = function () {
 				<h3><?php esc_html_e( 'Paso a paso', 'cead-acad' ); ?></h3>
 				<ol class="cead-acad-steps">
 					<li><?php esc_html_e( 'Abrí este panel en Safari (en iPhone solo funciona con Safari).', 'cead-acad' ); ?></li>
-					<li><?php printf( esc_html__( 'Tocá el botón %s (cuadrado con la flecha hacia arriba), abajo en el centro.', 'cead-acad' ), '<strong>' . esc_html__( 'Compartir', 'cead-acad' ) . ' ⬆️</strong>' ); ?></li>
+					<li><?php /* translators: %s: nombre del botón Compartir */ printf( esc_html__( 'Tocá el botón %s (cuadrado con la flecha hacia arriba), abajo en el centro.', 'cead-acad' ), '<strong>' . esc_html__( 'Compartir', 'cead-acad' ) . ' ⬆️</strong>' ); ?></li>
 					<li><?php esc_html_e( 'Deslizá y elegí "Agregar a inicio".', 'cead-acad' ); ?></li>
-					<li><?php printf( esc_html__( 'Tocá %s arriba a la derecha.', 'cead-acad' ), '<strong>' . esc_html__( 'Agregar', 'cead-acad' ) . '</strong>' ); ?></li>
+					<li><?php /* translators: %s: etiqueta del botón Agregar */ printf( esc_html__( 'Tocá %s arriba a la derecha.', 'cead-acad' ), '<strong>' . esc_html__( 'Agregar', 'cead-acad' ) . '</strong>' ); ?></li>
 					<li><?php esc_html_e( 'Listo: el CEAD queda como una app más en tu pantalla.', 'cead-acad' ); ?></li>
 				</ol>
 			</div>
@@ -51,7 +51,7 @@ $body = function () {
 
 		<div class="cead-acad-card" style="margin-top:1.5rem">
 			<span class="cead-acad-eyebrow">💻 <?php esc_html_e( 'Computadora · Chrome / Edge', 'cead-acad' ); ?></span>
-			<p><?php printf( esc_html__( 'En la barra de direcciones, a la derecha, tocá el ícono de instalar %s y luego %s.', 'cead-acad' ), '<strong>⤓</strong>', '<strong>' . esc_html__( 'Instalar', 'cead-acad' ) . '</strong>' ); ?></p>
+			<p><?php /* translators: 1: ícono de instalar del navegador, 2: etiqueta del botón Instalar */ printf( esc_html__( 'En la barra de direcciones, a la derecha, tocá el ícono de instalar %1\$s y luego %2\$s.', 'cead-acad' ), '<strong>⤓</strong>', '<strong>' . esc_html__( 'Instalar', 'cead-acad' ) . '</strong>' ); ?></p>
 		</div>
 
 		<h3 class="cead-acad-section-h" style="margin-top:2rem"><?php esc_html_e( 'Cómo se maneja', 'cead-acad' ); ?></h3>

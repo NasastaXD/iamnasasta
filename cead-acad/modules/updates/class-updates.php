@@ -227,6 +227,7 @@ class Cead_Acad_Updates {
 		} elseif ( 401 === $out['code'] ) {
 			$out['msg'] = __( 'Token inválido o vencido (401).', 'cead-acad' );
 		} else {
+			/* translators: %d: código de estado HTTP */
 			$out['msg'] = sprintf( __( 'Respuesta inesperada de GitHub (HTTP %d).', 'cead-acad' ), $out['code'] );
 		}
 		return $out;

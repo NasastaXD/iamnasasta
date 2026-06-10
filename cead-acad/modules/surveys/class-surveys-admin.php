@@ -317,6 +317,7 @@ class Cead_Acad_Surveys_Admin {
 			$count = Cead_Acad_Surveys_Responses::count_for_survey( $post->ID );
 			if ( $count > 0 ) {
 				$url = wp_nonce_url( admin_url( 'admin-post.php?action=cead_acad_survey_export&survey_id=' . $post->ID ), 'cead_acad_survey_export' );
+				/* translators: %d: cantidad de respuestas a exportar */
 				$actions['cead_acad_export'] = '<a href="' . esc_url( $url ) . '">' . sprintf( esc_html__( 'Exportar (%d)', 'cead-acad' ), (int) $count ) . '</a>';
 			}
 		}

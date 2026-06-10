@@ -134,7 +134,7 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 									</a>
 								<?php endforeach; ?>
 								<?php if ( count( $evs ) > 3 ) : ?>
-									<span class="cead-acad-cal-more"><?php printf( esc_html__( '+%d más', 'cead-acad' ), count( $evs ) - 3 ); ?></span>
+									<span class="cead-acad-cal-more"><?php /* translators: %d: cantidad de eventos adicionales del día */ printf( esc_html__( '+%d más', 'cead-acad' ), count( $evs ) - 3 ); ?></span>
 								<?php endif; ?>
 							</div>
 						<?php endfor; ?>

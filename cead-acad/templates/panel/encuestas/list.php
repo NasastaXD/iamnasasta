@@ -63,7 +63,7 @@ $body = function () use ( $open_surveys, $pending_user, $closed_surveys, $user )
 						<div class="cead-acad-feed-item-meta">
 							<span class="cead-acad-feed-dot" aria-hidden="true"></span>
 							<span class="cead-acad-eyebrow">
-								<?php if ( $closes ) : ?><?php printf( esc_html__( 'Cierra el %s', 'cead-acad' ), esc_html( mysql2date( get_option( 'date_format' ) . ' H:i', $closes ) ) ); ?>
+								<?php if ( $closes ) : ?><?php /* translators: %s: fecha y hora de cierre de la encuesta */ printf( esc_html__( 'Cierra el %s', 'cead-acad' ), esc_html( mysql2date( get_option( 'date_format' ) . ' H:i', $closes ) ) ); ?>
 								<?php else : ?><?php esc_html_e( 'Abierta', 'cead-acad' ); ?><?php endif; ?>
 							</span>
 						</div>

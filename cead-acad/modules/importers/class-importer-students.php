@@ -32,10 +32,12 @@ class Cead_Acad_Importer_Students extends Cead_Acad_Importer_Base {
 		}
 		$email = trim( (string) ( $row['email'] ?? '' ) );
 		if ( $email !== '' && ! is_email( $email ) ) {
+			/* translators: %s: email leído del archivo */
 			return [ 'level' => 'error', 'message' => sprintf( __( 'Email inválido: %s', 'cead-acad' ), $email ) ];
 		}
 		$curso = trim( (string) ( $row['curso'] ?? '' ) );
 		if ( $curso !== '' && ! $this->resolve_course_id( $curso ) ) {
+			/* translators: %s: nombre del curso leído del archivo */
 			return [ 'level' => 'warn', 'message' => sprintf( __( 'Curso "%s" no encontrado — el alumno se crea sin curso.', 'cead-acad' ), $curso ) ];
 		}
 		return [ 'level' => 'ok' ];

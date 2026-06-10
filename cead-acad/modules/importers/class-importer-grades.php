@@ -33,12 +33,15 @@ class Cead_Acad_Importer_Grades extends Cead_Acad_Importer_Base {
 			return [ 'level' => 'error', 'message' => __( 'Faltan campos obligatorios.', 'cead-acad' ) ];
 		}
 		if ( ! $this->find_student_id( $doc ) ) {
+			/* translators: %s: número de documento del alumno */
 			return [ 'level' => 'error', 'message' => sprintf( __( 'Alumno con documento %s no encontrado. Importá primero el alumnado.', 'cead-acad' ), $doc ) ];
 		}
 		if ( ! $this->resolve_course_id( $curso ) ) {
+			/* translators: %s: nombre del curso leído del archivo */
 			return [ 'level' => 'error', 'message' => sprintf( __( 'Curso "%s" no existe.', 'cead-acad' ), $curso ) ];
 		}
 		if ( $nota !== '' && ! is_numeric( $nota ) ) {
+			/* translators: %s: valor de nota leído del archivo */
 			return [ 'level' => 'error', 'message' => sprintf( __( 'Nota inválida: %s', 'cead-acad' ), $nota ) ];
 		}
 		return [ 'level' => 'ok' ];

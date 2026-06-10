@@ -194,7 +194,8 @@ class Cead_Acad_Broadcasts_Targeting {
 		);
 		$link    = cead_acad_url( 'panel/comunicados/' . $post->ID );
 		$body    = sprintf(
-			__( "Tenés un nuevo comunicado: %s\n\nLeerlo en el panel: %s\n\n— %s", 'cead-acad' ),
+			/* translators: 1: título del comunicado, 2: URL del panel, 3: nombre del sitio */
+			__( "Tenés un nuevo comunicado: %1\$s\n\nLeerlo en el panel: %2\$s\n\n— %3\$s", 'cead-acad' ),
 			wp_strip_all_tags( $post->post_title ),
 			$link,
 			get_bloginfo( 'name' )

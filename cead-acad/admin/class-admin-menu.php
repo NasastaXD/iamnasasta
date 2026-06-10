@@ -68,6 +68,7 @@ class Cead_Acad_Admin_Menu {
 			'<strong>' . esc_html( $user->display_name ) . '</strong>'
 		) . '</p>';
 
+		/* translators: %s: versión del plugin */
 		echo '<p>' . sprintf( esc_html__( 'Estado: todos los módulos planificados (F0–F5) están instalados. Versión %s.', 'cead-acad' ), esc_html( CEAD_ACAD_VERSION ) ) . '</p>';
 
 		// Diagnóstico de acceso (útil para depurar permisos).
@@ -167,8 +168,10 @@ class Cead_Acad_Admin_Menu {
 			$this->last_created_links[] = [ 'url' => Cead_Acad_Invitations::registration_url( $t ), 'email' => $email ?: '' ];
 		}
 
+		/* translators: %d: cantidad de invitaciones creadas */
 		$msg = sprintf( _n( '%d invitación creada.', '%d invitaciones creadas.', count( $tokens ), 'cead-acad' ), count( $tokens ) );
 		if ( $email ) {
+			/* translators: %s: dirección de email del invitado */
 			$msg .= ' ' . sprintf( __( 'Email enviado a %s (si el correo del sitio está configurado).', 'cead-acad' ), $email );
 		}
 		return [ 'type' => 'success', 'msg' => $msg ];
@@ -195,6 +198,7 @@ class Cead_Acad_Admin_Menu {
 				$n++;
 			}
 		}
+		/* translators: %d: cantidad de links generados */
 		return [ 'type' => 'success', 'msg' => sprintf( _n( '%d link generado (uno por curso).', '%d links generados (uno por curso).', $n, 'cead-acad' ), $n ) ];
 	}
 
@@ -222,6 +226,7 @@ class Cead_Acad_Admin_Menu {
 				$sent++;
 			}
 		}
+		/* translators: %d: cantidad de usuarios invitados */
 		return [ 'type' => 'success', 'msg' => sprintf( _n( 'Invitación enviada a %d usuario.', 'Invitaciones enviadas a %d usuarios.', $sent, 'cead-acad' ), $sent ) ];
 	}
 
@@ -232,6 +237,7 @@ class Cead_Acad_Admin_Menu {
 			$token = Cead_Acad_Invitations::plain_token( $row );
 			if ( $token ) {
 				Cead_Acad_Invitations::send_email( $row['email'], $token, $row['role'] );
+				/* translators: %s: dirección de email del destinatario */
 				return [ 'type' => 'success', 'msg' => sprintf( __( 'Email reenviado a %s.', 'cead-acad' ), $row['email'] ) ];
 			}
 		}
@@ -312,6 +318,7 @@ class Cead_Acad_Admin_Menu {
 		}
 
 		return $ok
+			/* translators: %s: nombre del usuario eliminado */
 			? [ 'type' => 'success', 'msg' => sprintf( __( 'Usuario «%s» eliminado.', 'cead-acad' ), $user->display_name ) ]
 			: [ 'type' => 'error', 'msg' => __( 'No se pudo eliminar el usuario.', 'cead-acad' ) ];
 	}
@@ -372,7 +379,8 @@ class Cead_Acad_Admin_Menu {
 		$this->last_created_password = $password;
 		$roles        = Cead_Acad_Capabilities::roles();
 		$role_display = $roles[ $role ]['display'] ?? $role;
-		return [ 'type' => 'success', 'msg' => sprintf( __( 'Usuario "%s" creado como %s.', 'cead-acad' ), esc_html( $user_login ), esc_html( $role_display ) ) ];
+		/* translators: 1: nombre de usuario, 2: rol asignado */
+		return [ 'type' => 'success', 'msg' => sprintf( __( 'Usuario "%1$s" creado como %2$s.', 'cead-acad' ), esc_html( $user_login ), esc_html( $role_display ) ) ];
 	}
 
 	protected function do_edit_user() {

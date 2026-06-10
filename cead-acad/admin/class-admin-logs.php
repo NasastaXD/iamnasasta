@@ -199,6 +199,7 @@ class Cead_Acad_Admin_Logs {
 		$pages = max( 1, (int) ceil( $total / self::PER_PAGE ) );
 
 		echo '<div class="tablenav"><div class="tablenav-pages" style="float:none;display:flex;gap:10px;align-items:center">';
+		/* translators: %s: cantidad de registros */
 		echo '<span class="displaying-num">' . esc_html( sprintf( _n( '%s registro', '%s registros', $total, 'cead-acad' ), number_format_i18n( $total ) ) ) . '</span>';
 
 		if ( $pages > 1 ) {

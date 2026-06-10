@@ -41,7 +41,9 @@ class Cead_Acad_Password_Reset {
 					'u' => $user->user_login,
 				], cead_acad_url( 'recuperar/restablecer' ) );
 
+				/* translators: %s: nombre del sitio */
 				$subject = sprintf( __( '[%s] Restablecer contraseña', 'cead-acad' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) );
+				/* translators: %s: nombre del usuario */
 				$message  = sprintf( __( "Hola %s,\n\n", 'cead-acad' ), $user->display_name );
 				$message .= __( "Recibimos un pedido para restablecer tu contraseña. Si fuiste vos, hacé clic en el siguiente link:\n\n", 'cead-acad' );
 				$message .= $reset_url . "\n\n";

@@ -61,8 +61,8 @@ $body = function () use ( $user, $rdisp, $quick, $today_classes, $events, $unrea
 	?>
 	<section class="cead-acad-panel-section">
 		<span class="cead-acad-eyebrow"><?php echo esc_html( ucfirst( wp_date( 'l, j \d\e F' ) ) ); ?></span>
-		<h2 class="cead-acad-panel-h"><?php printf( esc_html__( 'Hola, %s 👋', 'cead-acad' ), esc_html( $user->display_name ) ); ?></h2>
-		<p class="cead-acad-panel-sub"><?php printf( esc_html__( 'Estás en el panel del CEAD como %s.', 'cead-acad' ), '<strong>' . esc_html( $rdisp ) . '</strong>' ); ?></p>
+		<h2 class="cead-acad-panel-h"><?php /* translators: %s: nombre del usuario */ printf( esc_html__( 'Hola, %s 👋', 'cead-acad' ), esc_html( $user->display_name ) ); ?></h2>
+		<p class="cead-acad-panel-sub"><?php /* translators: %s: rol del usuario */ printf( esc_html__( 'Estás en el panel del CEAD como %s.', 'cead-acad' ), '<strong>' . esc_html( $rdisp ) . '</strong>' ); ?></p>
 
 		<!-- Accesos rápidos -->
 		<div class="cead-acad-quick">
@@ -122,7 +122,7 @@ $body = function () use ( $user, $rdisp, $quick, $today_classes, $events, $unrea
 		<!-- Últimos comunicados -->
 		<h3 class="cead-acad-section-h" style="margin-top:2rem">
 			<?php esc_html_e( 'Últimos comunicados', 'cead-acad' ); ?>
-			<?php if ( $unread > 0 ) : ?><span class="cead-acad-pill"><?php printf( esc_html( _n( '%d sin leer', '%d sin leer', $unread, 'cead-acad' ) ), (int) $unread ); ?></span><?php endif; ?>
+			<?php if ( $unread > 0 ) : ?><span class="cead-acad-pill"><?php /* translators: %d: cantidad de comunicados sin leer */ printf( esc_html( _n( '%d sin leer', '%d sin leer', $unread, 'cead-acad' ) ), (int) $unread ); ?></span><?php endif; ?>
 		</h3>
 		<?php if ( $recent_broadcasts ) : ?>
 			<div class="cead-acad-grid cead-acad-grid--3">

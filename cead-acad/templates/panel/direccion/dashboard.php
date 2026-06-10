@@ -140,6 +140,7 @@ $body = function () use ( $students_count, $delegates_count, $teachers_count, $a
 						<strong><?php echo esc_html( $latest_read_rate['title'] ); ?></strong><br>
 						<?php
 						printf(
+							/* translators: 1: cantidad de lecturas, 2: cantidad de destinatarios */
 							esc_html__( '%1$d de %2$d destinatarios leyeron el comunicado.', 'cead-acad' ),
 							(int) $latest_read_rate['reads'],
 							(int) $latest_read_rate['recipients']
@@ -157,6 +158,7 @@ $body = function () use ( $students_count, $delegates_count, $teachers_count, $a
 						<strong><?php echo esc_html( $latest_survey_stats['title'] ); ?></strong><br>
 						<?php
 						printf(
+							/* translators: 1: cantidad de respuestas, 2: cantidad de destinatarios */
 							esc_html__( '%1$d respuestas de %2$d destinatarios.', 'cead-acad' ),
 							(int) $latest_survey_stats['responses'],
 							(int) $latest_survey_stats['recipients']

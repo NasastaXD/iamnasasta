@@ -36,7 +36,7 @@ $jobs      = Cead_Acad_Importer_Job::recent( 20 );
 						<?php foreach ( $importers as $type => $impl ) :
 							$url = wp_nonce_url( admin_url( 'admin-post.php?action=cead_acad_import_download_template&type=' . $type ), 'cead_acad_import_template' );
 						?>
-							<a href="<?php echo esc_url( $url ); ?>"><?php printf( esc_html__( 'plantilla %s', 'cead-acad' ), esc_html( $impl->label() ) ); ?></a>
+							<a href="<?php echo esc_url( $url ); ?>"><?php /* translators: %s: nombre del importador */ printf( esc_html__( 'plantilla %s', 'cead-acad' ), esc_html( $impl->label() ) ); ?></a>
 						<?php endforeach; ?>
 					</p>
 				</td>

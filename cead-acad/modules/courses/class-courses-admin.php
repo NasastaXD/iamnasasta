@@ -225,7 +225,7 @@ class Cead_Acad_Courses_Admin {
 		$user_ids = Cead_Acad_Courses_Roster::users_in_course( $post->ID );
 		$users    = $user_ids ? get_users( [ 'include' => $user_ids, 'orderby' => 'display_name' ] ) : [];
 		?>
-		<p><strong><?php printf( esc_html__( 'Inscriptos activos: %d', 'cead-acad' ), count( $user_ids ) ); ?></strong></p>
+		<p><strong><?php /* translators: %d: cantidad de inscriptos activos */ printf( esc_html__( 'Inscriptos activos: %d', 'cead-acad' ), count( $user_ids ) ); ?></strong></p>
 		<?php if ( $users ) : ?>
 			<ul style="max-height:200px;overflow:auto;margin:0;padding-left:18px">
 				<?php foreach ( $users as $u ) : ?>

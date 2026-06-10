@@ -33,6 +33,7 @@ class Cead_Acad_Importer_Courses extends Cead_Acad_Importer_Base {
 		}
 		$turno = trim( (string) ( $row['turno'] ?? '' ) );
 		if ( $turno !== '' && ! in_array( strtolower( $turno ), [ 'manana', 'mañana', 'tarde', 'noche' ], true ) ) {
+			/* translators: %s: turno leído del archivo */
 			return [ 'level' => 'warn', 'message' => sprintf( __( 'Turno desconocido "%s" — se importa sin turno.', 'cead-acad' ), $turno ) ];
 		}
 		return [ 'level' => 'ok' ];

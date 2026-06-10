@@ -61,10 +61,10 @@ $body = function () use ( $q, $broadcasts, $events, $resources, $total ) {
 		<?php elseif ( 0 === $total ) : ?>
 			<div class="cead-acad-card cead-acad-card--empty" style="margin-top:1.5rem">
 				<h3><?php esc_html_e( 'Sin resultados', 'cead-acad' ); ?></h3>
-				<p><?php printf( esc_html__( 'No encontramos nada para “%s”.', 'cead-acad' ), esc_html( $q ) ); ?></p>
+				<p><?php /* translators: %s: término buscado */ printf( esc_html__( 'No encontramos nada para “%s”.', 'cead-acad' ), esc_html( $q ) ); ?></p>
 			</div>
 		<?php else : ?>
-			<p class="cead-acad-panel-sub" style="margin-top:.75rem"><?php printf( esc_html( _n( '%d resultado', '%d resultados', $total, 'cead-acad' ) ), (int) $total ); ?></p>
+			<p class="cead-acad-panel-sub" style="margin-top:.75rem"><?php /* translators: %d: cantidad de resultados */ printf( esc_html( _n( '%d resultado', '%d resultados', $total, 'cead-acad' ) ), (int) $total ); ?></p>
 
 			<?php if ( $broadcasts ) : ?>
 				<h3 class="cead-acad-section-h" style="margin-top:1.5rem">📣 <?php esc_html_e( 'Comunicados', 'cead-acad' ); ?></h3>

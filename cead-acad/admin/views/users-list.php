@@ -43,7 +43,7 @@ $page_url   = admin_url( 'admin.php?page=cead-acad-users' );
 
 	<?php if ( $editing_user ) : ?>
 		<!-- ── Formulario editar usuario ── -->
-		<h2><?php printf( esc_html__( 'Editar: %s', 'cead-acad' ), esc_html( $editing_user->display_name ) ); ?></h2>
+		<h2><?php /* translators: %s: nombre del usuario en edición */ printf( esc_html__( 'Editar: %s', 'cead-acad' ), esc_html( $editing_user->display_name ) ); ?></h2>
 		<form method="post" action="<?php echo esc_url( $page_url ); ?>">
 			<?php wp_nonce_field( 'cead_acad_users_edit', '_cead_users_nonce' ); ?>
 			<input type="hidden" name="cead_acad_users_action" value="edit">
@@ -208,7 +208,7 @@ $page_url   = admin_url( 'admin.php?page=cead-acad-users' );
 					$is_admin_row = in_array( 'administrator', (array) $u->roles, true );
 					$can_delete   = ( current_user_can( 'cead_acad_manage_roles' ) || current_user_can( 'manage_options' ) ) && $u->ID !== get_current_user_id() && ! $is_admin_row;
 					if ( $can_delete ) : ?>
-						<form method="post" action="<?php echo esc_url( $page_url ); ?>" style="display:inline" onsubmit="return confirm('<?php echo esc_js( sprintf( __( 'Eliminar a %s? Esta accion no se puede deshacer.', 'cead-acad' ), $u->display_name ) ); ?>');">
+						<form method="post" action="<?php echo esc_url( $page_url ); ?>" style="display:inline" onsubmit="return confirm('<?php /* translators: %s: nombre del usuario a eliminar */ echo esc_js( sprintf( __( 'Eliminar a %s? Esta accion no se puede deshacer.', 'cead-acad' ), $u->display_name ) ); ?>');">
 							<?php wp_nonce_field( 'cead_acad_users_delete', '_cead_users_nonce' ); ?>
 							<input type="hidden" name="cead_acad_users_action" value="delete">
 							<input type="hidden" name="user_id" value="<?php echo esc_attr( $u->ID ); ?>">

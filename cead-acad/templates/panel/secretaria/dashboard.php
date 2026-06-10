@@ -73,6 +73,7 @@ $body = function () use ( $pending_invites, $courses_pub, $students_count, $broa
 						<p class="cead-acad-feed-item-excerpt">
 							<?php
 							printf(
+								/* translators: 1: filas importadas OK, 2: filas con error, 3: fecha de importación */
 								esc_html__( '%1$d OK · %2$d errores · %3$s', 'cead-acad' ),
 								(int) $j['rows_ok'],
 								(int) $j['rows_failed'],

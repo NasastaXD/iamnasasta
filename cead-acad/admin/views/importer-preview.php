@@ -35,7 +35,7 @@ $issues  = (array) ( $report['rows'] ?? [] );
 						<tr><td><?php echo (int) $e['n']; ?></td><td><?php echo esc_html( $e['message'] ); ?></td></tr>
 					<?php endforeach; ?>
 					<?php if ( count( $errors ) > 50 ) : ?>
-						<tr><td colspan="2"><em><?php printf( esc_html__( '... y %d más. Descargá el CSV de errores para ver todos.', 'cead-acad' ), count( $errors ) - 50 ); ?></em></td></tr>
+						<tr><td colspan="2"><em><?php /* translators: %d: cantidad de errores adicionales no listados */ printf( esc_html__( '... y %d más. Descargá el CSV de errores para ver todos.', 'cead-acad' ), count( $errors ) - 50 ); ?></em></td></tr>
 					<?php endif; ?>
 				</tbody>
 			</table>
@@ -69,6 +69,7 @@ $issues  = (array) ( $report['rows'] ?? [] );
 		<p>
 			<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=cead-acad-importers' ) ); ?>"><?php esc_html_e( 'Cancelar', 'cead-acad' ); ?></a>
 			<button class="button button-primary"><?php
+				/* translators: %d: cantidad de filas a importar */
 				printf( esc_html__( 'Confirmar e importar %d filas', 'cead-acad' ), (int) $summary['ok'] );
 			?></button>
 		</p>

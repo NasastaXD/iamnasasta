@@ -43,6 +43,7 @@ $body = function () use ( $user, $pend, $done ) {
 			if ( ! $is_done ) {
 				if ( $days < 0 )      { $due_cls = 'is-late';  $due_txt .= ' · ' . __( 'vencida', 'cead-acad' ); }
 				elseif ( 0 === $days ) { $due_cls = 'is-soon'; $due_txt .= ' · ' . __( 'vence hoy', 'cead-acad' ); }
+				/* translators: %d: días restantes hasta el vencimiento */
 				elseif ( $days <= 3 )  { $due_cls = 'is-soon'; $due_txt .= ' · ' . sprintf( _n( 'en %d día', 'en %d días', $days, 'cead-acad' ), $days ); }
 			}
 		}
