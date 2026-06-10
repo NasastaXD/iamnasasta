@@ -180,8 +180,13 @@ class Cead_Acad_Schedule_Feed {
 			$max = $first ? 75 : 74;
 			// No cortar en medio de un carácter UTF-8 multibyte.
 			$chunk = substr( $line, 0, $max );
-			while ( $chunk !== '' && ( ord( substr( $line, strlen( $chunk ), 1 ) ?: ' ' ) & 0xC0 ) === 0x80 ) {
+			while ( strlen( $chunk ) > 1 && ( ord( substr( $line, strlen( $chunk ), 1 ) ?: ' ' ) & 0xC0 ) === 0x80 ) {
 				$chunk = substr( $chunk, 0, -1 );
+			}
+			// Guard anti-loop: ante bytes inválidos (no UTF-8), nunca dejar $chunk
+			// vacío o $line no avanzaría. Forzamos al menos 1 byte.
+			if ( $chunk === '' ) {
+				$chunk = substr( $line, 0, 1 );
 			}
 			$out  .= ( $first ? '' : "\r\n " ) . $chunk;
 			$line  = substr( $line, strlen( $chunk ) );

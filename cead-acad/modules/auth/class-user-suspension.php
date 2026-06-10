@@ -16,6 +16,28 @@ class Cead_Acad_User_Suspension {
 		// (20), así el mensaje de suspensión solo se muestra con password válida
 		// y no filtra información ante intentos con credenciales incorrectas.
 		add_filter( 'authenticate', [ __CLASS__, 'block_suspended' ], 30, 1 );
+
+		// Defensa en profundidad: además de destruir las sesiones al suspender,
+		// re-chequeamos en cada request. Cubre cualquier camino que setee la
+		// cookie sin pasar por authenticate (registro, application passwords).
+		add_action( 'init', [ __CLASS__, 'enforce_on_request' ], 1 );
+	}
+
+	public static function enforce_on_request() {
+		if ( ! is_user_logged_in() ) {
+			return;
+		}
+		$uid = get_current_user_id();
+		// Nunca expulsamos a un administrador (no se los puede suspender desde la
+		// UI; este guard evita lockouts por meta huérfana).
+		if ( user_can( $uid, 'manage_options' ) || ! self::is_suspended( $uid ) ) {
+			return;
+		}
+		wp_logout();
+		if ( ! wp_doing_ajax() && ! ( defined( 'REST_REQUEST' ) && REST_REQUEST ) && ! is_admin() ) {
+			wp_safe_redirect( add_query_arg( 'err', 'suspended', cead_acad_url( 'login' ) ) );
+			exit;
+		}
 	}
 
 	public static function block_suspended( $user ) {

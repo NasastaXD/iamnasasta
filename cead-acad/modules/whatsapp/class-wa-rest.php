@@ -122,19 +122,33 @@ class Cead_Acad_WA_REST {
 		if ( $max <= 0 ) {
 			return true;
 		}
-		$key   = 'cead_acad_wa_rl_' . md5( $phone );
-		$count = (int) get_transient( $key );
-		if ( $count >= $max ) {
+		$key  = 'cead_acad_wa_rl_' . md5( $phone );
+		$now  = time();
+		$data = get_transient( $key );
+
+		// Ventana FIJA: guardamos { count, reset }. El TTL del transient no se
+		// renueva en cada mensaje (eso convertía el contador en acumulativo y
+		// podía bloquear a un usuario legítimo de tráfico sostenido). Cuando la
+		// ventana vence, arranca una nueva.
+		if ( ! is_array( $data ) || empty( $data['reset'] ) || $now >= (int) $data['reset'] ) {
+			set_transient( $key, [ 'count' => 1, 'reset' => $now + $window ], $window );
+			return true;
+		}
+
+		if ( (int) $data['count'] >= $max ) {
 			// Log una sola vez por ventana para no inundar wa_logs.
 			$flag = $key . '_logged';
 			if ( ! get_transient( $flag ) ) {
-				set_transient( $flag, 1, $window );
+				set_transient( $flag, 1, max( 1, (int) $data['reset'] - $now ) );
 				$this->store->log( $phone, 'in', '', 'rate_limited' );
 				error_log( '[CeadAcadWA] rate limit excedido para ' . $phone );
 			}
 			return false;
 		}
-		set_transient( $key, $count + 1, $window );
+
+		// Incrementa SIN extender el TTL: la ventana mantiene su reset original.
+		$data['count'] = (int) $data['count'] + 1;
+		set_transient( $key, $data, max( 1, (int) $data['reset'] - $now ) );
 		return true;
 	}
 

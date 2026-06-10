@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class Cead_Acad_PWA {
 
-	const CACHE = 'cead-pwa-v3';
+	const CACHE = 'cead-pwa-v4';
 
 	/** Sirve el manifest web. */
 	public static function manifest() {
@@ -69,12 +69,14 @@ function putInCache(req, resp) {
 	return resp;
 }
 
-// Estrategia mixta:
+// Estrategia:
 //  - Assets estáticos (css/js/fuentes/imágenes): cache-first con revalidación
 //    en segundo plano (stale-while-revalidate) → carga instantánea y offline.
-//  - Navegación (HTML): network-first → contenido siempre fresco online; si no
-//    hay red, sirve la última versión visitada y, si tampoco está, la página
-//    offline de respaldo.
+//    Solo se cachean assets públicos, nunca HTML.
+//  - Navegación (HTML): network-only con fallback a la página offline. NO se
+//    cachean páginas porque el panel es privado y cachearlas filtraría datos
+//    de un usuario a otro en dispositivos compartidos (offline).
+//  - Resto de GET (p.ej. descargas, fetch): network, sin cachear.
 //  - Nunca se intercepta wp-admin, login, admin-ajax ni la REST API.
 self.addEventListener('fetch', function (e) {
 	var req = e.request;
@@ -97,18 +99,20 @@ self.addEventListener('fetch', function (e) {
 
 	if (req.mode === 'navigate') {
 		e.respondWith(
-			fetch(req).then(function (resp) { return putInCache(req, resp); }).catch(function () {
-				return caches.match(req).then(function (cached) {
-					return cached || caches.match(OFFLINE);
+			fetch(req).catch(function () {
+				return caches.match(OFFLINE).then(function (cached) {
+					return cached || new Response(
+						'<!doctype html><meta charset="utf-8"><title>Sin conexión</title><p style="font-family:sans-serif;padding:2rem">Sin conexión. Probá de nuevo cuando vuelva internet.</p>',
+						{ headers: { 'Content-Type': 'text/html; charset=UTF-8' } }
+					);
 				});
 			})
 		);
 		return;
 	}
 
-	e.respondWith(
-		fetch(req).then(function (resp) { return putInCache(req, resp); }).catch(function () { return caches.match(req); })
-	);
+	// Resto: red directa, sin cachear (puede ser contenido privado).
+	e.respondWith( fetch(req).catch(function () { return caches.match(req); }) );
 });
 		<?php
 		exit;

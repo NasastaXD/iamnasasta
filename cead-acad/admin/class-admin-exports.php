@@ -116,6 +116,9 @@ class Cead_Acad_Admin_Exports {
 			__( 'Email', 'cead-acad' ), __( 'Teléfono', 'cead-acad' ), __( 'Documento', 'cead-acad' ),
 			__( 'Rol', 'cead-acad' ), __( 'Cursos', 'cead-acad' ), __( 'Alta', 'cead-acad' ),
 		];
+		// Precarga el meta de todos los usuarios de una (evita N+1 por fila).
+		update_meta_cache( 'user', wp_list_pluck( $users, 'ID' ) );
+
 		$rows = [];
 		foreach ( $users as $u ) {
 			$role_labels = [];
@@ -144,6 +147,13 @@ class Cead_Acad_Admin_Exports {
 		global $wpdb;
 		$t       = cead_acad_table( 'grades' );
 		$records = $wpdb->get_results( "SELECT * FROM {$t} ORDER BY course_id ASC, student_user_id ASC, period ASC", ARRAY_A ) ?: [];
+
+		// Precarga de cachés para evitar N+1 (un query por alumno/curso/materia).
+		$this->prime_caches(
+			array_map( 'intval', wp_list_pluck( $records, 'student_user_id' ) ),
+			array_map( 'intval', wp_list_pluck( $records, 'course_id' ) ),
+			array_map( 'intval', wp_list_pluck( $records, 'subject_term_id' ) )
+		);
 
 		$header = [
 			__( 'Alumno', 'cead-acad' ), __( 'Documento', 'cead-acad' ), __( 'Curso', 'cead-acad' ),
@@ -174,6 +184,11 @@ class Cead_Acad_Admin_Exports {
 		global $wpdb;
 		$t       = cead_acad_table( 'roster' );
 		$records = $wpdb->get_results( "SELECT * FROM {$t} ORDER BY course_id ASC, user_id ASC", ARRAY_A ) ?: [];
+
+		$this->prime_caches(
+			array_map( 'intval', wp_list_pluck( $records, 'user_id' ) ),
+			array_map( 'intval', wp_list_pluck( $records, 'course_id' ) )
+		);
 
 		$header = [
 			__( 'Usuario', 'cead-acad' ), __( 'Email', 'cead-acad' ), __( 'Curso', 'cead-acad' ),
@@ -208,6 +223,9 @@ class Cead_Acad_Admin_Exports {
 			'order'          => 'DESC',
 		] );
 
+		// Precarga los autores de una sola vez (evita un query por comunicado).
+		$this->prime_caches( array_map( 'intval', wp_list_pluck( $posts, 'post_author' ) ) );
+
 		$header = [
 			__( 'ID', 'cead-acad' ), __( 'Título', 'cead-acad' ), __( 'Estado', 'cead-acad' ),
 			__( 'Publicado', 'cead-acad' ), __( 'Autor', 'cead-acad' ), __( 'Audiencia', 'cead-acad' ),
@@ -232,6 +250,33 @@ class Cead_Acad_Admin_Exports {
 			];
 		}
 		return [ $header, $rows ];
+	}
+
+	/**
+	 * Precarga en caché usuarios, posts y términos para evitar el patrón N+1
+	 * (un query por fila dentro de los loops de exportación).
+	 *
+	 * @param int[] $user_ids
+	 * @param int[] $post_ids
+	 * @param int[] $term_ids
+	 */
+	protected function prime_caches( array $user_ids = [], array $post_ids = [], array $term_ids = [] ) {
+		$user_ids = array_filter( array_unique( $user_ids ) );
+		$post_ids = array_filter( array_unique( $post_ids ) );
+		$term_ids = array_filter( array_unique( $term_ids ) );
+
+		if ( $user_ids ) {
+			// cache_users() precarga los objetos WP_User; el meta lo traemos aparte.
+			cache_users( $user_ids );
+			update_meta_cache( 'user', $user_ids );
+		}
+		if ( $post_ids ) {
+			_prime_post_caches( $post_ids, false, false );
+		}
+		if ( $term_ids ) {
+			// Calienta la caché de términos con una sola consulta.
+			get_terms( [ 'include' => $term_ids, 'hide_empty' => false ] );
+		}
 	}
 
 	// -------------------------------------------------------------------------

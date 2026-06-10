@@ -267,11 +267,17 @@ async function connectToWhatsApp() {
 async function postToWordPress( payload, attempts = 3 ) {
     for ( let attempt = 1; attempt <= attempts; attempt++ ) {
         try {
-            await axios.post( WP_WEBHOOK, payload, {
+            const resp = await axios.post( WP_WEBHOOK, payload, {
                 headers: { 'X-Caag-Token': SHARED_TOKEN },
                 timeout: 30000,
                 maxBodyLength: Infinity,
             } );
+            // WordPress responde 200 incluso cuando descarta el mensaje por rate
+            // limit; no reintentamos (reintentar empeoraría el límite), pero lo
+            // dejamos visible en el log para no perderlo en silencio.
+            if ( resp && resp.data && resp.data.limited ) {
+                console.warn( '[CaagBridge] Mensaje descartado por rate limit en WordPress (no se reintenta).' );
+            }
             return true;
         } catch ( err ) {
             const status    = err.response?.status;
