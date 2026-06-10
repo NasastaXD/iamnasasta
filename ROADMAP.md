@@ -1,5 +1,8 @@
 # Roadmap de Features — CEAD Académico
 
+> ✅ **Estado: las 10 features fueron implementadas** (plugin v0.22.0, junio 2026).
+> Cada una tiene su commit propio en el historial (`Feature #1` … `Feature #10`).
+
 Roadmap priorizado de mejoras para el monorepo (plugin `cead-acad/`, tema `cead/` y bridge
 de WhatsApp `cead-acad/bridge/`). Las features están ordenadas por impacto/esfuerzo/riesgo
 y cada una es entregable de forma independiente.
@@ -90,18 +93,18 @@ para assets estáticos y páginas del panel ya visitadas, con página de fallbac
 
 ## Resumen de priorización
 
-| # | Feature | Área | Impacto | Esfuerzo | Tier |
-|---|---------|------|---------|----------|------|
-| 1 | UI Audit/bot logs | Observabilidad | Alto | Bajo | 1 |
-| 2 | Tests + CI | Calidad | Alto | Medio | 1 |
-| 3 | i18n (.pot) | Experiencia | Alto | Medio | 1 |
-| 4 | Rate limit + reintentos bot | Calidad | Alto | Medio | 2 |
-| 5 | Dashboard analíticas | Observabilidad | Alto | Medio | 2 |
-| 6 | Exportación masiva | Admin | Medio | Bajo-Medio | 2 |
-| 7 | Suspensión de usuarios | Admin | Medio | Bajo | 3 |
-| 8 | Emails con branding | Experiencia | Medio | Bajo | 3 |
-| 9 | Sync Google Calendar | Integraciones | Medio | Medio-Alto | 3 |
-| 10 | PWA offline real | PWA | Medio | Medio | 3 |
+| # | Feature | Área | Tier | Estado |
+|---|---------|------|------|--------|
+| 1 | UI Audit/bot logs | Observabilidad | 1 | ✅ Implementada |
+| 2 | Tests + CI | Calidad | 1 | ✅ Implementada |
+| 3 | i18n (.pot) | Experiencia | 1 | ✅ Implementada |
+| 4 | Rate limit + reintentos bot | Calidad | 2 | ✅ Implementada |
+| 5 | Dashboard analíticas | Observabilidad | 2 | ✅ Implementada |
+| 6 | Exportación masiva | Admin | 2 | ✅ Implementada |
+| 7 | Suspensión de usuarios | Admin | 3 | ✅ Implementada |
+| 8 | Emails con branding | Experiencia | 3 | ✅ Implementada |
+| 9 | Sync Google Calendar | Integraciones | 3 | ✅ Implementada |
+| 10 | PWA offline real | PWA | 3 | ✅ Implementada |
 
 **Recomendación de arranque**: #1 (UI de logs) como primera entrega — máximo valor visible con
 mínimo riesgo — y en paralelo montar #2 (tests + CI) para asegurar todo lo que venga después.
