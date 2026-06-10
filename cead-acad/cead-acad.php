@@ -87,6 +87,7 @@ require_once CEAD_ACAD_DIR . 'modules/admin-ui/class-admin-dashboard.php';
 require_once CEAD_ACAD_DIR . 'includes/class-cead-acad-audit.php';
 require_once CEAD_ACAD_DIR . 'admin/class-admin-menu.php';
 require_once CEAD_ACAD_DIR . 'admin/class-admin-logs.php';
+require_once CEAD_ACAD_DIR . 'admin/class-admin-metrics.php';
 require_once CEAD_ACAD_DIR . 'includes/class-cead-acad-plugin.php';
 
 register_activation_hook(   __FILE__, [ 'Cead_Acad_Activator',   'activate' ] );

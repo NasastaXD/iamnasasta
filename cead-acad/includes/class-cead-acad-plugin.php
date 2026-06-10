@@ -35,6 +35,7 @@ final class Cead_Acad_Plugin {
 		// El menú padre "CEAD Académico" debe registrarse ANTES que los submenús.
 		( new Cead_Acad_Admin_Menu() )->boot();
 		( new Cead_Acad_Admin_Logs() )->boot();
+		( new Cead_Acad_Admin_Metrics() )->boot();
 
 		( new Cead_Acad_Audit() )->boot();
 
