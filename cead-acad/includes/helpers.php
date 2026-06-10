@@ -170,11 +170,12 @@ function cead_acad_banned_words_list() {
 function cead_acad_has_banned_words( $text ) {
 	$text = (string) $text;
 	if ( $text === '' ) { return false; }
-	$norm = strtolower( $text );
-	// Quitar tildes para que "imbécil" matchee "imbecil".
-	$norm = strtr( $norm, [ 'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ü'=>'u' ] );
+	// Quitar tildes (ambas cajas: strtolower() no baja multibyte como "É")
+	// para que "imbécil"/"IMBÉCIL" matcheen "imbecil".
+	$accents = [ 'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ü'=>'u','Á'=>'a','É'=>'e','Í'=>'i','Ó'=>'o','Ú'=>'u','Ü'=>'u' ];
+	$norm = strtolower( strtr( $text, $accents ) );
 	foreach ( cead_acad_banned_words_list() as $w ) {
-		$wn = strtolower( strtr( $w, [ 'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ü'=>'u' ] ) );
+		$wn = strtolower( strtr( $w, $accents ) );
 		if ( $wn === '' ) { continue; }
 		if ( preg_match( '/\b' . preg_quote( $wn, '/' ) . '\b/u', $norm ) ) {
 			return true;

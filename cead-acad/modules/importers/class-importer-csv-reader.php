@@ -60,7 +60,8 @@ class Cead_Acad_Importer_Csv_Reader {
 		$rows    = [];
 		$count   = 0;
 		while ( ! feof( $fh ) ) {
-			$row = fgetcsv( $fh, 0, $delimiter );
+			// Escape explícito: el default de fgetcsv() está deprecado en PHP 8.4.
+			$row = fgetcsv( $fh, 0, $delimiter, '"', '\\' );
 			if ( ! is_array( $row ) ) { continue; }
 			if ( count( $row ) === 1 && null === ( $row[0] ?? null ) ) { continue; }
 			if ( $has_header && empty( $headers ) ) {

@@ -1,0 +1,18 @@
+{
+    "name": "cead/iamnasasta",
+    "description": "Tooling de desarrollo del monorepo CEAD (plugin cead-acad + tema cead). Solo dependencias de test/CI; el plugin no usa Composer en producción.",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=8.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5"
+    },
+    "scripts": {
+        "test": "phpunit -c phpunit.xml.dist",
+        "lint": "find cead-acad cead -name '*.php' -not -path '*/vendor/*' -print0 | xargs -0 -n1 -P4 php -l > /dev/null && echo 'Lint OK'"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
