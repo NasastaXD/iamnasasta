@@ -43,7 +43,8 @@ class Cead_Acad_Auth_Controller {
 		], is_ssl() );
 
 		if ( is_wp_error( $user ) ) {
-			$this->bail_to( 'login', 'bad_credentials' );
+			$code = 'cead_acad_suspended' === $user->get_error_code() ? 'suspended' : 'bad_credentials';
+			$this->bail_to( 'login', $code );
 		}
 
 		$redirect = ! empty( $_POST['next'] ) ? esc_url_raw( wp_unslash( $_POST['next'] ) ) : cead_acad_url( 'panel' );

@@ -45,6 +45,7 @@ final class Cead_Acad_Plugin {
 		( new Cead_Acad_Invitations() )->boot();
 		( new Cead_Acad_Auth_Controller() )->boot();
 		( new Cead_Acad_Password_Reset() )->boot();
+		( new Cead_Acad_User_Suspension() )->boot();
 		( new Cead_Acad_Courses_CPT() )->boot();
 		( new Cead_Acad_Courses_Admin() )->boot();
 		( new Cead_Acad_Broadcasts_CPT() )->boot();

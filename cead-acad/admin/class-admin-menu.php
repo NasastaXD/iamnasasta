@@ -278,11 +278,43 @@ class Cead_Acad_Admin_Menu {
 			return [ 'type' => 'error', 'msg' => __( 'Sesión expirada. Probá de nuevo.', 'cead-acad' ) ];
 		}
 		switch ( $action ) {
-			case 'create': return $this->do_create_user();
-			case 'edit':   return $this->do_edit_user();
-			case 'delete': return $this->do_delete_user();
+			case 'create':     return $this->do_create_user();
+			case 'edit':       return $this->do_edit_user();
+			case 'delete':     return $this->do_delete_user();
+			case 'suspend':    return $this->do_toggle_suspension( true );
+			case 'reactivate': return $this->do_toggle_suspension( false );
 		}
 		return null;
+	}
+
+	/**
+	 * Suspende o reactiva un usuario. Mismo gating que eliminar: no a uno
+	 * mismo ni a administradores de WordPress.
+	 */
+	protected function do_toggle_suspension( $suspend ) {
+		if ( ! current_user_can( 'cead_acad_manage_roles' ) && ! current_user_can( 'manage_options' ) ) {
+			return [ 'type' => 'error', 'msg' => __( 'No tenés permiso para suspender usuarios.', 'cead-acad' ) ];
+		}
+		$user_id = (int) ( $_POST['user_id'] ?? 0 );
+		$user    = $user_id ? get_user_by( 'id', $user_id ) : null;
+		if ( ! $user ) {
+			return [ 'type' => 'error', 'msg' => __( 'Usuario inválido.', 'cead-acad' ) ];
+		}
+		if ( $user_id === get_current_user_id() ) {
+			return [ 'type' => 'error', 'msg' => __( 'No podés suspender tu propia cuenta.', 'cead-acad' ) ];
+		}
+		if ( in_array( 'administrator', (array) $user->roles, true ) ) {
+			return [ 'type' => 'error', 'msg' => __( 'No se puede suspender a un administrador desde acá.', 'cead-acad' ) ];
+		}
+
+		if ( $suspend ) {
+			Cead_Acad_User_Suspension::suspend( $user_id );
+			/* translators: %s: nombre del usuario suspendido */
+			return [ 'type' => 'success', 'msg' => sprintf( __( 'Usuario «%s» suspendido. No va a poder iniciar sesión hasta que lo reactives.', 'cead-acad' ), $user->display_name ) ];
+		}
+		Cead_Acad_User_Suspension::reactivate( $user_id );
+		/* translators: %s: nombre del usuario reactivado */
+		return [ 'type' => 'success', 'msg' => sprintf( __( 'Usuario «%s» reactivado.', 'cead-acad' ), $user->display_name ) ];
 	}
 
 	/**

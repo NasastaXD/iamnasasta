@@ -188,8 +188,14 @@ $page_url   = admin_url( 'admin.php?page=cead-acad-users' );
 			}
 			$edit_url = add_query_arg( 'edit', $u->ID, $page_url );
 		?>
-			<tr>
-				<td><strong><?php echo esc_html( $u->display_name ); ?></strong></td>
+			<?php $is_suspended = Cead_Acad_User_Suspension::is_suspended( $u->ID ); ?>
+			<tr<?php echo $is_suspended ? ' style="opacity:.6"' : ''; ?>>
+				<td>
+					<strong><?php echo esc_html( $u->display_name ); ?></strong>
+					<?php if ( $is_suspended ) : ?>
+						<span style="background:#d63638;color:#fff;border-radius:3px;padding:1px 6px;font-size:11px;margin-left:6px"><?php esc_html_e( 'Suspendido', 'cead-acad' ); ?></span>
+					<?php endif; ?>
+				</td>
 				<td><code><?php echo esc_html( $u->user_login ); ?></code></td>
 				<td><?php echo esc_html( $u->user_email ); ?></td>
 				<td><?php echo esc_html( $role_label ); ?></td>
@@ -207,7 +213,22 @@ $page_url   = admin_url( 'admin.php?page=cead-acad-users' );
 				<?php
 					$is_admin_row = in_array( 'administrator', (array) $u->roles, true );
 					$can_delete   = ( current_user_can( 'cead_acad_manage_roles' ) || current_user_can( 'manage_options' ) ) && $u->ID !== get_current_user_id() && ! $is_admin_row;
-					if ( $can_delete ) : ?>
+					if ( $can_delete ) : // mismo gating para suspender/reactivar ?>
+						<form method="post" action="<?php echo esc_url( $page_url ); ?>" style="display:inline">
+							<?php if ( $is_suspended ) : ?>
+								<?php wp_nonce_field( 'cead_acad_users_reactivate', '_cead_users_nonce' ); ?>
+								<input type="hidden" name="cead_acad_users_action" value="reactivate">
+								<input type="hidden" name="user_id" value="<?php echo esc_attr( $u->ID ); ?>">
+								<button type="submit" class="button button-small"><?php esc_html_e( 'Reactivar', 'cead-acad' ); ?></button>
+							<?php else : ?>
+								<?php wp_nonce_field( 'cead_acad_users_suspend', '_cead_users_nonce' ); ?>
+								<input type="hidden" name="cead_acad_users_action" value="suspend">
+								<input type="hidden" name="user_id" value="<?php echo esc_attr( $u->ID ); ?>">
+								<button type="submit" class="button button-small"><?php esc_html_e( 'Suspender', 'cead-acad' ); ?></button>
+							<?php endif; ?>
+						</form>
+					<?php endif; ?>
+				<?php if ( $can_delete ) : ?>
 						<form method="post" action="<?php echo esc_url( $page_url ); ?>" style="display:inline" onsubmit="return confirm('<?php /* translators: %s: nombre del usuario a eliminar */ echo esc_js( sprintf( __( 'Eliminar a %s? Esta accion no se puede deshacer.', 'cead-acad' ), $u->display_name ) ); ?>');">
 							<?php wp_nonce_field( 'cead_acad_users_delete', '_cead_users_nonce' ); ?>
 							<input type="hidden" name="cead_acad_users_action" value="delete">

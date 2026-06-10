@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-06-10T03:31:59+00:00\n"
+"POT-Creation-Date: 2026-06-10T03:33:48+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: cead-acad\n"
@@ -608,70 +608,95 @@ msgstr ""
 msgid "Invitación revocada."
 msgstr ""
 
-#: admin/class-admin-menu.php:294
-msgid "No tenés permiso para eliminar usuarios."
+#: admin/class-admin-menu.php:296
+msgid "No tenés permiso para suspender usuarios."
 msgstr ""
 
-#: admin/class-admin-menu.php:299
-#: admin/class-admin-menu.php:389
+#: admin/class-admin-menu.php:301
+#: admin/class-admin-menu.php:331
+#: admin/class-admin-menu.php:421
 msgid "Usuario inválido."
 msgstr ""
 
-#: admin/class-admin-menu.php:302
+#: admin/class-admin-menu.php:304
+msgid "No podés suspender tu propia cuenta."
+msgstr ""
+
+#: admin/class-admin-menu.php:307
+msgid "No se puede suspender a un administrador desde acá."
+msgstr ""
+
+#. translators: %s: nombre del usuario suspendido
+#: admin/class-admin-menu.php:313
+#, php-format
+msgid "Usuario «%s» suspendido. No va a poder iniciar sesión hasta que lo reactives."
+msgstr ""
+
+#. translators: %s: nombre del usuario reactivado
+#: admin/class-admin-menu.php:317
+#, php-format
+msgid "Usuario «%s» reactivado."
+msgstr ""
+
+#: admin/class-admin-menu.php:326
+msgid "No tenés permiso para eliminar usuarios."
+msgstr ""
+
+#: admin/class-admin-menu.php:334
 msgid "No podés eliminar tu propia cuenta."
 msgstr ""
 
-#: admin/class-admin-menu.php:305
+#: admin/class-admin-menu.php:337
 msgid "No se puede eliminar a un administrador desde acá."
 msgstr ""
 
 #. translators: %s: nombre del usuario eliminado
-#: admin/class-admin-menu.php:322
+#: admin/class-admin-menu.php:354
 #, php-format
 msgid "Usuario «%s» eliminado."
 msgstr ""
 
-#: admin/class-admin-menu.php:323
+#: admin/class-admin-menu.php:355
 msgid "No se pudo eliminar el usuario."
 msgstr ""
 
-#: admin/class-admin-menu.php:334
+#: admin/class-admin-menu.php:366
 msgid "Nombre y usuario son obligatorios."
 msgstr ""
 
-#: admin/class-admin-menu.php:337
+#: admin/class-admin-menu.php:369
 msgid "El nombre o el usuario contienen lenguaje no permitido."
 msgstr ""
 
-#: admin/class-admin-menu.php:340
+#: admin/class-admin-menu.php:372
 #: templates/auth/register.php:91
 msgid "Ese nombre de usuario ya está en uso."
 msgstr ""
 
-#: admin/class-admin-menu.php:343
+#: admin/class-admin-menu.php:375
 #: templates/auth/register.php:92
 msgid "Ya hay una cuenta con ese email."
 msgstr ""
 
 #. translators: 1: nombre de usuario, 2: rol asignado
-#: admin/class-admin-menu.php:383
+#: admin/class-admin-menu.php:415
 #, php-format
 msgid "Usuario \"%1$s\" creado como %2$s."
 msgstr ""
 
-#: admin/class-admin-menu.php:399
+#: admin/class-admin-menu.php:431
 msgid "El nombre contiene lenguaje no permitido."
 msgstr ""
 
-#: admin/class-admin-menu.php:402
+#: admin/class-admin-menu.php:434
 msgid "Ya hay otra cuenta con ese email."
 msgstr ""
 
-#: admin/class-admin-menu.php:443
+#: admin/class-admin-menu.php:475
 msgid "Usuario actualizado. Nueva contraseña generada (abajo)."
 msgstr ""
 
-#: admin/class-admin-menu.php:446
+#: admin/class-admin-menu.php:478
 msgid "Usuario actualizado."
 msgstr ""
 
@@ -1081,7 +1106,7 @@ msgid "Número completo con código de país, sin +. Ej: 595981123456"
 msgstr ""
 
 #: admin/views/users-list.php:95
-#: templates/auth/login.php:52
+#: templates/auth/login.php:53
 #: templates/auth/register.php:146
 msgid "Contraseña"
 msgstr ""
@@ -1134,26 +1159,38 @@ msgstr ""
 msgid "Admin WP"
 msgstr ""
 
-#: admin/views/users-list.php:200
+#: admin/views/users-list.php:196
+msgid "Suspendido"
+msgstr ""
+
+#: admin/views/users-list.php:206
 #: modules/courses/class-courses-admin.php:78
 msgid "—"
 msgstr ""
 
-#: admin/views/users-list.php:205
+#: admin/views/users-list.php:211
 msgid "Editar"
 msgstr ""
 
+#: admin/views/users-list.php:222
+msgid "Reactivar"
+msgstr ""
+
+#: admin/views/users-list.php:227
+msgid "Suspender"
+msgstr ""
+
 #. translators: %s: nombre del usuario a eliminar
-#: admin/views/users-list.php:211
+#: admin/views/users-list.php:232
 #, php-format
 msgid "Eliminar a %s? Esta accion no se puede deshacer."
 msgstr ""
 
-#: admin/views/users-list.php:215
+#: admin/views/users-list.php:236
 msgid "Eliminar"
 msgstr ""
 
-#: admin/views/users-list.php:224
+#: admin/views/users-list.php:245
 msgid "No hay usuarios con roles del plugin todavía."
 msgstr ""
 
@@ -1283,6 +1320,11 @@ msgid ""
 "Si no fuiste vos, ignorá este mensaje.\n"
 "\n"
 ""
+msgstr ""
+
+#: modules/auth/class-user-suspension.php:25
+#: templates/auth/login.php:34
+msgid "Tu cuenta está suspendida. Contactá a la secretaría del CEAD."
 msgstr ""
 
 #: modules/broadcasts/class-broadcasts-audiences.php:138
@@ -2719,7 +2761,7 @@ msgid "Ingresar al panel"
 msgstr ""
 
 #: templates/auth/login.php:21
-#: templates/auth/login.php:64
+#: templates/auth/login.php:65
 msgid "Ingresar"
 msgstr ""
 
@@ -2748,7 +2790,7 @@ msgstr ""
 msgid "Sesión expirada. Recargá la página."
 msgstr ""
 
-#: templates/auth/login.php:36
+#: templates/auth/login.php:37
 #: templates/auth/recover-reset.php:34
 #: templates/auth/recover.php:28
 #: templates/auth/register.php:103
@@ -2756,24 +2798,24 @@ msgstr ""
 msgid "Error."
 msgstr ""
 
-#: templates/auth/login.php:47
+#: templates/auth/login.php:48
 #: templates/auth/recover.php:36
 msgid "Usuario o email"
 msgstr ""
 
-#: templates/auth/login.php:55
+#: templates/auth/login.php:56
 msgid "Mostrar u ocultar contraseña"
 msgstr ""
 
-#: templates/auth/login.php:61
+#: templates/auth/login.php:62
 msgid "Mantener sesión iniciada"
 msgstr ""
 
-#: templates/auth/login.php:68
+#: templates/auth/login.php:69
 msgid "¿Olvidaste tu contraseña?"
 msgstr ""
 
-#: templates/auth/login.php:70
+#: templates/auth/login.php:71
 msgid "¿Sos nuevo? Necesitás un link de invitación de la dirección."
 msgstr ""
 

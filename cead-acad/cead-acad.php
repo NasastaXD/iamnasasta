@@ -34,6 +34,7 @@ require_once CEAD_ACAD_DIR . 'includes/class-cead-acad-assets.php';
 require_once CEAD_ACAD_DIR . 'modules/auth/class-invitations.php';
 require_once CEAD_ACAD_DIR . 'modules/auth/class-auth-controller.php';
 require_once CEAD_ACAD_DIR . 'modules/auth/class-password-reset.php';
+require_once CEAD_ACAD_DIR . 'modules/auth/class-user-suspension.php';
 require_once CEAD_ACAD_DIR . 'modules/courses/class-courses-cpt.php';
 require_once CEAD_ACAD_DIR . 'modules/courses/class-courses-roster.php';
 require_once CEAD_ACAD_DIR . 'modules/courses/class-courses-admin.php';
