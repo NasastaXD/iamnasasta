@@ -119,10 +119,13 @@ class Cead_Acad_Account {
 		}
 		$msg = trim( sanitize_textarea_field( wp_unslash( $_POST['message'] ?? '' ) ) );
 		if ( $msg === '' ) {
+			cead_acad_flash( 'contacto_recipient', $to );
 			wp_safe_redirect( add_query_arg( 'err', 'vacio', $dest ) );
 			exit;
 		}
 		if ( function_exists( 'cead_acad_has_banned_words' ) && cead_acad_has_banned_words( $msg ) ) {
+			cead_acad_flash( 'contacto_message', $msg );
+			cead_acad_flash( 'contacto_recipient', $to );
 			wp_safe_redirect( add_query_arg( 'err', 'vulgar', $dest ) );
 			exit;
 		}
@@ -275,6 +278,7 @@ class Cead_Acad_Account {
 		if ( ! empty( $_FILES['avatar']['name'] ) && empty( $_FILES['avatar']['error'] ) ) {
 			$type = (string) ( $_FILES['avatar']['type'] ?? '' );
 			if ( strpos( $type, 'image/' ) !== 0 ) {
+				cead_acad_flash( 'perfil_phone', $phone );
 				wp_safe_redirect( add_query_arg( 'err', 'tipo', $dest ) );
 				exit;
 			}
@@ -284,6 +288,7 @@ class Cead_Acad_Account {
 
 			$attach_id = media_handle_upload( 'avatar', 0, [], [ 'test_form' => false ] );
 			if ( is_wp_error( $attach_id ) ) {
+				cead_acad_flash( 'perfil_phone', $phone );
 				wp_safe_redirect( add_query_arg( 'err', 'subida', $dest ) );
 				exit;
 			}

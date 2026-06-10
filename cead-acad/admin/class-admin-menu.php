@@ -124,6 +124,31 @@ class Cead_Acad_Admin_Menu {
 	protected $last_created_links = [];
 
 	/**
+	 * Campo oculto con un token único por render. Permite detectar el reenvío
+	 * del formulario al refrescar (el navegador reenvía el mismo token).
+	 */
+	public static function submit_id_field() {
+		echo '<input type="hidden" name="_cead_submit_id" value="' . esc_attr( wp_generate_uuid4() ) . '" />';
+	}
+
+	/**
+	 * ¿Este submit ya fue procesado? Marca el token por 10 min. Sin token (forms
+	 * viejos) no bloquea, para no romper compatibilidad.
+	 */
+	protected function is_duplicate_submit() {
+		$sid = isset( $_POST['_cead_submit_id'] ) ? sanitize_key( wp_unslash( $_POST['_cead_submit_id'] ) ) : '';
+		if ( $sid === '' ) {
+			return false;
+		}
+		$key = 'cead_acad_submit_' . md5( $sid );
+		if ( get_transient( $key ) ) {
+			return true;
+		}
+		set_transient( $key, 1, 10 * MINUTE_IN_SECONDS );
+		return false;
+	}
+
+	/**
 	 * Procesa los formularios de invitaciones posteados a esta misma página.
 	 *
 	 * @return array{type:string,msg:string}|null
@@ -136,6 +161,13 @@ class Cead_Acad_Admin_Menu {
 
 		if ( ! isset( $_POST['_cead_inv_nonce'] ) || ! wp_verify_nonce( $_POST['_cead_inv_nonce'], 'cead_acad_inv_' . $action ) ) {
 			return [ 'type' => 'error', 'msg' => __( 'Sesión expirada. Probá de nuevo.', 'cead-acad' ) ];
+		}
+
+		// Como el POST se procesa inline (sin redirect, ver nota del módulo),
+		// refrescar reenviaría el formulario. Guard anti-doble-submit por token
+		// de render para las acciones que crean datos.
+		if ( in_array( $action, [ 'create', 'all_courses', 'invite_users' ], true ) && $this->is_duplicate_submit() ) {
+			return [ 'type' => 'error', 'msg' => __( 'Ese formulario ya se había enviado (evitamos duplicar las invitaciones). Recargá la página para crear nuevas.', 'cead-acad' ) ];
 		}
 
 		switch ( $action ) {
@@ -276,6 +308,9 @@ class Cead_Acad_Admin_Menu {
 		$action = sanitize_key( wp_unslash( $_POST['cead_acad_users_action'] ) );
 		if ( ! isset( $_POST['_cead_users_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_cead_users_nonce'] ) ), 'cead_acad_users_' . $action ) ) {
 			return [ 'type' => 'error', 'msg' => __( 'Sesión expirada. Probá de nuevo.', 'cead-acad' ) ];
+		}
+		if ( 'create' === $action && $this->is_duplicate_submit() ) {
+			return [ 'type' => 'error', 'msg' => __( 'Ese formulario ya se había enviado. Recargá la página para crear otro usuario.', 'cead-acad' ) ];
 		}
 		switch ( $action ) {
 			case 'create':     return $this->do_create_user();

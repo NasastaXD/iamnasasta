@@ -13,6 +13,12 @@ $avatar = Cead_Acad_Account::avatar_url( $user->ID, 'medium' );
 $phone  = (string) get_user_meta( $user->ID, Cead_Acad_Account::PHONE_META, true );
 $doc    = (string) get_user_meta( $user->ID, '_cead_acad_document_id', true );
 
+// Repoblar teléfono con lo tipeado si la validación falló; si no, con el de la BD.
+$old_phone = cead_acad_flash( 'perfil_phone' );
+if ( $old_phone !== null ) {
+	$phone = (string) $old_phone;
+}
+
 $page_title = __( 'Mi perfil', 'cead-acad' );
 
 $body = function () use ( $user, $rdisp, $avatar, $phone, $doc ) {

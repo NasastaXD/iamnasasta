@@ -511,20 +511,6 @@ body.cead-acad-panel {
 	align-items: center;
 	gap: 1rem;
 }
-.cead-acad-bell {
-	position: relative;
-	width: 2.4rem;
-	height: 2.4rem;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	border-radius: 9999px;
-	background: var(--cead-acad-canvas);
-	color: var(--cead-acad-ink);
-	text-decoration: none;
-	transition: background .2s ease;
-}
-.cead-acad-bell:hover { background: var(--cead-acad-brand-tint); }
 .cead-acad-bell-icon {
 	font-family: var(--cead-acad-font-display);
 	font-size: 1rem;
@@ -1029,7 +1015,7 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 
 /* ===================== Avatares ===================== */
 .cead-acad-avatar { border-radius:50%; object-fit:cover; display:inline-flex; align-items:center; justify-content:center; background:var(--cead-acad-ink); color:#fff; font-family:var(--cead-acad-font-display); overflow:hidden; }
-.cead-acad-avatar--sm { width:38px; height:38px; font-size:.9rem; }
+.cead-acad-avatar--sm { width:40px; height:40px; font-size:.9rem; }
 .cead-acad-avatar--lg { width:120px; height:120px; font-size:2.2rem; }
 
 /* Chip de usuario con foto */
@@ -1108,7 +1094,7 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 
 /* ===================== Centro de notificaciones ===================== */
 .cead-acad-notif { position:relative; }
-.cead-acad-bell { position:relative; background:transparent; border:1px solid var(--cead-acad-border); border-radius:10px; width:38px; height:38px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:1rem; color:var(--cead-acad-ink); }
+.cead-acad-bell { position:relative; background:transparent; border:1px solid var(--cead-acad-border); border-radius:10px; width:44px; height:44px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:1rem; color:var(--cead-acad-ink); }
 .cead-acad-bell:hover { border-color:var(--cead-acad-brand); }
 .cead-acad-notif-panel { position:absolute; right:0; top:calc(100% + 8px); width:340px; max-width:86vw; background:#fff; border:1px solid var(--cead-acad-border); border-radius:14px; box-shadow:0 18px 50px rgba(0,0,0,.16); padding:.5rem; display:none; z-index:60; }
 .cead-acad-notif.is-open .cead-acad-notif-panel { display:block; }
@@ -1144,7 +1130,7 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 .cead-acad-resource-wrap { position:relative; display:flex; }
 .cead-acad-resource-wrap .cead-acad-resource-card { flex:1; }
 .cead-acad-fav-form { position:absolute; top:.5rem; right:.5rem; z-index:2; margin:0; }
-.cead-acad-fav { background:rgba(255,255,255,.92); border:1px solid var(--cead-acad-border); border-radius:50%; width:34px; height:34px; cursor:pointer; font-size:1rem; line-height:1; color:#8E8E8E; }
+.cead-acad-fav { background:rgba(255,255,255,.92); border:1px solid var(--cead-acad-border); border-radius:50%; width:40px; height:40px; cursor:pointer; font-size:1rem; line-height:1; color:#8E8E8E; }
 .cead-acad-fav.is-fav { color:#F4B74C; border-color:#F4B74C; }
 
 /* ===================== Suscripción de calendario ===================== */
@@ -1366,7 +1352,7 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 	/* Que no quede el borde/realce "encendido" tras tocar (iOS mantiene :hover). */
 	.cead-acad-theme-toggle:hover, .cead-acad-bell:hover { border-color: var(--cead-acad-border); background: transparent; }
 }
-.cead-acad-theme-toggle:focus, .cead-acad-bell:focus, .cead-acad-burger:focus { outline: none; }
+.cead-acad-theme-toggle:focus-visible, .cead-acad-bell:focus-visible, .cead-acad-burger:focus-visible { outline: 2px solid var(--cead-acad-brand); outline-offset: 2px; }
 
 /* Sin flash de selección al tocar los controles. */
 .cead-acad-burger, .cead-acad-theme-toggle, .cead-acad-bell, .cead-acad-fav,

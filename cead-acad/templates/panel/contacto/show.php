@@ -7,7 +7,10 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 $page_title = __( 'Escribir al CEAD', 'cead-acad' );
 
-$body = function () {
+$old_message   = (string) cead_acad_flash( 'contacto_message' );
+$old_recipient = cead_acad_flash( 'contacto_recipient' );
+
+$body = function () use ( $old_message, $old_recipient ) {
 	$done = isset( $_GET['done'] );
 	$err  = isset( $_GET['err'] ) ? sanitize_key( (string) $_GET['err'] ) : '';
 	$recipients = [
@@ -37,14 +40,14 @@ $body = function () {
 				<span><?php esc_html_e( 'Para', 'cead-acad' ); ?></span>
 				<select name="recipient">
 					<?php foreach ( $recipients as $k => $label ) : ?>
-						<option value="<?php echo esc_attr( $k ); ?>"><?php echo esc_html( $label ); ?></option>
+						<option value="<?php echo esc_attr( $k ); ?>" <?php selected( $old_recipient, $k ); ?>><?php echo esc_html( $label ); ?></option>
 					<?php endforeach; ?>
 				</select>
 			</label>
 
 			<label class="cead-acad-field">
 				<span><?php esc_html_e( 'Tu mensaje', 'cead-acad' ); ?></span>
-				<textarea name="message" rows="6" required placeholder="<?php esc_attr_e( 'Escribí tu consulta o mensaje…', 'cead-acad' ); ?>"></textarea>
+				<textarea name="message" rows="6" required placeholder="<?php esc_attr_e( 'Escribí tu consulta o mensaje…', 'cead-acad' ); ?>"><?php echo esc_textarea( $old_message ); ?></textarea>
 			</label>
 
 			<div>

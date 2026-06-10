@@ -81,6 +81,13 @@ class Cead_Acad_Auth_Controller {
 		$password   = (string) ( $_POST['user_pass'] ?? '' );
 		$password2  = (string) ( $_POST['user_pass2'] ?? '' );
 
+		// Conservar lo tipeado para repoblar el formulario si la validación falla.
+		// (Nunca guardamos contraseñas.)
+		cead_acad_flash( 'reg_user_login', $user_login );
+		cead_acad_flash( 'reg_email', $email );
+		cead_acad_flash( 'reg_full_name', $full_name );
+		cead_acad_flash( 'reg_phone', $phone );
+
 		if ( ! $full_name || ! $user_login || ! $email || ! $password ) {
 			$this->bail_to( 'registro', 'missing_fields', [ 't' => $token ] );
 		}

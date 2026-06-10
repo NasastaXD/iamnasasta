@@ -34,7 +34,7 @@ $reg_users = get_users( [ 'number' => 300, 'orderby' => 'display_name', 'fields'
 			<?php foreach ( $created_links as $cl ) : ?>
 				<p style="margin:6px 0">
 					<?php if ( $cl['email'] ) : ?><code style="font-size:11px"><?php echo esc_html( $cl['email'] ); ?></code> → <?php endif; ?>
-					<input type="text" readonly value="<?php echo esc_attr( $cl['url'] ); ?>" onfocus="this.select()" style="width:70%;max-width:560px;font-family:monospace;font-size:11px;padding:4px 6px" />
+					<input type="text" readonly value="<?php echo esc_attr( $cl['url'] ); ?>" onfocus="this.select()" onclick="this.select(); if (navigator.clipboard) { navigator.clipboard.writeText(this.value); this.setAttribute('title', 'Copiado'); }" title="Click para copiar" style="width:70%;max-width:560px;font-family:monospace;font-size:11px;padding:4px 6px" />
 				</p>
 			<?php endforeach; ?>
 		</div>
@@ -43,6 +43,7 @@ $reg_users = get_users( [ 'number' => 300, 'orderby' => 'display_name', 'fields'
 	<h2 class="title"><?php esc_html_e( 'Nueva invitación', 'cead-acad' ); ?></h2>
 	<form method="post" action="<?php echo esc_url( $self ); ?>">
 		<?php wp_nonce_field( 'cead_acad_inv_create', '_cead_inv_nonce' ); ?>
+		<?php Cead_Acad_Admin_Menu::submit_id_field(); ?>
 		<input type="hidden" name="cead_acad_inv_action" value="create" />
 		<table class="form-table" role="presentation">
 			<tr>
@@ -97,6 +98,7 @@ $reg_users = get_users( [ 'number' => 300, 'orderby' => 'display_name', 'fields'
 	<h2 class="title"><?php esc_html_e( 'Un link por cada curso', 'cead-acad' ); ?></h2>
 	<form method="post" action="<?php echo esc_url( $self ); ?>">
 		<?php wp_nonce_field( 'cead_acad_inv_all_courses', '_cead_inv_nonce' ); ?>
+		<?php Cead_Acad_Admin_Menu::submit_id_field(); ?>
 		<input type="hidden" name="cead_acad_inv_action" value="all_courses" />
 		<table class="form-table" role="presentation">
 			<tr>
@@ -120,6 +122,7 @@ $reg_users = get_users( [ 'number' => 300, 'orderby' => 'display_name', 'fields'
 	<h2 class="title"><?php esc_html_e( 'Invitar a usuarios registrados', 'cead-acad' ); ?></h2>
 	<form method="post" action="<?php echo esc_url( $self ); ?>">
 		<?php wp_nonce_field( 'cead_acad_inv_invite_users', '_cead_inv_nonce' ); ?>
+		<?php Cead_Acad_Admin_Menu::submit_id_field(); ?>
 		<input type="hidden" name="cead_acad_inv_action" value="invite_users" />
 		<table class="form-table" role="presentation">
 			<tr>

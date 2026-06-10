@@ -2,14 +2,14 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: CEAD Académico 0.22.0\n"
+"Project-Id-Version: CEAD Académico 0.22.1\n"
 "Report-Msgid-Bugs-To: https://github.com/nasastaxd/iamnasasta/issues\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-06-10T03:38:34+00:00\n"
+"POT-Creation-Date: 2026-06-10T04:14:57+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: cead-acad\n"
@@ -48,7 +48,7 @@ msgstr ""
 #: admin/class-admin-exports.php:69
 #: admin/class-admin-logs.php:33
 #: admin/class-admin-menu.php:113
-#: admin/class-admin-menu.php:265
+#: admin/class-admin-menu.php:297
 #: admin/class-admin-metrics.php:41
 #: modules/courses/class-courses-admin.php:278
 #: modules/courses/class-courses-admin.php:293
@@ -69,7 +69,7 @@ msgstr ""
 #: admin/class-admin-menu.php:53
 #: admin/class-admin-menu.php:54
 #: admin/class-admin-menu.php:86
-#: admin/views/invitations-list.php:136
+#: admin/views/invitations-list.php:139
 #: admin/views/users-list.php:27
 #: modules/admin-ui/class-admin-dashboard.php:158
 msgid "Usuarios"
@@ -132,62 +132,62 @@ msgid "Tipo de exportación inválido."
 msgstr ""
 
 #: admin/class-admin-exports.php:115
-#: admin/class-admin-exports.php:212
+#: admin/class-admin-exports.php:230
 #: admin/views/importers-hub.php:66
-#: admin/views/invitations-list.php:154
+#: admin/views/invitations-list.php:157
 msgid "ID"
 msgstr ""
 
 #: admin/class-admin-exports.php:115
-#: admin/class-admin-exports.php:179
+#: admin/class-admin-exports.php:194
 #: admin/class-admin-logs.php:91
-#: admin/views/users-list.php:117
-#: admin/views/users-list.php:166
+#: admin/views/users-list.php:118
+#: admin/views/users-list.php:167
 #: modules/surveys/class-surveys-responses.php:194
-#: templates/auth/register.php:117
+#: templates/auth/register.php:123
 msgid "Usuario"
 msgstr ""
 
 #: admin/class-admin-exports.php:115
-#: admin/views/users-list.php:165
+#: admin/views/users-list.php:166
 msgid "Nombre"
 msgstr ""
 
 #: admin/class-admin-exports.php:116
-#: admin/class-admin-exports.php:179
+#: admin/class-admin-exports.php:194
 #: admin/views/users-list.php:57
-#: admin/views/users-list.php:124
-#: admin/views/users-list.php:167
+#: admin/views/users-list.php:125
+#: admin/views/users-list.php:168
 #: modules/surveys/class-surveys-responses.php:194
-#: templates/auth/register.php:122
-#: templates/panel/perfil/show.php:65
+#: templates/auth/register.php:128
+#: templates/panel/perfil/show.php:71
 msgid "Email"
 msgstr ""
 
 #: admin/class-admin-exports.php:116
 #: admin/class-admin-logs.php:145
 #: admin/class-admin-logs.php:160
-#: admin/views/users-list.php:169
+#: admin/views/users-list.php:170
 #: modules/importers/class-importer-students.php:23
-#: templates/panel/perfil/show.php:59
+#: templates/panel/perfil/show.php:65
 msgid "Teléfono"
 msgstr ""
 
 #: admin/class-admin-exports.php:116
-#: admin/class-admin-exports.php:149
-#: templates/panel/perfil/show.php:75
+#: admin/class-admin-exports.php:159
+#: templates/panel/perfil/show.php:81
 msgid "Documento"
 msgstr ""
 
 #: admin/class-admin-exports.php:117
-#: admin/views/invitations-list.php:49
-#: admin/views/invitations-list.php:103
-#: admin/views/invitations-list.php:126
-#: admin/views/invitations-list.php:155
+#: admin/views/invitations-list.php:50
+#: admin/views/invitations-list.php:105
+#: admin/views/invitations-list.php:129
+#: admin/views/invitations-list.php:158
 #: admin/views/users-list.php:82
-#: admin/views/users-list.php:137
-#: admin/views/users-list.php:168
-#: templates/panel/perfil/show.php:69
+#: admin/views/users-list.php:138
+#: admin/views/users-list.php:169
+#: templates/panel/perfil/show.php:75
 msgid "Rol"
 msgstr ""
 
@@ -208,100 +208,100 @@ msgstr ""
 msgid "Alta"
 msgstr ""
 
-#: admin/class-admin-exports.php:149
+#: admin/class-admin-exports.php:159
 msgid "Alumno"
 msgstr ""
 
-#: admin/class-admin-exports.php:149
-#: admin/class-admin-exports.php:179
-#: admin/views/invitations-list.php:59
+#: admin/class-admin-exports.php:159
+#: admin/class-admin-exports.php:194
+#: admin/views/invitations-list.php:60
 #: modules/courses/class-courses-cpt.php:37
 #: modules/panels/class-tasks-cpt.php:84
 #: modules/panels/class-tasks-cpt.php:133
-#: templates/auth/register.php:134
+#: templates/auth/register.php:140
 msgid "Curso"
 msgstr ""
 
-#: admin/class-admin-exports.php:150
+#: admin/class-admin-exports.php:160
 #: modules/courses/class-courses-admin.php:64
 #: modules/resources/class-resources-cpt.php:45
 #: templates/panel/boletin/show.php:51
 msgid "Materia"
 msgstr ""
 
-#: admin/class-admin-exports.php:150
+#: admin/class-admin-exports.php:160
 msgid "Período"
 msgstr ""
 
-#: admin/class-admin-exports.php:150
+#: admin/class-admin-exports.php:160
 msgid "Nota"
 msgstr ""
 
-#: admin/class-admin-exports.php:151
+#: admin/class-admin-exports.php:161
 #: modules/importers/class-importer-grades.php:20
 msgid "Letra"
 msgstr ""
 
-#: admin/class-admin-exports.php:151
+#: admin/class-admin-exports.php:161
 msgid "Comentarios"
 msgstr ""
 
-#: admin/class-admin-exports.php:151
+#: admin/class-admin-exports.php:161
 msgid "Registrada el"
 msgstr ""
 
-#: admin/class-admin-exports.php:180
+#: admin/class-admin-exports.php:195
 msgid "Rol en el curso"
 msgstr ""
 
-#: admin/class-admin-exports.php:180
-#: admin/class-admin-exports.php:212
+#: admin/class-admin-exports.php:195
+#: admin/class-admin-exports.php:230
 #: admin/views/importers-hub.php:69
-#: admin/views/invitations-list.php:156
+#: admin/views/invitations-list.php:159
 #: modules/panels/class-tasks-cpt.php:93
 #: modules/panels/class-tasks-cpt.php:134
 #: modules/whatsapp/class-wa-admin.php:115
 msgid "Estado"
 msgstr ""
 
-#: admin/class-admin-exports.php:181
+#: admin/class-admin-exports.php:196
 #: admin/class-admin-logs.php:194
 #: modules/courses/class-courses-admin.php:62
 msgid "Desde"
 msgstr ""
 
-#: admin/class-admin-exports.php:181
+#: admin/class-admin-exports.php:196
 #: admin/class-admin-logs.php:195
 #: modules/courses/class-courses-admin.php:63
 msgid "Hasta"
 msgstr ""
 
-#: admin/class-admin-exports.php:212
+#: admin/class-admin-exports.php:230
 #: modules/importers/class-importer-events.php:17
 msgid "Título"
 msgstr ""
 
-#: admin/class-admin-exports.php:213
+#: admin/class-admin-exports.php:231
 msgid "Publicado"
 msgstr ""
 
-#: admin/class-admin-exports.php:213
+#: admin/class-admin-exports.php:231
 msgid "Autor"
 msgstr ""
 
-#: admin/class-admin-exports.php:213
+#: admin/class-admin-exports.php:231
 #: modules/whatsapp/class-wa-admin.php:234
 msgid "Audiencia"
 msgstr ""
 
-#: admin/class-admin-exports.php:214
+#: admin/class-admin-exports.php:232
 #: modules/broadcasts/class-broadcasts-targeting.php:22
 #: modules/schedule/class-schedule-admin.php:30
 #: modules/surveys/class-surveys-admin.php:31
 msgid "Destinatarios"
 msgstr ""
 
-#: admin/class-admin-exports.php:214
+#: admin/class-admin-exports.php:232
 msgid "Lecturas"
 msgstr ""
 
@@ -376,7 +376,7 @@ msgstr ""
 
 #: admin/class-admin-logs.php:161
 #: templates/panel/buzon/list.php:113
-#: templates/panel/contacto/show.php:14
+#: templates/panel/contacto/show.php:17
 #: templates/panel/direccion/dashboard.php:108
 #: templates/panel/direccion/dashboard.php:114
 #: templates/panel/partials/sidebar.php:37
@@ -426,7 +426,7 @@ msgstr ""
 #: admin/class-admin-menu.php:45
 #: admin/class-admin-menu.php:87
 #: admin/views/invitations-list.php:22
-#: admin/views/invitations-list.php:150
+#: admin/views/invitations-list.php:153
 msgid "Invitaciones"
 msgstr ""
 
@@ -551,13 +551,17 @@ msgstr ""
 msgid "Tip: si recién activaste el plugin y las rutas frontend devuelven 404, andá a Ajustes → Enlaces permanentes y guardá una vez para refrescar las rewrite rules."
 msgstr ""
 
-#: admin/class-admin-menu.php:138
-#: admin/class-admin-menu.php:278
+#: admin/class-admin-menu.php:163
+#: admin/class-admin-menu.php:310
 msgid "Sesión expirada. Probá de nuevo."
 msgstr ""
 
+#: admin/class-admin-menu.php:170
+msgid "Ese formulario ya se había enviado (evitamos duplicar las invitaciones). Recargá la página para crear nuevas."
+msgstr ""
+
 #. translators: %d: cantidad de invitaciones creadas
-#: admin/class-admin-menu.php:172
+#: admin/class-admin-menu.php:204
 #, php-format
 msgid "%d invitación creada."
 msgid_plural "%d invitaciones creadas."
@@ -565,29 +569,29 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: dirección de email del invitado
-#: admin/class-admin-menu.php:175
+#: admin/class-admin-menu.php:207
 #, php-format
 msgid "Email enviado a %s (si el correo del sitio está configurado)."
 msgstr ""
 
-#: admin/class-admin-menu.php:185
+#: admin/class-admin-menu.php:217
 msgid "No hay cursos cargados todavía. Creá los cursos primero."
 msgstr ""
 
 #. translators: %d: cantidad de links generados
-#: admin/class-admin-menu.php:202
+#: admin/class-admin-menu.php:234
 #, php-format
 msgid "%d link generado (uno por curso)."
 msgid_plural "%d links generados (uno por curso)."
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/class-admin-menu.php:210
+#: admin/class-admin-menu.php:242
 msgid "Elegí al menos un usuario."
 msgstr ""
 
 #. translators: %d: cantidad de usuarios invitados
-#: admin/class-admin-menu.php:230
+#: admin/class-admin-menu.php:262
 #, php-format
 msgid "Invitación enviada a %d usuario."
 msgid_plural "Invitaciones enviadas a %d usuarios."
@@ -595,108 +599,112 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: dirección de email del destinatario
-#: admin/class-admin-menu.php:241
+#: admin/class-admin-menu.php:273
 #, php-format
 msgid "Email reenviado a %s."
 msgstr ""
 
-#: admin/class-admin-menu.php:244
+#: admin/class-admin-menu.php:276
 msgid "No se pudo reenviar (sin email o token)."
 msgstr ""
 
-#: admin/class-admin-menu.php:251
+#: admin/class-admin-menu.php:283
 msgid "Invitación revocada."
 msgstr ""
 
-#: admin/class-admin-menu.php:296
+#: admin/class-admin-menu.php:313
+msgid "Ese formulario ya se había enviado. Recargá la página para crear otro usuario."
+msgstr ""
+
+#: admin/class-admin-menu.php:331
 msgid "No tenés permiso para suspender usuarios."
 msgstr ""
 
-#: admin/class-admin-menu.php:301
-#: admin/class-admin-menu.php:331
-#: admin/class-admin-menu.php:421
+#: admin/class-admin-menu.php:336
+#: admin/class-admin-menu.php:366
+#: admin/class-admin-menu.php:456
 msgid "Usuario inválido."
 msgstr ""
 
-#: admin/class-admin-menu.php:304
+#: admin/class-admin-menu.php:339
 msgid "No podés suspender tu propia cuenta."
 msgstr ""
 
-#: admin/class-admin-menu.php:307
+#: admin/class-admin-menu.php:342
 msgid "No se puede suspender a un administrador desde acá."
 msgstr ""
 
 #. translators: %s: nombre del usuario suspendido
-#: admin/class-admin-menu.php:313
+#: admin/class-admin-menu.php:348
 #, php-format
 msgid "Usuario «%s» suspendido. No va a poder iniciar sesión hasta que lo reactives."
 msgstr ""
 
 #. translators: %s: nombre del usuario reactivado
-#: admin/class-admin-menu.php:317
+#: admin/class-admin-menu.php:352
 #, php-format
 msgid "Usuario «%s» reactivado."
 msgstr ""
 
-#: admin/class-admin-menu.php:326
+#: admin/class-admin-menu.php:361
 msgid "No tenés permiso para eliminar usuarios."
 msgstr ""
 
-#: admin/class-admin-menu.php:334
+#: admin/class-admin-menu.php:369
 msgid "No podés eliminar tu propia cuenta."
 msgstr ""
 
-#: admin/class-admin-menu.php:337
+#: admin/class-admin-menu.php:372
 msgid "No se puede eliminar a un administrador desde acá."
 msgstr ""
 
 #. translators: %s: nombre del usuario eliminado
-#: admin/class-admin-menu.php:354
+#: admin/class-admin-menu.php:389
 #, php-format
 msgid "Usuario «%s» eliminado."
 msgstr ""
 
-#: admin/class-admin-menu.php:355
+#: admin/class-admin-menu.php:390
 msgid "No se pudo eliminar el usuario."
 msgstr ""
 
-#: admin/class-admin-menu.php:366
+#: admin/class-admin-menu.php:401
 msgid "Nombre y usuario son obligatorios."
 msgstr ""
 
-#: admin/class-admin-menu.php:369
+#: admin/class-admin-menu.php:404
 msgid "El nombre o el usuario contienen lenguaje no permitido."
 msgstr ""
 
-#: admin/class-admin-menu.php:372
-#: templates/auth/register.php:91
+#: admin/class-admin-menu.php:407
+#: templates/auth/register.php:97
 msgid "Ese nombre de usuario ya está en uso."
 msgstr ""
 
-#: admin/class-admin-menu.php:375
-#: templates/auth/register.php:92
+#: admin/class-admin-menu.php:410
+#: templates/auth/register.php:98
 msgid "Ya hay una cuenta con ese email."
 msgstr ""
 
 #. translators: 1: nombre de usuario, 2: rol asignado
-#: admin/class-admin-menu.php:415
+#: admin/class-admin-menu.php:450
 #, php-format
 msgid "Usuario \"%1$s\" creado como %2$s."
 msgstr ""
 
-#: admin/class-admin-menu.php:431
+#: admin/class-admin-menu.php:466
 msgid "El nombre contiene lenguaje no permitido."
 msgstr ""
 
-#: admin/class-admin-menu.php:434
+#: admin/class-admin-menu.php:469
 msgid "Ya hay otra cuenta con ese email."
 msgstr ""
 
-#: admin/class-admin-menu.php:475
+#: admin/class-admin-menu.php:510
 msgid "Usuario actualizado. Nueva contraseña generada (abajo)."
 msgstr ""
 
-#: admin/class-admin-menu.php:478
+#: admin/class-admin-menu.php:513
 msgid "Usuario actualizado."
 msgstr ""
 
@@ -935,8 +943,8 @@ msgid "OK"
 msgstr ""
 
 #: admin/views/importers-hub.php:73
-#: admin/views/invitations-list.php:159
-#: admin/views/users-list.php:170
+#: admin/views/invitations-list.php:162
+#: admin/views/users-list.php:171
 msgid "Acciones"
 msgstr ""
 
@@ -961,121 +969,121 @@ msgstr ""
 msgid "Nueva invitación"
 msgstr ""
 
-#: admin/views/invitations-list.php:62
+#: admin/views/invitations-list.php:63
 msgid "— Sin curso (lo elige al registrarse) —"
 msgstr ""
 
-#: admin/views/invitations-list.php:67
+#: admin/views/invitations-list.php:68
 msgid "Si elegís un curso, todos los que usen este link entran a ese curso. Si lo dejás en \"Sin curso\" (para Alumno/a o Delegado/a), la persona elige el curso al registrarse."
 msgstr ""
 
-#: admin/views/invitations-list.php:71
+#: admin/views/invitations-list.php:72
 msgid "Email (opcional)"
 msgstr ""
 
-#: admin/views/invitations-list.php:73
+#: admin/views/invitations-list.php:74
 msgid "destinatario@ejemplo.com"
 msgstr ""
 
-#: admin/views/invitations-list.php:79
+#: admin/views/invitations-list.php:80
 msgid "Podés empezar a escribir para autocompletar con emails ya registrados. Igual vas a ver el link copiable arriba y en la tabla."
 msgstr ""
 
-#: admin/views/invitations-list.php:83
-#: admin/views/invitations-list.php:112
+#: admin/views/invitations-list.php:84
+#: admin/views/invitations-list.php:114
 msgid "Expira en (días)"
 msgstr ""
 
-#: admin/views/invitations-list.php:87
+#: admin/views/invitations-list.php:88
 msgid "Cantidad"
 msgstr ""
 
-#: admin/views/invitations-list.php:90
+#: admin/views/invitations-list.php:91
 msgid "Útil para crear muchos links de una vez (p. ej. para un curso entero)."
 msgstr ""
 
-#: admin/views/invitations-list.php:94
+#: admin/views/invitations-list.php:95
 #: templates/panel/secretaria/dashboard.php:93
 msgid "Generar invitaciones"
 msgstr ""
 
-#: admin/views/invitations-list.php:97
+#: admin/views/invitations-list.php:98
 msgid "Un link por cada curso"
 msgstr ""
 
-#: admin/views/invitations-list.php:106
+#: admin/views/invitations-list.php:108
 #: modules/courses/class-courses-admin.php:266
 msgid "Alumno/a"
 msgstr ""
 
-#: admin/views/invitations-list.php:107
+#: admin/views/invitations-list.php:109
 #: modules/courses/class-courses-admin.php:145
 #: modules/courses/class-courses-admin.php:267
 #: modules/courses/class-courses-cpt.php:87
 msgid "Delegado/a"
 msgstr ""
 
-#: admin/views/invitations-list.php:116
+#: admin/views/invitations-list.php:118
 msgid "Crea una invitación por cada curso cargado, cada una ya atada a su curso. Ideal para repartir un link a cada división."
 msgstr ""
 
-#: admin/views/invitations-list.php:117
+#: admin/views/invitations-list.php:119
 msgid "Generar 1 link por cada curso"
 msgstr ""
 
-#: admin/views/invitations-list.php:120
+#: admin/views/invitations-list.php:122
 msgid "Invitar a usuarios registrados"
 msgstr ""
 
-#: admin/views/invitations-list.php:143
+#: admin/views/invitations-list.php:146
 msgid "Mantené Ctrl/Cmd para elegir varios. Se les envía el link por correo."
 msgstr ""
 
-#: admin/views/invitations-list.php:147
+#: admin/views/invitations-list.php:150
 msgid "Enviar invitaciones a los seleccionados"
 msgstr ""
 
-#: admin/views/invitations-list.php:157
+#: admin/views/invitations-list.php:160
 msgid "Link de registro"
 msgstr ""
 
-#: admin/views/invitations-list.php:158
+#: admin/views/invitations-list.php:161
 msgid "Expira"
 msgstr ""
 
-#: admin/views/invitations-list.php:164
+#: admin/views/invitations-list.php:167
 msgid "Todavía no hay invitaciones."
 msgstr ""
 
-#: admin/views/invitations-list.php:168
+#: admin/views/invitations-list.php:171
 msgid "Válida"
 msgstr ""
 
-#: admin/views/invitations-list.php:169
+#: admin/views/invitations-list.php:172
 msgid "Usada"
 msgstr ""
 
-#: admin/views/invitations-list.php:170
+#: admin/views/invitations-list.php:173
 msgid "Expirada"
 msgstr ""
 
-#: admin/views/invitations-list.php:171
+#: admin/views/invitations-list.php:174
 msgid "Revocada"
 msgstr ""
 
-#: admin/views/invitations-list.php:172
+#: admin/views/invitations-list.php:175
 msgid "Inválida"
 msgstr ""
 
-#: admin/views/invitations-list.php:196
+#: admin/views/invitations-list.php:199
 msgid "Reenviar email"
 msgstr ""
 
-#: admin/views/invitations-list.php:199
+#: admin/views/invitations-list.php:202
 msgid "¿Revocar esta invitación?"
 msgstr ""
 
-#: admin/views/invitations-list.php:203
+#: admin/views/invitations-list.php:206
 msgid "Revocar"
 msgstr ""
 
@@ -1090,24 +1098,24 @@ msgid "Editar: %s"
 msgstr ""
 
 #: admin/views/users-list.php:53
-#: templates/panel/perfil/show.php:54
+#: templates/panel/perfil/show.php:60
 msgid "Nombre a mostrar"
 msgstr ""
 
 #: admin/views/users-list.php:61
-#: admin/views/users-list.php:130
-#: templates/auth/register.php:127
+#: admin/views/users-list.php:131
+#: templates/auth/register.php:133
 msgid "Teléfono (WhatsApp)"
 msgstr ""
 
 #: admin/views/users-list.php:66
-#: admin/views/users-list.php:133
+#: admin/views/users-list.php:134
 msgid "Número completo con código de país, sin +. Ej: 595981123456"
 msgstr ""
 
 #: admin/views/users-list.php:95
 #: templates/auth/login.php:53
-#: templates/auth/register.php:146
+#: templates/auth/register.php:152
 msgid "Contraseña"
 msgstr ""
 
@@ -1116,7 +1124,7 @@ msgid "Generar una nueva contraseña"
 msgstr ""
 
 #: admin/views/users-list.php:100
-#: templates/panel/perfil/show.php:81
+#: templates/panel/perfil/show.php:87
 msgid "Guardar cambios"
 msgstr ""
 
@@ -1125,72 +1133,72 @@ msgstr ""
 msgid "Agregar usuario"
 msgstr ""
 
-#: admin/views/users-list.php:113
+#: admin/views/users-list.php:114
 msgid "Nombre completo"
 msgstr ""
 
-#: admin/views/users-list.php:114
-#: templates/auth/register.php:112
+#: admin/views/users-list.php:115
+#: templates/auth/register.php:118
 msgid "Nombre y apellido"
 msgstr ""
 
-#: admin/views/users-list.php:119
-#: templates/auth/register.php:118
+#: admin/views/users-list.php:120
+#: templates/auth/register.php:124
 msgid "sin espacios"
 msgstr ""
 
-#: admin/views/users-list.php:120
+#: admin/views/users-list.php:121
 msgid "Solo letras, números, puntos y guiones."
 msgstr ""
 
-#: admin/views/users-list.php:150
+#: admin/views/users-list.php:151
 msgid "Crear usuario"
 msgstr ""
 
-#: admin/views/users-list.php:153
+#: admin/views/users-list.php:154
 msgid "La contraseña se genera automáticamente y se muestra una sola vez tras crear el usuario."
 msgstr ""
 
-#: admin/views/users-list.php:160
+#: admin/views/users-list.php:161
 msgid "Usuarios actuales"
 msgstr ""
 
-#: admin/views/users-list.php:180
+#: admin/views/users-list.php:181
 msgid "Admin WP"
 msgstr ""
 
-#: admin/views/users-list.php:196
+#: admin/views/users-list.php:197
 msgid "Suspendido"
 msgstr ""
 
-#: admin/views/users-list.php:206
+#: admin/views/users-list.php:207
 #: modules/courses/class-courses-admin.php:78
 msgid "—"
 msgstr ""
 
-#: admin/views/users-list.php:211
+#: admin/views/users-list.php:212
 msgid "Editar"
 msgstr ""
 
-#: admin/views/users-list.php:222
+#: admin/views/users-list.php:223
 msgid "Reactivar"
 msgstr ""
 
-#: admin/views/users-list.php:227
+#: admin/views/users-list.php:228
 msgid "Suspender"
 msgstr ""
 
 #. translators: %s: nombre del usuario a eliminar
-#: admin/views/users-list.php:232
+#: admin/views/users-list.php:233
 #, php-format
 msgid "Eliminar a %s? Esta accion no se puede deshacer."
 msgstr ""
 
-#: admin/views/users-list.php:236
+#: admin/views/users-list.php:237
 msgid "Eliminar"
 msgstr ""
 
-#: admin/views/users-list.php:245
+#: admin/views/users-list.php:246
 msgid "No hay usuarios con roles del plugin todavía."
 msgstr ""
 
@@ -1245,7 +1253,7 @@ msgstr ""
 
 #: modules/admin-ui/class-admin-dashboard.php:160
 #: modules/whatsapp/class-wa-admin.php:29
-#: templates/panel/perfil/show.php:101
+#: templates/panel/perfil/show.php:107
 msgid "WhatsApp"
 msgstr ""
 
@@ -1311,7 +1319,7 @@ msgstr ""
 msgid "Si no fuiste vos, ignorá este mensaje: tu contraseña sigue siendo la misma."
 msgstr ""
 
-#: modules/auth/class-user-suspension.php:25
+#: modules/auth/class-user-suspension.php:47
 #: templates/auth/login.php:34
 msgid "Tu cuenta está suspendida. Contactá a la secretaría del CEAD."
 msgstr ""
@@ -1916,16 +1924,16 @@ msgstr ""
 msgid "Panel del CEAD: comunicados, calendario, recursos y más."
 msgstr ""
 
-#: modules/pwa/class-pwa.php:130
-#: modules/pwa/class-pwa.php:143
+#: modules/pwa/class-pwa.php:134
+#: modules/pwa/class-pwa.php:147
 msgid "Sin conexión"
 msgstr ""
 
-#: modules/pwa/class-pwa.php:144
+#: modules/pwa/class-pwa.php:148
 msgid "No hay internet en este momento. Las páginas que ya visitaste siguen disponibles; esta no estaba guardada."
 msgstr ""
 
-#: modules/pwa/class-pwa.php:145
+#: modules/pwa/class-pwa.php:149
 msgid "Reintentar"
 msgstr ""
 
@@ -2583,7 +2591,7 @@ msgid "Número (con código de país, solo dígitos)"
 msgstr ""
 
 #: modules/whatsapp/class-wa-admin.php:280
-#: templates/panel/contacto/show.php:51
+#: templates/panel/contacto/show.php:54
 msgid "Enviar mensaje"
 msgstr ""
 
@@ -2620,7 +2628,7 @@ msgid "Descripción (info)"
 msgstr ""
 
 #: modules/whatsapp/class-wa-admin.php:321
-#: templates/panel/perfil/show.php:48
+#: templates/panel/perfil/show.php:54
 msgid "Foto de perfil"
 msgstr ""
 
@@ -2795,7 +2803,7 @@ msgstr ""
 #: templates/auth/login.php:37
 #: templates/auth/recover-reset.php:34
 #: templates/auth/recover.php:28
-#: templates/auth/register.php:103
+#: templates/auth/register.php:109
 #: templates/panel/encuestas/take.php:76
 msgid "Error."
 msgstr ""
@@ -2857,23 +2865,23 @@ msgid "Completá ambos campos."
 msgstr ""
 
 #: templates/auth/recover-reset.php:29
-#: templates/auth/register.php:89
+#: templates/auth/register.php:95
 msgid "La contraseña debe tener al menos 8 caracteres."
 msgstr ""
 
 #: templates/auth/recover-reset.php:30
-#: templates/auth/register.php:90
+#: templates/auth/register.php:96
 msgid "Las contraseñas no coinciden."
 msgstr ""
 
 #: templates/auth/recover-reset.php:31
 #: templates/auth/recover.php:23
-#: templates/auth/register.php:93
+#: templates/auth/register.php:99
 msgid "Demasiados intentos. Esperá un minuto."
 msgstr ""
 
 #: templates/auth/recover-reset.php:49
-#: templates/auth/register.php:152
+#: templates/auth/register.php:158
 msgid "Repetir contraseña"
 msgstr ""
 
@@ -2914,112 +2922,112 @@ msgstr ""
 msgid "CEADI es el asistente del colegio en WhatsApp. Te acerca comunicados, horarios y novedades, y te deja hacer consultas rápidas cuando las necesites."
 msgstr ""
 
-#: templates/auth/register.php:36
-#: templates/auth/register.php:39
-#: templates/auth/register.php:156
+#: templates/auth/register.php:42
+#: templates/auth/register.php:45
+#: templates/auth/register.php:162
 msgid "Crear cuenta"
 msgstr ""
 
-#: templates/auth/register.php:43
+#: templates/auth/register.php:49
 msgid "El link de invitación no es válido."
 msgstr ""
 
-#: templates/auth/register.php:44
+#: templates/auth/register.php:50
 msgid "Esta invitación ya fue usada."
 msgstr ""
 
-#: templates/auth/register.php:45
+#: templates/auth/register.php:51
 msgid "Esta invitación está expirada."
 msgstr ""
 
-#: templates/auth/register.php:46
-#: templates/auth/register.php:97
+#: templates/auth/register.php:52
+#: templates/auth/register.php:103
 msgid "Esta invitación fue revocada."
 msgstr ""
 
-#: templates/auth/register.php:49
+#: templates/auth/register.php:55
 msgid "Invitación inválida."
 msgstr ""
 
-#: templates/auth/register.php:50
+#: templates/auth/register.php:56
 msgid "Pedile a la dirección o secretaría un nuevo link de invitación."
 msgstr ""
 
-#: templates/auth/register.php:52
+#: templates/auth/register.php:58
 msgid "Ir a iniciar sesión"
 msgstr ""
 
 #. translators: %s: role display name.
-#: templates/auth/register.php:61
+#: templates/auth/register.php:67
 #, php-format
 msgid "Te invitaron como %s. Completá tus datos para activar la cuenta."
 msgstr ""
 
-#: templates/auth/register.php:69
+#: templates/auth/register.php:75
 msgid "¿Qué es el panel del CEAD?"
 msgstr ""
 
-#: templates/auth/register.php:73
+#: templates/auth/register.php:79
 msgid "CEADI · el bot del colegio"
 msgstr ""
 
-#: templates/auth/register.php:79
+#: templates/auth/register.php:85
 msgid "Agregar a CEADI"
 msgstr ""
 
-#: templates/auth/register.php:87
+#: templates/auth/register.php:93
 msgid "Completá todos los campos."
 msgstr ""
 
-#: templates/auth/register.php:88
+#: templates/auth/register.php:94
 msgid "Email inválido."
 msgstr ""
 
-#: templates/auth/register.php:94
+#: templates/auth/register.php:100
 msgid "El número de teléfono es obligatorio."
 msgstr ""
 
-#: templates/auth/register.php:95
+#: templates/auth/register.php:101
 msgid "Este link de invitación ya se utilizó."
 msgstr ""
 
-#: templates/auth/register.php:96
+#: templates/auth/register.php:102
 msgid "Este link de invitación expiró."
 msgstr ""
 
-#: templates/auth/register.php:98
+#: templates/auth/register.php:104
 msgid "No se pudo crear la cuenta. Intentá de nuevo o pedí ayuda a la dirección."
 msgstr ""
 
-#: templates/auth/register.php:99
+#: templates/auth/register.php:105
 msgid "Falta el código de invitación. Volvé a abrir el link que te enviaron."
 msgstr ""
 
-#: templates/auth/register.php:100
+#: templates/auth/register.php:106
 msgid "Elegí tu curso para continuar."
 msgstr ""
 
-#: templates/auth/register.php:128
+#: templates/auth/register.php:134
 msgid "Ej: 0981123456"
 msgstr ""
 
-#: templates/auth/register.php:129
+#: templates/auth/register.php:135
 msgid "Tu número de WhatsApp. Ejemplo: 0981123456"
 msgstr ""
 
-#: templates/auth/register.php:136
+#: templates/auth/register.php:142
 msgid "Elegí tu curso…"
 msgstr ""
 
-#: templates/auth/register.php:141
+#: templates/auth/register.php:147
 msgid "Elegí el curso al que pertenecés."
 msgstr ""
 
-#: templates/auth/register.php:148
+#: templates/auth/register.php:154
 msgid "Mínimo 8 caracteres."
 msgstr ""
 
-#: templates/auth/register.php:160
+#: templates/auth/register.php:166
 msgid "¿Ya tenés cuenta? Iniciá sesión"
 msgstr ""
 
@@ -3664,48 +3672,48 @@ msgid "No tenés permiso para ver este comunicado"
 msgstr ""
 
 #: templates/panel/contacto/show.php:8
-#: templates/panel/contacto/show.php:21
+#: templates/panel/contacto/show.php:24
 #: templates/panel/partials/sidebar.php:13
 msgid "Escribir al CEAD"
 msgstr ""
 
-#: templates/panel/contacto/show.php:15
+#: templates/panel/contacto/show.php:18
 msgid "Consejo Estudiantil"
 msgstr ""
 
-#: templates/panel/contacto/show.php:16
+#: templates/panel/contacto/show.php:19
 msgid "Administración / Secretaría"
 msgstr ""
 
-#: templates/panel/contacto/show.php:20
+#: templates/panel/contacto/show.php:23
 msgid "Mensajes"
 msgstr ""
 
-#: templates/panel/contacto/show.php:22
+#: templates/panel/contacto/show.php:25
 msgid "Mandá un mensaje directo a Dirección, al Consejo o a Administración. Lo reciben en su buzón y te responden."
 msgstr ""
 
-#: templates/panel/contacto/show.php:25
+#: templates/panel/contacto/show.php:28
 msgid "Mensaje enviado. Te van a responder pronto."
 msgstr ""
 
-#: templates/panel/contacto/show.php:27
+#: templates/panel/contacto/show.php:30
 msgid "Escribí un mensaje antes de enviar."
 msgstr ""
 
-#: templates/panel/contacto/show.php:29
+#: templates/panel/contacto/show.php:32
 msgid "Tu mensaje contiene lenguaje no permitido. Reformulalo, por favor."
 msgstr ""
 
-#: templates/panel/contacto/show.php:37
+#: templates/panel/contacto/show.php:40
 msgid "Para"
 msgstr ""
 
-#: templates/panel/contacto/show.php:46
+#: templates/panel/contacto/show.php:49
 msgid "Tu mensaje"
 msgstr ""
 
-#: templates/panel/contacto/show.php:47
+#: templates/panel/contacto/show.php:50
 msgid "Escribí tu consulta o mensaje…"
 msgstr ""
 
@@ -4073,8 +4081,8 @@ msgid "Mis tareas"
 msgstr ""
 
 #: templates/panel/partials/sidebar.php:21
-#: templates/panel/perfil/show.php:16
-#: templates/panel/perfil/show.php:28
+#: templates/panel/perfil/show.php:22
+#: templates/panel/perfil/show.php:34
 msgid "Mi perfil"
 msgstr ""
 
@@ -4117,79 +4125,79 @@ msgstr ""
 msgid "Estás al día 🎉"
 msgstr ""
 
-#: templates/panel/perfil/show.php:22
+#: templates/panel/perfil/show.php:28
 msgid "El archivo debe ser una imagen."
 msgstr ""
 
-#: templates/panel/perfil/show.php:23
+#: templates/panel/perfil/show.php:29
 msgid "No se pudo subir la imagen. Probá con otra."
 msgstr ""
 
-#: templates/panel/perfil/show.php:27
+#: templates/panel/perfil/show.php:33
 msgid "Cuenta"
 msgstr ""
 
-#: templates/panel/perfil/show.php:29
+#: templates/panel/perfil/show.php:35
 msgid "Actualizá tu foto y tus datos de contacto."
 msgstr ""
 
-#: templates/panel/perfil/show.php:32
+#: templates/panel/perfil/show.php:38
 msgid "Perfil actualizado."
 msgstr ""
 
-#: templates/panel/perfil/show.php:82
+#: templates/panel/perfil/show.php:88
 msgid "Ver mi carné"
 msgstr ""
 
-#: templates/panel/perfil/show.php:93
+#: templates/panel/perfil/show.php:99
 msgid "Primero cargá y guardá tu teléfono arriba."
 msgstr ""
 
-#: templates/panel/perfil/show.php:94
+#: templates/panel/perfil/show.php:100
 msgid "Esperá un minuto antes de pedir otro código."
 msgstr ""
 
-#: templates/panel/perfil/show.php:95
+#: templates/panel/perfil/show.php:101
 msgid "No se pudo enviar el código (¿CEADI está conectado?)."
 msgstr ""
 
-#: templates/panel/perfil/show.php:96
+#: templates/panel/perfil/show.php:102
 msgid "El código venció. Pedí uno nuevo."
 msgstr ""
 
-#: templates/panel/perfil/show.php:97
+#: templates/panel/perfil/show.php:103
 msgid "Código incorrecto. Revisá e intentá de nuevo."
 msgstr ""
 
-#: templates/panel/perfil/show.php:103
+#: templates/panel/perfil/show.php:109
 msgid "Verificación de tu número"
 msgstr ""
 
-#: templates/panel/perfil/show.php:104
+#: templates/panel/perfil/show.php:110
 msgid "Verificado"
 msgstr ""
 
-#: templates/panel/perfil/show.php:106
+#: templates/panel/perfil/show.php:112
 msgid "Verificá tu teléfono para confirmar que es tuyo y que CEADI pueda atenderte por WhatsApp."
 msgstr ""
 
-#: templates/panel/perfil/show.php:109
+#: templates/panel/perfil/show.php:115
 msgid "¡Número verificado! 🎉"
 msgstr ""
 
-#: templates/panel/perfil/show.php:111
+#: templates/panel/perfil/show.php:117
 msgid "Te enviamos un código por WhatsApp. Ingresalo abajo."
 msgstr ""
 
-#: templates/panel/perfil/show.php:121
+#: templates/panel/perfil/show.php:127
 msgid "Enviarme un código por WhatsApp"
 msgstr ""
 
-#: templates/panel/perfil/show.php:127
+#: templates/panel/perfil/show.php:133
 msgid "Código"
 msgstr ""
 
-#: templates/panel/perfil/show.php:130
+#: templates/panel/perfil/show.php:136
 msgid "Verificar"
 msgstr ""
 

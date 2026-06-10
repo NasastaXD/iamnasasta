@@ -107,6 +107,7 @@ $page_url   = admin_url( 'admin.php?page=cead-acad-users' );
 		<h2><?php esc_html_e( 'Agregar usuario', 'cead-acad' ); ?></h2>
 		<form method="post" action="<?php echo esc_url( $page_url ); ?>">
 			<?php wp_nonce_field( 'cead_acad_users_create', '_cead_users_nonce' ); ?>
+			<?php Cead_Acad_Admin_Menu::submit_id_field(); ?>
 			<input type="hidden" name="cead_acad_users_action" value="create">
 			<table class="form-table" role="presentation">
 				<tr>

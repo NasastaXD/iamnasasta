@@ -94,7 +94,7 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 				</div>
 				<label class="cead-acad-field" style="margin-top:.75rem">
 					<span><?php esc_html_e( 'O copiá este enlace y agregalo en tu app de calendario:', 'cead-acad' ); ?></span>
-					<input type="text" readonly value="<?php echo esc_attr( $feed_https ); ?>" onclick="this.select()">
+					<input type="text" readonly value="<?php echo esc_attr( $feed_https ); ?>" title="Click para copiar" onclick="this.select(); if (navigator.clipboard) { navigator.clipboard.writeText(this.value); this.setAttribute('title', 'Copiado'); }">
 				</label>
 				<p class="cead-acad-subscribe-hint"><?php esc_html_e( 'Android: Google Calendar → Configuración → Agregar calendario → Desde URL. iPhone: el botón de Apple lo agrega directo.', 'cead-acad' ); ?></p>
 			</div>

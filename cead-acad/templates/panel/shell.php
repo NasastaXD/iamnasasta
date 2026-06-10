@@ -73,6 +73,28 @@ $page_title = $page_title ?? __( 'Panel', 'cead-acad' );
 				}
 			});
 		});
+		document.addEventListener('keydown', function (e) {
+			if (e.key === 'Escape' || e.keyCode === 27) {
+				document.body.classList.remove('cead-acad-nav-open');
+				document.querySelectorAll('.cead-acad-notif.is-open').forEach(function (n) {
+					n.classList.remove('is-open');
+					var b = n.querySelector('.cead-acad-bell');
+					if (b) { b.setAttribute('aria-expanded', 'false'); }
+				});
+			}
+		});
+		var ceadResizeTimer;
+		function ceadHandleResize() {
+			if (window.innerWidth >= 900) {
+				document.body.classList.remove('cead-acad-nav-open');
+			}
+		}
+		function ceadOnResize() {
+			if (ceadResizeTimer) { clearTimeout(ceadResizeTimer); }
+			ceadResizeTimer = setTimeout(ceadHandleResize, 150);
+		}
+		window.addEventListener('resize', ceadOnResize);
+		window.addEventListener('orientationchange', ceadOnResize);
 	})();
 	</script>
 </body>

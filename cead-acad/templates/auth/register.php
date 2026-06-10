@@ -33,8 +33,14 @@ $needs_course = ( 'valid' === $status )
 	&& empty( $invitation['course_id'] );
 $course_list  = $needs_course ? cead_acad_courses_for_select() : [];
 
+// Repoblación tras error de validación (one-shot). Leer una sola vez por clave.
+$old_user_login = cead_acad_flash( 'reg_user_login' );
+$old_email      = cead_acad_flash( 'reg_email' );
+$old_full_name  = cead_acad_flash( 'reg_full_name' );
+$old_phone      = cead_acad_flash( 'reg_phone' );
+
 $title = __( 'Crear cuenta', 'cead-acad' );
-$body  = function () use ( $token, $invitation, $status, $err, $role_display, $panel_intro, $ceadi_intro, $ceadi_number, $needs_course, $course_list ) {
+$body  = function () use ( $token, $invitation, $status, $err, $role_display, $panel_intro, $ceadi_intro, $ceadi_number, $needs_course, $course_list, $old_user_login, $old_email, $old_full_name, $old_phone ) {
 	?>
 	<h1 class="cead-acad-auth-h"><?php esc_html_e( 'Crear cuenta', 'cead-acad' ); ?></h1>
 
@@ -110,22 +116,22 @@ $body  = function () use ( $token, $invitation, $status, $err, $role_display, $p
 
 		<label class="cead-acad-field">
 			<span class="cead-acad-label"><?php esc_html_e( 'Nombre y apellido', 'cead-acad' ); ?></span>
-			<input type="text" name="full_name" required autocomplete="name" value="<?php echo isset( $_GET['full_name'] ) ? esc_attr( wp_unslash( $_GET['full_name'] ) ) : ''; ?>">
+			<input type="text" name="full_name" required autocomplete="name" value="<?php echo esc_attr( $old_full_name !== null ? $old_full_name : ( isset( $_GET['full_name'] ) ? wp_unslash( $_GET['full_name'] ) : '' ) ); ?>">
 		</label>
 
 		<label class="cead-acad-field">
 			<span class="cead-acad-label"><?php esc_html_e( 'Usuario', 'cead-acad' ); ?></span>
-			<input type="text" name="user_login" required pattern="[A-Za-z0-9._\-]+" autocomplete="username" placeholder="<?php esc_attr_e( 'sin espacios', 'cead-acad' ); ?>">
+			<input type="text" name="user_login" required pattern="[A-Za-z0-9._\-]+" autocomplete="username" placeholder="<?php esc_attr_e( 'sin espacios', 'cead-acad' ); ?>" value="<?php echo esc_attr( $old_user_login !== null ? $old_user_login : '' ); ?>">
 		</label>
 
 		<label class="cead-acad-field">
 			<span class="cead-acad-label"><?php esc_html_e( 'Email', 'cead-acad' ); ?></span>
-			<input type="email" name="email" required autocomplete="email" value="<?php echo esc_attr( $invitation['email'] ?? '' ); ?>">
+			<input type="email" name="email" required autocomplete="email" value="<?php echo esc_attr( $old_email !== null ? $old_email : ( $invitation['email'] ?? '' ) ); ?>">
 		</label>
 
 		<label class="cead-acad-field">
 			<span class="cead-acad-label"><?php esc_html_e( 'Teléfono (WhatsApp)', 'cead-acad' ); ?></span>
-			<input type="tel" name="phone" required autocomplete="tel" placeholder="<?php esc_attr_e( 'Ej: 0981123456', 'cead-acad' ); ?>" value="<?php echo isset( $_GET['phone'] ) ? esc_attr( wp_unslash( $_GET['phone'] ) ) : ''; ?>">
+			<input type="tel" name="phone" required autocomplete="tel" placeholder="<?php esc_attr_e( 'Ej: 0981123456', 'cead-acad' ); ?>" value="<?php echo esc_attr( $old_phone !== null ? $old_phone : ( isset( $_GET['phone'] ) ? wp_unslash( $_GET['phone'] ) : '' ) ); ?>">
 			<small class="cead-acad-hint"><?php esc_html_e( 'Tu número de WhatsApp. Ejemplo: 0981123456', 'cead-acad' ); ?></small>
 		</label>
 
