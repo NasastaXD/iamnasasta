@@ -6,7 +6,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('CEAD_VERSION', '1.3.2');
+define('CEAD_VERSION', '1.4.0');
 define('CEAD_DIR', get_template_directory());
 define('CEAD_URI', get_template_directory_uri());
 
