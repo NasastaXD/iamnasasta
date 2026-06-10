@@ -100,19 +100,21 @@ class Cead_Acad_Invitations {
 
 		/* translators: %s: nombre del sitio */
 		$subject = sprintf( __( 'Invitación a %s', 'cead-acad' ), $site );
+
 		/* translators: %s: nombre del sitio */
-		$message  = sprintf( __( "Te invitamos a sumarte a %s.\n\n", 'cead-acad' ), $site );
+		$paragraphs = [ sprintf( __( 'Te invitamos a sumarte a %s.', 'cead-acad' ), '<strong>' . esc_html( $site ) . '</strong>' ) ];
 		if ( $role_label ) {
 			/* translators: %s: rol asignado al invitado */
-			$message .= sprintf( __( "Rol asignado: %s\n\n", 'cead-acad' ), $role_label );
+			$paragraphs[] = sprintf( __( 'Rol asignado: %s.', 'cead-acad' ), '<strong>' . esc_html( $role_label ) . '</strong>' );
 		}
-		$message .= __( "Para crear tu cuenta, entrá a este link:\n", 'cead-acad' );
-		$message .= $url . "\n\n";
-		$message .= __( "El link es de un solo uso y vence pronto.\n\n", 'cead-acad' );
-		/* translators: %s: nombre del sitio (firma del email) */
-		$message .= sprintf( __( '— %s', 'cead-acad' ), $site );
 
-		return wp_mail( $email, $subject, $message );
+		return Cead_Acad_Email::send( $email, $subject, [
+			'title'      => __( '¡Te invitamos a sumarte!', 'cead-acad' ),
+			'paragraphs' => $paragraphs,
+			'cta_label'  => __( 'Crear mi cuenta', 'cead-acad' ),
+			'cta_url'    => $url,
+			'footnote'   => __( 'El link es de un solo uso y vence pronto. Si no esperabas esta invitación, ignorá este mensaje.', 'cead-acad' ),
+		] );
 	}
 
 	/**

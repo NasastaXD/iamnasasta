@@ -43,14 +43,18 @@ class Cead_Acad_Password_Reset {
 
 				/* translators: %s: nombre del sitio */
 				$subject = sprintf( __( '[%s] Restablecer contraseña', 'cead-acad' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) );
-				/* translators: %s: nombre del usuario */
-				$message  = sprintf( __( "Hola %s,\n\n", 'cead-acad' ), $user->display_name );
-				$message .= __( "Recibimos un pedido para restablecer tu contraseña. Si fuiste vos, hacé clic en el siguiente link:\n\n", 'cead-acad' );
-				$message .= $reset_url . "\n\n";
-				$message .= __( "Si no fuiste vos, ignorá este mensaje.\n\n", 'cead-acad' );
-				$message .= sprintf( __( '— %s', 'cead-acad' ), get_bloginfo( 'name' ) );
 
-				wp_mail( $user->user_email, $subject, $message );
+				Cead_Acad_Email::send( $user->user_email, $subject, [
+					'title'      => __( 'Restablecer tu contraseña', 'cead-acad' ),
+					'paragraphs' => [
+						/* translators: %s: nombre del usuario */
+						sprintf( __( 'Hola %s,', 'cead-acad' ), '<strong>' . esc_html( $user->display_name ) . '</strong>' ),
+						__( 'Recibimos un pedido para restablecer tu contraseña. Si fuiste vos, tocá el botón para elegir una nueva.', 'cead-acad' ),
+					],
+					'cta_label'  => __( 'Restablecer contraseña', 'cead-acad' ),
+					'cta_url'    => $reset_url,
+					'footnote'   => __( 'Si no fuiste vos, ignorá este mensaje: tu contraseña sigue siendo la misma.', 'cead-acad' ),
+				] );
 			}
 		}
 

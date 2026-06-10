@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-06-10T03:33:48+00:00\n"
+"POT-Creation-Date: 2026-06-10T03:35:24+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: cead-acad\n"
@@ -1198,6 +1198,10 @@ msgstr ""
 msgid "Ocurrió un error. Probá de nuevo."
 msgstr ""
 
+#: includes/class-cead-acad-email.php:70
+msgid "Si el botón no funciona, copiá y pegá este link en tu navegador:"
+msgstr ""
+
 #: includes/class-cead-acad-rewrites.php:132
 msgid "No tenés permiso para acceder al panel."
 msgstr ""
@@ -1256,41 +1260,27 @@ msgid "Invitación a %s"
 msgstr ""
 
 #. translators: %s: nombre del sitio
-#: modules/auth/class-invitations.php:104
+#: modules/auth/class-invitations.php:105
 #, php-format
-msgid ""
-"Te invitamos a sumarte a %s.\n"
-"\n"
-""
+msgid "Te invitamos a sumarte a %s."
 msgstr ""
 
 #. translators: %s: rol asignado al invitado
-#: modules/auth/class-invitations.php:107
+#: modules/auth/class-invitations.php:108
 #, php-format
-msgid ""
-"Rol asignado: %s\n"
-"\n"
-""
+msgid "Rol asignado: %s."
 msgstr ""
 
-#: modules/auth/class-invitations.php:109
-msgid ""
-"Para crear tu cuenta, entrá a este link:\n"
-""
+#: modules/auth/class-invitations.php:112
+msgid "¡Te invitamos a sumarte!"
 msgstr ""
 
-#: modules/auth/class-invitations.php:111
-msgid ""
-"El link es de un solo uso y vence pronto.\n"
-"\n"
-""
+#: modules/auth/class-invitations.php:114
+msgid "Crear mi cuenta"
 msgstr ""
 
-#. translators: %s: nombre del sitio (firma del email)
-#: modules/auth/class-invitations.php:113
-#: modules/auth/class-password-reset.php:51
-#, php-format
-msgid "— %s"
+#: modules/auth/class-invitations.php:116
+msgid "El link es de un solo uso y vence pronto. Si no esperabas esta invitación, ignorá este mensaje."
 msgstr ""
 
 #. translators: %s: nombre del sitio
@@ -1299,27 +1289,26 @@ msgstr ""
 msgid "[%s] Restablecer contraseña"
 msgstr ""
 
-#. translators: %s: nombre del usuario
-#: modules/auth/class-password-reset.php:47
-#, php-format
-msgid ""
-"Hola %s,\n"
-"\n"
-""
-msgstr ""
-
 #: modules/auth/class-password-reset.php:48
-msgid ""
-"Recibimos un pedido para restablecer tu contraseña. Si fuiste vos, hacé clic en el siguiente link:\n"
-"\n"
-""
+msgid "Restablecer tu contraseña"
 msgstr ""
 
-#: modules/auth/class-password-reset.php:50
-msgid ""
-"Si no fuiste vos, ignorá este mensaje.\n"
-"\n"
-""
+#. translators: %s: nombre del usuario
+#: modules/auth/class-password-reset.php:51
+#, php-format
+msgid "Hola %s,"
+msgstr ""
+
+#: modules/auth/class-password-reset.php:52
+msgid "Recibimos un pedido para restablecer tu contraseña. Si fuiste vos, tocá el botón para elegir una nueva."
+msgstr ""
+
+#: modules/auth/class-password-reset.php:54
+msgid "Restablecer contraseña"
+msgstr ""
+
+#: modules/auth/class-password-reset.php:56
+msgid "Si no fuiste vos, ignorá este mensaje: tu contraseña sigue siendo la misma."
 msgstr ""
 
 #: modules/auth/class-user-suspension.php:25

@@ -86,6 +86,7 @@ require_once CEAD_ACAD_DIR . 'modules/faq/class-faq.php';
 require_once CEAD_ACAD_DIR . 'modules/updates/class-updates.php';
 require_once CEAD_ACAD_DIR . 'modules/admin-ui/class-admin-dashboard.php';
 require_once CEAD_ACAD_DIR . 'includes/class-cead-acad-audit.php';
+require_once CEAD_ACAD_DIR . 'includes/class-cead-acad-email.php';
 require_once CEAD_ACAD_DIR . 'admin/class-admin-menu.php';
 require_once CEAD_ACAD_DIR . 'admin/class-admin-logs.php';
 require_once CEAD_ACAD_DIR . 'admin/class-admin-metrics.php';
