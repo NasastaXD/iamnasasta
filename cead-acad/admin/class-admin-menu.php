@@ -92,6 +92,7 @@ class Cead_Acad_Admin_Menu {
 		echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-importers' ) ) . '">' . esc_html__( 'Importadores CSV', 'cead-acad' ) . '</a> — ' . esc_html__( 'subí alumnado y calificaciones desde archivo.', 'cead-acad' ) . '</li>';
 		echo '<li><a href="' . esc_url( admin_url( 'edit.php?post_type=' . Cead_Acad_Tasks_CPT::POST_TYPE ) ) . '">' . esc_html__( 'Tareas (delegado)', 'cead-acad' ) . '</a> — ' . esc_html__( 'asigná tareas a cursos para que las gestionen los delegados.', 'cead-acad' ) . '</li>';
 		echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-whatsapp' ) ) . '">' . esc_html__( 'Bot de WhatsApp', 'cead-acad' ) . '</a> — ' . esc_html__( 'estado del bridge, comunicados, reportes y mensajes del bot.', 'cead-acad' ) . '</li>';
+		echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-logs' ) ) . '">' . esc_html__( 'Registros', 'cead-acad' ) . '</a> — ' . esc_html__( 'auditoría de acciones del plugin y logs del bot de WhatsApp.', 'cead-acad' ) . '</li>';
 		echo '</ul>';
 
 		echo '<h2>' . esc_html__( 'Panel frontend', 'cead-acad' ) . '</h2>';
@@ -302,6 +303,14 @@ class Cead_Acad_Admin_Menu {
 		// Reasigna su contenido al usuario actual para no perder nada.
 		$ok = wp_delete_user( $user_id, get_current_user_id() );
 
+		if ( $ok ) {
+			Cead_Acad_Audit::log( 'user_deleted', [
+				'entity_type' => 'user',
+				'entity_id'   => $user_id,
+				'payload'     => [ 'display_name' => $user->display_name ],
+			] );
+		}
+
 		return $ok
 			? [ 'type' => 'success', 'msg' => sprintf( __( 'Usuario «%s» eliminado.', 'cead-acad' ), $user->display_name ) ]
 			: [ 'type' => 'error', 'msg' => __( 'No se pudo eliminar el usuario.', 'cead-acad' ) ];
@@ -353,6 +362,12 @@ class Cead_Acad_Admin_Menu {
 		if ( $phone !== '' ) {
 			update_user_meta( $user_id, '_cead_acad_phone', $phone );
 		}
+
+		Cead_Acad_Audit::log( 'user_created', [
+			'entity_type' => 'user',
+			'entity_id'   => $user_id,
+			'payload'     => [ 'login' => $user_login, 'role' => $role ],
+		] );
 
 		$this->last_created_password = $password;
 		$roles        = Cead_Acad_Capabilities::roles();
@@ -407,6 +422,12 @@ class Cead_Acad_Admin_Menu {
 		}
 
 		// Resetear contraseña (opcional): se muestra una sola vez.
+		Cead_Acad_Audit::log( 'user_updated', [
+			'entity_type' => 'user',
+			'entity_id'   => $user_id,
+			'payload'     => array_filter( [ 'role' => $role, 'password_reset' => $resetpw ? 1 : 0 ] ),
+		] );
+
 		if ( $resetpw ) {
 			$newpass = wp_generate_password( 12, false );
 			wp_set_password( $newpass, $user_id );

@@ -64,6 +64,17 @@ class Cead_Acad_Invitations {
 				self::send_email( $email, $token, $role );
 			}
 		}
+
+		Cead_Acad_Audit::log( 'invitation_created', [
+			'entity_type' => 'invitation',
+			'payload'     => array_filter( [
+				'count'     => $count,
+				'role'      => $role,
+				'course_id' => $args['course_id'] ? (int) $args['course_id'] : null,
+				'email'     => $email,
+			] ),
+		] );
+
 		return $plain_tokens;
 	}
 
@@ -153,6 +164,12 @@ class Cead_Acad_Invitations {
 			[ '%s', '%d' ],
 			[ '%d' ]
 		);
+
+		Cead_Acad_Audit::log( 'invitation_used', [
+			'user_id'     => (int) $user_id,
+			'entity_type' => 'invitation',
+			'entity_id'   => (int) $invitation_id,
+		] );
 	}
 
 	public static function revoke( $invitation_id ) {
@@ -165,6 +182,11 @@ class Cead_Acad_Invitations {
 			[ '%s' ],
 			[ '%d' ]
 		);
+
+		Cead_Acad_Audit::log( 'invitation_revoked', [
+			'entity_type' => 'invitation',
+			'entity_id'   => (int) $invitation_id,
+		] );
 	}
 
 	public static function list_recent( $limit = 50 ) {

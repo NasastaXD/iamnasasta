@@ -154,6 +154,51 @@ class Cead_Acad_WA_Store {
 		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} ORDER BY created_at DESC LIMIT %d", $limit ) ) ?: [];
 	}
 
+	/**
+	 * Consulta paginada de logs del bot con filtros (para la UI de Registros).
+	 *
+	 * @param array $filters { phone?, direction?, date_from?, date_to?, page?, per_page? }
+	 * @return array{rows:array,total:int}
+	 */
+	public function query_logs( array $filters = [] ) {
+		global $wpdb;
+		$t = cead_acad_table( 'wa_logs' );
+
+		$where  = [];
+		$params = [];
+
+		if ( ! empty( $filters['phone'] ) ) {
+			$where[]  = 'phone LIKE %s';
+			$params[] = '%' . $wpdb->esc_like( $filters['phone'] ) . '%';
+		}
+		if ( ! empty( $filters['direction'] ) && in_array( $filters['direction'], [ 'in', 'out' ], true ) ) {
+			$where[]  = 'direction = %s';
+			$params[] = $filters['direction'];
+		}
+		if ( ! empty( $filters['date_from'] ) ) {
+			$where[]  = 'created_at >= %s';
+			$params[] = $filters['date_from'] . ' 00:00:00';
+		}
+		if ( ! empty( $filters['date_to'] ) ) {
+			$where[]  = 'created_at <= %s';
+			$params[] = $filters['date_to'] . ' 23:59:59';
+		}
+
+		$where_sql = $where ? ' WHERE ' . implode( ' AND ', $where ) : '';
+
+		$count_sql = "SELECT COUNT(*) FROM {$t}{$where_sql}";
+		$total     = (int) ( $params ? $wpdb->get_var( $wpdb->prepare( $count_sql, ...$params ) ) : $wpdb->get_var( $count_sql ) );
+
+		$per_page = max( 1, min( 200, (int) ( $filters['per_page'] ?? 50 ) ) );
+		$page     = max( 1, (int) ( $filters['page'] ?? 1 ) );
+		$offset   = ( $page - 1 ) * $per_page;
+
+		$rows_sql = "SELECT * FROM {$t}{$where_sql} ORDER BY id DESC LIMIT %d OFFSET %d";
+		$rows     = $wpdb->get_results( $wpdb->prepare( $rows_sql, ...array_merge( $params, [ $per_page, $offset ] ) ), ARRAY_A ) ?: [];
+
+		return [ 'rows' => $rows, 'total' => $total ];
+	}
+
 	public function cleanup_old_logs( $days = 90 ) {
 		global $wpdb;
 		$t = cead_acad_table( 'wa_logs' );
