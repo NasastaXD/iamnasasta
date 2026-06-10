@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-06-10T03:26:45+00:00\n"
+"POT-Creation-Date: 2026-06-10T03:31:59+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: cead-acad\n"
@@ -39,16 +39,17 @@ msgstr ""
 msgid "CEAD"
 msgstr ""
 
-#: admin/class-admin-logs.php:23
-#: admin/class-admin-logs.php:24
-#: admin/class-admin-logs.php:39
-#: admin/class-admin-menu.php:96
-msgid "Registros"
+#: admin/class-admin-exports.php:28
+#: admin/class-admin-exports.php:29
+msgid "Exportar"
 msgstr ""
 
+#: admin/class-admin-exports.php:38
+#: admin/class-admin-exports.php:69
 #: admin/class-admin-logs.php:33
 #: admin/class-admin-menu.php:113
 #: admin/class-admin-menu.php:265
+#: admin/class-admin-metrics.php:41
 #: modules/courses/class-courses-admin.php:278
 #: modules/courses/class-courses-admin.php:293
 #: modules/importers/class-importer-admin.php:49
@@ -62,6 +63,253 @@ msgstr ""
 #: modules/updates/class-updates.php:104
 #: modules/whatsapp/class-wa-admin.php:40
 msgid "Sin permisos."
+msgstr ""
+
+#: admin/class-admin-exports.php:42
+#: admin/class-admin-menu.php:53
+#: admin/class-admin-menu.php:54
+#: admin/class-admin-menu.php:86
+#: admin/views/invitations-list.php:136
+#: admin/views/users-list.php:27
+#: modules/admin-ui/class-admin-dashboard.php:158
+msgid "Usuarios"
+msgstr ""
+
+#: admin/class-admin-exports.php:42
+msgid "Todos los usuarios del plugin con rol, email, teléfono, documento y cursos."
+msgstr ""
+
+#: admin/class-admin-exports.php:43
+#: modules/importers/class-importer-grades.php:11
+msgid "Calificaciones"
+msgstr ""
+
+#: admin/class-admin-exports.php:43
+msgid "Boletín completo: alumno, curso, materia, período, nota y comentarios."
+msgstr ""
+
+#: admin/class-admin-exports.php:44
+msgid "Inscripciones"
+msgstr ""
+
+#: admin/class-admin-exports.php:44
+msgid "Relación usuario↔curso con rol en el curso, estado y fechas."
+msgstr ""
+
+#: admin/class-admin-exports.php:45
+#: admin/class-admin-menu.php:89
+#: modules/broadcasts/class-broadcasts-cpt.php:20
+#: modules/broadcasts/class-broadcasts-cpt.php:26
+#: templates/panel/buscar/results.php:70
+#: templates/panel/comunicados/feed.php:20
+#: templates/panel/comunicados/feed.php:26
+#: templates/panel/comunicados/single.php:57
+#: templates/panel/direccion/dashboard.php:127
+#: templates/panel/home.php:44
+#: templates/panel/partials/sidebar.php:12
+msgid "Comunicados"
+msgstr ""
+
+#: admin/class-admin-exports.php:45
+msgid "Listado de comunicados con audiencia, destinatarios y lecturas."
+msgstr ""
+
+#: admin/class-admin-exports.php:49
+msgid "Exportar datos"
+msgstr ""
+
+#: admin/class-admin-exports.php:50
+msgid "Descargá los datos del sistema en CSV (UTF-8, compatible con Excel). Útil para respaldos y reportes."
+msgstr ""
+
+#: admin/class-admin-exports.php:58
+#: modules/surveys/class-surveys-admin.php:238
+msgid "Descargar CSV"
+msgstr ""
+
+#: admin/class-admin-exports.php:86
+msgid "Tipo de exportación inválido."
+msgstr ""
+
+#: admin/class-admin-exports.php:115
+#: admin/class-admin-exports.php:212
+#: admin/views/importers-hub.php:66
+#: admin/views/invitations-list.php:154
+msgid "ID"
+msgstr ""
+
+#: admin/class-admin-exports.php:115
+#: admin/class-admin-exports.php:179
+#: admin/class-admin-logs.php:91
+#: admin/views/users-list.php:117
+#: admin/views/users-list.php:166
+#: modules/surveys/class-surveys-responses.php:194
+#: templates/auth/register.php:117
+msgid "Usuario"
+msgstr ""
+
+#: admin/class-admin-exports.php:115
+#: admin/views/users-list.php:165
+msgid "Nombre"
+msgstr ""
+
+#: admin/class-admin-exports.php:116
+#: admin/class-admin-exports.php:179
+#: admin/views/users-list.php:57
+#: admin/views/users-list.php:124
+#: admin/views/users-list.php:167
+#: modules/surveys/class-surveys-responses.php:194
+#: templates/auth/register.php:122
+#: templates/panel/perfil/show.php:65
+msgid "Email"
+msgstr ""
+
+#: admin/class-admin-exports.php:116
+#: admin/class-admin-logs.php:145
+#: admin/class-admin-logs.php:160
+#: admin/views/users-list.php:169
+#: modules/importers/class-importer-students.php:23
+#: templates/panel/perfil/show.php:59
+msgid "Teléfono"
+msgstr ""
+
+#: admin/class-admin-exports.php:116
+#: admin/class-admin-exports.php:149
+#: templates/panel/perfil/show.php:75
+msgid "Documento"
+msgstr ""
+
+#: admin/class-admin-exports.php:117
+#: admin/views/invitations-list.php:49
+#: admin/views/invitations-list.php:103
+#: admin/views/invitations-list.php:126
+#: admin/views/invitations-list.php:155
+#: admin/views/users-list.php:82
+#: admin/views/users-list.php:137
+#: admin/views/users-list.php:168
+#: templates/panel/perfil/show.php:69
+msgid "Rol"
+msgstr ""
+
+#: admin/class-admin-exports.php:117
+#: admin/class-admin-menu.php:88
+#: modules/admin-ui/class-admin-dashboard.php:114
+#: modules/admin-ui/class-admin-dashboard.php:159
+#: modules/courses/class-courses-cpt.php:36
+#: modules/courses/class-courses-cpt.php:44
+#: modules/importers/class-importer-courses.php:12
+#: templates/panel/direccion/dashboard.php:121
+msgid "Cursos"
+msgstr ""
+
+#: admin/class-admin-exports.php:117
+#: modules/panels/class-tasks-cpt.php:212
+#: templates/panel/tareas/list.php:29
+msgid "Alta"
+msgstr ""
+
+#: admin/class-admin-exports.php:149
+msgid "Alumno"
+msgstr ""
+
+#: admin/class-admin-exports.php:149
+#: admin/class-admin-exports.php:179
+#: admin/views/invitations-list.php:59
+#: modules/courses/class-courses-cpt.php:37
+#: modules/panels/class-tasks-cpt.php:84
+#: modules/panels/class-tasks-cpt.php:133
+#: templates/auth/register.php:134
+msgid "Curso"
+msgstr ""
+
+#: admin/class-admin-exports.php:150
+#: modules/courses/class-courses-admin.php:64
+#: modules/resources/class-resources-cpt.php:45
+#: templates/panel/boletin/show.php:51
+msgid "Materia"
+msgstr ""
+
+#: admin/class-admin-exports.php:150
+msgid "Período"
+msgstr ""
+
+#: admin/class-admin-exports.php:150
+msgid "Nota"
+msgstr ""
+
+#: admin/class-admin-exports.php:151
+#: modules/importers/class-importer-grades.php:20
+msgid "Letra"
+msgstr ""
+
+#: admin/class-admin-exports.php:151
+msgid "Comentarios"
+msgstr ""
+
+#: admin/class-admin-exports.php:151
+msgid "Registrada el"
+msgstr ""
+
+#: admin/class-admin-exports.php:180
+msgid "Rol en el curso"
+msgstr ""
+
+#: admin/class-admin-exports.php:180
+#: admin/class-admin-exports.php:212
+#: admin/views/importers-hub.php:69
+#: admin/views/invitations-list.php:156
+#: modules/panels/class-tasks-cpt.php:93
+#: modules/panels/class-tasks-cpt.php:134
+#: modules/whatsapp/class-wa-admin.php:115
+msgid "Estado"
+msgstr ""
+
+#: admin/class-admin-exports.php:181
+#: admin/class-admin-logs.php:194
+#: modules/courses/class-courses-admin.php:62
+msgid "Desde"
+msgstr ""
+
+#: admin/class-admin-exports.php:181
+#: admin/class-admin-logs.php:195
+#: modules/courses/class-courses-admin.php:63
+msgid "Hasta"
+msgstr ""
+
+#: admin/class-admin-exports.php:212
+#: modules/importers/class-importer-events.php:17
+msgid "Título"
+msgstr ""
+
+#: admin/class-admin-exports.php:213
+msgid "Publicado"
+msgstr ""
+
+#: admin/class-admin-exports.php:213
+msgid "Autor"
+msgstr ""
+
+#: admin/class-admin-exports.php:213
+#: modules/whatsapp/class-wa-admin.php:234
+msgid "Audiencia"
+msgstr ""
+
+#: admin/class-admin-exports.php:214
+#: modules/broadcasts/class-broadcasts-targeting.php:22
+#: modules/schedule/class-schedule-admin.php:30
+#: modules/surveys/class-surveys-admin.php:31
+msgid "Destinatarios"
+msgstr ""
+
+#: admin/class-admin-exports.php:214
+msgid "Lecturas"
+msgstr ""
+
+#: admin/class-admin-logs.php:23
+#: admin/class-admin-logs.php:24
+#: admin/class-admin-logs.php:39
+#: admin/class-admin-menu.php:96
+msgid "Registros"
 msgstr ""
 
 #: admin/class-admin-logs.php:43
@@ -95,14 +343,6 @@ msgstr ""
 msgid "Fecha"
 msgstr ""
 
-#: admin/class-admin-logs.php:91
-#: admin/views/users-list.php:117
-#: admin/views/users-list.php:166
-#: modules/surveys/class-surveys-responses.php:194
-#: templates/auth/register.php:117
-msgid "Usuario"
-msgstr ""
-
 #: admin/class-admin-logs.php:92
 #: templates/panel/secretaria/dashboard.php:92
 #: templates/panel/secretaria/dashboard.php:97
@@ -120,14 +360,6 @@ msgstr ""
 
 #: admin/class-admin-logs.php:99
 msgid "Sin registros todavía. Las acciones del plugin (logins, altas de usuarios, invitaciones) se van a ir registrando acá."
-msgstr ""
-
-#: admin/class-admin-logs.php:145
-#: admin/class-admin-logs.php:160
-#: admin/views/users-list.php:169
-#: modules/importers/class-importer-students.php:23
-#: templates/panel/perfil/show.php:59
-msgid "Teléfono"
 msgstr ""
 
 #: admin/class-admin-logs.php:147
@@ -175,16 +407,6 @@ msgstr ""
 msgid "out"
 msgstr ""
 
-#: admin/class-admin-logs.php:194
-#: modules/courses/class-courses-admin.php:62
-msgid "Desde"
-msgstr ""
-
-#: admin/class-admin-logs.php:195
-#: modules/courses/class-courses-admin.php:63
-msgid "Hasta"
-msgstr ""
-
 #. translators: %s: cantidad de registros
 #: admin/class-admin-logs.php:203
 #, php-format
@@ -206,15 +428,6 @@ msgstr ""
 #: admin/views/invitations-list.php:22
 #: admin/views/invitations-list.php:150
 msgid "Invitaciones"
-msgstr ""
-
-#: admin/class-admin-menu.php:53
-#: admin/class-admin-menu.php:54
-#: admin/class-admin-menu.php:86
-#: admin/views/invitations-list.php:136
-#: admin/views/users-list.php:27
-#: modules/admin-ui/class-admin-dashboard.php:158
-msgid "Usuarios"
 msgstr ""
 
 #. translators: %s nombre del usuario
@@ -251,30 +464,7 @@ msgid "generá links para sumar usuarios al sistema."
 msgstr ""
 
 #: admin/class-admin-menu.php:88
-#: modules/admin-ui/class-admin-dashboard.php:114
-#: modules/admin-ui/class-admin-dashboard.php:159
-#: modules/courses/class-courses-cpt.php:36
-#: modules/courses/class-courses-cpt.php:44
-#: modules/importers/class-importer-courses.php:12
-#: templates/panel/direccion/dashboard.php:121
-msgid "Cursos"
-msgstr ""
-
-#: admin/class-admin-menu.php:88
 msgid "creá cursos y asigná delegado/a, tutor/a y alumnado."
-msgstr ""
-
-#: admin/class-admin-menu.php:89
-#: modules/broadcasts/class-broadcasts-cpt.php:20
-#: modules/broadcasts/class-broadcasts-cpt.php:26
-#: templates/panel/buscar/results.php:70
-#: templates/panel/comunicados/feed.php:20
-#: templates/panel/comunicados/feed.php:26
-#: templates/panel/comunicados/single.php:57
-#: templates/panel/direccion/dashboard.php:127
-#: templates/panel/home.php:44
-#: templates/panel/partials/sidebar.php:12
-msgid "Comunicados"
 msgstr ""
 
 #: admin/class-admin-menu.php:89
@@ -485,6 +675,56 @@ msgstr ""
 msgid "Usuario actualizado."
 msgstr ""
 
+#: admin/class-admin-metrics.php:24
+#: admin/class-admin-metrics.php:25
+#: admin/class-admin-metrics.php:49
+msgid "Métricas"
+msgstr ""
+
+#: admin/class-admin-metrics.php:53
+msgid "Mensajes del bot (30 días)"
+msgstr ""
+
+#: admin/class-admin-metrics.php:54
+msgid "Usuarios únicos del bot (30 días)"
+msgstr ""
+
+#: admin/class-admin-metrics.php:55
+msgid "Lectura promedio (últimos comunicados)"
+msgstr ""
+
+#: admin/class-admin-metrics.php:56
+msgid "Respuestas de encuestas (total)"
+msgstr ""
+
+#: admin/class-admin-metrics.php:61
+msgid "Mensajes del bot por día (30 días)"
+msgstr ""
+
+#: admin/class-admin-metrics.php:62
+msgid "Tasa de lectura por comunicado (%)"
+msgstr ""
+
+#: admin/class-admin-metrics.php:63
+msgid "Participación en encuestas"
+msgstr ""
+
+#: admin/class-admin-metrics.php:71
+msgid "Recibidos"
+msgstr ""
+
+#: admin/class-admin-metrics.php:72
+msgid "Enviados"
+msgstr ""
+
+#: admin/class-admin-metrics.php:73
+msgid "% de lectura"
+msgstr ""
+
+#: admin/class-admin-metrics.php:74
+msgid "Respuestas"
+msgstr ""
+
 #. translators: %1$d: id job, %2$s: tipo
 #: admin/views/importer-mapping.php:11
 #: admin/views/importer-preview.php:13
@@ -658,24 +898,11 @@ msgstr ""
 msgid "Importaciones recientes"
 msgstr ""
 
-#: admin/views/importers-hub.php:66
-#: admin/views/invitations-list.php:154
-msgid "ID"
-msgstr ""
-
 #: admin/views/importers-hub.php:67
 #: modules/resources/class-resources-cpt.php:58
 #: modules/schedule/class-schedule-admin.php:48
 #: modules/schedule/class-schedule-admin.php:158
 msgid "Tipo"
-msgstr ""
-
-#: admin/views/importers-hub.php:69
-#: admin/views/invitations-list.php:156
-#: modules/panels/class-tasks-cpt.php:93
-#: modules/panels/class-tasks-cpt.php:134
-#: modules/whatsapp/class-wa-admin.php:115
-msgid "Estado"
 msgstr ""
 
 #: admin/views/importers-hub.php:70
@@ -707,25 +934,6 @@ msgstr ""
 
 #: admin/views/invitations-list.php:43
 msgid "Nueva invitación"
-msgstr ""
-
-#: admin/views/invitations-list.php:49
-#: admin/views/invitations-list.php:103
-#: admin/views/invitations-list.php:126
-#: admin/views/invitations-list.php:155
-#: admin/views/users-list.php:82
-#: admin/views/users-list.php:137
-#: admin/views/users-list.php:168
-#: templates/panel/perfil/show.php:69
-msgid "Rol"
-msgstr ""
-
-#: admin/views/invitations-list.php:59
-#: modules/courses/class-courses-cpt.php:37
-#: modules/panels/class-tasks-cpt.php:84
-#: modules/panels/class-tasks-cpt.php:133
-#: templates/auth/register.php:134
-msgid "Curso"
 msgstr ""
 
 #: admin/views/invitations-list.php:62
@@ -861,15 +1069,6 @@ msgstr ""
 msgid "Nombre a mostrar"
 msgstr ""
 
-#: admin/views/users-list.php:57
-#: admin/views/users-list.php:124
-#: admin/views/users-list.php:167
-#: modules/surveys/class-surveys-responses.php:194
-#: templates/auth/register.php:122
-#: templates/panel/perfil/show.php:65
-msgid "Email"
-msgstr ""
-
 #: admin/views/users-list.php:61
 #: admin/views/users-list.php:130
 #: templates/auth/register.php:127
@@ -929,10 +1128,6 @@ msgstr ""
 
 #: admin/views/users-list.php:160
 msgid "Usuarios actuales"
-msgstr ""
-
-#: admin/views/users-list.php:165
-msgid "Nombre"
 msgstr ""
 
 #: admin/views/users-list.php:180
@@ -1151,12 +1346,6 @@ msgstr ""
 msgid "Urgente"
 msgstr ""
 
-#: modules/broadcasts/class-broadcasts-targeting.php:22
-#: modules/schedule/class-schedule-admin.php:30
-#: modules/surveys/class-surveys-admin.php:31
-msgid "Destinatarios"
-msgstr ""
-
 #: modules/broadcasts/class-broadcasts-targeting.php:30
 msgid "Notificación"
 msgstr ""
@@ -1232,12 +1421,6 @@ msgstr ""
 
 #: modules/courses/class-courses-admin.php:61
 msgid "Día"
-msgstr ""
-
-#: modules/courses/class-courses-admin.php:64
-#: modules/resources/class-resources-cpt.php:45
-#: templates/panel/boletin/show.php:51
-msgid "Materia"
 msgstr ""
 
 #: modules/courses/class-courses-admin.php:65
@@ -1487,10 +1670,6 @@ msgstr ""
 msgid "Horarios / eventos"
 msgstr ""
 
-#: modules/importers/class-importer-events.php:17
-msgid "Título"
-msgstr ""
-
 #: modules/importers/class-importer-events.php:18
 msgid "Inicio (YYYY-MM-DD HH:MM)"
 msgstr ""
@@ -1544,10 +1723,6 @@ msgstr ""
 msgid "Curso \"%s\" no encontrado — el evento se crea sin audiencia."
 msgstr ""
 
-#: modules/importers/class-importer-grades.php:11
-msgid "Calificaciones"
-msgstr ""
-
 #: modules/importers/class-importer-grades.php:15
 msgid "Documento alumno"
 msgstr ""
@@ -1566,10 +1741,6 @@ msgstr ""
 
 #: modules/importers/class-importer-grades.php:19
 msgid "Nota numérica"
-msgstr ""
-
-#: modules/importers/class-importer-grades.php:20
-msgid "Letra"
 msgstr ""
 
 #: modules/importers/class-importer-grades.php:21
@@ -1708,11 +1879,6 @@ msgstr ""
 #: modules/panels/class-tasks-cpt.php:211
 #: templates/panel/tareas/list.php:29
 msgid "Normal"
-msgstr ""
-
-#: modules/panels/class-tasks-cpt.php:212
-#: templates/panel/tareas/list.php:29
-msgid "Alta"
 msgstr ""
 
 #: modules/pwa/class-pwa.php:19
@@ -1938,10 +2104,6 @@ msgstr ""
 
 #: modules/surveys/class-surveys-admin.php:234
 msgid "respuestas recibidas"
-msgstr ""
-
-#: modules/surveys/class-surveys-admin.php:238
-msgid "Descargar CSV"
 msgstr ""
 
 #: modules/surveys/class-surveys-admin.php:302
@@ -2340,10 +2502,6 @@ msgstr ""
 #: modules/whatsapp/class-wa-admin.php:230
 #, php-format
 msgid "Envío en curso: %1$d/%2$d enviados."
-msgstr ""
-
-#: modules/whatsapp/class-wa-admin.php:234
-msgid "Audiencia"
 msgstr ""
 
 #: modules/whatsapp/class-wa-admin.php:237
@@ -3933,10 +4091,6 @@ msgstr ""
 
 #: templates/panel/perfil/show.php:32
 msgid "Perfil actualizado."
-msgstr ""
-
-#: templates/panel/perfil/show.php:75
-msgid "Documento"
 msgstr ""
 
 #: templates/panel/perfil/show.php:82

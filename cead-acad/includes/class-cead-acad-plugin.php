@@ -36,6 +36,7 @@ final class Cead_Acad_Plugin {
 		( new Cead_Acad_Admin_Menu() )->boot();
 		( new Cead_Acad_Admin_Logs() )->boot();
 		( new Cead_Acad_Admin_Metrics() )->boot();
+		( new Cead_Acad_Admin_Exports() )->boot();
 
 		( new Cead_Acad_Audit() )->boot();
 
