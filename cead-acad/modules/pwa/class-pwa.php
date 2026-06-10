@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class Cead_Acad_PWA {
 
-	const CACHE = 'cead-pwa-v2';
+	const CACHE = 'cead-pwa-v3';
 
 	/** Sirve el manifest web. */
 	public static function manifest() {
@@ -41,35 +41,111 @@ class Cead_Acad_PWA {
 		header( 'Service-Worker-Allowed: /' );
 		$origin = home_url();
 		?>
-const CACHE = '<?php echo esc_js( self::CACHE ); ?>';
-self.addEventListener('install', function (e) { self.skipWaiting(); });
+const CACHE   = '<?php echo esc_js( self::CACHE ); ?>';
+const OFFLINE = '<?php echo esc_js( home_url( '/cead-offline' ) ); ?>';
+
+self.addEventListener('install', function (e) {
+	e.waitUntil(
+		caches.open(CACHE)
+			.then(function (c) { return c.add(OFFLINE); })
+			.catch(function () {})
+			.then(function () { return self.skipWaiting(); })
+	);
+});
 self.addEventListener('activate', function (e) {
-	// Purga TODOS los caches viejos (incluida la estrategia cache-first anterior).
+	// Purga caches de versiones anteriores.
 	e.waitUntil(
 		caches.keys().then(function (keys) {
-			return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+			return Promise.all(keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
 		}).then(function () { return self.clients.claim(); })
 	);
 });
-// Network-first: online siempre sirve contenido fresco; el cache es solo
-// respaldo para cuando no hay conexión. Así la navegación nunca queda atascada.
+
+function putInCache(req, resp) {
+	if (resp && resp.status === 200 && resp.type === 'basic') {
+		var copy = resp.clone();
+		caches.open(CACHE).then(function (c) { c.put(req, copy); });
+	}
+	return resp;
+}
+
+// Estrategia mixta:
+//  - Assets estáticos (css/js/fuentes/imágenes): cache-first con revalidación
+//    en segundo plano (stale-while-revalidate) → carga instantánea y offline.
+//  - Navegación (HTML): network-first → contenido siempre fresco online; si no
+//    hay red, sirve la última versión visitada y, si tampoco está, la página
+//    offline de respaldo.
+//  - Nunca se intercepta wp-admin, login, admin-ajax ni la REST API.
 self.addEventListener('fetch', function (e) {
 	var req = e.request;
 	if (req.method !== 'GET') { return; }
 	var url;
 	try { url = new URL(req.url); } catch (err) { return; }
 	if (url.origin !== self.location.origin) { return; }
-	if (url.pathname.indexOf('/wp-admin') === 0 || url.pathname.indexOf('/wp-login') !== -1 || url.pathname.indexOf('admin-ajax') !== -1) { return; }
+	if (url.pathname.indexOf('/wp-admin') === 0 || url.pathname.indexOf('/wp-login') !== -1 || url.pathname.indexOf('admin-ajax') !== -1 || url.pathname.indexOf('/wp-json/') === 0) { return; }
+
+	var dest = req.destination;
+	if (dest === 'style' || dest === 'script' || dest === 'font' || dest === 'image') {
+		e.respondWith(
+			caches.match(req).then(function (cached) {
+				var fresh = fetch(req).then(function (resp) { return putInCache(req, resp); }).catch(function () { return cached; });
+				return cached || fresh;
+			})
+		);
+		return;
+	}
+
+	if (req.mode === 'navigate') {
+		e.respondWith(
+			fetch(req).then(function (resp) { return putInCache(req, resp); }).catch(function () {
+				return caches.match(req).then(function (cached) {
+					return cached || caches.match(OFFLINE);
+				});
+			})
+		);
+		return;
+	}
+
 	e.respondWith(
-		fetch(req).then(function (resp) {
-			if (resp && resp.status === 200 && resp.type === 'basic') {
-				var copy = resp.clone();
-				caches.open(CACHE).then(function (c) { c.put(req, copy); });
-			}
-			return resp;
-		}).catch(function () { return caches.match(req); })
+		fetch(req).then(function (resp) { return putInCache(req, resp); }).catch(function () { return caches.match(req); })
 	);
 });
+		<?php
+		exit;
+	}
+
+	/**
+	 * Página offline de respaldo. Autocontenida (sin assets externos) para
+	 * que el service worker la pueda precachear y servir sin red.
+	 */
+	public static function offline_page() {
+		header( 'Content-Type: text/html; charset=UTF-8' );
+		$site = esc_html( get_bloginfo( 'name' ) );
+		?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title><?php esc_html_e( 'Sin conexión', 'cead-acad' ); ?> · <?php echo $site; ?></title>
+<style>
+	body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F7F5F0;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1d2327}
+	.box{text-align:center;padding:32px;max-width:420px}
+	.dot{width:64px;height:64px;border-radius:16px;background:#E93B3C;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:30px}
+	h1{font-size:22px;margin:0 0 8px}
+	p{font-size:15px;line-height:1.6;color:#3c434a;margin:0 0 20px}
+	button{background:#E93B3C;color:#fff;border:0;border-radius:8px;padding:12px 28px;font-size:15px;font-weight:600;cursor:pointer}
+</style>
+</head>
+<body>
+	<div class="box">
+		<div class="dot">📡</div>
+		<h1><?php esc_html_e( 'Sin conexión', 'cead-acad' ); ?></h1>
+		<p><?php esc_html_e( 'No hay internet en este momento. Las páginas que ya visitaste siguen disponibles; esta no estaba guardada.', 'cead-acad' ); ?></p>
+		<button onclick="location.reload()"><?php esc_html_e( 'Reintentar', 'cead-acad' ); ?></button>
+	</div>
+</body>
+</html>
 		<?php
 		exit;
 	}

@@ -43,6 +43,7 @@ class Cead_Acad_Rewrites {
 		add_rewrite_rule( '^cead-manifest\.webmanifest$', 'index.php?' . self::QUERY_VAR . '=pwa_manifest', 'top' );
 		add_rewrite_rule( '^cead-sw\.js$',                'index.php?' . self::QUERY_VAR . '=pwa_sw',       'top' );
 		add_rewrite_rule( '^cead-icon-([0-9]+)\.png$',    'index.php?' . self::QUERY_VAR . '=pwa_icon&cead_acad_t=$matches[1]', 'top' );
+		add_rewrite_rule( '^cead-offline$',               'index.php?' . self::QUERY_VAR . '=pwa_offline',  'top' );
 
 		// Suscripción de calendario (iCal) por token: /cal/<token>.ics
 		add_rewrite_rule( '^cal/([^/]+)\.ics$',  'index.php?' . self::QUERY_VAR . '=calfeed&cead_acad_t=$matches[1]', 'top' );
@@ -113,6 +114,10 @@ class Cead_Acad_Rewrites {
 
 			case 'pwa_sw' === $route:
 				Cead_Acad_PWA::service_worker();
+				return;
+
+			case 'pwa_offline' === $route:
+				Cead_Acad_PWA::offline_page();
 				return;
 
 			case 'pwa_icon' === $route:
