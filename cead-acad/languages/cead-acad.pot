@@ -1,0 +1,4397 @@
+# Copyright (C) 2026 CEAD
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: CEAD Académico 0.22.1\n"
+"Report-Msgid-Bugs-To: https://github.com/nasastaxd/iamnasasta/issues\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-06-10T04:14:57+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: cead-acad\n"
+
+#. Plugin Name of the plugin
+#: cead-acad.php
+#: admin/class-admin-menu.php:24
+#: admin/class-admin-menu.php:25
+#: admin/class-admin-menu.php:63
+#: modules/admin-ui/class-admin-dashboard.php:38
+msgid "CEAD Académico"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: cead-acad.php
+msgid "https://github.com/nasastaxd/iamnasasta"
+msgstr ""
+
+#. Description of the plugin
+#: cead-acad.php
+msgid "Módulo académico-administrativo para CEAD: invitaciones, login estilizado, comunicados, encuestas, horarios, recursos, importadores e importación masiva."
+msgstr ""
+
+#. Author of the plugin
+#: cead-acad.php
+#: templates/auth/partials/auth-shell.php:10
+msgid "CEAD"
+msgstr ""
+
+#: admin/class-admin-exports.php:28
+#: admin/class-admin-exports.php:29
+msgid "Exportar"
+msgstr ""
+
+#: admin/class-admin-exports.php:38
+#: admin/class-admin-exports.php:69
+#: admin/class-admin-logs.php:33
+#: admin/class-admin-menu.php:113
+#: admin/class-admin-menu.php:297
+#: admin/class-admin-metrics.php:41
+#: modules/courses/class-courses-admin.php:278
+#: modules/courses/class-courses-admin.php:293
+#: modules/importers/class-importer-admin.php:49
+#: modules/importers/class-importer-admin.php:111
+#: modules/importers/class-importer-admin.php:162
+#: modules/importers/class-importer-admin.php:194
+#: modules/importers/class-importer-admin.php:215
+#: modules/importers/class-importer-admin.php:232
+#: modules/panels/class-tasks-cpt.php:190
+#: modules/surveys/class-surveys-admin.php:298
+#: modules/updates/class-updates.php:104
+#: modules/whatsapp/class-wa-admin.php:40
+msgid "Sin permisos."
+msgstr ""
+
+#: admin/class-admin-exports.php:42
+#: admin/class-admin-menu.php:53
+#: admin/class-admin-menu.php:54
+#: admin/class-admin-menu.php:86
+#: admin/views/invitations-list.php:139
+#: admin/views/users-list.php:27
+#: modules/admin-ui/class-admin-dashboard.php:158
+msgid "Usuarios"
+msgstr ""
+
+#: admin/class-admin-exports.php:42
+msgid "Todos los usuarios del plugin con rol, email, teléfono, documento y cursos."
+msgstr ""
+
+#: admin/class-admin-exports.php:43
+#: modules/importers/class-importer-grades.php:11
+msgid "Calificaciones"
+msgstr ""
+
+#: admin/class-admin-exports.php:43
+msgid "Boletín completo: alumno, curso, materia, período, nota y comentarios."
+msgstr ""
+
+#: admin/class-admin-exports.php:44
+msgid "Inscripciones"
+msgstr ""
+
+#: admin/class-admin-exports.php:44
+msgid "Relación usuario↔curso con rol en el curso, estado y fechas."
+msgstr ""
+
+#: admin/class-admin-exports.php:45
+#: admin/class-admin-menu.php:89
+#: modules/broadcasts/class-broadcasts-cpt.php:20
+#: modules/broadcasts/class-broadcasts-cpt.php:26
+#: templates/panel/buscar/results.php:70
+#: templates/panel/comunicados/feed.php:20
+#: templates/panel/comunicados/feed.php:26
+#: templates/panel/comunicados/single.php:57
+#: templates/panel/direccion/dashboard.php:127
+#: templates/panel/home.php:44
+#: templates/panel/partials/sidebar.php:12
+msgid "Comunicados"
+msgstr ""
+
+#: admin/class-admin-exports.php:45
+msgid "Listado de comunicados con audiencia, destinatarios y lecturas."
+msgstr ""
+
+#: admin/class-admin-exports.php:49
+msgid "Exportar datos"
+msgstr ""
+
+#: admin/class-admin-exports.php:50
+msgid "Descargá los datos del sistema en CSV (UTF-8, compatible con Excel). Útil para respaldos y reportes."
+msgstr ""
+
+#: admin/class-admin-exports.php:58
+#: modules/surveys/class-surveys-admin.php:238
+msgid "Descargar CSV"
+msgstr ""
+
+#: admin/class-admin-exports.php:86
+msgid "Tipo de exportación inválido."
+msgstr ""
+
+#: admin/class-admin-exports.php:115
+#: admin/class-admin-exports.php:230
+#: admin/views/importers-hub.php:66
+#: admin/views/invitations-list.php:157
+msgid "ID"
+msgstr ""
+
+#: admin/class-admin-exports.php:115
+#: admin/class-admin-exports.php:194
+#: admin/class-admin-logs.php:91
+#: admin/views/users-list.php:118
+#: admin/views/users-list.php:167
+#: modules/surveys/class-surveys-responses.php:194
+#: templates/auth/register.php:123
+msgid "Usuario"
+msgstr ""
+
+#: admin/class-admin-exports.php:115
+#: admin/views/users-list.php:166
+msgid "Nombre"
+msgstr ""
+
+#: admin/class-admin-exports.php:116
+#: admin/class-admin-exports.php:194
+#: admin/views/users-list.php:57
+#: admin/views/users-list.php:125
+#: admin/views/users-list.php:168
+#: modules/surveys/class-surveys-responses.php:194
+#: templates/auth/register.php:128
+#: templates/panel/perfil/show.php:71
+msgid "Email"
+msgstr ""
+
+#: admin/class-admin-exports.php:116
+#: admin/class-admin-logs.php:145
+#: admin/class-admin-logs.php:160
+#: admin/views/users-list.php:170
+#: modules/importers/class-importer-students.php:23
+#: templates/panel/perfil/show.php:65
+msgid "Teléfono"
+msgstr ""
+
+#: admin/class-admin-exports.php:116
+#: admin/class-admin-exports.php:159
+#: templates/panel/perfil/show.php:81
+msgid "Documento"
+msgstr ""
+
+#: admin/class-admin-exports.php:117
+#: admin/views/invitations-list.php:50
+#: admin/views/invitations-list.php:105
+#: admin/views/invitations-list.php:129
+#: admin/views/invitations-list.php:158
+#: admin/views/users-list.php:82
+#: admin/views/users-list.php:138
+#: admin/views/users-list.php:169
+#: templates/panel/perfil/show.php:75
+msgid "Rol"
+msgstr ""
+
+#: admin/class-admin-exports.php:117
+#: admin/class-admin-menu.php:88
+#: modules/admin-ui/class-admin-dashboard.php:114
+#: modules/admin-ui/class-admin-dashboard.php:159
+#: modules/courses/class-courses-cpt.php:36
+#: modules/courses/class-courses-cpt.php:44
+#: modules/importers/class-importer-courses.php:12
+#: templates/panel/direccion/dashboard.php:121
+msgid "Cursos"
+msgstr ""
+
+#: admin/class-admin-exports.php:117
+#: modules/panels/class-tasks-cpt.php:212
+#: templates/panel/tareas/list.php:29
+msgid "Alta"
+msgstr ""
+
+#: admin/class-admin-exports.php:159
+msgid "Alumno"
+msgstr ""
+
+#: admin/class-admin-exports.php:159
+#: admin/class-admin-exports.php:194
+#: admin/views/invitations-list.php:60
+#: modules/courses/class-courses-cpt.php:37
+#: modules/panels/class-tasks-cpt.php:84
+#: modules/panels/class-tasks-cpt.php:133
+#: templates/auth/register.php:140
+msgid "Curso"
+msgstr ""
+
+#: admin/class-admin-exports.php:160
+#: modules/courses/class-courses-admin.php:64
+#: modules/resources/class-resources-cpt.php:45
+#: templates/panel/boletin/show.php:51
+msgid "Materia"
+msgstr ""
+
+#: admin/class-admin-exports.php:160
+msgid "Período"
+msgstr ""
+
+#: admin/class-admin-exports.php:160
+msgid "Nota"
+msgstr ""
+
+#: admin/class-admin-exports.php:161
+#: modules/importers/class-importer-grades.php:20
+msgid "Letra"
+msgstr ""
+
+#: admin/class-admin-exports.php:161
+msgid "Comentarios"
+msgstr ""
+
+#: admin/class-admin-exports.php:161
+msgid "Registrada el"
+msgstr ""
+
+#: admin/class-admin-exports.php:195
+msgid "Rol en el curso"
+msgstr ""
+
+#: admin/class-admin-exports.php:195
+#: admin/class-admin-exports.php:230
+#: admin/views/importers-hub.php:69
+#: admin/views/invitations-list.php:159
+#: modules/panels/class-tasks-cpt.php:93
+#: modules/panels/class-tasks-cpt.php:134
+#: modules/whatsapp/class-wa-admin.php:115
+msgid "Estado"
+msgstr ""
+
+#: admin/class-admin-exports.php:196
+#: admin/class-admin-logs.php:194
+#: modules/courses/class-courses-admin.php:62
+msgid "Desde"
+msgstr ""
+
+#: admin/class-admin-exports.php:196
+#: admin/class-admin-logs.php:195
+#: modules/courses/class-courses-admin.php:63
+msgid "Hasta"
+msgstr ""
+
+#: admin/class-admin-exports.php:230
+#: modules/importers/class-importer-events.php:17
+msgid "Título"
+msgstr ""
+
+#: admin/class-admin-exports.php:231
+msgid "Publicado"
+msgstr ""
+
+#: admin/class-admin-exports.php:231
+msgid "Autor"
+msgstr ""
+
+#: admin/class-admin-exports.php:231
+#: modules/whatsapp/class-wa-admin.php:234
+msgid "Audiencia"
+msgstr ""
+
+#: admin/class-admin-exports.php:232
+#: modules/broadcasts/class-broadcasts-targeting.php:22
+#: modules/schedule/class-schedule-admin.php:30
+#: modules/surveys/class-surveys-admin.php:31
+msgid "Destinatarios"
+msgstr ""
+
+#: admin/class-admin-exports.php:232
+msgid "Lecturas"
+msgstr ""
+
+#: admin/class-admin-logs.php:23
+#: admin/class-admin-logs.php:24
+#: admin/class-admin-logs.php:39
+#: admin/class-admin-menu.php:96
+msgid "Registros"
+msgstr ""
+
+#: admin/class-admin-logs.php:43
+msgid "Auditoría"
+msgstr ""
+
+#: admin/class-admin-logs.php:44
+#: admin/class-admin-menu.php:95
+msgid "Bot de WhatsApp"
+msgstr ""
+
+#: admin/class-admin-logs.php:76
+msgid "Todas las acciones"
+msgstr ""
+
+#: admin/class-admin-logs.php:81
+msgid "ID de usuario"
+msgstr ""
+
+#: admin/class-admin-logs.php:83
+#: admin/class-admin-logs.php:152
+#: templates/panel/recursos/list.php:65
+msgid "Filtrar"
+msgstr ""
+
+#: admin/class-admin-logs.php:90
+#: admin/class-admin-logs.php:159
+#: admin/views/importers-hub.php:72
+#: modules/surveys/class-surveys-questions.php:110
+#: modules/surveys/class-surveys-responses.php:194
+msgid "Fecha"
+msgstr ""
+
+#: admin/class-admin-logs.php:92
+#: templates/panel/secretaria/dashboard.php:92
+#: templates/panel/secretaria/dashboard.php:97
+#: templates/panel/secretaria/dashboard.php:102
+msgid "Acción"
+msgstr ""
+
+#: admin/class-admin-logs.php:93
+msgid "Entidad"
+msgstr ""
+
+#: admin/class-admin-logs.php:94
+msgid "Detalle"
+msgstr ""
+
+#: admin/class-admin-logs.php:99
+msgid "Sin registros todavía. Las acciones del plugin (logins, altas de usuarios, invitaciones) se van a ir registrando acá."
+msgstr ""
+
+#: admin/class-admin-logs.php:147
+msgid "Entrada y salida"
+msgstr ""
+
+#: admin/class-admin-logs.php:148
+msgid "Entrada (in)"
+msgstr ""
+
+#: admin/class-admin-logs.php:149
+msgid "Salida (out)"
+msgstr ""
+
+#: admin/class-admin-logs.php:161
+#: templates/panel/buzon/list.php:113
+#: templates/panel/contacto/show.php:17
+#: templates/panel/direccion/dashboard.php:108
+#: templates/panel/direccion/dashboard.php:114
+#: templates/panel/partials/sidebar.php:37
+msgid "Dirección"
+msgstr ""
+
+#: admin/class-admin-logs.php:162
+#: admin/views/importer-preview.php:32
+#: admin/views/importer-preview.php:47
+#: modules/whatsapp/class-wa-admin.php:242
+#: modules/whatsapp/class-wa-admin.php:278
+msgid "Mensaje"
+msgstr ""
+
+#: admin/class-admin-logs.php:163
+msgid "Acción procesada"
+msgstr ""
+
+#: admin/class-admin-logs.php:167
+msgid "Sin mensajes registrados con esos filtros."
+msgstr ""
+
+#: admin/class-admin-logs.php:172
+msgid "in"
+msgstr ""
+
+#: admin/class-admin-logs.php:173
+msgid "out"
+msgstr ""
+
+#. translators: %s: cantidad de registros
+#: admin/class-admin-logs.php:203
+#, php-format
+msgid "%s registro"
+msgid_plural "%s registros"
+msgstr[0] ""
+msgstr[1] ""
+
+#: admin/class-admin-menu.php:35
+#: admin/class-admin-menu.php:36
+#: templates/panel/partials/topbar.php:15
+#: templates/panel/shell.php:8
+msgid "Panel"
+msgstr ""
+
+#: admin/class-admin-menu.php:44
+#: admin/class-admin-menu.php:45
+#: admin/class-admin-menu.php:87
+#: admin/views/invitations-list.php:22
+#: admin/views/invitations-list.php:153
+msgid "Invitaciones"
+msgstr ""
+
+#. translators: %s nombre del usuario
+#: admin/class-admin-menu.php:67
+#, php-format
+msgid "Hola, %s. Este es el panel administrativo del plugin."
+msgstr ""
+
+#. translators: %s: versión del plugin
+#: admin/class-admin-menu.php:72
+#, php-format
+msgid "Estado: todos los módulos planificados (F0–F5) están instalados. Versión %s."
+msgstr ""
+
+#: admin/class-admin-menu.php:76
+msgid "Diagnóstico de acceso"
+msgstr ""
+
+#: admin/class-admin-menu.php:77
+msgid "Roles"
+msgstr ""
+
+#: admin/class-admin-menu.php:84
+#: templates/panel/secretaria/dashboard.php:89
+msgid "Accesos rápidos"
+msgstr ""
+
+#: admin/class-admin-menu.php:86
+msgid "creá usuarios manualmente y asigná roles y teléfono."
+msgstr ""
+
+#: admin/class-admin-menu.php:87
+msgid "generá links para sumar usuarios al sistema."
+msgstr ""
+
+#: admin/class-admin-menu.php:88
+msgid "creá cursos y asigná delegado/a, tutor/a y alumnado."
+msgstr ""
+
+#: admin/class-admin-menu.php:89
+msgid "publicá comunicados dirigidos a rol, curso o personalmente."
+msgstr ""
+
+#: admin/class-admin-menu.php:90
+#: modules/surveys/class-surveys-cpt.php:23
+#: modules/surveys/class-surveys-cpt.php:29
+#: templates/panel/direccion/dashboard.php:128
+#: templates/panel/encuestas/list.php:39
+#: templates/panel/encuestas/list.php:44
+#: templates/panel/encuestas/take.php:43
+#: templates/panel/home.php:51
+#: templates/panel/partials/sidebar.php:14
+msgid "Encuestas"
+msgstr ""
+
+#: admin/class-admin-menu.php:90
+msgid "creá encuestas con varias preguntas y exportá resultados."
+msgstr ""
+
+#: admin/class-admin-menu.php:91
+#: templates/panel/horarios/list.php:37
+#: templates/panel/partials/sidebar.php:15
+msgid "Horarios"
+msgstr ""
+
+#: admin/class-admin-menu.php:91
+msgid "clases, reuniones, exámenes y eventos."
+msgstr ""
+
+#: admin/class-admin-menu.php:92
+#: modules/resources/class-resources-cpt.php:23
+#: modules/resources/class-resources-cpt.php:28
+#: templates/panel/buscar/results.php:97
+#: templates/panel/direccion/dashboard.php:130
+#: templates/panel/home.php:45
+#: templates/panel/partials/sidebar.php:18
+#: templates/panel/recursos/list.php:34
+msgid "Recursos"
+msgstr ""
+
+#: admin/class-admin-menu.php:92
+msgid "mapas conceptuales, PDFs y enlaces pedagógicos."
+msgstr ""
+
+#: admin/class-admin-menu.php:93
+msgid "Importadores CSV"
+msgstr ""
+
+#: admin/class-admin-menu.php:93
+msgid "subí alumnado y calificaciones desde archivo."
+msgstr ""
+
+#: admin/class-admin-menu.php:94
+#: modules/panels/class-tasks-cpt.php:34
+msgid "Tareas (delegado)"
+msgstr ""
+
+#: admin/class-admin-menu.php:94
+msgid "asigná tareas a cursos para que las gestionen los delegados."
+msgstr ""
+
+#: admin/class-admin-menu.php:95
+msgid "estado del bridge, comunicados, reportes y mensajes del bot."
+msgstr ""
+
+#: admin/class-admin-menu.php:96
+msgid "auditoría de acciones del plugin y logs del bot de WhatsApp."
+msgstr ""
+
+#: admin/class-admin-menu.php:99
+msgid "Panel frontend"
+msgstr ""
+
+#. translators: 1: URL panel, 2: URL login
+#: admin/class-admin-menu.php:102
+#, php-format
+msgid "Los usuarios acceden al panel estilizado en %1$s y al login custom en %2$s."
+msgstr ""
+
+#: admin/class-admin-menu.php:106
+msgid "Tip: si recién activaste el plugin y las rutas frontend devuelven 404, andá a Ajustes → Enlaces permanentes y guardá una vez para refrescar las rewrite rules."
+msgstr ""
+
+#: admin/class-admin-menu.php:163
+#: admin/class-admin-menu.php:310
+msgid "Sesión expirada. Probá de nuevo."
+msgstr ""
+
+#: admin/class-admin-menu.php:170
+msgid "Ese formulario ya se había enviado (evitamos duplicar las invitaciones). Recargá la página para crear nuevas."
+msgstr ""
+
+#. translators: %d: cantidad de invitaciones creadas
+#: admin/class-admin-menu.php:204
+#, php-format
+msgid "%d invitación creada."
+msgid_plural "%d invitaciones creadas."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: dirección de email del invitado
+#: admin/class-admin-menu.php:207
+#, php-format
+msgid "Email enviado a %s (si el correo del sitio está configurado)."
+msgstr ""
+
+#: admin/class-admin-menu.php:217
+msgid "No hay cursos cargados todavía. Creá los cursos primero."
+msgstr ""
+
+#. translators: %d: cantidad de links generados
+#: admin/class-admin-menu.php:234
+#, php-format
+msgid "%d link generado (uno por curso)."
+msgid_plural "%d links generados (uno por curso)."
+msgstr[0] ""
+msgstr[1] ""
+
+#: admin/class-admin-menu.php:242
+msgid "Elegí al menos un usuario."
+msgstr ""
+
+#. translators: %d: cantidad de usuarios invitados
+#: admin/class-admin-menu.php:262
+#, php-format
+msgid "Invitación enviada a %d usuario."
+msgid_plural "Invitaciones enviadas a %d usuarios."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: dirección de email del destinatario
+#: admin/class-admin-menu.php:273
+#, php-format
+msgid "Email reenviado a %s."
+msgstr ""
+
+#: admin/class-admin-menu.php:276
+msgid "No se pudo reenviar (sin email o token)."
+msgstr ""
+
+#: admin/class-admin-menu.php:283
+msgid "Invitación revocada."
+msgstr ""
+
+#: admin/class-admin-menu.php:313
+msgid "Ese formulario ya se había enviado. Recargá la página para crear otro usuario."
+msgstr ""
+
+#: admin/class-admin-menu.php:331
+msgid "No tenés permiso para suspender usuarios."
+msgstr ""
+
+#: admin/class-admin-menu.php:336
+#: admin/class-admin-menu.php:366
+#: admin/class-admin-menu.php:456
+msgid "Usuario inválido."
+msgstr ""
+
+#: admin/class-admin-menu.php:339
+msgid "No podés suspender tu propia cuenta."
+msgstr ""
+
+#: admin/class-admin-menu.php:342
+msgid "No se puede suspender a un administrador desde acá."
+msgstr ""
+
+#. translators: %s: nombre del usuario suspendido
+#: admin/class-admin-menu.php:348
+#, php-format
+msgid "Usuario «%s» suspendido. No va a poder iniciar sesión hasta que lo reactives."
+msgstr ""
+
+#. translators: %s: nombre del usuario reactivado
+#: admin/class-admin-menu.php:352
+#, php-format
+msgid "Usuario «%s» reactivado."
+msgstr ""
+
+#: admin/class-admin-menu.php:361
+msgid "No tenés permiso para eliminar usuarios."
+msgstr ""
+
+#: admin/class-admin-menu.php:369
+msgid "No podés eliminar tu propia cuenta."
+msgstr ""
+
+#: admin/class-admin-menu.php:372
+msgid "No se puede eliminar a un administrador desde acá."
+msgstr ""
+
+#. translators: %s: nombre del usuario eliminado
+#: admin/class-admin-menu.php:389
+#, php-format
+msgid "Usuario «%s» eliminado."
+msgstr ""
+
+#: admin/class-admin-menu.php:390
+msgid "No se pudo eliminar el usuario."
+msgstr ""
+
+#: admin/class-admin-menu.php:401
+msgid "Nombre y usuario son obligatorios."
+msgstr ""
+
+#: admin/class-admin-menu.php:404
+msgid "El nombre o el usuario contienen lenguaje no permitido."
+msgstr ""
+
+#: admin/class-admin-menu.php:407
+#: templates/auth/register.php:97
+msgid "Ese nombre de usuario ya está en uso."
+msgstr ""
+
+#: admin/class-admin-menu.php:410
+#: templates/auth/register.php:98
+msgid "Ya hay una cuenta con ese email."
+msgstr ""
+
+#. translators: 1: nombre de usuario, 2: rol asignado
+#: admin/class-admin-menu.php:450
+#, php-format
+msgid "Usuario \"%1$s\" creado como %2$s."
+msgstr ""
+
+#: admin/class-admin-menu.php:466
+msgid "El nombre contiene lenguaje no permitido."
+msgstr ""
+
+#: admin/class-admin-menu.php:469
+msgid "Ya hay otra cuenta con ese email."
+msgstr ""
+
+#: admin/class-admin-menu.php:510
+msgid "Usuario actualizado. Nueva contraseña generada (abajo)."
+msgstr ""
+
+#: admin/class-admin-menu.php:513
+msgid "Usuario actualizado."
+msgstr ""
+
+#: admin/class-admin-metrics.php:24
+#: admin/class-admin-metrics.php:25
+#: admin/class-admin-metrics.php:49
+msgid "Métricas"
+msgstr ""
+
+#: admin/class-admin-metrics.php:53
+msgid "Mensajes del bot (30 días)"
+msgstr ""
+
+#: admin/class-admin-metrics.php:54
+msgid "Usuarios únicos del bot (30 días)"
+msgstr ""
+
+#: admin/class-admin-metrics.php:55
+msgid "Lectura promedio (últimos comunicados)"
+msgstr ""
+
+#: admin/class-admin-metrics.php:56
+msgid "Respuestas de encuestas (total)"
+msgstr ""
+
+#: admin/class-admin-metrics.php:61
+msgid "Mensajes del bot por día (30 días)"
+msgstr ""
+
+#: admin/class-admin-metrics.php:62
+msgid "Tasa de lectura por comunicado (%)"
+msgstr ""
+
+#: admin/class-admin-metrics.php:63
+msgid "Participación en encuestas"
+msgstr ""
+
+#: admin/class-admin-metrics.php:71
+msgid "Recibidos"
+msgstr ""
+
+#: admin/class-admin-metrics.php:72
+msgid "Enviados"
+msgstr ""
+
+#: admin/class-admin-metrics.php:73
+msgid "% de lectura"
+msgstr ""
+
+#: admin/class-admin-metrics.php:74
+msgid "Respuestas"
+msgstr ""
+
+#. translators: %1$d: id job, %2$s: tipo
+#: admin/views/importer-mapping.php:11
+#: admin/views/importer-preview.php:13
+#, php-format
+msgid "Importación #%1$d — %2$s"
+msgstr ""
+
+#: admin/views/importer-mapping.php:13
+msgid "Paso 2 de 3: mapear columnas"
+msgstr ""
+
+#: admin/views/importer-mapping.php:14
+msgid "Asigná cada columna de tu archivo a un campo del sistema. Las columnas que dejes en \"ignorar\" no se importan."
+msgstr ""
+
+#: admin/views/importer-mapping.php:24
+msgid "Columna del archivo"
+msgstr ""
+
+#: admin/views/importer-mapping.php:25
+msgid "Mapear a"
+msgstr ""
+
+#: admin/views/importer-mapping.php:26
+msgid "Vista previa"
+msgstr ""
+
+#: admin/views/importer-mapping.php:37
+msgid "— ignorar —"
+msgstr ""
+
+#: admin/views/importer-mapping.php:60
+msgid "Continuar a validación"
+msgstr ""
+
+#: admin/views/importer-preview.php:15
+msgid "Paso 3 de 3: validar y confirmar"
+msgstr ""
+
+#: admin/views/importer-preview.php:19
+msgid "filas válidas"
+msgstr ""
+
+#: admin/views/importer-preview.php:20
+msgid "con error"
+msgstr ""
+
+#: admin/views/importer-preview.php:21
+msgid "Total leídas:"
+msgstr ""
+
+#: admin/views/importer-preview.php:30
+#: admin/views/importers-hub.php:71
+msgid "Errores"
+msgstr ""
+
+#: admin/views/importer-preview.php:32
+#: admin/views/importer-preview.php:47
+msgid "Fila"
+msgstr ""
+
+#. translators: %d: cantidad de errores adicionales no listados
+#: admin/views/importer-preview.php:38
+#, php-format
+msgid "... y %d más. Descargá el CSV de errores para ver todos."
+msgstr ""
+
+#: admin/views/importer-preview.php:45
+msgid "Advertencias"
+msgstr ""
+
+#: admin/views/importer-preview.php:58
+msgid "Descargar reporte completo (CSV)"
+msgstr ""
+
+#: admin/views/importer-preview.php:63
+msgid "Las filas con error se omiten. El commit es idempotente: si ya existe el registro, se actualiza."
+msgstr ""
+
+#: admin/views/importer-preview.php:65
+msgid "¿Confirmar la importación de los registros válidos?"
+msgstr ""
+
+#: admin/views/importer-preview.php:70
+#: admin/views/users-list.php:101
+msgid "Cancelar"
+msgstr ""
+
+#. translators: %d: cantidad de filas a importar
+#: admin/views/importer-preview.php:73
+#, php-format
+msgid "Confirmar e importar %d filas"
+msgstr ""
+
+#. translators: %1$d: ID del job de importación
+#: admin/views/importer-result.php:9
+#, php-format
+msgid "Importación #%1$d — completada"
+msgstr ""
+
+#. translators: 1: filas importadas OK, 2: tipo de importador
+#: admin/views/importer-result.php:15
+#, php-format
+msgid "%1$d filas importadas (%2$s)."
+msgstr ""
+
+#: admin/views/importer-result.php:24
+msgid "Volver al hub"
+msgstr ""
+
+#: admin/views/importer-result.php:27
+msgid "Descargar reporte (CSV)"
+msgstr ""
+
+#: admin/views/importers-hub.php:11
+#: modules/importers/class-importer-admin.php:30
+#: modules/importers/class-importer-admin.php:31
+#: modules/schedule/class-schedule-cpt.php:28
+msgid "Importadores"
+msgstr ""
+
+#: admin/views/importers-hub.php:13
+msgid "Subí un archivo CSV o Excel (.xlsx) y, guiado paso a paso, lo mapeás, validás e importás. Descargá una plantilla para ver el formato esperado."
+msgstr ""
+
+#: admin/views/importers-hub.php:15
+msgid "Nuevo trabajo"
+msgstr ""
+
+#: admin/views/importers-hub.php:18
+msgid "La importación solo está disponible desde una computadora."
+msgstr ""
+
+#: admin/views/importers-hub.php:19
+msgid "La carga y el mapeo de archivos requieren pantalla grande y son poco fiables en el teléfono. Abrí esta página desde una PC o notebook para importar."
+msgstr ""
+
+#: admin/views/importers-hub.php:27
+msgid "Tipo de importación"
+msgstr ""
+
+#: admin/views/importers-hub.php:35
+msgid "¿Necesitás un modelo de archivo?"
+msgstr ""
+
+#. translators: %s: nombre del importador
+#: admin/views/importers-hub.php:39
+#, php-format
+msgid "plantilla %s"
+msgstr ""
+
+#: admin/views/importers-hub.php:45
+#: admin/views/importers-hub.php:68
+msgid "Archivo"
+msgstr ""
+
+#: admin/views/importers-hub.php:51
+msgid "Máx 10MB. Admite .csv y .xlsx. Para columnas de fecha en XLSX, escribilas como texto (ej. 2026-12-10 08:00)."
+msgstr ""
+
+#: admin/views/importers-hub.php:52
+msgid "Máx 10MB. Admite .csv (en este servidor no está disponible la lectura de .xlsx)."
+msgstr ""
+
+#: admin/views/importers-hub.php:58
+msgid "Subir y continuar"
+msgstr ""
+
+#: admin/views/importers-hub.php:62
+#: templates/panel/secretaria/dashboard.php:60
+msgid "Importaciones recientes"
+msgstr ""
+
+#: admin/views/importers-hub.php:67
+#: modules/resources/class-resources-cpt.php:58
+#: modules/schedule/class-schedule-admin.php:48
+#: modules/schedule/class-schedule-admin.php:158
+msgid "Tipo"
+msgstr ""
+
+#: admin/views/importers-hub.php:70
+msgid "OK"
+msgstr ""
+
+#: admin/views/importers-hub.php:73
+#: admin/views/invitations-list.php:162
+#: admin/views/users-list.php:171
+msgid "Acciones"
+msgstr ""
+
+#: admin/views/importers-hub.php:78
+msgid "Sin trabajos previos."
+msgstr ""
+
+#: admin/views/importers-hub.php:88
+#: templates/panel/app/show.php:60
+msgid "Abrir"
+msgstr ""
+
+#: admin/views/invitations-list.php:23
+msgid "Generá un link de invitación. La persona abre el link, completa el registro y se crea su cuenta con el rol asignado. Si ponés un email, se lo enviamos automáticamente."
+msgstr ""
+
+#: admin/views/invitations-list.php:33
+msgid "Links de registro generados — copialos y compartilos:"
+msgstr ""
+
+#: admin/views/invitations-list.php:43
+msgid "Nueva invitación"
+msgstr ""
+
+#: admin/views/invitations-list.php:63
+msgid "— Sin curso (lo elige al registrarse) —"
+msgstr ""
+
+#: admin/views/invitations-list.php:68
+msgid "Si elegís un curso, todos los que usen este link entran a ese curso. Si lo dejás en \"Sin curso\" (para Alumno/a o Delegado/a), la persona elige el curso al registrarse."
+msgstr ""
+
+#: admin/views/invitations-list.php:72
+msgid "Email (opcional)"
+msgstr ""
+
+#: admin/views/invitations-list.php:74
+msgid "destinatario@ejemplo.com"
+msgstr ""
+
+#: admin/views/invitations-list.php:80
+msgid "Podés empezar a escribir para autocompletar con emails ya registrados. Igual vas a ver el link copiable arriba y en la tabla."
+msgstr ""
+
+#: admin/views/invitations-list.php:84
+#: admin/views/invitations-list.php:114
+msgid "Expira en (días)"
+msgstr ""
+
+#: admin/views/invitations-list.php:88
+msgid "Cantidad"
+msgstr ""
+
+#: admin/views/invitations-list.php:91
+msgid "Útil para crear muchos links de una vez (p. ej. para un curso entero)."
+msgstr ""
+
+#: admin/views/invitations-list.php:95
+#: templates/panel/secretaria/dashboard.php:93
+msgid "Generar invitaciones"
+msgstr ""
+
+#: admin/views/invitations-list.php:98
+msgid "Un link por cada curso"
+msgstr ""
+
+#: admin/views/invitations-list.php:108
+#: modules/courses/class-courses-admin.php:266
+msgid "Alumno/a"
+msgstr ""
+
+#: admin/views/invitations-list.php:109
+#: modules/courses/class-courses-admin.php:145
+#: modules/courses/class-courses-admin.php:267
+#: modules/courses/class-courses-cpt.php:87
+msgid "Delegado/a"
+msgstr ""
+
+#: admin/views/invitations-list.php:118
+msgid "Crea una invitación por cada curso cargado, cada una ya atada a su curso. Ideal para repartir un link a cada división."
+msgstr ""
+
+#: admin/views/invitations-list.php:119
+msgid "Generar 1 link por cada curso"
+msgstr ""
+
+#: admin/views/invitations-list.php:122
+msgid "Invitar a usuarios registrados"
+msgstr ""
+
+#: admin/views/invitations-list.php:146
+msgid "Mantené Ctrl/Cmd para elegir varios. Se les envía el link por correo."
+msgstr ""
+
+#: admin/views/invitations-list.php:150
+msgid "Enviar invitaciones a los seleccionados"
+msgstr ""
+
+#: admin/views/invitations-list.php:160
+msgid "Link de registro"
+msgstr ""
+
+#: admin/views/invitations-list.php:161
+msgid "Expira"
+msgstr ""
+
+#: admin/views/invitations-list.php:167
+msgid "Todavía no hay invitaciones."
+msgstr ""
+
+#: admin/views/invitations-list.php:171
+msgid "Válida"
+msgstr ""
+
+#: admin/views/invitations-list.php:172
+msgid "Usada"
+msgstr ""
+
+#: admin/views/invitations-list.php:173
+msgid "Expirada"
+msgstr ""
+
+#: admin/views/invitations-list.php:174
+msgid "Revocada"
+msgstr ""
+
+#: admin/views/invitations-list.php:175
+msgid "Inválida"
+msgstr ""
+
+#: admin/views/invitations-list.php:199
+msgid "Reenviar email"
+msgstr ""
+
+#: admin/views/invitations-list.php:202
+msgid "¿Revocar esta invitación?"
+msgstr ""
+
+#: admin/views/invitations-list.php:206
+msgid "Revocar"
+msgstr ""
+
+#: admin/views/users-list.php:38
+msgid "Contraseña generada (anotala ahora, no se vuelve a mostrar):"
+msgstr ""
+
+#. translators: %s: nombre del usuario en edición
+#: admin/views/users-list.php:46
+#, php-format
+msgid "Editar: %s"
+msgstr ""
+
+#: admin/views/users-list.php:53
+#: templates/panel/perfil/show.php:60
+msgid "Nombre a mostrar"
+msgstr ""
+
+#: admin/views/users-list.php:61
+#: admin/views/users-list.php:131
+#: templates/auth/register.php:133
+msgid "Teléfono (WhatsApp)"
+msgstr ""
+
+#: admin/views/users-list.php:66
+#: admin/views/users-list.php:134
+msgid "Número completo con código de país, sin +. Ej: 595981123456"
+msgstr ""
+
+#: admin/views/users-list.php:95
+#: templates/auth/login.php:53
+#: templates/auth/register.php:152
+msgid "Contraseña"
+msgstr ""
+
+#: admin/views/users-list.php:96
+msgid "Generar una nueva contraseña"
+msgstr ""
+
+#: admin/views/users-list.php:100
+#: templates/panel/perfil/show.php:87
+msgid "Guardar cambios"
+msgstr ""
+
+#: admin/views/users-list.php:107
+#: modules/courses/class-courses-admin.php:250
+msgid "Agregar usuario"
+msgstr ""
+
+#: admin/views/users-list.php:114
+msgid "Nombre completo"
+msgstr ""
+
+#: admin/views/users-list.php:115
+#: templates/auth/register.php:118
+msgid "Nombre y apellido"
+msgstr ""
+
+#: admin/views/users-list.php:120
+#: templates/auth/register.php:124
+msgid "sin espacios"
+msgstr ""
+
+#: admin/views/users-list.php:121
+msgid "Solo letras, números, puntos y guiones."
+msgstr ""
+
+#: admin/views/users-list.php:151
+msgid "Crear usuario"
+msgstr ""
+
+#: admin/views/users-list.php:154
+msgid "La contraseña se genera automáticamente y se muestra una sola vez tras crear el usuario."
+msgstr ""
+
+#: admin/views/users-list.php:161
+msgid "Usuarios actuales"
+msgstr ""
+
+#: admin/views/users-list.php:181
+msgid "Admin WP"
+msgstr ""
+
+#: admin/views/users-list.php:197
+msgid "Suspendido"
+msgstr ""
+
+#: admin/views/users-list.php:207
+#: modules/courses/class-courses-admin.php:78
+msgid "—"
+msgstr ""
+
+#: admin/views/users-list.php:212
+msgid "Editar"
+msgstr ""
+
+#: admin/views/users-list.php:223
+msgid "Reactivar"
+msgstr ""
+
+#: admin/views/users-list.php:228
+msgid "Suspender"
+msgstr ""
+
+#. translators: %s: nombre del usuario a eliminar
+#: admin/views/users-list.php:233
+#, php-format
+msgid "Eliminar a %s? Esta accion no se puede deshacer."
+msgstr ""
+
+#: admin/views/users-list.php:237
+msgid "Eliminar"
+msgstr ""
+
+#: admin/views/users-list.php:246
+msgid "No hay usuarios con roles del plugin todavía."
+msgstr ""
+
+#: includes/class-cead-acad-assets.php:60
+msgid "Ocurrió un error. Probá de nuevo."
+msgstr ""
+
+#: includes/class-cead-acad-email.php:70
+msgid "Si el botón no funciona, copiá y pegá este link en tu navegador:"
+msgstr ""
+
+#: includes/class-cead-acad-rewrites.php:137
+msgid "No tenés permiso para acceder al panel."
+msgstr ""
+
+#: modules/admin-ui/class-admin-dashboard.php:91
+msgid "sin configurar"
+msgstr ""
+
+#: modules/admin-ui/class-admin-dashboard.php:96
+msgid "Conectado"
+msgstr ""
+
+#: modules/admin-ui/class-admin-dashboard.php:96
+msgid "desconectado"
+msgstr ""
+
+#: modules/admin-ui/class-admin-dashboard.php:112
+msgid "Alumnos"
+msgstr ""
+
+#: modules/admin-ui/class-admin-dashboard.php:113
+#: templates/panel/direccion/dashboard.php:120
+msgid "Docentes"
+msgstr ""
+
+#: modules/admin-ui/class-admin-dashboard.php:115
+msgid "Eventos próximos"
+msgstr ""
+
+#: modules/admin-ui/class-admin-dashboard.php:116
+msgid "Altas este mes"
+msgstr ""
+
+#: modules/admin-ui/class-admin-dashboard.php:143
+msgid "Bot"
+msgstr ""
+
+#: modules/admin-ui/class-admin-dashboard.php:157
+msgid "Ir a CEAD Académico"
+msgstr ""
+
+#: modules/admin-ui/class-admin-dashboard.php:160
+#: modules/whatsapp/class-wa-admin.php:29
+#: templates/panel/perfil/show.php:107
+msgid "WhatsApp"
+msgstr ""
+
+#: modules/admin-ui/class-admin-dashboard.php:161
+msgid "Ver panel"
+msgstr ""
+
+#. translators: %s: nombre del sitio
+#: modules/auth/class-invitations.php:102
+#, php-format
+msgid "Invitación a %s"
+msgstr ""
+
+#. translators: %s: nombre del sitio
+#: modules/auth/class-invitations.php:105
+#, php-format
+msgid "Te invitamos a sumarte a %s."
+msgstr ""
+
+#. translators: %s: rol asignado al invitado
+#: modules/auth/class-invitations.php:108
+#, php-format
+msgid "Rol asignado: %s."
+msgstr ""
+
+#: modules/auth/class-invitations.php:112
+msgid "¡Te invitamos a sumarte!"
+msgstr ""
+
+#: modules/auth/class-invitations.php:114
+msgid "Crear mi cuenta"
+msgstr ""
+
+#: modules/auth/class-invitations.php:116
+msgid "El link es de un solo uso y vence pronto. Si no esperabas esta invitación, ignorá este mensaje."
+msgstr ""
+
+#. translators: %s: nombre del sitio
+#: modules/auth/class-password-reset.php:45
+#, php-format
+msgid "[%s] Restablecer contraseña"
+msgstr ""
+
+#: modules/auth/class-password-reset.php:48
+msgid "Restablecer tu contraseña"
+msgstr ""
+
+#. translators: %s: nombre del usuario
+#: modules/auth/class-password-reset.php:51
+#, php-format
+msgid "Hola %s,"
+msgstr ""
+
+#: modules/auth/class-password-reset.php:52
+msgid "Recibimos un pedido para restablecer tu contraseña. Si fuiste vos, tocá el botón para elegir una nueva."
+msgstr ""
+
+#: modules/auth/class-password-reset.php:54
+msgid "Restablecer contraseña"
+msgstr ""
+
+#: modules/auth/class-password-reset.php:56
+msgid "Si no fuiste vos, ignorá este mensaje: tu contraseña sigue siendo la misma."
+msgstr ""
+
+#: modules/auth/class-user-suspension.php:47
+#: templates/auth/login.php:34
+msgid "Tu cuenta está suspendida. Contactá a la secretaría del CEAD."
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-audiences.php:138
+msgid "— sin destinatarios —"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-audiences.php:144
+#: modules/broadcasts/class-broadcasts-targeting.php:65
+#: modules/resources/class-resources-admin.php:105
+#: modules/surveys/class-surveys-admin.php:180
+msgid "Todos los usuarios"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-cpt.php:21
+msgid "Comunicado"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-cpt.php:22
+#: modules/broadcasts/class-broadcasts-cpt.php:23
+#: templates/panel/secretaria/dashboard.php:98
+msgid "Nuevo comunicado"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-cpt.php:24
+msgid "Editar comunicado"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-cpt.php:25
+msgid "Ver comunicado"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-cpt.php:27
+msgid "Sin comunicados."
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-cpt.php:42
+msgid "Categorías"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-cpt.php:43
+msgid "Categoría"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-cpt.php:60
+msgid "Académico"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-cpt.php:61
+msgid "Administrativo"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-cpt.php:62
+#: modules/schedule/class-schedule-cpt.php:36
+#: modules/schedule/class-schedule-cpt.php:39
+#: templates/panel/buscar/results.php:83
+#: templates/panel/direccion/dashboard.php:129
+msgid "Eventos"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-cpt.php:63
+msgid "Urgente"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-targeting.php:30
+msgid "Notificación"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-targeting.php:46
+msgid "Definí quién verá este comunicado."
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-targeting.php:61
+msgid "Agregar destinatario"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-targeting.php:69
+#: modules/resources/class-resources-admin.php:107
+#: modules/schedule/class-schedule-admin.php:98
+#: modules/surveys/class-surveys-admin.php:182
+msgid "Por rol"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-targeting.php:79
+#: modules/resources/class-resources-admin.php:113
+#: modules/schedule/class-schedule-admin.php:104
+#: modules/surveys/class-surveys-admin.php:188
+msgid "Por curso"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-targeting.php:88
+#: modules/surveys/class-surveys-admin.php:197
+msgid "Por cohorte"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-targeting.php:103
+msgid "Enviar también por email al publicar"
+msgstr ""
+
+#: modules/broadcasts/class-broadcasts-targeting.php:105
+msgid "Si está activado, al pasar a publicado se envía un email a cada destinatario."
+msgstr ""
+
+#. translators: %s: título del comunicado.
+#: modules/broadcasts/class-broadcasts-targeting.php:192
+#, php-format
+msgid "[Comunicado CEAD] %s"
+msgstr ""
+
+#. translators: 1: título del comunicado, 2: URL del panel, 3: nombre del sitio
+#: modules/broadcasts/class-broadcasts-targeting.php:198
+#, php-format
+msgid ""
+"Tenés un nuevo comunicado: %1$s\n"
+"\n"
+"Leerlo en el panel: %2$s\n"
+"\n"
+"— %3$s"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:23
+msgid "Detalles del curso"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:32
+msgid "Alumnado del curso"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:41
+#: templates/panel/horarios/list.php:42
+msgid "Horario de materias"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:58
+msgid "El horario semanal de materias de este curso. Se muestra a sus alumnos en el panel y en el bot. Dejá la materia vacía para borrar una fila."
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:61
+msgid "Día"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:65
+msgid "Docente (opcional)"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:115
+#: modules/courses/class-courses-admin.php:310
+#: modules/courses/class-courses-cpt.php:85
+msgid "Turno"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:120
+msgid "— seleccionar —"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:121
+msgid "Mañana"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:122
+msgid "Tarde"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:123
+msgid "Noche"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:133
+msgid "División (tema)"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:136
+msgid "— ninguna —"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:141
+msgid "Bachillerato técnico relacionado (del tema CEAD)."
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:151
+msgid "Tutor/a (docente)"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:167
+msgid "— ninguno —"
+msgstr ""
+
+#. translators: %d: cantidad de inscriptos activos
+#: modules/courses/class-courses-admin.php:228
+#, php-format
+msgid "Inscriptos activos: %d"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:260
+#: modules/panels/class-tasks-cpt.php:86
+msgid "— elegir —"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:268
+msgid "Docente"
+msgstr ""
+
+#. translators: %s: etiqueta del botón Agregar
+#: modules/courses/class-courses-admin.php:270
+#: templates/panel/app/show.php:46
+msgid "Agregar"
+msgstr ""
+
+#: modules/courses/class-courses-admin.php:309
+msgid "Inscriptos"
+msgstr ""
+
+#. translators: %s URL del importador
+#: modules/courses/class-courses-cpt.php:27
+#, php-format
+msgid "Podés crear cursos a mano con «Añadir nuevo», o cargarlos en lote vía %s."
+msgstr ""
+
+#: modules/courses/class-courses-cpt.php:28
+msgid "Importadores → Cursos CSV"
+msgstr ""
+
+#: modules/courses/class-courses-cpt.php:38
+msgid "Añadir curso"
+msgstr ""
+
+#: modules/courses/class-courses-cpt.php:39
+msgid "Añadir nuevo curso"
+msgstr ""
+
+#: modules/courses/class-courses-cpt.php:40
+msgid "Editar curso"
+msgstr ""
+
+#: modules/courses/class-courses-cpt.php:41
+msgid "Ver curso"
+msgstr ""
+
+#: modules/courses/class-courses-cpt.php:42
+msgid "Buscar cursos"
+msgstr ""
+
+#: modules/courses/class-courses-cpt.php:43
+msgid "Sin cursos."
+msgstr ""
+
+#: modules/courses/class-courses-cpt.php:59
+msgid "Cohortes (años)"
+msgstr ""
+
+#: modules/courses/class-courses-cpt.php:60
+msgid "Cohorte"
+msgstr ""
+
+#: modules/courses/class-courses-cpt.php:72
+msgid "Grados"
+msgstr ""
+
+#: modules/courses/class-courses-cpt.php:73
+msgid "Grado"
+msgstr ""
+
+#: modules/courses/class-courses-cpt.php:86
+msgid "División"
+msgstr ""
+
+#: modules/courses/class-courses-cpt.php:88
+msgid "Tutor/a"
+msgstr ""
+
+#: modules/faq/class-faq.php:20
+#: templates/panel/faq/list.php:9
+#: templates/panel/faq/list.php:15
+#: templates/panel/partials/sidebar.php:19
+msgid "Preguntas frecuentes"
+msgstr ""
+
+#: modules/faq/class-faq.php:21
+msgid "Pregunta frecuente"
+msgstr ""
+
+#: modules/faq/class-faq.php:22
+#: modules/surveys/class-surveys-admin.php:74
+msgid "Agregar pregunta"
+msgstr ""
+
+#: modules/faq/class-faq.php:23
+msgid "Agregar pregunta frecuente"
+msgstr ""
+
+#: modules/faq/class-faq.php:24
+msgid "Editar pregunta"
+msgstr ""
+
+#: modules/faq/class-faq.php:25
+msgid "FAQ"
+msgstr ""
+
+#: modules/faq/class-faq.php:26
+msgid "Sin preguntas todavía."
+msgstr ""
+
+#: modules/importers/class-importer-admin.php:62
+#: modules/importers/class-importer-admin.php:168
+#: modules/importers/class-importer-admin.php:200
+#: modules/importers/class-importer-admin.php:237
+msgid "Job no encontrado."
+msgstr ""
+
+#: modules/importers/class-importer-admin.php:66
+msgid "Tipo de importador desconocido."
+msgstr ""
+
+#: modules/importers/class-importer-admin.php:81
+msgid "Estado de job desconocido."
+msgstr ""
+
+#: modules/importers/class-importer-admin.php:117
+msgid "La importación solo está disponible desde una computadora. Abrí esta página desde una PC."
+msgstr ""
+
+#: modules/importers/class-importer-admin.php:123
+msgid "Tipo de importador no válido."
+msgstr ""
+
+#: modules/importers/class-importer-admin.php:126
+msgid "Subí un archivo."
+msgstr ""
+
+#: modules/importers/class-importer-admin.php:131
+msgid "Archivo demasiado grande (máx 10MB)."
+msgstr ""
+
+#: modules/importers/class-importer-admin.php:137
+msgid "Formato no admitido. Subí un archivo .csv o .xlsx."
+msgstr ""
+
+#: modules/importers/class-importer-admin.php:150
+msgid "No se pudo mover el archivo subido."
+msgstr ""
+
+#: modules/importers/class-importer-admin.php:221
+msgid "Plantilla no disponible."
+msgstr ""
+
+#: modules/importers/class-importer-courses.php:16
+msgid "Título del curso"
+msgstr ""
+
+#: modules/importers/class-importer-courses.php:17
+msgid "Cohorte / año lectivo"
+msgstr ""
+
+#: modules/importers/class-importer-courses.php:18
+msgid "Grado (1ro/2do/3ro)"
+msgstr ""
+
+#: modules/importers/class-importer-courses.php:19
+msgid "Turno (manana/tarde/noche)"
+msgstr ""
+
+#: modules/importers/class-importer-courses.php:20
+msgid "División (título del bachillerato)"
+msgstr ""
+
+#: modules/importers/class-importer-courses.php:21
+#: modules/importers/class-importer-events.php:24
+msgid "Descripción"
+msgstr ""
+
+#: modules/importers/class-importer-courses.php:29
+msgid "Falta título del curso."
+msgstr ""
+
+#: modules/importers/class-importer-courses.php:32
+msgid "Falta cohorte."
+msgstr ""
+
+#. translators: %s: turno leído del archivo
+#: modules/importers/class-importer-courses.php:37
+#, php-format
+msgid "Turno desconocido \"%s\" — se importa sin turno."
+msgstr ""
+
+#: modules/importers/class-importer-events.php:13
+msgid "Horarios / eventos"
+msgstr ""
+
+#: modules/importers/class-importer-events.php:18
+msgid "Inicio (YYYY-MM-DD HH:MM)"
+msgstr ""
+
+#: modules/importers/class-importer-events.php:19
+msgid "Fin (YYYY-MM-DD HH:MM)"
+msgstr ""
+
+#: modules/importers/class-importer-events.php:20
+msgid "Tipo (clase/reunion/examen/evento)"
+msgstr ""
+
+#: modules/importers/class-importer-events.php:21
+#: modules/schedule/class-schedule-admin.php:72
+msgid "Lugar"
+msgstr ""
+
+#: modules/importers/class-importer-events.php:22
+msgid "Todo el día (1/0)"
+msgstr ""
+
+#: modules/importers/class-importer-events.php:23
+msgid "Curso destinatario (título)"
+msgstr ""
+
+#: modules/importers/class-importer-events.php:32
+msgid "Falta título o fecha de inicio."
+msgstr ""
+
+#. translators: %s: valor de fecha leído del archivo
+#: modules/importers/class-importer-events.php:36
+#, php-format
+msgid "Fecha de inicio inválida: %s"
+msgstr ""
+
+#. translators: %s: valor de fecha leído del archivo
+#: modules/importers/class-importer-events.php:41
+#, php-format
+msgid "Fecha de fin inválida: %s"
+msgstr ""
+
+#. translators: %s: tipo de evento leído del archivo
+#: modules/importers/class-importer-events.php:46
+#, php-format
+msgid "Tipo desconocido \"%s\" — se usa \"evento\"."
+msgstr ""
+
+#. translators: %s: nombre del curso leído del archivo
+#: modules/importers/class-importer-events.php:51
+#, php-format
+msgid "Curso \"%s\" no encontrado — el evento se crea sin audiencia."
+msgstr ""
+
+#: modules/importers/class-importer-grades.php:15
+msgid "Documento alumno"
+msgstr ""
+
+#: modules/importers/class-importer-grades.php:16
+msgid "Curso (título)"
+msgstr ""
+
+#: modules/importers/class-importer-grades.php:17
+msgid "Materia (nombre)"
+msgstr ""
+
+#: modules/importers/class-importer-grades.php:18
+msgid "Periodo"
+msgstr ""
+
+#: modules/importers/class-importer-grades.php:19
+msgid "Nota numérica"
+msgstr ""
+
+#: modules/importers/class-importer-grades.php:21
+msgid "Comentario"
+msgstr ""
+
+#: modules/importers/class-importer-grades.php:33
+msgid "Faltan campos obligatorios."
+msgstr ""
+
+#. translators: %s: número de documento del alumno
+#: modules/importers/class-importer-grades.php:37
+#, php-format
+msgid "Alumno con documento %s no encontrado. Importá primero el alumnado."
+msgstr ""
+
+#. translators: %s: nombre del curso leído del archivo
+#: modules/importers/class-importer-grades.php:41
+#, php-format
+msgid "Curso \"%s\" no existe."
+msgstr ""
+
+#. translators: %s: valor de nota leído del archivo
+#: modules/importers/class-importer-grades.php:45
+#, php-format
+msgid "Nota inválida: %s"
+msgstr ""
+
+#: modules/importers/class-importer-students.php:15
+#: modules/whatsapp/class-wa-admin.php:236
+#: templates/panel/secretaria/dashboard.php:49
+msgid "Alumnado"
+msgstr ""
+
+#: modules/importers/class-importer-students.php:19
+msgid "Alumno (nombre completo)"
+msgstr ""
+
+#: modules/importers/class-importer-students.php:20
+msgid "Curso (título exacto)"
+msgstr ""
+
+#: modules/importers/class-importer-students.php:21
+msgid "Mail"
+msgstr ""
+
+#: modules/importers/class-importer-students.php:22
+msgid "Documento (CI)"
+msgstr ""
+
+#: modules/importers/class-importer-students.php:24
+msgid "Fecha nacimiento"
+msgstr ""
+
+#: modules/importers/class-importer-students.php:31
+msgid "Falta el nombre del alumno."
+msgstr ""
+
+#. translators: %s: email leído del archivo
+#: modules/importers/class-importer-students.php:36
+#, php-format
+msgid "Email inválido: %s"
+msgstr ""
+
+#. translators: %s: nombre del curso leído del archivo
+#: modules/importers/class-importer-students.php:41
+#, php-format
+msgid "Curso \"%s\" no encontrado — el alumno se crea sin curso."
+msgstr ""
+
+#: modules/notifications/class-notifications.php:64
+msgid "vence "
+msgstr ""
+
+#: modules/panels/class-tasks-cpt.php:29
+msgid "Tareas"
+msgstr ""
+
+#: modules/panels/class-tasks-cpt.php:30
+#: templates/panel/tareas/list.php:54
+msgid "Tarea"
+msgstr ""
+
+#: modules/panels/class-tasks-cpt.php:31
+#: modules/panels/class-tasks-cpt.php:32
+msgid "Nueva tarea"
+msgstr ""
+
+#: modules/panels/class-tasks-cpt.php:33
+msgid "Editar tarea"
+msgstr ""
+
+#: modules/panels/class-tasks-cpt.php:35
+msgid "Sin tareas."
+msgstr ""
+
+#: modules/panels/class-tasks-cpt.php:67
+msgid "Detalles"
+msgstr ""
+
+#: modules/panels/class-tasks-cpt.php:101
+#: modules/panels/class-tasks-cpt.php:135
+msgid "Prioridad"
+msgstr ""
+
+#: modules/panels/class-tasks-cpt.php:109
+msgid "Vence el"
+msgstr ""
+
+#: modules/panels/class-tasks-cpt.php:136
+msgid "Vence"
+msgstr ""
+
+#: modules/panels/class-tasks-cpt.php:201
+msgid "Pendiente"
+msgstr ""
+
+#: modules/panels/class-tasks-cpt.php:202
+msgid "En curso"
+msgstr ""
+
+#: modules/panels/class-tasks-cpt.php:203
+#: templates/panel/delegado/dashboard.php:86
+msgid "Hecha"
+msgstr ""
+
+#: modules/panels/class-tasks-cpt.php:204
+msgid "Cancelada"
+msgstr ""
+
+#: modules/panels/class-tasks-cpt.php:210
+#: templates/panel/tareas/list.php:29
+msgid "Baja"
+msgstr ""
+
+#: modules/panels/class-tasks-cpt.php:211
+#: templates/panel/tareas/list.php:29
+msgid "Normal"
+msgstr ""
+
+#: modules/pwa/class-pwa.php:19
+msgid "Panel del CEAD: comunicados, calendario, recursos y más."
+msgstr ""
+
+#: modules/pwa/class-pwa.php:134
+#: modules/pwa/class-pwa.php:147
+msgid "Sin conexión"
+msgstr ""
+
+#: modules/pwa/class-pwa.php:148
+msgid "No hay internet en este momento. Las páginas que ya visitaste siguen disponibles; esta no estaba guardada."
+msgstr ""
+
+#: modules/pwa/class-pwa.php:149
+msgid "Reintentar"
+msgstr ""
+
+#: modules/resources/class-resources-admin.php:26
+msgid "Archivo o enlace"
+msgstr ""
+
+#: modules/resources/class-resources-admin.php:34
+msgid "Acceso"
+msgstr ""
+
+#: modules/resources/class-resources-admin.php:49
+msgid "Archivo adjunto"
+msgstr ""
+
+#: modules/resources/class-resources-admin.php:51
+msgid "Ninguno"
+msgstr ""
+
+#: modules/resources/class-resources-admin.php:52
+msgid "Seleccionar archivo"
+msgstr ""
+
+#: modules/resources/class-resources-admin.php:53
+msgid "Quitar"
+msgstr ""
+
+#: modules/resources/class-resources-admin.php:56
+msgid "O enlace externo"
+msgstr ""
+
+#: modules/resources/class-resources-admin.php:58
+msgid "Útil para videos de YouTube, documentos compartidos o mapas online."
+msgstr ""
+
+#: modules/resources/class-resources-admin.php:93
+msgid "Quién puede ver/descargar este recurso."
+msgstr ""
+
+#: modules/resources/class-resources-cpt.php:24
+msgid "Recurso"
+msgstr ""
+
+#: modules/resources/class-resources-cpt.php:25
+#: modules/resources/class-resources-cpt.php:26
+msgid "Nuevo recurso"
+msgstr ""
+
+#: modules/resources/class-resources-cpt.php:27
+msgid "Editar recurso"
+msgstr ""
+
+#: modules/resources/class-resources-cpt.php:29
+msgid "Sin recursos."
+msgstr ""
+
+#: modules/resources/class-resources-cpt.php:44
+msgid "Materias"
+msgstr ""
+
+#: modules/resources/class-resources-cpt.php:57
+msgid "Tipos"
+msgstr ""
+
+#: modules/resources/class-resources-cpt.php:90
+msgid "Mapa conceptual"
+msgstr ""
+
+#: modules/resources/class-resources-cpt.php:91
+msgid "PDF"
+msgstr ""
+
+#: modules/resources/class-resources-cpt.php:92
+msgid "Enlace"
+msgstr ""
+
+#: modules/resources/class-resources-cpt.php:93
+msgid "Imagen"
+msgstr ""
+
+#: modules/resources/class-resources-cpt.php:94
+msgid "Video"
+msgstr ""
+
+#: modules/schedule/class-schedule-admin.php:22
+msgid "Detalles del evento"
+msgstr ""
+
+#: modules/schedule/class-schedule-admin.php:60
+msgid "Comienzo"
+msgstr ""
+
+#: modules/schedule/class-schedule-admin.php:64
+msgid "Fin"
+msgstr ""
+
+#: modules/schedule/class-schedule-admin.php:68
+#: templates/panel/calendario/list.php:174
+#: templates/panel/calendario/single.php:51
+#: templates/panel/horarios/single.php:51
+msgid "Todo el día"
+msgstr ""
+
+#: modules/schedule/class-schedule-admin.php:69
+msgid "Sí"
+msgstr ""
+
+#: modules/schedule/class-schedule-admin.php:73
+msgid "Aula 12 / Auditorio / Online"
+msgstr ""
+
+#: modules/schedule/class-schedule-admin.php:84
+msgid "Quién verá este evento en su calendario."
+msgstr ""
+
+#: modules/schedule/class-schedule-admin.php:96
+#: modules/whatsapp/class-wa-admin.php:239
+msgid "Todos"
+msgstr ""
+
+#: modules/schedule/class-schedule-admin.php:157
+msgid "Cuándo"
+msgstr ""
+
+#. translators: %s URL del importador
+#: modules/schedule/class-schedule-cpt.php:27
+#, php-format
+msgid "Los eventos del calendario se crean masivamente vía %s. El horario semanal de clases se carga en cada Curso."
+msgstr ""
+
+#: modules/schedule/class-schedule-cpt.php:37
+#: modules/schedule/class-schedule-cpt.php:77
+msgid "Evento"
+msgstr ""
+
+#: modules/schedule/class-schedule-cpt.php:38
+msgid "Editar evento"
+msgstr ""
+
+#: modules/schedule/class-schedule-cpt.php:40
+msgid "Sin eventos."
+msgstr ""
+
+#: modules/schedule/class-schedule-cpt.php:74
+msgid "Clase"
+msgstr ""
+
+#: modules/schedule/class-schedule-cpt.php:75
+msgid "Reunión"
+msgstr ""
+
+#: modules/schedule/class-schedule-cpt.php:76
+msgid "Examen"
+msgstr ""
+
+#: modules/schedule/class-schedule-feed.php:82
+msgid "Sin acceso."
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:23
+msgid "Preguntas"
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:39
+#: modules/whatsapp/class-wa-admin.php:132
+msgid "Configuración"
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:47
+msgid "Resultados"
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:60
+msgid "Definí las preguntas. Para opción única/múltiple, ingresá cada opción en una línea distinta."
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:133
+msgid "Subir"
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:134
+msgid "Bajar"
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:144
+msgid "Obligatoria"
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:148
+msgid "Texto de la pregunta"
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:151
+msgid "Opciones (una por línea):"
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:156
+msgid "Mín:"
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:157
+msgid "Máx:"
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:213
+msgid "Abre el:"
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:218
+msgid "Cierra el:"
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:224
+msgid "Encuesta anónima"
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:227
+msgid "Si es anónima, no guardamos el user_id en las respuestas y un usuario puede responder múltiples veces."
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:234
+msgid "respuestas recibidas"
+msgstr ""
+
+#: modules/surveys/class-surveys-admin.php:302
+msgid "Encuesta no especificada."
+msgstr ""
+
+#. translators: %d: cantidad de respuestas a exportar
+#: modules/surveys/class-surveys-admin.php:321
+#, php-format
+msgid "Exportar (%d)"
+msgstr ""
+
+#: modules/surveys/class-surveys-cpt.php:24
+msgid "Encuesta"
+msgstr ""
+
+#: modules/surveys/class-surveys-cpt.php:25
+#: modules/surveys/class-surveys-cpt.php:26
+msgid "Nueva encuesta"
+msgstr ""
+
+#: modules/surveys/class-surveys-cpt.php:27
+msgid "Editar encuesta"
+msgstr ""
+
+#: modules/surveys/class-surveys-cpt.php:28
+msgid "Ver encuesta"
+msgstr ""
+
+#: modules/surveys/class-surveys-cpt.php:30
+msgid "Sin encuestas."
+msgstr ""
+
+#: modules/surveys/class-surveys-questions.php:105
+msgid "Opción única"
+msgstr ""
+
+#: modules/surveys/class-surveys-questions.php:106
+msgid "Opción múltiple"
+msgstr ""
+
+#: modules/surveys/class-surveys-questions.php:107
+msgid "Texto corto"
+msgstr ""
+
+#: modules/surveys/class-surveys-questions.php:108
+msgid "Texto largo"
+msgstr ""
+
+#: modules/surveys/class-surveys-questions.php:109
+msgid "Escala"
+msgstr ""
+
+#: modules/surveys/class-surveys-responses.php:31
+#: templates/panel/encuestas/take.php:70
+msgid "Ya respondiste esta encuesta."
+msgstr ""
+
+#: modules/surveys/class-surveys-responses.php:37
+msgid "La encuesta no tiene preguntas."
+msgstr ""
+
+#. translators: %s pregunta.
+#: modules/surveys/class-surveys-responses.php:47
+#, php-format
+msgid "La pregunta \"%s\" es obligatoria."
+msgstr ""
+
+#: modules/updates/class-updates.php:94
+#: modules/updates/class-updates.php:95
+msgid "Actualizaciones"
+msgstr ""
+
+#: modules/updates/class-updates.php:117
+msgid "Actualizaciones del plugin"
+msgstr ""
+
+#. translators: %s versión actual
+#: modules/updates/class-updates.php:122
+#, php-format
+msgid "Versión instalada: %s. Las actualizaciones se publican como Releases en GitHub y aparecen en Plugins → Actualizaciones."
+msgstr ""
+
+#: modules/updates/class-updates.php:130
+msgid "Estado del token de GitHub"
+msgstr ""
+
+#: modules/updates/class-updates.php:133
+msgid "✅ definido en wp-config.php (CEAD_ACAD_GITHUB_TOKEN)."
+msgstr ""
+
+#: modules/updates/class-updates.php:135
+msgid "✅ guardado en ajustes."
+msgstr ""
+
+#: modules/updates/class-updates.php:137
+msgid "❌ falta. Sin token no se pueden leer los Releases del repo privado."
+msgstr ""
+
+#: modules/updates/class-updates.php:148
+msgid "Token de acceso (GitHub)"
+msgstr ""
+
+#: modules/updates/class-updates.php:151
+msgid "Token personal con permiso de lectura del repositorio (scope \"repo\" o fine-grained con acceso de solo lectura a Contents)."
+msgstr ""
+
+#: modules/updates/class-updates.php:158
+msgid "El token está fijado por constante en wp-config.php, así que este campo está deshabilitado."
+msgstr ""
+
+#: modules/updates/class-updates.php:161
+msgid "Diagnóstico"
+msgstr ""
+
+#: modules/updates/class-updates.php:163
+msgid "Probar conexión con GitHub"
+msgstr ""
+
+#: modules/updates/class-updates.php:164
+msgid "Comprobar actualizaciones ahora"
+msgstr ""
+
+#: modules/updates/class-updates.php:169
+msgid "Resultado de la prueba"
+msgstr ""
+
+#: modules/updates/class-updates.php:171
+msgid "Token detectado"
+msgstr ""
+
+#: modules/updates/class-updates.php:172
+msgid "Respuesta de GitHub (releases/latest)"
+msgstr ""
+
+#: modules/updates/class-updates.php:174
+msgid "Release encontrado"
+msgstr ""
+
+#: modules/updates/class-updates.php:174
+msgid "asset"
+msgstr ""
+
+#: modules/updates/class-updates.php:222
+msgid "(sin asset)"
+msgstr ""
+
+#: modules/updates/class-updates.php:225
+msgid "El token no tiene acceso a este repositorio privado (revisá que sea del owner correcto, con permiso Contents: Read, y que no esté vencido)."
+msgstr ""
+
+#: modules/updates/class-updates.php:226
+msgid "No hay token configurado: GitHub devuelve 404 para repos privados sin autenticar."
+msgstr ""
+
+#: modules/updates/class-updates.php:228
+msgid "Token inválido o vencido (401)."
+msgstr ""
+
+#. translators: %d: código de estado HTTP
+#: modules/updates/class-updates.php:231
+#, php-format
+msgid "Respuesta inesperada de GitHub (HTTP %d)."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:30
+msgid "WA · Comunicados"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:31
+msgid "WA · Reportes"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:32
+msgid "WA · Mensajes"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:33
+msgid "WA · Métricas"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:34
+msgid "WA · Mensaje directo"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:35
+msgid "CEADI · Perfil"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:81
+msgid "Prueba IA"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:83
+msgid "Configuración guardada."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:87
+msgid "Reinicio solicitado."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:90
+msgid "Sesión cerrada en el bridge."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:102
+#: modules/whatsapp/class-wa-admin.php:340
+msgid "Estado actualizado."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:108
+msgid "WhatsApp — Estado y configuración"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:114
+msgid "Conexión del bridge"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:117
+msgid "Número vinculado"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:120
+msgid "Último heartbeat"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:123
+msgid "Escaneá este QR desde WhatsApp → Dispositivos vinculados:"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:127
+msgid "Refrescar estado"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:128
+msgid "Reiniciar bridge"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:129
+#: templates/panel/partials/sidebar.php:81
+msgid "Cerrar sesión"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:137
+msgid "URL del bridge"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:138
+msgid "Token compartido (X-Caag-Token)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:139
+msgid "Número que recibe reportes"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:140
+msgid "Días de anticipación de recordatorios"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:141
+msgid "Código de país (para reconocer alumnos)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:142
+msgid "Número de CEADI (botón «Agregar a CEADI»)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:143
+msgid "Landing: ¿qué es el panel del CEAD?"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:144
+msgid "Landing: ¿qué es CEADI?"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:145
+msgid "Palabras prohibidas (una por línea)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:148
+msgid "🤖 CEADI inteligente (IA)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:149
+msgid "Activar"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:150
+msgid "Entender lenguaje natural con IA (además del menú numérico)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:151
+msgid "Cuando el alumno escribe en vez de elegir un número, la IA interpreta y dispara la función o responde con el conocimiento/FAQ. Si falla o está apagada, usa el menú."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:153
+msgid "Endpoint (API compatible OpenAI)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:154
+msgid "Ej.: DeepSeek https://api.deepseek.com/chat/completions · OpenRouter https://openrouter.ai/api/v1/chat/completions · tokenlb https://tokenlb.net/v1/chat/completions · OpenAI https://api.openai.com/v1/chat/completions"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:155
+msgid "Modelo"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:156
+msgid "API key"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:157
+msgid "Temperatura (0–1)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:158
+msgid "Máx. tokens de respuesta"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:159
+msgid "System prompt (personalidad / instrucciones)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:160
+msgid "Definí el tono y rol de CEADI. El formato de salida (ruteo en JSON) se agrega automáticamente, no hace falta escribirlo."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:161
+msgid "Conocimiento (base de datos para responder)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:162
+msgid "Texto libre con info del colegio (horarios generales, reglas, contactos, fechas, etc.). La IA lo usa para responder dudas. Las FAQ del panel se suman a esto."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:163
+msgid "Memoria (turnos a recordar)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:164
+msgid "0 = sin memoria (cada mensaje es independiente). Ej. 5 = recuerda los últimos 5 intercambios de esa persona, por 30 minutos. Útil para conversaciones; usa más tokens."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:165
+msgid "Probar"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:166
+msgid "¿qué clases tengo hoy?"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:167
+msgid "Guardar y probar IA"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:168
+msgid "Guarda la configuración y hace una consulta de prueba a la API; el resultado aparece arriba."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:170
+msgid "Guardar configuración"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:173
+msgid "El bot reutiliza los datos del plugin: horarios/eventos, comunicados y cursos. Los alumnos se reconocen por el teléfono cargado en su ficha (meta _cead_acad_phone)."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:205
+msgid "No tenés permiso para enviar a todos."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:207
+#: modules/whatsapp/class-wa-admin.php:260
+msgid "El mensaje no puede estar vacío."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:213
+msgid "Ya hay un envío en curso."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:215
+msgid "No hay destinatarios para esa audiencia."
+msgstr ""
+
+#. translators: %d: cantidad de destinatarios
+#: modules/whatsapp/class-wa-admin.php:218
+#, php-format
+msgid "Comunicado publicado y encolado para %d destinatario(s)."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:224
+msgid "WhatsApp — Comunicados"
+msgstr ""
+
+#. translators: 1: mensajes enviados, 2: total a enviar
+#: modules/whatsapp/class-wa-admin.php:230
+#, php-format
+msgid "Envío en curso: %1$d/%2$d enviados."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:237
+msgid "Personal"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:244
+msgid "Enviar por WhatsApp"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:246
+msgid "El envío es escalonado (lotes con pausa) para no saturar WhatsApp."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:258
+msgid "Número inválido (incluí el código de país)."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:264
+msgid "No se pudo enviar (¿el bridge está conectado?)."
+msgstr ""
+
+#. translators: %s: número de teléfono destino
+#: modules/whatsapp/class-wa-admin.php:268
+#, php-format
+msgid "Mensaje enviado a +%s."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:272
+msgid "WhatsApp — Mensaje directo"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:276
+msgid "Número (con código de país, solo dígitos)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:280
+#: templates/panel/contacto/show.php:54
+msgid "Enviar mensaje"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:282
+msgid "Envía un mensaje puntual a un número desde CEADI. Queda registrado en el historial."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:296
+msgid "No se pudo actualizar nombre/descripción."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:307
+msgid "No se pudo actualizar la foto."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:311
+msgid "Perfil de CEADI actualizado."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:313
+msgid "CEADI — Perfil del bot"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:315
+msgid "Estos cambios se aplican a la cuenta de WhatsApp vinculada y requieren el bridge conectado."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:319
+msgid "Nombre visible"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:320
+msgid "Descripción (info)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:321
+#: templates/panel/perfil/show.php:54
+msgid "Foto de perfil"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:323
+msgid "Imagen cuadrada (JPG/PNG). Dejalo vacío para no cambiarla."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:326
+msgid "Guardar perfil"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:345
+msgid "Nota agregada."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:350
+msgid "WhatsApp — Bandeja de reportes"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:359
+#: templates/panel/buzon/list.php:166
+msgid "No hay reportes."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:368
+msgid "Contacto"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:372
+msgid "Notas"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:382
+msgid "Actualizar estado"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:388
+msgid "Agregar nota…"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:388
+msgid "Guardar nota"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:404
+msgid "Mensajes guardados."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:406
+msgid "WhatsApp — Mensajes del bot"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:411
+msgid "Acá editás solo el TEXTO de los mensajes. Las opciones del menú (los números) se reconocen en el código: cambiar el texto no agrega ni quita funciones."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:412
+msgid "Las variables entre llaves como {name}, {count} o {events} se reemplazan solas — dejalas tal cual."
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:442
+msgid "Guardar mensajes"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:454
+msgid "WhatsApp — Métricas (30 días)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:456
+msgid "Mensajes entrantes"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:457
+msgid "Mensajes salientes"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:458
+msgid "Usuarios activos"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:459
+msgid "Reportes nuevos"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:460
+msgid "Reportes en revisión"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:461
+msgid "Sugerencias nuevas"
+msgstr ""
+
+#: modules/whatsapp/class-wa-admin.php:463
+msgid "Últimos mensajes"
+msgstr ""
+
+#: modules/whatsapp/class-wa-cron.php:39
+msgid "Cada minuto (CEAD WA)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-cron.php:42
+msgid "Cada 5 minutos (CEAD WA)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-tables.php:225
+msgid "Menú principal"
+msgstr ""
+
+#: modules/whatsapp/class-wa-tables.php:226
+msgid "Saludos y sistema"
+msgstr ""
+
+#: modules/whatsapp/class-wa-tables.php:227
+msgid "Información para alumnado"
+msgstr ""
+
+#: modules/whatsapp/class-wa-tables.php:228
+#: templates/panel/buzon/list.php:164
+msgid "Reportes"
+msgstr ""
+
+#: modules/whatsapp/class-wa-tables.php:229
+msgid "Sugerencias y Consejo"
+msgstr ""
+
+#: modules/whatsapp/class-wa-tables.php:230
+msgid "Recordatorios"
+msgstr ""
+
+#: modules/whatsapp/class-wa-tables.php:231
+msgid "Personal (staff)"
+msgstr ""
+
+#: modules/whatsapp/class-wa-tables.php:232
+msgid "Otros"
+msgstr ""
+
+#: templates/auth/login.php:17
+msgid "Ingresar al panel"
+msgstr ""
+
+#: templates/auth/login.php:21
+#: templates/auth/login.php:65
+msgid "Ingresar"
+msgstr ""
+
+#: templates/auth/login.php:22
+msgid "Accedé con tu usuario y contraseña."
+msgstr ""
+
+#: templates/auth/login.php:25
+msgid "Contraseña actualizada. Ya podés ingresar."
+msgstr ""
+
+#: templates/auth/login.php:30
+msgid "Usuario o contraseña incorrectos."
+msgstr ""
+
+#: templates/auth/login.php:31
+msgid "Completá usuario y contraseña."
+msgstr ""
+
+#: templates/auth/login.php:32
+msgid "Demasiados intentos. Esperá un minuto y volvé a probar."
+msgstr ""
+
+#: templates/auth/login.php:33
+#: templates/auth/recover.php:25
+msgid "Sesión expirada. Recargá la página."
+msgstr ""
+
+#: templates/auth/login.php:37
+#: templates/auth/recover-reset.php:34
+#: templates/auth/recover.php:28
+#: templates/auth/register.php:109
+#: templates/panel/encuestas/take.php:76
+msgid "Error."
+msgstr ""
+
+#: templates/auth/login.php:48
+#: templates/auth/recover.php:36
+msgid "Usuario o email"
+msgstr ""
+
+#: templates/auth/login.php:56
+msgid "Mostrar u ocultar contraseña"
+msgstr ""
+
+#: templates/auth/login.php:62
+msgid "Mantener sesión iniciada"
+msgstr ""
+
+#: templates/auth/login.php:69
+msgid "¿Olvidaste tu contraseña?"
+msgstr ""
+
+#: templates/auth/login.php:71
+msgid "¿Sos nuevo? Necesitás un link de invitación de la dirección."
+msgstr ""
+
+#: templates/auth/partials/auth-shell.php:32
+#: templates/panel/shell.php:39
+msgid "Félix de Guarania"
+msgstr ""
+
+#: templates/auth/partials/auth-shell.php:35
+msgid "Honor Code"
+msgstr ""
+
+#: templates/auth/partials/auth-shell.php:50
+msgid "Volver al sitio"
+msgstr ""
+
+#: templates/auth/recover-reset.php:13
+#: templates/auth/recover-reset.php:44
+msgid "Nueva contraseña"
+msgstr ""
+
+#: templates/auth/recover-reset.php:16
+msgid "Definir nueva contraseña"
+msgstr ""
+
+#: templates/auth/recover-reset.php:19
+#: templates/auth/recover.php:24
+msgid "El link ya no es válido. Pedí uno nuevo."
+msgstr ""
+
+#: templates/auth/recover-reset.php:21
+msgid "Solicitar otro link"
+msgstr ""
+
+#: templates/auth/recover-reset.php:28
+msgid "Completá ambos campos."
+msgstr ""
+
+#: templates/auth/recover-reset.php:29
+#: templates/auth/register.php:95
+msgid "La contraseña debe tener al menos 8 caracteres."
+msgstr ""
+
+#: templates/auth/recover-reset.php:30
+#: templates/auth/register.php:96
+msgid "Las contraseñas no coinciden."
+msgstr ""
+
+#: templates/auth/recover-reset.php:31
+#: templates/auth/recover.php:23
+#: templates/auth/register.php:99
+msgid "Demasiados intentos. Esperá un minuto."
+msgstr ""
+
+#: templates/auth/recover-reset.php:49
+#: templates/auth/register.php:158
+msgid "Repetir contraseña"
+msgstr ""
+
+#: templates/auth/recover-reset.php:53
+msgid "Actualizar contraseña"
+msgstr ""
+
+#: templates/auth/recover.php:10
+#: templates/auth/recover.php:13
+msgid "Recuperar contraseña"
+msgstr ""
+
+#: templates/auth/recover.php:14
+msgid "Te enviamos un link a tu email para restablecerla."
+msgstr ""
+
+#: templates/auth/recover.php:17
+msgid "Si la cuenta existe, te enviamos un email con instrucciones. Revisá tu bandeja de entrada."
+msgstr ""
+
+#: templates/auth/recover.php:22
+msgid "Ingresá tu usuario o email."
+msgstr ""
+
+#: templates/auth/recover.php:40
+msgid "Enviar link"
+msgstr ""
+
+#: templates/auth/recover.php:44
+msgid "Volver a iniciar sesión"
+msgstr ""
+
+#: templates/auth/register.php:26
+msgid "El panel del CEAD es el espacio web donde alumnado y personal gestionan las cosas del colegio: comunicados, horarios, eventos, materiales y más, todo en un solo lugar."
+msgstr ""
+
+#: templates/auth/register.php:27
+msgid "CEADI es el asistente del colegio en WhatsApp. Te acerca comunicados, horarios y novedades, y te deja hacer consultas rápidas cuando las necesites."
+msgstr ""
+
+#: templates/auth/register.php:42
+#: templates/auth/register.php:45
+#: templates/auth/register.php:162
+msgid "Crear cuenta"
+msgstr ""
+
+#: templates/auth/register.php:49
+msgid "El link de invitación no es válido."
+msgstr ""
+
+#: templates/auth/register.php:50
+msgid "Esta invitación ya fue usada."
+msgstr ""
+
+#: templates/auth/register.php:51
+msgid "Esta invitación está expirada."
+msgstr ""
+
+#: templates/auth/register.php:52
+#: templates/auth/register.php:103
+msgid "Esta invitación fue revocada."
+msgstr ""
+
+#: templates/auth/register.php:55
+msgid "Invitación inválida."
+msgstr ""
+
+#: templates/auth/register.php:56
+msgid "Pedile a la dirección o secretaría un nuevo link de invitación."
+msgstr ""
+
+#: templates/auth/register.php:58
+msgid "Ir a iniciar sesión"
+msgstr ""
+
+#. translators: %s: role display name.
+#: templates/auth/register.php:67
+#, php-format
+msgid "Te invitaron como %s. Completá tus datos para activar la cuenta."
+msgstr ""
+
+#: templates/auth/register.php:75
+msgid "¿Qué es el panel del CEAD?"
+msgstr ""
+
+#: templates/auth/register.php:79
+msgid "CEADI · el bot del colegio"
+msgstr ""
+
+#: templates/auth/register.php:85
+msgid "Agregar a CEADI"
+msgstr ""
+
+#: templates/auth/register.php:93
+msgid "Completá todos los campos."
+msgstr ""
+
+#: templates/auth/register.php:94
+msgid "Email inválido."
+msgstr ""
+
+#: templates/auth/register.php:100
+msgid "El número de teléfono es obligatorio."
+msgstr ""
+
+#: templates/auth/register.php:101
+msgid "Este link de invitación ya se utilizó."
+msgstr ""
+
+#: templates/auth/register.php:102
+msgid "Este link de invitación expiró."
+msgstr ""
+
+#: templates/auth/register.php:104
+msgid "No se pudo crear la cuenta. Intentá de nuevo o pedí ayuda a la dirección."
+msgstr ""
+
+#: templates/auth/register.php:105
+msgid "Falta el código de invitación. Volvé a abrir el link que te enviaron."
+msgstr ""
+
+#: templates/auth/register.php:106
+msgid "Elegí tu curso para continuar."
+msgstr ""
+
+#: templates/auth/register.php:134
+msgid "Ej: 0981123456"
+msgstr ""
+
+#: templates/auth/register.php:135
+msgid "Tu número de WhatsApp. Ejemplo: 0981123456"
+msgstr ""
+
+#: templates/auth/register.php:142
+msgid "Elegí tu curso…"
+msgstr ""
+
+#: templates/auth/register.php:147
+msgid "Elegí el curso al que pertenecés."
+msgstr ""
+
+#: templates/auth/register.php:154
+msgid "Mínimo 8 caracteres."
+msgstr ""
+
+#: templates/auth/register.php:166
+msgid "¿Ya tenés cuenta? Iniciá sesión"
+msgstr ""
+
+#: templates/carne/verify.php:40
+msgid "Carné verificado"
+msgstr ""
+
+#: templates/carne/verify.php:40
+msgid "Carné no válido"
+msgstr ""
+
+#: templates/carne/verify.php:59
+msgid "Carné válido"
+msgstr ""
+
+#: templates/carne/verify.php:70
+msgid "No verificado"
+msgstr ""
+
+#: templates/carne/verify.php:71
+msgid "Este carné no es válido o el enlace expiró."
+msgstr ""
+
+#: templates/panel/app/show.php:7
+msgid "Instalar la app"
+msgstr ""
+
+#: templates/panel/app/show.php:12
+msgid "App del CEAD"
+msgstr ""
+
+#: templates/panel/app/show.php:13
+msgid "Instalá el CEAD en tu celular"
+msgstr ""
+
+#: templates/panel/app/show.php:14
+msgid "Agregá el panel a tu pantalla de inicio: se abre como una app, a pantalla completa y entrás de una. Es gratis y no ocupa casi nada."
+msgstr ""
+
+#: templates/panel/app/show.php:18
+msgid "Instalación rápida"
+msgstr ""
+
+#: templates/panel/app/show.php:19
+msgid "Si tu navegador lo permite, tocá el botón. Si no aparece, seguí los pasos manuales de abajo."
+msgstr ""
+
+#: templates/panel/app/show.php:21
+#: templates/panel/partials/sidebar.php:22
+msgid "Instalar app"
+msgstr ""
+
+#: templates/panel/app/show.php:27
+msgid "Android · Chrome"
+msgstr ""
+
+#: templates/panel/app/show.php:28
+#: templates/panel/app/show.php:41
+msgid "Paso a paso"
+msgstr ""
+
+#: templates/panel/app/show.php:30
+msgid "Abrí este panel en Chrome (no dentro de Instagram/Facebook)."
+msgstr ""
+
+#. translators: %s: ícono del menú del navegador
+#: templates/panel/app/show.php:31
+#, php-format
+msgid "Tocá el menú %s (tres puntos, arriba a la derecha)."
+msgstr ""
+
+#. translators: %s: nombre de la opción del menú
+#: templates/panel/app/show.php:32
+#, php-format
+msgid "Elegí %s."
+msgstr ""
+
+#. translators: %s: nombre de la opción del menú
+#: templates/panel/app/show.php:32
+msgid "Agregar a la pantalla principal"
+msgstr ""
+
+#. translators: %s: etiqueta del botón de confirmación
+#: templates/panel/app/show.php:33
+#, php-format
+msgid "Confirmá tocando %s."
+msgstr ""
+
+#. translators: %s: etiqueta del botón de confirmación
+#: templates/panel/app/show.php:33
+msgid "Instalar / Agregar"
+msgstr ""
+
+#. translators: %s: etiqueta del botón de confirmación
+#: templates/panel/app/show.php:34
+msgid "Listo: vas a ver el ícono del CEAD junto a tus otras apps."
+msgstr ""
+
+#: templates/panel/app/show.php:40
+msgid "iPhone · Safari"
+msgstr ""
+
+#: templates/panel/app/show.php:43
+msgid "Abrí este panel en Safari (en iPhone solo funciona con Safari)."
+msgstr ""
+
+#. translators: %s: nombre del botón Compartir
+#: templates/panel/app/show.php:44
+#, php-format
+msgid "Tocá el botón %s (cuadrado con la flecha hacia arriba), abajo en el centro."
+msgstr ""
+
+#. translators: %s: nombre del botón Compartir
+#: templates/panel/app/show.php:44
+msgid "Compartir"
+msgstr ""
+
+#. translators: %s: nombre del botón Compartir
+#: templates/panel/app/show.php:45
+msgid "Deslizá y elegí \"Agregar a inicio\"."
+msgstr ""
+
+#. translators: %s: etiqueta del botón Agregar
+#: templates/panel/app/show.php:46
+#, php-format
+msgid "Tocá %s arriba a la derecha."
+msgstr ""
+
+#. translators: %s: etiqueta del botón Agregar
+#: templates/panel/app/show.php:47
+msgid "Listo: el CEAD queda como una app más en tu pantalla."
+msgstr ""
+
+#: templates/panel/app/show.php:53
+msgid "Computadora · Chrome / Edge"
+msgstr ""
+
+#. translators: 1: ícono de instalar del navegador, 2: etiqueta del botón Instalar
+#: templates/panel/app/show.php:54
+msgid "En la barra de direcciones, a la derecha, tocá el ícono de instalar %1\\$s y luego %2\\$s."
+msgstr ""
+
+#. translators: 1: ícono de instalar del navegador, 2: etiqueta del botón Instalar
+#: templates/panel/app/show.php:54
+msgid "Instalar"
+msgstr ""
+
+#: templates/panel/app/show.php:57
+msgid "Cómo se maneja"
+msgstr ""
+
+#: templates/panel/app/show.php:61
+msgid "Tocás el ícono del CEAD como cualquier app. Abre directo en el panel, sin barra del navegador."
+msgstr ""
+
+#: templates/panel/app/show.php:64
+msgid "Actualizar"
+msgstr ""
+
+#: templates/panel/app/show.php:65
+msgid "Se actualiza sola: cada vez que entrás con internet toma la última versión. No hay que reinstalar."
+msgstr ""
+
+#: templates/panel/app/show.php:68
+msgid "Desinstalar"
+msgstr ""
+
+#: templates/panel/app/show.php:69
+msgid "Mantené presionado el ícono y elegí \"Quitar / Desinstalar\", igual que con cualquier app."
+msgstr ""
+
+#: templates/panel/app/show.php:74
+msgid "No me aparece la opción"
+msgstr ""
+
+#: templates/panel/app/show.php:76
+msgid "Asegurate de abrirlo desde el navegador (Chrome o Safari), no desde un link dentro de Instagram, Facebook o WhatsApp."
+msgstr ""
+
+#: templates/panel/app/show.php:77
+msgid "Si ya lo instalaste antes, no vuelve a ofrecerlo: buscá el ícono en tu pantalla."
+msgstr ""
+
+#: templates/panel/app/show.php:78
+msgid "En iPhone tiene que ser sí o sí con Safari."
+msgstr ""
+
+#: templates/panel/app/show.php:92
+msgid "Seguí los pasos manuales de esta página según tu teléfono. (Tu navegador no ofrece el botón automático.)"
+msgstr ""
+
+#: templates/panel/boletin/show.php:10
+msgid "No tenés permiso para ver boletines."
+msgstr ""
+
+#: templates/panel/boletin/show.php:15
+#: templates/panel/boletin/show.php:21
+#: templates/panel/home.php:49
+#: templates/panel/partials/sidebar.php:27
+msgid "Boletín"
+msgstr ""
+
+#: templates/panel/boletin/show.php:20
+msgid "Tus calificaciones"
+msgstr ""
+
+#: templates/panel/boletin/show.php:26
+#: templates/panel/delegado/dashboard.php:36
+#: templates/panel/encuestas/list.php:50
+msgid "Vacío"
+msgstr ""
+
+#: templates/panel/boletin/show.php:27
+msgid "Sin calificaciones cargadas"
+msgstr ""
+
+#: templates/panel/boletin/show.php:28
+msgid "Cuando dirección o tus docentes carguen notas, vas a verlas acá."
+msgstr ""
+
+#. translators: %s nombre del periodo
+#: templates/panel/boletin/show.php:55
+#, php-format
+msgid "Periodo %s"
+msgstr ""
+
+#: templates/panel/buscar/results.php:46
+#: templates/panel/buscar/results.php:56
+msgid "Buscar"
+msgstr ""
+
+#: templates/panel/buscar/results.php:51
+msgid "Búsqueda"
+msgstr ""
+
+#: templates/panel/buscar/results.php:52
+#: templates/panel/partials/topbar.php:30
+msgid "Buscar en el panel"
+msgstr ""
+
+#: templates/panel/buscar/results.php:55
+msgid "Comunicados, eventos, recursos…"
+msgstr ""
+
+#: templates/panel/buscar/results.php:60
+msgid "Escribí algo para buscar en tus comunicados, eventos y recursos."
+msgstr ""
+
+#: templates/panel/buscar/results.php:63
+#: templates/panel/recursos/list.php:71
+msgid "Sin resultados"
+msgstr ""
+
+#. translators: %s: término buscado
+#: templates/panel/buscar/results.php:64
+#, php-format
+msgid "No encontramos nada para “%s”."
+msgstr ""
+
+#. translators: %d: cantidad de resultados
+#: templates/panel/buscar/results.php:67
+#, php-format
+msgid "%d resultado"
+msgid_plural "%d resultados"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/panel/buzon/list.php:14
+msgid "No tenés permiso para ver el buzón."
+msgstr ""
+
+#: templates/panel/buzon/list.php:91
+msgid "Respuesta guardada."
+msgstr ""
+
+#: templates/panel/buzon/list.php:92
+msgid "Aceptado."
+msgstr ""
+
+#: templates/panel/buzon/list.php:93
+msgid "Rechazado."
+msgstr ""
+
+#: templates/panel/buzon/list.php:94
+msgid "Marcado como \"No es un reporte\"."
+msgstr ""
+
+#: templates/panel/buzon/list.php:95
+msgid "Movido a la papelera."
+msgstr ""
+
+#: templates/panel/buzon/list.php:96
+msgid "Restaurado."
+msgstr ""
+
+#: templates/panel/buzon/list.php:97
+msgid "Borrado definitivamente."
+msgstr ""
+
+#: templates/panel/buzon/list.php:113
+msgid "Consejo"
+msgstr ""
+
+#: templates/panel/buzon/list.php:113
+#: templates/panel/buzon/list.php:114
+msgid "Administración"
+msgstr ""
+
+#: templates/panel/buzon/list.php:117
+#: templates/panel/buzon/list.php:125
+#: templates/panel/home.php:53
+#: templates/panel/partials/sidebar.php:32
+msgid "Buzón"
+msgstr ""
+
+#: templates/panel/buzon/list.php:124
+msgid "Coordinación"
+msgstr ""
+
+#: templates/panel/buzon/list.php:126
+msgid "Reportes y sugerencias del alumnado. Las respuestas se avisan por WhatsApp si dejaron número."
+msgstr ""
+
+#: templates/panel/buzon/list.php:132
+msgid "Sugerencias"
+msgstr ""
+
+#: templates/panel/buzon/list.php:134
+msgid "No hay sugerencias."
+msgstr ""
+
+#: templates/panel/buzon/list.php:145
+#: templates/panel/buzon/list.php:184
+msgid "Respuesta:"
+msgstr ""
+
+#: templates/panel/buzon/list.php:152
+msgid "Respuesta (opcional)…"
+msgstr ""
+
+#: templates/panel/buzon/list.php:154
+#: templates/panel/buzon/list.php:193
+msgid "Responder"
+msgstr ""
+
+#: templates/panel/buzon/list.php:155
+#: templates/panel/buzon/list.php:194
+msgid "Aceptar"
+msgstr ""
+
+#: templates/panel/buzon/list.php:156
+msgid "Negar"
+msgstr ""
+
+#: templates/panel/buzon/list.php:157
+#: templates/panel/buzon/list.php:196
+msgid "¿Mover a la papelera?"
+msgstr ""
+
+#: templates/panel/buzon/list.php:157
+#: templates/panel/buzon/list.php:196
+msgid "Borrar"
+msgstr ""
+
+#: templates/panel/buzon/list.php:173
+msgid "Confidencial"
+msgstr ""
+
+#: templates/panel/buzon/list.php:173
+msgid "Anónimo"
+msgstr ""
+
+#: templates/panel/buzon/list.php:181
+msgid "Notas:"
+msgstr ""
+
+#: templates/panel/buzon/list.php:191
+msgid "Respuesta (se envía por WhatsApp)…"
+msgstr ""
+
+#: templates/panel/buzon/list.php:191
+msgid "Nota interna (anónimo: no se puede responder)…"
+msgstr ""
+
+#: templates/panel/buzon/list.php:195
+msgid "No es un reporte"
+msgstr ""
+
+#: templates/panel/buzon/list.php:203
+msgid "Papelera"
+msgstr ""
+
+#: templates/panel/buzon/list.php:204
+msgid "Borrados temporalmente. Podés restaurarlos o borrarlos definitivamente."
+msgstr ""
+
+#: templates/panel/buzon/list.php:217
+msgid "Restaurar"
+msgstr ""
+
+#: templates/panel/buzon/list.php:218
+msgid "¿Borrar para siempre?"
+msgstr ""
+
+#: templates/panel/buzon/list.php:218
+msgid "Borrar definitivo"
+msgstr ""
+
+#: templates/panel/calendario/list.php:65
+#: templates/panel/calendario/list.php:75
+#: templates/panel/calendario/single.php:44
+#: templates/panel/home.php:43
+#: templates/panel/partials/sidebar.php:16
+msgid "Calendario"
+msgstr ""
+
+#: templates/panel/calendario/list.php:69
+msgid "Lun"
+msgstr ""
+
+#: templates/panel/calendario/list.php:69
+msgid "Mar"
+msgstr ""
+
+#: templates/panel/calendario/list.php:69
+msgid "Mié"
+msgstr ""
+
+#: templates/panel/calendario/list.php:69
+msgid "Jue"
+msgstr ""
+
+#: templates/panel/calendario/list.php:69
+msgid "Vie"
+msgstr ""
+
+#: templates/panel/calendario/list.php:69
+msgid "Sáb"
+msgstr ""
+
+#: templates/panel/calendario/list.php:69
+msgid "Dom"
+msgstr ""
+
+#: templates/panel/calendario/list.php:80
+msgid "Mes"
+msgstr ""
+
+#: templates/panel/calendario/list.php:81
+#: templates/panel/horarios/single.php:44
+#: templates/panel/tareas/list.php:98
+msgid "Agenda"
+msgstr ""
+
+#: templates/panel/calendario/list.php:83
+msgid "iCal"
+msgstr ""
+
+#: templates/panel/calendario/list.php:88
+msgid "Sincronizar con el calendario de mi celular"
+msgstr ""
+
+#: templates/panel/calendario/list.php:90
+msgid "Agregalo una vez y los eventos del CEAD aparecen (y se actualizan) solos en tu calendario."
+msgstr ""
+
+#: templates/panel/calendario/list.php:92
+msgid "Agregar (iPhone / Apple)"
+msgstr ""
+
+#: templates/panel/calendario/list.php:93
+msgid "Agregar a Google Calendar"
+msgstr ""
+
+#: templates/panel/calendario/list.php:96
+msgid "O copiá este enlace y agregalo en tu app de calendario:"
+msgstr ""
+
+#: templates/panel/calendario/list.php:99
+msgid "Android: Google Calendar → Configuración → Agregar calendario → Desde URL. iPhone: el botón de Apple lo agrega directo."
+msgstr ""
+
+#: templates/panel/calendario/list.php:105
+#: templates/panel/comunicados/feed.php:70
+#: templates/panel/recursos/list.php:108
+msgid "Anterior"
+msgstr ""
+
+#: templates/panel/calendario/list.php:106
+msgid "Hoy"
+msgstr ""
+
+#: templates/panel/calendario/list.php:107
+#: templates/panel/comunicados/feed.php:73
+#: templates/panel/recursos/list.php:111
+msgid "Siguiente"
+msgstr ""
+
+#. translators: %d: cantidad de eventos adicionales del día
+#: templates/panel/calendario/list.php:137
+#, php-format
+msgid "+%d más"
+msgstr ""
+
+#: templates/panel/calendario/list.php:148
+msgid "Sin eventos"
+msgstr ""
+
+#: templates/panel/calendario/list.php:149
+msgid "No hay eventos próximos"
+msgstr ""
+
+#: templates/panel/calendario/list.php:150
+msgid "Cuando dirección o tus docentes publiquen eventos, aparecerán acá."
+msgstr ""
+
+#: templates/panel/calendario/single.php:18
+#: templates/panel/comunicados/single.php:14
+#: templates/panel/comunicados/single.php:19
+#: templates/panel/horarios/single.php:18
+#: templates/panel/recursos/single.php:18
+msgid "No encontrado"
+msgstr ""
+
+#: templates/panel/calendario/single.php:22
+#: templates/panel/encuestas/take.php:22
+#: templates/panel/horarios/single.php:22
+#: templates/panel/recursos/single.php:22
+msgid "Error"
+msgstr ""
+
+#: templates/panel/calendario/single.php:23
+#: templates/panel/horarios/single.php:23
+msgid "Evento no disponible"
+msgstr ""
+
+#: templates/panel/calendario/single.php:24
+msgid "Volver al calendario"
+msgstr ""
+
+#: templates/panel/carne/show.php:26
+#: templates/panel/home.php:46
+#: templates/panel/partials/sidebar.php:20
+msgid "Mi carné"
+msgstr ""
+
+#: templates/panel/carne/show.php:31
+msgid "Identificación"
+msgstr ""
+
+#: templates/panel/carne/show.php:32
+msgid "Mi carné digital"
+msgstr ""
+
+#: templates/panel/carne/show.php:33
+msgid "Mostralo en la entrada o escaneá el QR para verificarlo."
+msgstr ""
+
+#: templates/panel/carne/show.php:51
+msgid "Curso:"
+msgstr ""
+
+#: templates/panel/carne/show.php:52
+msgid "Doc:"
+msgstr ""
+
+#: templates/panel/carne/show.php:53
+msgid "ID:"
+msgstr ""
+
+#: templates/panel/carne/show.php:56
+msgid "Código QR de verificación"
+msgstr ""
+
+#: templates/panel/carne/show.php:57
+msgid "Escaneá para verificar"
+msgstr ""
+
+#: templates/panel/carne/show.php:63
+msgid "Imprimir / Guardar PDF"
+msgstr ""
+
+#: templates/panel/carne/show.php:64
+msgid "Abrir verificación"
+msgstr ""
+
+#: templates/panel/carne/show.php:65
+msgid "Cambiar foto"
+msgstr ""
+
+#: templates/panel/comunicados/feed.php:27
+msgid "Tu feed"
+msgstr ""
+
+#: templates/panel/comunicados/feed.php:28
+msgid "Mostramos los comunicados publicados que están dirigidos a tu rol, curso, cohorte o personalmente."
+msgstr ""
+
+#: templates/panel/comunicados/feed.php:31
+msgid "Filtrar por categoría"
+msgstr ""
+
+#: templates/panel/comunicados/feed.php:32
+msgid "Todas"
+msgstr ""
+
+#: templates/panel/comunicados/feed.php:42
+msgid "Sin comunicados"
+msgstr ""
+
+#: templates/panel/comunicados/feed.php:43
+msgid "Bandeja vacía"
+msgstr ""
+
+#: templates/panel/comunicados/feed.php:44
+msgid "Cuando dirección o secretaría publique un comunicado dirigido a vos, aparecerá acá."
+msgstr ""
+
+#: templates/panel/comunicados/single.php:18
+msgid "Error 404"
+msgstr ""
+
+#: templates/panel/comunicados/single.php:20
+msgid "El comunicado no existe o no está publicado."
+msgstr ""
+
+#: templates/panel/comunicados/single.php:21
+#: templates/panel/comunicados/single.php:37
+msgid "Volver al feed"
+msgstr ""
+
+#: templates/panel/comunicados/single.php:31
+msgid "Sin acceso"
+msgstr ""
+
+#: templates/panel/comunicados/single.php:35
+msgid "Acceso denegado"
+msgstr ""
+
+#: templates/panel/comunicados/single.php:36
+msgid "No tenés permiso para ver este comunicado"
+msgstr ""
+
+#: templates/panel/contacto/show.php:8
+#: templates/panel/contacto/show.php:24
+#: templates/panel/partials/sidebar.php:13
+msgid "Escribir al CEAD"
+msgstr ""
+
+#: templates/panel/contacto/show.php:18
+msgid "Consejo Estudiantil"
+msgstr ""
+
+#: templates/panel/contacto/show.php:19
+msgid "Administración / Secretaría"
+msgstr ""
+
+#: templates/panel/contacto/show.php:23
+msgid "Mensajes"
+msgstr ""
+
+#: templates/panel/contacto/show.php:25
+msgid "Mandá un mensaje directo a Dirección, al Consejo o a Administración. Lo reciben en su buzón y te responden."
+msgstr ""
+
+#: templates/panel/contacto/show.php:28
+msgid "Mensaje enviado. Te van a responder pronto."
+msgstr ""
+
+#: templates/panel/contacto/show.php:30
+msgid "Escribí un mensaje antes de enviar."
+msgstr ""
+
+#: templates/panel/contacto/show.php:32
+msgid "Tu mensaje contiene lenguaje no permitido. Reformulalo, por favor."
+msgstr ""
+
+#: templates/panel/contacto/show.php:40
+msgid "Para"
+msgstr ""
+
+#: templates/panel/contacto/show.php:49
+msgid "Tu mensaje"
+msgstr ""
+
+#: templates/panel/contacto/show.php:50
+msgid "Escribí tu consulta o mensaje…"
+msgstr ""
+
+#: templates/panel/delegado/dashboard.php:10
+msgid "Esta sección es solo para delegados/as y dirección."
+msgstr ""
+
+#: templates/panel/delegado/dashboard.php:17
+#: templates/panel/delegado/dashboard.php:23
+#: templates/panel/partials/sidebar.php:44
+msgid "Tareas del curso"
+msgstr ""
+
+#: templates/panel/delegado/dashboard.php:22
+msgid "Panel del delegado/a"
+msgstr ""
+
+#. translators: %s: lista de cursos asignados al delegado
+#: templates/panel/delegado/dashboard.php:28
+#, php-format
+msgid "Cursos a tu cargo: %s."
+msgstr ""
+
+#: templates/panel/delegado/dashboard.php:30
+msgid "Todavía no estás asignado/a a un curso."
+msgstr ""
+
+#: templates/panel/delegado/dashboard.php:37
+msgid "Sin tareas asignadas"
+msgstr ""
+
+#: templates/panel/delegado/dashboard.php:38
+msgid "Cuando dirección o secretaría asigne tareas al curso, aparecerán acá."
+msgstr ""
+
+#: templates/panel/delegado/dashboard.php:43
+#: templates/panel/tareas/list.php:117
+msgid "Pendientes"
+msgstr ""
+
+#. translators: %s: fecha de vencimiento de la tarea
+#: templates/panel/delegado/dashboard.php:57
+#, php-format
+msgid "Vence: %s"
+msgstr ""
+
+#: templates/panel/delegado/dashboard.php:71
+msgid "Marcar en curso"
+msgstr ""
+
+#: templates/panel/delegado/dashboard.php:73
+msgid "Marcar como hecha"
+msgstr ""
+
+#: templates/panel/delegado/dashboard.php:81
+msgid "Completadas"
+msgstr ""
+
+#: templates/panel/direccion/dashboard.php:8
+msgid "Esta sección es solo para dirección."
+msgstr ""
+
+#: templates/panel/direccion/dashboard.php:113
+msgid "Métricas generales"
+msgstr ""
+
+#: templates/panel/direccion/dashboard.php:115
+msgid "Estado actual del CEAD digital: comunidad, actividad y compromiso."
+msgstr ""
+
+#: templates/panel/direccion/dashboard.php:118
+msgid "Alumnos/as"
+msgstr ""
+
+#: templates/panel/direccion/dashboard.php:119
+msgid "Delegados/as"
+msgstr ""
+
+#: templates/panel/direccion/dashboard.php:122
+msgid "Inscripciones activas"
+msgstr ""
+
+#: templates/panel/direccion/dashboard.php:125
+msgid "Contenido publicado"
+msgstr ""
+
+#: templates/panel/direccion/dashboard.php:133
+msgid "Compromiso (engagement)"
+msgstr ""
+
+#: templates/panel/direccion/dashboard.php:137
+msgid "Último comunicado · Tasa de lectura"
+msgstr ""
+
+#. translators: 1: cantidad de lecturas, 2: cantidad de destinatarios
+#: templates/panel/direccion/dashboard.php:144
+#, php-format
+msgid "%1$d de %2$d destinatarios leyeron el comunicado."
+msgstr ""
+
+#: templates/panel/direccion/dashboard.php:155
+msgid "Última encuesta · Tasa de respuesta"
+msgstr ""
+
+#. translators: 1: cantidad de respuestas, 2: cantidad de destinatarios
+#: templates/panel/direccion/dashboard.php:162
+#, php-format
+msgid "%1$d respuestas de %2$d destinatarios."
+msgstr ""
+
+#: templates/panel/direccion/dashboard.php:173
+#: templates/panel/home.php:102
+msgid "Próximos eventos"
+msgstr ""
+
+#: templates/panel/encuestas/list.php:45
+msgid "Tu actividad"
+msgstr ""
+
+#: templates/panel/encuestas/list.php:46
+msgid "Estas son las encuestas dirigidas a vos."
+msgstr ""
+
+#: templates/panel/encuestas/list.php:51
+msgid "Sin encuestas"
+msgstr ""
+
+#: templates/panel/encuestas/list.php:52
+msgid "No tenés encuestas dirigidas en este momento."
+msgstr ""
+
+#: templates/panel/encuestas/list.php:57
+msgid "Pendientes de responder"
+msgstr ""
+
+#. translators: %s: fecha y hora de cierre de la encuesta
+#: templates/panel/encuestas/list.php:66
+#: templates/panel/encuestas/take.php:50
+#, php-format
+msgid "Cierra el %s"
+msgstr ""
+
+#. translators: %s: fecha y hora de cierre de la encuesta
+#: templates/panel/encuestas/list.php:67
+msgid "Abierta"
+msgstr ""
+
+#: templates/panel/encuestas/list.php:80
+msgid "Ya respondidas"
+msgstr ""
+
+#: templates/panel/encuestas/list.php:85
+msgid "Respondida"
+msgstr ""
+
+#: templates/panel/encuestas/list.php:94
+msgid "Cerradas"
+msgstr ""
+
+#: templates/panel/encuestas/list.php:99
+msgid "Cerrada"
+msgstr ""
+
+#: templates/panel/encuestas/take.php:18
+msgid "No encontrada"
+msgstr ""
+
+#: templates/panel/encuestas/take.php:23
+msgid "Encuesta no disponible"
+msgstr ""
+
+#: templates/panel/encuestas/take.php:24
+msgid "Volver"
+msgstr ""
+
+#: templates/panel/encuestas/take.php:47
+msgid "Anónima"
+msgstr ""
+
+#: templates/panel/encuestas/take.php:47
+msgid "Nominal"
+msgstr ""
+
+#: templates/panel/encuestas/take.php:63
+msgid "¡Gracias! Tu respuesta fue registrada."
+msgstr ""
+
+#: templates/panel/encuestas/take.php:68
+msgid "La encuesta está cerrada."
+msgstr ""
+
+#: templates/panel/encuestas/take.php:69
+msgid "No tenés permiso para responder esta encuesta."
+msgstr ""
+
+#: templates/panel/encuestas/take.php:71
+msgid "Faltan respuestas obligatorias."
+msgstr ""
+
+#: templates/panel/encuestas/take.php:72
+msgid "Solicitud inválida."
+msgstr ""
+
+#: templates/panel/encuestas/take.php:73
+msgid "La encuesta no tiene preguntas configuradas."
+msgstr ""
+
+#: templates/panel/encuestas/take.php:80
+msgid "La encuesta está cerrada y no acepta más respuestas."
+msgstr ""
+
+#: templates/panel/encuestas/take.php:82
+msgid "Ya respondiste esta encuesta. ¡Gracias!"
+msgstr ""
+
+#: templates/panel/encuestas/take.php:146
+msgid "Enviar respuestas"
+msgstr ""
+
+#: templates/panel/faq/list.php:14
+msgid "Ayuda"
+msgstr ""
+
+#: templates/panel/faq/list.php:16
+msgid "Respuestas a las dudas más comunes del CEAD."
+msgstr ""
+
+#: templates/panel/faq/list.php:20
+msgid "Todavía no hay preguntas"
+msgstr ""
+
+#: templates/panel/faq/list.php:21
+msgid "Cuando el equipo del CEAD cargue preguntas frecuentes, aparecerán acá."
+msgstr ""
+
+#: templates/panel/home.php:42
+msgid "Mi horario"
+msgstr ""
+
+#: templates/panel/home.php:56
+#: templates/panel/partials/sidebar.php:11
+msgid "Inicio"
+msgstr ""
+
+#. translators: %s: nombre del usuario
+#: templates/panel/home.php:64
+#, php-format
+msgid "Hola, %s 👋"
+msgstr ""
+
+#. translators: %s: rol del usuario
+#: templates/panel/home.php:65
+#, php-format
+msgid "Estás en el panel del CEAD como %s."
+msgstr ""
+
+#: templates/panel/home.php:80
+msgid "Clases de hoy"
+msgstr ""
+
+#: templates/panel/home.php:95
+msgid "¡Buen finde!"
+msgstr ""
+
+#: templates/panel/home.php:95
+msgid "Sin clases cargadas"
+msgstr ""
+
+#: templates/panel/home.php:96
+msgid "Tu horario de hoy aparecerá acá cuando esté cargado."
+msgstr ""
+
+#: templates/panel/home.php:114
+msgid "Ver el calendario completo →"
+msgstr ""
+
+#: templates/panel/home.php:116
+msgid "Nada por ahora"
+msgstr ""
+
+#: templates/panel/home.php:117
+msgid "No hay eventos próximos en tu calendario."
+msgstr ""
+
+#: templates/panel/home.php:124
+msgid "Últimos comunicados"
+msgstr ""
+
+#. translators: %d: cantidad de comunicados sin leer
+#: templates/panel/home.php:125
+#, php-format
+msgid "%d sin leer"
+msgid_plural "%d sin leer"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/panel/home.php:133
+msgid "Nuevo"
+msgstr ""
+
+#: templates/panel/home.php:141
+msgid "No hay comunicados todavía."
+msgstr ""
+
+#: templates/panel/horarios/list.php:23
+msgid "Lunes"
+msgstr ""
+
+#: templates/panel/horarios/list.php:23
+msgid "Martes"
+msgstr ""
+
+#: templates/panel/horarios/list.php:23
+msgid "Miércoles"
+msgstr ""
+
+#: templates/panel/horarios/list.php:23
+msgid "Jueves"
+msgstr ""
+
+#: templates/panel/horarios/list.php:23
+msgid "Viernes"
+msgstr ""
+
+#: templates/panel/horarios/list.php:23
+msgid "Sábado"
+msgstr ""
+
+#: templates/panel/horarios/list.php:23
+msgid "Domingo"
+msgstr ""
+
+#: templates/panel/horarios/list.php:43
+msgid "Tu horario"
+msgstr ""
+
+#: templates/panel/horarios/list.php:44
+msgid "Tu horario semanal de clases. Para eventos y reuniones mirá el Calendario."
+msgstr ""
+
+#: templates/panel/horarios/list.php:48
+msgid "No estás asignado/a a un curso"
+msgstr ""
+
+#: templates/panel/horarios/list.php:49
+msgid "Pedile a secretaría que te asigne a tu curso para ver el horario."
+msgstr ""
+
+#: templates/panel/horarios/list.php:53
+msgid "Horario sin cargar"
+msgstr ""
+
+#: templates/panel/horarios/list.php:54
+msgid "El horario de materias de tu curso todavía no fue cargado."
+msgstr ""
+
+#: templates/panel/horarios/single.php:24
+msgid "Volver a la agenda"
+msgstr ""
+
+#: templates/panel/partials/sidebar.php:17
+#: templates/panel/tareas/list.php:23
+#: templates/panel/tareas/list.php:99
+msgid "Mis tareas"
+msgstr ""
+
+#: templates/panel/partials/sidebar.php:21
+#: templates/panel/perfil/show.php:22
+#: templates/panel/perfil/show.php:34
+msgid "Mi perfil"
+msgstr ""
+
+#: templates/panel/partials/sidebar.php:38
+#: templates/panel/partials/sidebar.php:41
+#: templates/panel/secretaria/dashboard.php:28
+#: templates/panel/secretaria/dashboard.php:34
+msgid "Secretaría"
+msgstr ""
+
+#: templates/panel/partials/sidebar.php:52
+msgid "Menú del panel"
+msgstr ""
+
+#: templates/panel/partials/topbar.php:19
+msgid "Abrir menú"
+msgstr ""
+
+#: templates/panel/partials/topbar.php:30
+msgid "Buscar…"
+msgstr ""
+
+#: templates/panel/partials/topbar.php:33
+msgid "Cambiar tema claro/oscuro"
+msgstr ""
+
+#: templates/panel/partials/topbar.php:38
+msgid "Notificaciones"
+msgstr ""
+
+#: templates/panel/partials/topbar.php:44
+msgid "Novedades"
+msgstr ""
+
+#: templates/panel/partials/topbar.php:49
+msgid "Marcar todo leído"
+msgstr ""
+
+#: templates/panel/partials/topbar.php:65
+msgid "Estás al día 🎉"
+msgstr ""
+
+#: templates/panel/perfil/show.php:28
+msgid "El archivo debe ser una imagen."
+msgstr ""
+
+#: templates/panel/perfil/show.php:29
+msgid "No se pudo subir la imagen. Probá con otra."
+msgstr ""
+
+#: templates/panel/perfil/show.php:33
+msgid "Cuenta"
+msgstr ""
+
+#: templates/panel/perfil/show.php:35
+msgid "Actualizá tu foto y tus datos de contacto."
+msgstr ""
+
+#: templates/panel/perfil/show.php:38
+msgid "Perfil actualizado."
+msgstr ""
+
+#: templates/panel/perfil/show.php:88
+msgid "Ver mi carné"
+msgstr ""
+
+#: templates/panel/perfil/show.php:99
+msgid "Primero cargá y guardá tu teléfono arriba."
+msgstr ""
+
+#: templates/panel/perfil/show.php:100
+msgid "Esperá un minuto antes de pedir otro código."
+msgstr ""
+
+#: templates/panel/perfil/show.php:101
+msgid "No se pudo enviar el código (¿CEADI está conectado?)."
+msgstr ""
+
+#: templates/panel/perfil/show.php:102
+msgid "El código venció. Pedí uno nuevo."
+msgstr ""
+
+#: templates/panel/perfil/show.php:103
+msgid "Código incorrecto. Revisá e intentá de nuevo."
+msgstr ""
+
+#: templates/panel/perfil/show.php:109
+msgid "Verificación de tu número"
+msgstr ""
+
+#: templates/panel/perfil/show.php:110
+msgid "Verificado"
+msgstr ""
+
+#: templates/panel/perfil/show.php:112
+msgid "Verificá tu teléfono para confirmar que es tuyo y que CEADI pueda atenderte por WhatsApp."
+msgstr ""
+
+#: templates/panel/perfil/show.php:115
+msgid "¡Número verificado! 🎉"
+msgstr ""
+
+#: templates/panel/perfil/show.php:117
+msgid "Te enviamos un código por WhatsApp. Ingresalo abajo."
+msgstr ""
+
+#: templates/panel/perfil/show.php:127
+msgid "Enviarme un código por WhatsApp"
+msgstr ""
+
+#: templates/panel/perfil/show.php:133
+msgid "Código"
+msgstr ""
+
+#: templates/panel/perfil/show.php:136
+msgid "Verificar"
+msgstr ""
+
+#: templates/panel/recursos/list.php:39
+#: templates/panel/recursos/single.php:42
+msgid "Biblioteca"
+msgstr ""
+
+#: templates/panel/recursos/list.php:40
+msgid "Recursos pedagógicos"
+msgstr ""
+
+#: templates/panel/recursos/list.php:41
+msgid "Mapas conceptuales, PDFs, enlaces y materiales compartidos para tus materias."
+msgstr ""
+
+#: templates/panel/recursos/list.php:44
+msgid "Buscar..."
+msgstr ""
+
+#: templates/panel/recursos/list.php:48
+msgid "Todas las materias"
+msgstr ""
+
+#: templates/panel/recursos/list.php:57
+msgid "Todos los tipos"
+msgstr ""
+
+#: templates/panel/recursos/list.php:66
+msgid "Favoritos"
+msgstr ""
+
+#: templates/panel/recursos/list.php:72
+msgid "Nada para mostrar"
+msgstr ""
+
+#: templates/panel/recursos/list.php:73
+msgid "No hay recursos que coincidan con los filtros actuales."
+msgstr ""
+
+#: templates/panel/recursos/list.php:88
+msgid "Favorito"
+msgstr ""
+
+#: templates/panel/recursos/single.php:23
+msgid "Recurso no disponible"
+msgstr ""
+
+#: templates/panel/recursos/single.php:24
+msgid "Volver a la biblioteca"
+msgstr ""
+
+#: templates/panel/recursos/single.php:73
+msgid "Abrir recurso"
+msgstr ""
+
+#: templates/panel/secretaria/dashboard.php:8
+msgid "Esta sección es solo para secretaría y dirección."
+msgstr ""
+
+#: templates/panel/secretaria/dashboard.php:33
+msgid "Hub administrativo"
+msgstr ""
+
+#: templates/panel/secretaria/dashboard.php:35
+msgid "Acceso rápido a invitaciones, cursos, alumnado e importadores."
+msgstr ""
+
+#: templates/panel/secretaria/dashboard.php:39
+msgid "Invitaciones vigentes"
+msgstr ""
+
+#: templates/panel/secretaria/dashboard.php:41
+msgid "Gestionar →"
+msgstr ""
+
+#: templates/panel/secretaria/dashboard.php:44
+msgid "Cursos publicados"
+msgstr ""
+
+#: templates/panel/secretaria/dashboard.php:46
+msgid "Ver cursos →"
+msgstr ""
+
+#: templates/panel/secretaria/dashboard.php:51
+msgid "Listar →"
+msgstr ""
+
+#: templates/panel/secretaria/dashboard.php:54
+msgid "Borradores comunicados"
+msgstr ""
+
+#: templates/panel/secretaria/dashboard.php:56
+msgid "Editar →"
+msgstr ""
+
+#: templates/panel/secretaria/dashboard.php:63
+msgid "Sin importaciones todavía."
+msgstr ""
+
+#: templates/panel/secretaria/dashboard.php:63
+msgid "Subir CSV →"
+msgstr ""
+
+#. translators: 1: filas importadas OK, 2: filas con error, 3: fecha de importación
+#: templates/panel/secretaria/dashboard.php:77
+#, php-format
+msgid "%1$d OK · %2$d errores · %3$s"
+msgstr ""
+
+#: templates/panel/secretaria/dashboard.php:94
+msgid "Crear tokens para sumar usuarios al sistema."
+msgstr ""
+
+#: templates/panel/secretaria/dashboard.php:99
+msgid "Publicar un comunicado dirigido."
+msgstr ""
+
+#: templates/panel/secretaria/dashboard.php:103
+msgid "Importar CSV"
+msgstr ""
+
+#: templates/panel/secretaria/dashboard.php:104
+msgid "Alumnado o calificaciones."
+msgstr ""
+
+#: templates/panel/shell.php:38
+msgid "Centro Educativo de Alto Desempeño"
+msgstr ""
+
+#: templates/panel/tareas/list.php:44
+msgid "vencida"
+msgstr ""
+
+#: templates/panel/tareas/list.php:45
+msgid "vence hoy"
+msgstr ""
+
+#. translators: %d: días restantes hasta el vencimiento
+#: templates/panel/tareas/list.php:47
+#, php-format
+msgid "en %d día"
+msgid_plural "en %d días"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/panel/tareas/list.php:74
+msgid "↩ Marcar como pendiente"
+msgstr ""
+
+#: templates/panel/tareas/list.php:74
+msgid "✓ Marcar como hecha"
+msgstr ""
+
+#: templates/panel/tareas/list.php:84
+msgid "Reemplazar entrega"
+msgstr ""
+
+#: templates/panel/tareas/list.php:84
+msgid "Subir entrega"
+msgstr ""
+
+#: templates/panel/tareas/list.php:86
+msgid "Enviar"
+msgstr ""
+
+#: templates/panel/tareas/list.php:91
+msgid "Ver mi entrega"
+msgstr ""
+
+#: templates/panel/tareas/list.php:100
+msgid "Tareas y entregas de tu curso. Marcá lo que vas completando."
+msgstr ""
+
+#: templates/panel/tareas/list.php:103
+msgid "Entrega subida."
+msgstr ""
+
+#: templates/panel/tareas/list.php:105
+msgid "No se pudo subir la entrega. Probá de nuevo."
+msgstr ""
+
+#: templates/panel/tareas/list.php:110
+msgid "Todo tranquilo"
+msgstr ""
+
+#: templates/panel/tareas/list.php:111
+msgid "No tenés tareas"
+msgstr ""
+
+#: templates/panel/tareas/list.php:112
+msgid "Cuando el delegado o un docente cargue tareas para tu curso, aparecerán acá."
+msgstr ""
+
+#: templates/panel/tareas/list.php:124
+msgid "Hechas"
+msgstr ""

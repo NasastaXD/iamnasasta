@@ -1,0 +1,36 @@
+name: Empaquetar plugin y tema
+
+# Manual: arma cead-acad.zip (plugin) y cead-theme.zip (tema) como artefactos
+# descargables. Los Releases se crean aparte, adjuntando el zip que corresponda
+# (plugin → cead-acad.zip; tema → cead-theme.zip, marcado como prerelease).
+#
+# Nota: NO se dispara en "release: published" a propósito, porque en este
+# monorepo conviven plugin y tema; adjuntar el asset equivocado rompería el
+# auto-update. El asset se sube al crear cada Release.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-zips:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Construir zips
+        run: |
+          mkdir -p build/cead-acad build/cead
+          cp -r cead-acad/. build/cead-acad/
+          cp -r cead/. build/cead/
+          ( cd build && zip -rq ../cead-acad.zip cead-acad -x '*/.git/*' '*/.DS_Store' )
+          ( cd build && zip -rq ../cead-theme.zip cead   -x '*/.git/*' '*/.DS_Store' )
+          ls -la cead-acad.zip cead-theme.zip
+
+      - name: Subir artefactos
+        uses: actions/upload-artifact@v4
+        with:
+          name: cead-zips
+          path: |
+            cead-acad.zip
+            cead-theme.zip

@@ -1,0 +1,10 @@
+# Dependencias de desarrollo (raíz del monorepo). OJO: cead-acad/vendor/
+# contiene plugin-update-checker vendoreado a mano y SÍ se versiona.
+/vendor/
+
+# PHPUnit
+.phpunit.result.cache
+.phpunit.cache/
+
+# Sistema
+.DS_Store
