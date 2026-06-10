@@ -117,6 +117,10 @@ class Cead_Acad_Schedule_Feed {
 		$lines[] = 'CALSCALE:GREGORIAN';
 		$lines[] = 'METHOD:PUBLISH';
 		$lines[] = 'X-WR-CALNAME:' . self::ical_escape( get_bloginfo( 'name' ) . ' · CEAD' );
+		$lines[] = 'X-WR-TIMEZONE:' . self::ical_escape( wp_timezone_string() );
+		// Hints de refresco para clientes que suscriben (Google/Apple/Outlook).
+		$lines[] = 'X-PUBLISHED-TTL:PT1H';
+		$lines[] = 'REFRESH-INTERVAL;VALUE=DURATION:PT1H';
 		foreach ( $events as $e ) {
 			$start = (string) get_post_meta( $e->ID, '_cead_acad_event_start', true );
 			$end   = (string) get_post_meta( $e->ID, '_cead_acad_event_end',   true );
@@ -142,15 +146,48 @@ class Cead_Acad_Schedule_Feed {
 		}
 		$lines[] = 'END:VCALENDAR';
 
-		return implode( "\r\n", $lines );
+		// Folding RFC 5545: líneas de máximo 75 octetos, continuación con espacio.
+		$folded = array_map( [ __CLASS__, 'ical_fold' ], $lines );
+
+		return implode( "\r\n", $folded );
 	}
 
+	/**
+	 * Convierte el datetime local del sitio a UTC para iCal. Los eventos se
+	 * guardan en hora local de WordPress; interpretar con strtotime() usaría
+	 * la TZ de PHP (normalmente UTC en el server) y correría los horarios.
+	 */
 	protected static function ical_date( $datetime, $modifier = null ) {
-		$ts = strtotime( $datetime );
-		if ( $modifier ) {
-			$ts = strtotime( $modifier, $ts );
+		try {
+			$dt = new DateTimeImmutable( $datetime, wp_timezone() );
+		} catch ( Exception $e ) {
+			return gmdate( 'Ymd\THis\Z' );
 		}
-		return gmdate( 'Ymd\THis\Z', $ts );
+		if ( $modifier ) {
+			$dt = $dt->modify( $modifier );
+		}
+		return $dt->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Ymd\THis\Z' );
+	}
+
+	/** Pliega una línea iCal a 75 octetos (RFC 5545 §3.1). */
+	protected static function ical_fold( $line ) {
+		if ( strlen( $line ) <= 75 ) {
+			return $line;
+		}
+		$out   = '';
+		$first = true;
+		while ( $line !== '' ) {
+			$max = $first ? 75 : 74;
+			// No cortar en medio de un carácter UTF-8 multibyte.
+			$chunk = substr( $line, 0, $max );
+			while ( $chunk !== '' && ( ord( substr( $line, strlen( $chunk ), 1 ) ?: ' ' ) & 0xC0 ) === 0x80 ) {
+				$chunk = substr( $chunk, 0, -1 );
+			}
+			$out  .= ( $first ? '' : "\r\n " ) . $chunk;
+			$line  = substr( $line, strlen( $chunk ) );
+			$first = false;
+		}
+		return $out;
 	}
 
 	protected static function ical_escape( $s ) {
