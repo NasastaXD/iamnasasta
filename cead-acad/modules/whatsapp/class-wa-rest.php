@@ -94,6 +94,11 @@ class Cead_Acad_WA_REST {
 			}
 			set_transient( $sig, $now, 30 );
 		}
+		// Rate limit por teléfono: corta loops/abuso sin afectar uso normal.
+		// Default 15 mensajes por minuto; ajustable por filtros.
+		if ( ! $this->within_rate_limit( $phone ) ) {
+			return new WP_REST_Response( [ 'ok' => true, 'limited' => true ], 200 );
+		}
 		try {
 			$this->engine->process_message( $message );
 		} catch ( \Throwable $e ) {
@@ -101,6 +106,36 @@ class Cead_Acad_WA_REST {
 			return new WP_REST_Response( [ 'ok' => false ], 200 );
 		}
 		return new WP_REST_Response( [ 'ok' => true ], 200 );
+	}
+
+	/**
+	 * Rate limit por número de teléfono (ventana deslizante simple con
+	 * transients, mismo patrón que cead_acad_rate_limit() pero keyed por
+	 * teléfono: todos los mensajes llegan desde la IP del bridge).
+	 *
+	 * Filtros: `cead_acad_wa_rate_max` (default 15) y
+	 * `cead_acad_wa_rate_window` (segundos, default 60). Max <= 0 desactiva.
+	 */
+	protected function within_rate_limit( $phone ) {
+		$max    = (int) apply_filters( 'cead_acad_wa_rate_max', 15 );
+		$window = max( 1, (int) apply_filters( 'cead_acad_wa_rate_window', 60 ) );
+		if ( $max <= 0 ) {
+			return true;
+		}
+		$key   = 'cead_acad_wa_rl_' . md5( $phone );
+		$count = (int) get_transient( $key );
+		if ( $count >= $max ) {
+			// Log una sola vez por ventana para no inundar wa_logs.
+			$flag = $key . '_logged';
+			if ( ! get_transient( $flag ) ) {
+				set_transient( $flag, 1, $window );
+				$this->store->log( $phone, 'in', '', 'rate_limited' );
+				error_log( '[CeadAcadWA] rate limit excedido para ' . $phone );
+			}
+			return false;
+		}
+		set_transient( $key, $count + 1, $window );
+		return true;
 	}
 
 	public function handle_status( WP_REST_Request $request ) {

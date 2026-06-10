@@ -66,6 +66,12 @@ class Cead_Acad_WA_Bridge_Client {
 			$args['body'] = wp_json_encode( $body );
 		}
 		$response = wp_remote_request( $url . $path, $args );
+		// Retry solo para GET (idempotente). Un POST /api/send que dio timeout
+		// pudo haberse entregado: reintentarlo duplicaría el mensaje.
+		if ( is_wp_error( $response ) && 'GET' === $method ) {
+			usleep( 500000 );
+			$response = wp_remote_request( $url . $path, $args );
+		}
 		if ( is_wp_error( $response ) ) {
 			error_log( '[CeadAcadWA] bridge error: ' . $response->get_error_message() );
 			return [ 'error' => $response->get_error_message() ];

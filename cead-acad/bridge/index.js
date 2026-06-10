@@ -243,26 +243,16 @@ async function connectToWhatsApp() {
             await sock.sendPresenceUpdate( 'composing', msg.key.remoteJid ).catch( () => {} );
 
             if ( WP_WEBHOOK ) {
-                try {
-                    await axios.post(
-                        WP_WEBHOOK,
-                        {
-                            from:      from,
-                            body:      body,
-                            pushName:  msg.pushName || '',
-                            timestamp: msg.messageTimestamp || Math.floor( Date.now() / 1000 ),
-                            media:     media,
-                            id:        msg.key.id || '',
-                        },
-                        {
-                            headers: { 'X-Caag-Token': SHARED_TOKEN },
-                            timeout: 30000,
-                            maxBodyLength: Infinity,
-                        }
-                    );
-                } catch ( err ) {
-                    console.error( '[CaagBridge] Error enviando a WordPress:', err.message );
-                }
+                // Reintentos con backoff: WordPress deduplica por `id`, así que
+                // reenviar tras un timeout no genera respuestas dobles.
+                await postToWordPress( {
+                    from:      from,
+                    body:      body,
+                    pushName:  msg.pushName || '',
+                    timestamp: msg.messageTimestamp || Math.floor( Date.now() / 1000 ),
+                    media:     media,
+                    id:        msg.key.id || '',
+                } );
             }
 
             setTimeout( () => {
@@ -270,6 +260,32 @@ async function connectToWhatsApp() {
             }, TYPING_DELAY );
         }
     } );
+}
+
+// POST a WordPress con reintentos y backoff exponencial (2s, 4s). Solo
+// reintenta errores de red y 5xx; un 4xx (token inválido) no se reintenta.
+async function postToWordPress( payload, attempts = 3 ) {
+    for ( let attempt = 1; attempt <= attempts; attempt++ ) {
+        try {
+            await axios.post( WP_WEBHOOK, payload, {
+                headers: { 'X-Caag-Token': SHARED_TOKEN },
+                timeout: 30000,
+                maxBodyLength: Infinity,
+            } );
+            return true;
+        } catch ( err ) {
+            const status    = err.response?.status;
+            const retryable = ! status || status >= 500;
+            if ( ! retryable || attempt === attempts ) {
+                console.error( `[CaagBridge] Error enviando a WordPress (intento ${attempt}/${attempts}, definitivo):`, err.message );
+                return false;
+            }
+            const delay = 2000 * Math.pow( 2, attempt - 1 );
+            console.warn( `[CaagBridge] Error enviando a WordPress (intento ${attempt}/${attempts}):`, err.message, `— reintento en ${delay / 1000}s` );
+            await new Promise( ( r ) => setTimeout( r, delay ) );
+        }
+    }
+    return false;
 }
 
 function clearAuthState() {
