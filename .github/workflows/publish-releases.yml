@@ -1,0 +1,75 @@
+name: Publicar Releases (auto-update WP)
+
+# El auto-update de WordPress (plugin-update-checker) NO lee el branch main:
+# lee Releases de GitHub con su asset zip. Este workflow cierra ese hueco:
+# en cada push a main lee la versión del plugin (cead-acad/cead-acad.php) y
+# del tema (cead/style.css) y, si todavía no existe un Release con ese tag,
+# lo crea con el zip que corresponde:
+#   - plugin → tag 0.x.y, Release normal, asset cead-acad.zip
+#   - tema   → tag 1.x.y, Release PRERELEASE, asset cead-theme.zip
+#     (prerelease a propósito: queda fuera de /releases/latest y no
+#     confunde al checker del plugin; el del tema lo encuentra igual)
+# Si la versión no cambió, no hace nada — es idempotente.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cead-acad/**'
+      - 'cead/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Leer versiones
+        id: ver
+        run: |
+          PLUGIN_VER=$(grep -m1 -oP '^\s*\*\s*Version:\s*\K[0-9][0-9a-zA-Z.\-]*' cead-acad/cead-acad.php)
+          THEME_VER=$(grep -m1 -oP '^\s*Version:\s*\K[0-9][0-9a-zA-Z.\-]*' cead/style.css)
+          echo "Plugin: $PLUGIN_VER · Tema: $THEME_VER"
+          test -n "$PLUGIN_VER" && test -n "$THEME_VER"
+          echo "plugin=$PLUGIN_VER" >> "$GITHUB_OUTPUT"
+          echo "theme=$THEME_VER"   >> "$GITHUB_OUTPUT"
+
+      - name: Release del plugin (cead-acad.zip)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER="${{ steps.ver.outputs.plugin }}"
+          if gh release view "$VER" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $VER ya existe; nada que hacer."
+            exit 0
+          fi
+          mkdir -p build && cp -r cead-acad build/cead-acad
+          ( cd build && zip -rq ../cead-acad.zip cead-acad -x '*/.git/*' '*/.DS_Store' '*/node_modules/*' '*/tests/*' )
+          gh release create "$VER" cead-acad.zip \
+            -R "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "CEAD Académico v$VER" \
+            --notes "Release automático desde main ($GITHUB_SHA)."
+
+      - name: Release del tema (cead-theme.zip, prerelease)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER="${{ steps.ver.outputs.theme }}"
+          if gh release view "$VER" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $VER ya existe; nada que hacer."
+            exit 0
+          fi
+          mkdir -p build && cp -r cead build/cead
+          ( cd build && zip -rq ../cead-theme.zip cead -x '*/.git/*' '*/.DS_Store' )
+          gh release create "$VER" cead-theme.zip \
+            -R "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "CEAD Tema v$VER" \
+            --notes "Release automático desde main ($GITHUB_SHA)."
