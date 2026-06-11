@@ -19,6 +19,10 @@ class Cead_Acad_WA_Engine {
 	/** Si true, el próximo flush manda un mensaje NUEVO en vez de editar el ancla. */
 	private $force_new = false;
 
+	/** Si true, estamos dentro de una acción disparada por la IA: las vistas no
+	 * pegan el menú al final (la IA rearmará el estado de espera del modo). */
+	private $in_ia = false;
+
 	public function __construct( Cead_Acad_WA_Store $store, Cead_Acad_WA_Bridge_Client $bridge, Cead_Acad_WA_Broadcaster $broadcaster ) {
 		$this->store       = $store;
 		$this->bridge      = $bridge;
@@ -160,7 +164,7 @@ class Cead_Acad_WA_Engine {
 			case 'idle':                 $this->idle( $phone, $name, $identity, $body ); break;
 			case 'menu_pending':         $this->menu_pending( $phone, $identity, $context ); break;
 			case 'role_chooser':         $this->role_chooser( $phone, $lc, $context, $identity ); break;
-			case 'staff_ia':             $this->staff_ia( $phone, $body, $lc, $identity ); break;
+			case 'ia_home':              $this->ia_home( $phone, $body, $lc, $identity ); break;
 			// Alumnado
 			case 'student_menu':         $this->student_menu( $phone, $lc, $identity, $body ); break;
 			case 'stu_report_type':      $this->report_type( $phone, $lc ); break;
@@ -238,33 +242,30 @@ class Cead_Acad_WA_Engine {
 		$is_staff = (bool) $this->available_role_menus( $identity );
 		$mode     = $this->mode_for( $phone );
 
-		// Modo asistente (IA): el texto libre lo maneja la IA; el menú queda a un «menú» de distancia.
+		// Modo asistente (IA): mismo flujo para alumnado y personal. El texto libre
+		// lo maneja la IA; el menú (lo que corresponda al rol) queda a un «menú».
 		if ( $mode === 'ia' && $this->ai_enabled() ) {
-			$home = $is_staff ? 'staff_ia' : 'student_menu';
-			$this->store->set_state( $phone, $home );
-			if ( $this->looks_like_query( $body ) && $this->ai_try( $phone, $body, $identity, $home ) ) {
+			$this->store->set_state( $phone, 'ia_home' );
+			if ( $this->looks_like_query( $body ) && $this->ai_try( $phone, $body, $identity ) ) {
 				return;
 			}
 			$greeting = $is_staff
 				? $this->interp( $this->m( 'greeting_staff' ),   [ 'name' => $name ?: 'Profe' ] )
 				: $this->interp( $this->m( 'greeting_student' ), [ 'name' => $name ?: 'che' ] );
-			$this->send( $phone, $greeting . "\n\n" . '💬 Escribime lo que necesites y te ayudo. Mandá *menú* si preferís las opciones.', $home );
+			$this->send( $phone, $greeting . "\n\n" . '💬 Escribime lo que necesites y te ayudo. Mandá *menú* si preferís las opciones.', 'ia_home' );
 			return;
 		}
 
 		// Modo menú (clásico): personal → selector de roles; alumnado → menú numérico.
+		$switch_hint = $this->ai_enabled() ? "\n\n" . '_💬 Escribí *modo asistente* para hablar con CEADI en lenguaje natural._' : '';
 		if ( $is_staff ) {
-			$greeting = $this->interp( $this->m( 'greeting_staff' ), [ 'name' => $name ?: 'Profe' ] );
+			$greeting = $this->interp( $this->m( 'greeting_staff' ), [ 'name' => $name ?: 'Profe' ] ) . $switch_hint;
 			$this->enter_role_chooser( $phone, $identity, $this->available_role_menus( $identity ), $greeting );
 			return;
 		}
 		$this->store->set_state( $phone, 'student_menu' );
 		$greeting = $this->interp( $this->m( 'greeting_student' ), [ 'name' => $name ?: 'che' ] );
-		$menu     = $greeting . "\n\n" . $this->m( 'student_menu' ) . "\n\n" . $this->m( 'panel_promo' );
-		// Con la IA disponible, contamos cómo pasar al modo asistente.
-		if ( $this->ai_enabled() ) {
-			$menu .= "\n\n" . '_💬 Escribí *modo asistente* para hablar con CEADI en lenguaje natural._';
-		}
+		$menu     = $greeting . "\n\n" . $this->m( 'student_menu' ) . "\n\n" . $this->m( 'panel_promo' ) . $switch_hint;
 		$this->send_menu( $phone, $menu, 'student_menu' );
 	}
 
@@ -297,19 +298,14 @@ class Cead_Acad_WA_Engine {
 		set_transient( 'cead_acad_wa_mode_' . md5( (string) $phone ), $mode === 'ia' ? 'ia' : 'menu', 60 * DAY_IN_SECONDS );
 	}
 
-	/** Deja al número en el punto de entrada del modo elegido. */
+	/** Deja al número en el punto de entrada del modo elegido (igual para todos). */
 	private function enter_mode_landing( $phone, $identity, $mode ) {
-		$is_staff = (bool) $this->available_role_menus( $identity );
 		if ( $mode === 'ia' && $this->ai_enabled() ) {
 			// La confirmación ya se envió; solo dejamos el estado de espera de la IA.
-			$this->store->set_state( $phone, $is_staff ? 'staff_ia' : 'student_menu' );
+			$this->store->set_state( $phone, 'ia_home' );
 			return;
 		}
-		if ( $is_staff ) {
-			$this->enter_role_chooser( $phone, $identity, $this->available_role_menus( $identity ) );
-			return;
-		}
-		$this->back_to_student( $phone );
+		$this->show_root_menu( $phone, $identity );
 	}
 
 	/** Heurística: ¿el texto parece una consulta y no un saludo suelto? */
@@ -473,27 +469,24 @@ class Cead_Acad_WA_Engine {
 	}
 
 	/**
-	 * Estado de conversación con la IA para el personal (modo asistente). El texto
-	 * libre va a la IA; "menú" / un número abren el panel de opciones por rol.
+	 * Estado de conversación con la IA (modo asistente), IGUAL para alumnado y
+	 * personal. El texto libre va a la IA; "menú" / un número abren el menú que
+	 * corresponda al rol (alumnado → menú de alumno; personal → su panel).
 	 */
-	private function staff_ia( $phone, $body, $lc, $identity ) {
+	private function ia_home( $phone, $body, $lc, $identity ) {
 		if ( in_array( $lc, [ 'menu', 'menú', 'opciones', 'panel', 'inicio' ], true ) || ctype_digit( $lc ) ) {
-			$menus = $this->available_role_menus( $identity );
-			if ( $menus ) {
-				$this->enter_role_chooser( $phone, $identity, $menus );
-				return;
-			}
+			$this->show_root_menu( $phone, $identity );
+			return;
 		}
-		if ( $this->ai_try( $phone, ( $body !== '' ? $body : $lc ), $identity, 'staff_ia' ) ) {
+		if ( $this->ai_try( $phone, ( $body !== '' ? $body : $lc ), $identity ) ) {
 			return;
 		}
 		if ( $this->ai_enabled() ) {
-			$this->send( $phone, '🤔 No te entendí del todo. Escribime de nuevo, o mandá *menú* para el panel con opciones.', 'ai_miss' );
+			$this->send( $phone, '🤔 No te entendí del todo. Escribime de nuevo, o mandá *menú* para ver las opciones.', 'ai_miss' );
 			return;
 		}
-		// IA caída/desactivada: caemos al panel de personal.
-		$menus = $this->available_role_menus( $identity );
-		if ( $menus ) { $this->enter_role_chooser( $phone, $identity, $menus ); }
+		// IA caída/desactivada: caemos al menú que corresponda.
+		$this->show_root_menu( $phone, $identity );
 	}
 
 	/* ---------------------------------------------------- IA (CEADI inteligente) */
@@ -503,7 +496,7 @@ class Cead_Acad_WA_Engine {
 	 * responde ella misma (charla); solo dispara una función del sistema cuando
 	 * de verdad hace falta. Devuelve true si lo manejó, false para caer al menú.
 	 */
-	private function ai_try( $phone, $text, $identity, $home_state = 'student_menu' ) {
+	private function ai_try( $phone, $text, $identity, $home_state = 'ia_home' ) {
 		if ( ! $this->ai_enabled() ) {
 			return false;
 		}
@@ -517,6 +510,9 @@ class Cead_Acad_WA_Engine {
 		// La IA decidió disparar una función: su "reply" es la transición y va primero.
 		if ( $action !== '' ) {
 			if ( $reply !== '' ) { $this->send( $phone, $reply ); }
+			// Las vistas no pegan su menú: la IA rearma el estado de espera al terminar.
+			$this->in_ia = true;
+			$handled     = true;
 			switch ( $action ) {
 				// Informativas: tras mostrarlas volvemos al estado de espera del modo.
 				case 'horario':       $this->show_horario( $phone, $identity ); break;
@@ -528,16 +524,19 @@ class Cead_Acad_WA_Engine {
 				case 'panel':         $this->show_panel( $phone ); break;
 				case 'recordatorios': $this->reminders_toggle( $phone ); break;
 				// Flujos guiados: mantienen el estado que fijan ellos mismos.
-				case 'reportar':      $this->report_start( $phone ); return true;
-				case 'escribir':      $this->suggestion_start( $phone ); return true;
-				case 'consejo':       $this->council_open( $phone ); return true;
-				default:
-					// Función inexistente: si respondió algo, lo dejamos como charla.
-					if ( $reply !== '' ) { $this->store->set_state( $phone, $home_state ); return true; }
-					return false;
+				case 'reportar':      $this->in_ia = false; $this->report_start( $phone ); return true;
+				case 'escribir':      $this->in_ia = false; $this->suggestion_start( $phone ); return true;
+				case 'consejo':       $this->in_ia = false; $this->council_open( $phone ); return true;
+				default:              $handled = false;
 			}
-			$this->store->set_state( $phone, $home_state );
-			return true;
+			$this->in_ia = false;
+			if ( $handled ) {
+				$this->store->set_state( $phone, $home_state );
+				return true;
+			}
+			// Función inexistente: si respondió algo, lo dejamos como charla.
+			if ( $reply !== '' ) { $this->store->set_state( $phone, $home_state ); return true; }
+			return false;
 		}
 
 		// Charla pura: la IA respondió con criterio propio.
@@ -561,6 +560,8 @@ class Cead_Acad_WA_Engine {
 	}
 
 	private function back_to_student( $phone ) {
+		// Dentro de una acción de la IA no pegamos el menú: la IA rearma el modo.
+		if ( $this->in_ia ) { return; }
 		$this->store->set_state( $phone, 'student_menu' );
 		$this->send_menu( $phone, $this->m( 'student_menu' ), 'student_menu' );
 	}
@@ -1313,6 +1314,8 @@ class Cead_Acad_WA_Engine {
 	}
 
 	private function reenter_staff( $phone ) {
+		// Dentro de una acción de la IA no pegamos el menú: la IA rearma el modo.
+		if ( $this->in_ia ) { return; }
 		// Vuelve al menú del rol; si el usuario tiene varios, al selector.
 		$identity = $this->resolve_identity( $phone );
 		$menus    = $this->available_role_menus( $identity );
