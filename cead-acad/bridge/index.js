@@ -240,24 +240,36 @@ async function connectToWhatsApp() {
             }
 
             await sock.readMessages( [ msg.key ] ).catch( () => {} );
+
+            // "Escribiendo…" mientras WordPress procesa (la IA puede tardar varios
+            // segundos). WhatsApp apaga el indicador solo a los pocos segundos, así
+            // que lo refrescamos hasta que WP responda; recién ahí ponemos 'paused'.
             await sock.sendPresenceUpdate( 'composing', msg.key.remoteJid ).catch( () => {} );
+            const typing = setInterval( () => {
+                sock.sendPresenceUpdate( 'composing', msg.key.remoteJid ).catch( () => {} );
+            }, 8000 );
 
-            if ( WP_WEBHOOK ) {
-                // Reintentos con backoff: WordPress deduplica por `id`, así que
-                // reenviar tras un timeout no genera respuestas dobles.
-                await postToWordPress( {
-                    from:      from,
-                    body:      body,
-                    pushName:  msg.pushName || '',
-                    timestamp: msg.messageTimestamp || Math.floor( Date.now() / 1000 ),
-                    media:     media,
-                    id:        msg.key.id || '',
-                } );
+            try {
+                if ( WP_WEBHOOK ) {
+                    // Reintentos con backoff: WordPress deduplica por `id`, así que
+                    // reenviar tras un timeout no genera respuestas dobles.
+                    await postToWordPress( {
+                        from:      from,
+                        body:      body,
+                        pushName:  msg.pushName || '',
+                        timestamp: msg.messageTimestamp || Math.floor( Date.now() / 1000 ),
+                        media:     media,
+                        id:        msg.key.id || '',
+                    } );
+                }
+            } finally {
+                clearInterval( typing );
+                // Pequeño respiro antes de cortar el indicador, para que se solape
+                // con la llegada del mensaje del bot y no haya un parpadeo de silencio.
+                setTimeout( () => {
+                    sock.sendPresenceUpdate( 'paused', msg.key.remoteJid ).catch( () => {} );
+                }, TYPING_DELAY );
             }
-
-            setTimeout( () => {
-                sock.sendPresenceUpdate( 'paused', msg.key.remoteJid ).catch( () => {} );
-            }, TYPING_DELAY );
         }
     } );
 }
