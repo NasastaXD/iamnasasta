@@ -21,8 +21,27 @@ class Cead_Acad_WA_AI {
 	const ENDPOINT_DEFAULT = 'https://api.deepseek.com/chat/completions';
 	const MODEL_DEFAULT    = 'deepseek-chat';
 
-	/** Intenciones válidas (mapean a handlers del motor). */
-	const INTENTS = [ 'horario', 'eventos', 'comunicados', 'sitio', 'contacto', 'reportar', 'escribir', 'faq', 'consejo', 'recordatorios', 'panel', 'chat', 'menu' ];
+	/**
+	 * Funciones del sistema que la IA PUEDE disparar cuando lo cree necesario.
+	 * No es una lista de clasificación obligatoria: la IA responde por su cuenta
+	 * por defecto y solo usa una de estas cuando aporta datos reales o un trámite.
+	 * clave => descripción (la descripción va en el prompt para que tenga criterio).
+	 */
+	public static function actions() {
+		return [
+			'horario'       => 'mostrar el horario de clases personal del alumno (datos reales del sistema)',
+			'eventos'       => 'mostrar el calendario de eventos próximos',
+			'comunicados'   => 'mostrar los comunicados/avisos recientes del colegio',
+			'sitio'         => 'dar los enlaces oficiales del sitio web',
+			'contacto'      => 'dar los teléfonos y contactos del colegio',
+			'reportar'      => 'iniciar un reporte o denuncia (trámite guiado)',
+			'escribir'      => 'escribir un mensaje a Dirección, Consejo o Administración (trámite guiado)',
+			'consejo'       => 'abrir el Consejo Estudiantil',
+			'recordatorios' => 'activar o desactivar los recordatorios de eventos',
+			'panel'         => 'dar el enlace al panel web del alumno',
+			'faq'           => 'mostrar el listado completo de preguntas frecuentes',
+		];
+	}
 
 	/* ---------------- Config ---------------- */
 
@@ -74,18 +93,26 @@ class Cead_Acad_WA_AI {
 			. "No inventes datos que no tengas; si no sabés algo, sugerí escribir a un encargado o ver el panel.";
 	}
 
-	/** Contrato de salida (SIEMPRE se agrega: garantiza el ruteo en JSON). */
+	/**
+	 * Contrato de salida. La IA decide con criterio: por defecto responde ella
+	 * misma; solo dispara una función del sistema cuando de verdad hace falta.
+	 */
 	protected static function routing_instructions() {
-		$intents = implode( ', ', self::INTENTS );
-		return "Tu tarea operativa: leé el mensaje del alumno y elegí UNA intención de esta lista: {$intents}.\n"
-			. "Significados: horario=su horario de clases; eventos=calendario de eventos; comunicados=avisos del colegio; "
-			. "sitio=enlaces/sitio web; contacto=teléfonos y contactos del colegio; reportar=hacer un reporte/denuncia; "
-			. "escribir=mandar un mensaje a Dirección, Consejo o Administración; faq=preguntas frecuentes; consejo=Consejo Estudiantil; "
-			. "recordatorios=activar o desactivar recordatorios de eventos; panel=su panel web; menu=mostrar el menú; "
-			. "chat=responder vos mismo una duda general usando el CONOCIMIENTO/FAQ de abajo.\n"
-			. "Si la duda se puede contestar con el conocimiento o las FAQ, usá intent \"chat\" y poné la respuesta en \"reply\" (máx 3 frases). "
-			. "Si pide una función concreta, devolvé esa intención con \"reply\" vacío. Si no entendés, usá intent \"menu\".\n"
-			. "Respondé EXCLUSIVAMENTE un JSON válido: {\"intent\":\"...\",\"reply\":\"...\"}. Nada de texto fuera del JSON.";
+		$lines = [];
+		foreach ( self::actions() as $key => $desc ) {
+			$lines[] = "- {$key}: {$desc}";
+		}
+		$actions = implode( "\n", $lines );
+		return "Tenés criterio propio: tu trabajo es entender qué necesita la persona y ayudarla del modo más útil, no encajarla en una casilla.\n\n"
+			. "REGLA PRINCIPAL: respondé SIEMPRE con tus propias palabras en \"reply\", de forma natural, breve y amable (español de Paraguay), usando el CONOCIMIENTO y las FAQ de abajo cuando sirvan.\n\n"
+			. "El sistema tiene además algunas funciones con datos reales o trámites guiados. SOLO cuando la persona claramente necesita una de ellas, poné su nombre en \"action\"; si no, dejá \"action\" vacío y resolvé vos en \"reply\".\n"
+			. "Funciones disponibles:\n{$actions}\n\n"
+			. "Cómo decidir:\n"
+			. "• Si podés contestar bien con lo que sabés (saludos, dudas generales, charla, info que esté en el conocimiento/FAQ) → \"action\" vacío y todo en \"reply\".\n"
+			. "• Usá una función solo si aporta datos que vos NO tenés (su horario, sus comunicados, eventos, contactos) o inicia un trámite (reportar, escribir). Nunca inventes horarios, fechas ni datos personales: para eso está la función.\n"
+			. "• Cuando uses una \"action\", poné en \"reply\" una transición corta (ej.: «Te muestro tu horario 👇»).\n"
+			. "• Si dudás entre charlar y una función, preferí charlar y, si hace falta, ofrecé la función.\n\n"
+			. "Respondé EXCLUSIVAMENTE un JSON válido: {\"reply\":\"...\",\"action\":\"\"}. \"action\" vacío = solo respondés vos. Nada de texto fuera del JSON.";
 	}
 
 	protected static function build_system( $faq_context = '' ) {
@@ -161,12 +188,29 @@ class Cead_Acad_WA_AI {
 		$parsed = json_decode( (string) $content, true );
 		if ( ! is_array( $parsed ) ) { $out['error'] = 'El modelo no devolvió JSON válido.'; return $out; }
 
-		$intent = isset( $parsed['intent'] ) ? sanitize_key( $parsed['intent'] ) : '';
-		$reply  = isset( $parsed['reply'] ) ? sanitize_textarea_field( $parsed['reply'] ) : '';
-		if ( ! in_array( $intent, self::INTENTS, true ) ) { $out['error'] = 'Intención no reconocida: ' . $intent; return $out; }
+		$reply = isset( $parsed['reply'] ) ? sanitize_textarea_field( $parsed['reply'] ) : '';
+
+		// "action" (nuevo) o "intent" (compat). Vacío = la IA responde por su cuenta.
+		$action = '';
+		if ( isset( $parsed['action'] ) ) {
+			$action = sanitize_key( $parsed['action'] );
+		} elseif ( isset( $parsed['intent'] ) ) {
+			$action = sanitize_key( $parsed['intent'] );
+		}
+		// Valores que significan "sin función, solo charla".
+		if ( in_array( $action, [ 'chat', 'menu', 'none', 'null', 'ninguna', 'ninguno', '' ], true ) ) {
+			$action = '';
+		}
+		// Si nombró una función que no existe, no fallamos: la ignoramos y dejamos la charla.
+		if ( $action !== '' && ! array_key_exists( $action, self::actions() ) ) {
+			$action = '';
+		}
+
+		// Necesitamos al menos una respuesta o una acción.
+		if ( $reply === '' && $action === '' ) { $out['error'] = 'Respuesta vacía del modelo.'; return $out; }
 
 		$out['ok']     = true;
-		$out['intent'] = $intent;
+		$out['intent'] = $action; // clave histórica: vacío = charla pura
 		$out['reply']  = $reply;
 		return $out;
 	}
@@ -218,7 +262,9 @@ class Cead_Acad_WA_AI {
 	public static function test( $message = '¿qué clases tengo hoy?' ) {
 		$r = self::call( $message );
 		if ( $r['ok'] ) {
-			return [ 'ok' => true, 'summary' => sprintf( 'OK · intención: "%s"%s', $r['intent'], $r['reply'] !== '' ? ' · respuesta: ' . mb_substr( $r['reply'], 0, 160 ) : '' ) ];
+			$accion = $r['intent'] !== '' ? sprintf( 'función: "%s"', $r['intent'] ) : 'respuesta directa (sin función)';
+			$resp   = $r['reply'] !== '' ? ' · dice: ' . mb_substr( $r['reply'], 0, 160 ) : '';
+			return [ 'ok' => true, 'summary' => 'OK · ' . $accion . $resp ];
 		}
 		return [ 'ok' => false, 'summary' => $r['error'] ?: 'Error desconocido.' ];
 	}

@@ -405,41 +405,49 @@ class Cead_Acad_WA_Engine {
 	/* ---------------------------------------------------- IA (CEADI inteligente) */
 
 	/**
-	 * Intenta resolver un mensaje en lenguaje natural con la IA. Devuelve true si
-	 * lo manejó (disparó una función o respondió), false para caer al menú/inválido.
+	 * Deja que la IA entienda el mensaje y decida con criterio: por defecto
+	 * responde ella misma (charla); solo dispara una función del sistema cuando
+	 * de verdad hace falta. Devuelve true si lo manejó, false para caer al menú.
 	 */
 	private function ai_try( $phone, $text, $identity ) {
-		if ( ! class_exists( 'Cead_Acad_WA_AI' ) || ! Cead_Acad_WA_AI::enabled() ) {
+		if ( ! $this->ai_enabled() ) {
 			return false;
 		}
 		$res = Cead_Acad_WA_AI::route( $text, $this->faq_context(), $phone );
-		if ( ! is_array( $res ) || empty( $res['intent'] ) ) {
+		if ( ! is_array( $res ) ) {
 			return false;
 		}
-		$reply = isset( $res['reply'] ) ? trim( (string) $res['reply'] ) : '';
+		$action = (string) ( $res['intent'] ?? '' ); // '' = la IA respondió por su cuenta
+		$reply  = isset( $res['reply'] ) ? trim( (string) $res['reply'] ) : '';
 
-		switch ( $res['intent'] ) {
-			case 'horario':       $this->show_horario( $phone, $identity ); return true;
-			case 'eventos':       $this->show_events( $phone, $identity ); return true;
-			case 'comunicados':   $this->show_comunicados( $phone, $identity ); return true;
-			case 'sitio':         $this->show_links( $phone ); return true;
-			case 'contacto':      $this->show_contacts( $phone ); return true;
-			case 'reportar':      $this->report_start( $phone ); return true;
-			case 'escribir':      $this->suggestion_start( $phone ); return true;
-			case 'faq':           $this->show_faq( $phone ); return true;
-			case 'consejo':       $this->council_open( $phone ); return true;
-			case 'recordatorios': $this->reminders_toggle( $phone ); return true;
-			case 'panel':         $this->show_panel( $phone ); return true;
-			case 'chat':
-				if ( $reply !== '' ) {
-					$this->store->set_state( $phone, 'student_menu' );
-					$this->send( $phone, $reply . "\n\n" . '_Escribí *menú* para ver todas las opciones._', 'ai_chat' );
-					return true;
-				}
-				return false;
-			default: // 'menu' u otra → que el caller muestre el menú/inválido.
-				return false;
+		// La IA decidió disparar una función: su "reply" es la transición y va primero.
+		if ( $action !== '' ) {
+			if ( $reply !== '' ) { $this->send( $phone, $reply ); }
+			switch ( $action ) {
+				case 'horario':       $this->show_horario( $phone, $identity ); return true;
+				case 'eventos':       $this->show_events( $phone, $identity ); return true;
+				case 'comunicados':   $this->show_comunicados( $phone, $identity ); return true;
+				case 'sitio':         $this->show_links( $phone ); return true;
+				case 'contacto':      $this->show_contacts( $phone ); return true;
+				case 'reportar':      $this->report_start( $phone ); return true;
+				case 'escribir':      $this->suggestion_start( $phone ); return true;
+				case 'faq':           $this->show_faq( $phone ); return true;
+				case 'consejo':       $this->council_open( $phone ); return true;
+				case 'recordatorios': $this->reminders_toggle( $phone ); return true;
+				case 'panel':         $this->show_panel( $phone ); return true;
+			}
+			// La función no existe: si al menos respondió algo, lo entregamos.
+			if ( $reply !== '' ) { $this->store->set_state( $phone, 'student_menu' ); return true; }
+			return false;
 		}
+
+		// Charla pura: la IA respondió con criterio propio.
+		if ( $reply !== '' ) {
+			$this->store->set_state( $phone, 'student_menu' );
+			$this->send( $phone, $reply, 'ai_chat' );
+			return true;
+		}
+		return false;
 	}
 
 	/** Contexto compacto de las FAQ para que la IA responda dudas generales. */
