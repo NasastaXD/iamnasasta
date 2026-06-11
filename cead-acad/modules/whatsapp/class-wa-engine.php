@@ -23,6 +23,10 @@ class Cead_Acad_WA_Engine {
 	 * pegan el menú al final (la IA rearmará el estado de espera del modo). */
 	private $in_ia = false;
 
+	/** Si true, este turno es conversacional (IA): se entrega como mensaje NUEVO,
+	 * no editando el ancla. Editar el ancla es útil para el menú, no para charlar. */
+	private $ia_turn = false;
+
 	public function __construct( Cead_Acad_WA_Store $store, Cead_Acad_WA_Bridge_Client $bridge, Cead_Acad_WA_Broadcaster $broadcaster ) {
 		$this->store       = $store;
 		$this->bridge      = $bridge;
@@ -253,6 +257,7 @@ class Cead_Acad_WA_Engine {
 			$greeting = $is_staff
 				? $this->interp( $this->m( 'greeting_staff' ),   [ 'name' => $name ?: 'Profe' ] )
 				: $this->interp( $this->m( 'greeting_student' ), [ 'name' => $name ?: 'che' ] );
+			$this->ia_turn = true;
 			$this->send( $phone, $greeting . "\n\n" . '💬 Escribime lo que necesites y te ayudo. Mandá *menú* si preferís las opciones.', 'ia_home' );
 			return;
 		}
@@ -461,6 +466,7 @@ class Cead_Acad_WA_Engine {
 						return;
 					}
 					if ( $this->ai_enabled() ) {
+						$this->ia_turn = true;
 						$this->send( $phone, '🤔 No te entendí del todo. Probá con otras palabras, o escribí *menú* para ver las opciones.', 'ai_miss' );
 						return;
 					}
@@ -476,6 +482,8 @@ class Cead_Acad_WA_Engine {
 	 */
 	private function ia_home( $phone, $body, $lc, $identity ) {
 		if ( in_array( $lc, [ 'menu', 'menú', 'opciones', 'panel', 'inicio' ], true ) || ctype_digit( $lc ) ) {
+			// El menú arranca como mensaje nuevo; de ahí en más se edita el ancla.
+			$this->force_new = true;
 			$this->show_root_menu( $phone, $identity );
 			return;
 		}
@@ -483,6 +491,7 @@ class Cead_Acad_WA_Engine {
 			return;
 		}
 		if ( $this->ai_enabled() ) {
+			$this->ia_turn = true;
 			$this->send( $phone, '🤔 No te entendí del todo. Escribime de nuevo, o mandá *menú* para ver las opciones.', 'ai_miss' );
 			return;
 		}
@@ -516,6 +525,7 @@ class Cead_Acad_WA_Engine {
 
 		// La IA decidió disparar una función: su "reply" es la transición y va primero.
 		if ( $action !== '' ) {
+			$this->ia_turn = true; // respuesta conversacional → mensaje nuevo
 			if ( $reply !== '' ) { $this->send( $phone, $reply ); }
 			// Las vistas no pegan su menú: la IA rearma el estado de espera al terminar.
 			$this->in_ia = true;
@@ -548,6 +558,7 @@ class Cead_Acad_WA_Engine {
 
 		// Charla pura: la IA respondió con criterio propio.
 		if ( $reply !== '' ) {
+			$this->ia_turn = true; // mensaje nuevo, no editar el ancla
 			$this->store->set_state( $phone, $home_state );
 			$this->send( $phone, $reply, 'ai_chat' );
 			return true;
@@ -607,6 +618,7 @@ class Cead_Acad_WA_Engine {
 
 	/** Arma la propuesta de una acción de staff y la deja a la espera de aprobación. */
 	private function propose_staff_action( $phone, $action, $args, $reply, $identity ) {
+		$this->ia_turn = true; // propuesta conversacional → mensaje nuevo
 		$uid = (int) ( $identity['user_id'] ?? 0 );
 
 		if ( $action === 'enviar_comunicado' ) {
@@ -664,6 +676,7 @@ class Cead_Acad_WA_Engine {
 
 	/** Menú de aprobación de una acción propuesta por la IA. */
 	private function ia_staff_confirm( $phone, $lc, $context, $identity ) {
+		$this->ia_turn = true; // resultado conversacional → mensaje nuevo
 		$kind = (string) ( $context['kind'] ?? '' );
 
 		if ( in_array( $lc, [ '1', 'aceptar', 'acepto', 'si', 'sí', 'ok', 'dale', 'confirmar' ], true ) ) {
@@ -1731,8 +1744,10 @@ class Cead_Acad_WA_Engine {
 		$action       = ( is_array( $last ) && $last['action'] !== '' ) ? $last['action'] : 'menu';
 		$message      = implode( "\n\n", $texts );
 		$this->outbox = [];
-		$force_new       = $this->force_new;
+		// En un turno conversacional (IA) mandamos mensaje nuevo en vez de editar el ancla.
+		$force_new       = $this->force_new || $this->ia_turn;
 		$this->force_new = false;
+		$this->ia_turn   = false;
 		$this->deliver( $phone, $message, $action, $force_new );
 	}
 
