@@ -62,10 +62,10 @@ class Cead_Acad_WA_AI {
 	}
 	public static function temperature() {
 		$t = get_option( 'cead_acad_wa_ai_temp', '' );
-		return ( $t === '' ) ? 0.2 : (float) $t;
+		return ( $t === '' ) ? 0.5 : (float) $t;
 	}
 	public static function max_tokens() {
-		return max( 50, (int) ( get_option( 'cead_acad_wa_ai_maxtokens', 0 ) ?: 500 ) );
+		return max( 50, (int) ( get_option( 'cead_acad_wa_ai_maxtokens', 0 ) ?: 800 ) );
 	}
 	public static function knowledge() {
 		return trim( (string) get_option( 'cead_acad_wa_ai_knowledge', '' ) );
@@ -89,13 +89,26 @@ class Cead_Acad_WA_AI {
 
 	public static function default_persona() {
 		return "Sos CEADI, el asistente de WhatsApp del CEAD «Félix de Guarania», un colegio secundario de alto desempeño de Caaguazú, Paraguay. "
-			. "Hablás en español de Paraguay, en tono breve, claro y amable. Ayudás a los alumnos con todo lo del colegio. "
-			. "No inventes datos que no tengas; si no sabés algo, sugerí escribir a un encargado o ver el panel.";
+			. "Hablás en español de Paraguay, en tono cercano, claro y amable. Ayudás a los alumnos con todo lo del colegio y podés conversar con naturalidad. "
+			. "No inventes datos que no tengas (horarios, fechas, notas, datos personales); si no sabés algo, decilo con honestidad y sugerí escribir a un encargado o ver el panel.";
 	}
 
 	/**
-	 * Contrato de salida. La IA decide con criterio: por defecto responde ella
-	 * misma; solo dispara una función del sistema cuando de verdad hace falta.
+	 * Instrucciones para el modo herramientas (tool calling). Livianas a propósito:
+	 * el modelo es capaz, así que se le da criterio y libertad, no una camisa de
+	 * fuerza. Habla natural en el contenido y llama a una herramienta si hace falta.
+	 */
+	protected static function tool_instructions() {
+		return "Conversá con naturalidad, con tu propio criterio y sin límites artificiales de formato. "
+			. "Tenés herramientas para datos reales del sistema y trámites guiados (el horario personal del alumno, eventos, comunicados, contactos, reportar, escribir a un encargado, etc.). "
+			. "Usalas SOLO cuando aportan algo que vos no podés dar por tu cuenta (datos personales o actualizados) o cuando inician un trámite; el resto —saludos, dudas, explicaciones, charla— resolvelo vos mismo. "
+			. "Si llamás a una herramienta, podés acompañarla con una frase breve de transición. Nunca inventes horarios, fechas ni datos personales: para eso están las herramientas.";
+	}
+
+	/**
+	 * Contrato JSON. Solo se usa como FALLBACK si el proveedor no soporta
+	 * herramientas (tool calling). Equivalente al modo herramientas pero pidiendo
+	 * la decisión en un JSON {reply, action}.
 	 */
 	protected static function routing_instructions() {
 		$lines = [];
@@ -103,34 +116,48 @@ class Cead_Acad_WA_AI {
 			$lines[] = "- {$key}: {$desc}";
 		}
 		$actions = implode( "\n", $lines );
-		return "Tenés criterio propio: tu trabajo es entender qué necesita la persona y ayudarla del modo más útil, no encajarla en una casilla.\n\n"
-			. "REGLA PRINCIPAL: respondé SIEMPRE con tus propias palabras en \"reply\", de forma natural, breve y amable (español de Paraguay), usando el CONOCIMIENTO y las FAQ de abajo cuando sirvan.\n\n"
-			. "El sistema tiene además algunas funciones con datos reales o trámites guiados. SOLO cuando la persona claramente necesita una de ellas, poné su nombre en \"action\"; si no, dejá \"action\" vacío y resolvé vos en \"reply\".\n"
-			. "Funciones disponibles:\n{$actions}\n\n"
-			. "Cómo decidir:\n"
-			. "• Si podés contestar bien con lo que sabés (saludos, dudas generales, charla, info que esté en el conocimiento/FAQ) → \"action\" vacío y todo en \"reply\".\n"
-			. "• Usá una función solo si aporta datos que vos NO tenés (su horario, sus comunicados, eventos, contactos) o inicia un trámite (reportar, escribir). Nunca inventes horarios, fechas ni datos personales: para eso está la función.\n"
-			. "• Cuando uses una \"action\", poné en \"reply\" una transición corta (ej.: «Te muestro tu horario 👇»).\n"
-			. "• Si dudás entre charlar y una función, preferí charlar y, si hace falta, ofrecé la función.\n\n"
+		return "Conversá con naturalidad y criterio propio. Respondé con tus palabras en \"reply\".\n"
+			. "El sistema tiene funciones con datos reales o trámites guiados; SOLO cuando la persona realmente necesita una, poné su nombre en \"action\". Si no, dejá \"action\" vacío y resolvé vos en \"reply\".\n"
+			. "Funciones:\n{$actions}\n"
+			. "Usá una función solo si aporta datos que vos NO tenés (horario, comunicados, eventos, contactos) o inicia un trámite (reportar, escribir). Si usás \"action\", poné en \"reply\" una transición corta. Nunca inventes horarios ni datos personales.\n"
 			. "Respondé EXCLUSIVAMENTE un JSON válido: {\"reply\":\"...\",\"action\":\"\"}. \"action\" vacío = solo respondés vos. Nada de texto fuera del JSON.";
 	}
 
-	protected static function build_system( $faq_context = '' ) {
-		$p = self::persona() . "\n\n" . self::routing_instructions();
-		$kn = self::knowledge();
+	protected static function build_system( $faq_context = '', $mode = 'tools' ) {
+		$instr = ( $mode === 'json' ) ? self::routing_instructions() : self::tool_instructions();
+		$p     = self::persona() . "\n\n" . $instr;
+		$kn    = self::knowledge();
 		if ( $kn !== '' ) {
-			$p .= "\n\n[CONOCIMIENTO DEL COLEGIO]\n" . mb_substr( $kn, 0, 5000 );
+			$p .= "\n\n[CONOCIMIENTO DEL COLEGIO]\n" . mb_substr( $kn, 0, 8000 );
 		}
 		if ( trim( (string) $faq_context ) !== '' ) {
-			$p .= "\n\n[FAQ]\n" . mb_substr( (string) $faq_context, 0, 2500 );
+			$p .= "\n\n[FAQ]\n" . mb_substr( (string) $faq_context, 0, 4000 );
 		}
 		return $p;
+	}
+
+	/** Herramientas en formato OpenAI (una por cada función del sistema). */
+	protected static function tools_spec() {
+		$tools = [];
+		foreach ( self::actions() as $key => $desc ) {
+			$tools[] = [
+				'type'     => 'function',
+				'function' => [
+					'name'        => $key,
+					'description' => $desc,
+					'parameters'  => [ 'type' => 'object', 'properties' => (object) [] ],
+				],
+			];
+		}
+		return $tools;
 	}
 
 	/* ---------------- Llamada ---------------- */
 
 	/**
-	 * Llamada cruda. Devuelve un array de depuración:
+	 * Llama al modelo. Camino principal: tool calling (el modelo habla libre y
+	 * decide si invocar una herramienta). Si el proveedor no soporta herramientas
+	 * (HTTP 400), cae automáticamente al modo JSON. Devuelve un array de depuración:
 	 * [ ok, code, error, intent, reply, content ].
 	 */
 	public static function call( $message, $faq_context = '', $key = null, $endpoint = null, $model = null, $history = [] ) {
@@ -143,79 +170,128 @@ class Cead_Acad_WA_AI {
 		if ( $key === '' ) { $out['error'] = 'Falta la API key.'; return $out; }
 		if ( $message === '' ) { $out['error'] = 'Mensaje vacío.'; return $out; }
 
-		$messages = [ [ 'role' => 'system', 'content' => self::build_system( $faq_context ) ] ];
-		foreach ( (array) $history as $h ) {
-			if ( isset( $h['role'], $h['content'] ) && in_array( $h['role'], [ 'user', 'assistant' ], true ) ) {
-				$messages[] = [ 'role' => $h['role'], 'content' => (string) $h['content'] ];
+		$messages = function ( $mode ) use ( $faq_context, $history, $message ) {
+			$m = [ [ 'role' => 'system', 'content' => self::build_system( $faq_context, $mode ) ] ];
+			foreach ( (array) $history as $h ) {
+				if ( isset( $h['role'], $h['content'] ) && in_array( $h['role'], [ 'user', 'assistant' ], true ) ) {
+					$m[] = [ 'role' => $h['role'], 'content' => (string) $h['content'] ];
+				}
 			}
+			$m[] = [ 'role' => 'user', 'content' => mb_substr( $message, 0, 2000 ) ];
+			return $m;
+		};
+
+		// 1) Tool calling — el modelo habla con libertad y llama función si quiere.
+		$r = self::http( $endpoint, $key, [
+			'model'       => $model,
+			'temperature' => self::temperature(),
+			'max_tokens'  => self::max_tokens(),
+			'messages'    => $messages( 'tools' ),
+			'tools'       => self::tools_spec(),
+			'tool_choice' => 'auto',
+		] );
+
+		// 2) Fallback: si el proveedor rechaza las herramientas (400), modo JSON.
+		if ( $r['code'] === 400 ) {
+			$rj = self::http( $endpoint, $key, [
+				'model'           => $model,
+				'temperature'     => self::temperature(),
+				'max_tokens'      => self::max_tokens(),
+				'messages'        => $messages( 'json' ),
+				'response_format' => [ 'type' => 'json_object' ],
+			] );
+			if ( $rj['code'] === 200 ) {
+				return self::parse_json_mode( $rj, $out );
+			}
+			$r = ( $rj['code'] !== 0 ) ? $rj : $r;
 		}
-		$messages[] = [ 'role' => 'user', 'content' => mb_substr( $message, 0, 1200 ) ];
 
-		$payload = [
-			'model'           => $model,
-			'temperature'     => self::temperature(),
-			'max_tokens'      => self::max_tokens(),
-			'response_format' => [ 'type' => 'json_object' ],
-			'messages'        => $messages,
-		];
+		if ( $r['error'] !== '' ) { $out['error'] = $r['error']; $out['code'] = $r['code']; return $out; }
+		$out['code'] = $r['code'];
+		if ( $r['code'] !== 200 ) {
+			$out['error'] = 'HTTP ' . $r['code'] . ' — ' . mb_substr( wp_strip_all_tags( (string) $r['bodyraw'] ), 0, 300 );
+			return $out;
+		}
+		return self::parse_tools_mode( $r, $out );
+	}
 
+	/** POST al endpoint compatible OpenAI. Devuelve [ code, error, bodyraw, data ]. */
+	protected static function http( $endpoint, $key, array $payload ) {
 		$res = wp_remote_post( $endpoint, [
-			'timeout' => 20,
+			'timeout' => 30,
 			'headers' => [
 				'Authorization' => 'Bearer ' . $key,
 				'Content-Type'  => 'application/json',
 			],
 			'body'    => wp_json_encode( $payload ),
 		] );
-
 		if ( is_wp_error( $res ) ) {
-			$out['error'] = $res->get_error_message();
-			error_log( '[CeadAcadWA][AI] ' . $out['error'] );
-			return $out;
+			error_log( '[CeadAcadWA][AI] ' . $res->get_error_message() );
+			return [ 'code' => 0, 'error' => $res->get_error_message(), 'bodyraw' => '', 'data' => null ];
 		}
-		$out['code'] = (int) wp_remote_retrieve_response_code( $res );
-		$bodyraw     = wp_remote_retrieve_body( $res );
-		if ( $out['code'] !== 200 ) {
-			$out['error'] = 'HTTP ' . $out['code'] . ' — ' . mb_substr( wp_strip_all_tags( (string) $bodyraw ), 0, 300 );
-			return $out;
+		$bodyraw = (string) wp_remote_retrieve_body( $res );
+		return [
+			'code'    => (int) wp_remote_retrieve_response_code( $res ),
+			'error'   => '',
+			'bodyraw' => $bodyraw,
+			'data'    => json_decode( $bodyraw, true ),
+		];
+	}
+
+	/** Lee la respuesta del modo herramientas: contenido libre + tool_call opcional. */
+	protected static function parse_tools_mode( $r, $out ) {
+		$msg     = $r['data']['choices'][0]['message'] ?? [];
+		$content = (string) ( $msg['content'] ?? '' );
+		$reply   = sanitize_textarea_field( $content );
+
+		$action = '';
+		if ( ! empty( $msg['tool_calls'][0]['function']['name'] ) ) {
+			$action = sanitize_key( (string) $msg['tool_calls'][0]['function']['name'] );
+		}
+		if ( $action !== '' && ! array_key_exists( $action, self::actions() ) ) {
+			$action = '';
 		}
 
-		$data    = json_decode( $bodyraw, true );
-		$content = $data['choices'][0]['message']['content'] ?? '';
-		$out['content'] = (string) $content;
-		if ( ! $content ) { $out['error'] = 'Respuesta vacía del modelo.'; return $out; }
+		if ( $reply === '' && $action === '' ) { $out['error'] = 'Respuesta vacía del modelo.'; return $out; }
+		$out['ok']      = true;
+		$out['intent']  = $action;
+		$out['reply']   = $reply;
+		$out['content'] = ( $content !== '' ) ? $content : $reply;
+		return $out;
+	}
 
-		$parsed = json_decode( (string) $content, true );
+	/** Lee la respuesta del modo JSON (fallback): {reply, action} dentro del contenido. */
+	protected static function parse_json_mode( $r, $out ) {
+		$out['code'] = $r['code'];
+		$content     = (string) ( $r['data']['choices'][0]['message']['content'] ?? '' );
+		$out['content'] = $content;
+		if ( $content === '' ) { $out['error'] = 'Respuesta vacía del modelo.'; return $out; }
+
+		$parsed = json_decode( $content, true );
 		if ( ! is_array( $parsed ) ) { $out['error'] = 'El modelo no devolvió JSON válido.'; return $out; }
 
 		$reply = isset( $parsed['reply'] ) ? sanitize_textarea_field( $parsed['reply'] ) : '';
-
-		// "action" (nuevo) o "intent" (compat). Vacío = la IA responde por su cuenta.
 		$action = '';
 		if ( isset( $parsed['action'] ) ) {
 			$action = sanitize_key( $parsed['action'] );
 		} elseif ( isset( $parsed['intent'] ) ) {
 			$action = sanitize_key( $parsed['intent'] );
 		}
-		// Valores que significan "sin función, solo charla".
 		if ( in_array( $action, [ 'chat', 'menu', 'none', 'null', 'ninguna', 'ninguno', '' ], true ) ) {
 			$action = '';
 		}
-		// Si nombró una función que no existe, no fallamos: la ignoramos y dejamos la charla.
 		if ( $action !== '' && ! array_key_exists( $action, self::actions() ) ) {
 			$action = '';
 		}
-
-		// Necesitamos al menos una respuesta o una acción.
 		if ( $reply === '' && $action === '' ) { $out['error'] = 'Respuesta vacía del modelo.'; return $out; }
 
 		$out['ok']     = true;
-		$out['intent'] = $action; // clave histórica: vacío = charla pura
+		$out['intent'] = $action;
 		$out['reply']  = $reply;
 		return $out;
 	}
 
-	/** Clasificación para el motor. Devuelve [intent, reply] o null. Usa memoria si está activa y hay $phone. */
+	/** Decisión para el motor. Devuelve [intent, reply] o null. Usa memoria si está activa y hay $phone. */
 	public static function route( $message, $faq_context = '', $phone = '' ) {
 		$history = ( $phone !== '' ) ? self::load_memory( $phone ) : [];
 		$r = self::call( $message, $faq_context, null, null, null, $history );
@@ -244,8 +320,8 @@ class Cead_Acad_WA_AI {
 		$turns = self::memory_turns();
 		if ( $turns <= 0 ) { return; }
 		$m   = self::load_memory( $phone );
-		$m[] = [ 'role' => 'user',      'content' => mb_substr( (string) $user_message, 0, 1000 ) ];
-		$m[] = [ 'role' => 'assistant', 'content' => mb_substr( (string) $assistant_content, 0, 1000 ) ];
+		$m[] = [ 'role' => 'user',      'content' => mb_substr( (string) $user_message, 0, 1500 ) ];
+		$m[] = [ 'role' => 'assistant', 'content' => mb_substr( (string) $assistant_content, 0, 1500 ) ];
 		$max = $turns * 2;
 		if ( count( $m ) > $max ) {
 			$m = array_slice( $m, -$max );

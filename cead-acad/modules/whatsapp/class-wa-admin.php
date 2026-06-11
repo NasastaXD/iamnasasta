@@ -212,8 +212,9 @@ class Cead_Acad_WA_Admin {
 		if ( Cead_Acad_WA_AI::key() !== '' && defined( 'CEAD_ACAD_AI_KEY' ) && CEAD_ACAD_AI_KEY ) {
 			echo '<tr><th></th><td><p class="description">' . esc_html__( 'La API key está fijada por constante en wp-config.php (CEAD_ACAD_AI_KEY); este campo se ignora.', 'cead-acad' ) . '</p></td></tr>';
 		}
-		$this->field( 'ai_temp', __( 'Temperatura (0–1)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_temp', '0.2' ), '0.2', 'text' );
-		$this->field( 'ai_maxtokens', __( 'Máx. tokens de respuesta', 'cead-acad' ), get_option( 'cead_acad_wa_ai_maxtokens', 500 ), '500', 'number' );
+		$this->field( 'ai_temp', __( 'Temperatura (0–1)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_temp', '0.5' ), '0.5', 'text' );
+		echo '<tr><th></th><td><p class="description">' . esc_html__( '0.5 (recomendado) = respuestas naturales y con criterio. Más bajo = más rígido; más alto = más creativo.', 'cead-acad' ) . '</p></td></tr>';
+		$this->field( 'ai_maxtokens', __( 'Máx. tokens de respuesta', 'cead-acad' ), get_option( 'cead_acad_wa_ai_maxtokens', 800 ), '800', 'number' );
 		$this->field_textarea( 'ai_prompt', __( 'System prompt (personalidad / instrucciones)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_prompt', '' ) ?: Cead_Acad_WA_AI::default_persona(), 6 );
 		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Definí el tono y rol de CEADI. El formato de salida (ruteo en JSON) se agrega automáticamente, no hace falta escribirlo.', 'cead-acad' ) . '</p></td></tr>';
 		$this->field_textarea( 'ai_knowledge', __( 'Conocimiento (base de datos para responder)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_knowledge', '' ), 8 );
