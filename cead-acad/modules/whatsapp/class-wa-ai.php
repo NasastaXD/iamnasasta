@@ -51,9 +51,9 @@ class Cead_Acad_WA_AI {
 	public static function knowledge() {
 		return trim( (string) get_option( 'cead_acad_wa_ai_knowledge', '' ) );
 	}
-	/** Turnos de conversación a recordar (0 = sin memoria). */
+	/** Turnos de conversación a recordar (0 = sin memoria). Default 4 para charlas fluidas. */
 	public static function memory_turns() {
-		return max( 0, min( 20, (int) get_option( 'cead_acad_wa_ai_memory', 0 ) ) );
+		return max( 0, min( 20, (int) get_option( 'cead_acad_wa_ai_memory', 4 ) ) );
 	}
 	/** Minutos que dura la memoria de una charla. */
 	public static function memory_ttl() {

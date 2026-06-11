@@ -223,20 +223,30 @@ class Cead_Acad_WA_Engine {
 		}
 		$this->store->set_state( $phone, 'student_menu' );
 
-		// Si el primer mensaje ya es una consulta concreta (no un simple "hola"),
-		// dejamos que la IA la resuelva directamente.
+		// IA-first: si el alumno escribió algo más que un saludo, la IA intenta
+		// resolverlo directamente (responder o disparar la función que toque).
 		if ( $this->looks_like_query( $body ) && $this->ai_try( $phone, $body, $identity ) ) {
 			return;
 		}
 
 		$greeting = $this->interp( $this->m( 'greeting_student' ), [ 'name' => $name ?: 'che' ] );
-		$this->send_menu( $phone, $greeting . "\n\n" . $this->m( 'student_menu' ) . "\n\n" . $this->m( 'panel_promo' ), 'student_menu' );
+		$menu     = $greeting . "\n\n" . $this->m( 'student_menu' ) . "\n\n" . $this->m( 'panel_promo' );
+		// Con la IA activa, invitamos a escribir en vez de obligar a elegir número.
+		if ( $this->ai_enabled() ) {
+			$menu .= "\n\n" . '_💬 También podés escribirme tu consulta y te ayudo._';
+		}
+		$this->send_menu( $phone, $menu, 'student_menu' );
+	}
+
+	/** ¿La capa de IA está disponible y configurada? */
+	private function ai_enabled() {
+		return class_exists( 'Cead_Acad_WA_AI' ) && Cead_Acad_WA_AI::enabled();
 	}
 
 	/** Heurística: ¿el texto parece una consulta y no un saludo suelto? */
 	private function looks_like_query( $body ) {
 		$body = trim( (string) $body );
-		if ( mb_strlen( $body ) < 9 ) { return false; }
+		if ( mb_strlen( $body ) < 4 ) { return false; }
 		$lc = strtolower( $body );
 		foreach ( [ 'hola', 'buenas', 'buen dia', 'buen día', 'buenos dias', 'buenas tardes', 'buenas noches', 'que tal', 'qué tal', 'hello', 'hi', 'menu', 'menú' ] as $greet ) {
 			if ( $lc === $greet ) { return false; }
@@ -379,10 +389,16 @@ class Cead_Acad_WA_Engine {
 				$this->back_to_student( $phone );
 				break;
 			default:
-				// Texto libre: intentar resolverlo con IA; si no, opción inválida.
-				if ( ! $this->ai_try( $phone, ( $body !== '' ? $body : $lc ), $identity ) ) {
-					$this->invalid( $phone );
+				// Texto libre: la IA intenta resolverlo (IA-first).
+				if ( $this->ai_try( $phone, ( $body !== '' ? $body : $lc ), $identity ) ) {
+					return;
 				}
+				// IA activa pero no entendió → empujón suave, no "opción inválida".
+				if ( $this->ai_enabled() ) {
+					$this->send( $phone, '🤔 No te entendí del todo. Probá con otras palabras, o escribí *menú* para ver las opciones.', 'ai_miss' );
+					return;
+				}
+				$this->invalid( $phone );
 		}
 	}
 

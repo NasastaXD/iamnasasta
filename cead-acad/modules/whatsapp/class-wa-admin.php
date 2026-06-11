@@ -32,6 +32,7 @@ class Cead_Acad_WA_Admin {
 		add_submenu_page( 'cead-acad', __( 'WA · Mensajes', 'cead-acad' ), __( 'WA · Mensajes', 'cead-acad' ), 'manage_options', 'cead-acad-wa-messages', [ $this, 'page_messages' ] );
 		add_submenu_page( 'cead-acad', __( 'WA · Métricas', 'cead-acad' ), __( 'WA · Métricas', 'cead-acad' ), 'cead_acad_view_metrics', 'cead-acad-wa-metrics', [ $this, 'page_metrics' ] );
 		add_submenu_page( 'cead-acad', __( 'WA · Mensaje directo', 'cead-acad' ), __( 'WA · Mensaje directo', 'cead-acad' ), 'cead_acad_publish_broadcast', 'cead-acad-wa-direct', [ $this, 'page_direct' ] );
+		add_submenu_page( 'cead-acad', __( 'CEADI · IA', 'cead-acad' ), __( 'CEADI · IA', 'cead-acad' ), 'manage_options', 'cead-acad-wa-ai', [ $this, 'page_ai' ] );
 		add_submenu_page( 'cead-acad', __( 'CEADI · Perfil', 'cead-acad' ), __( 'CEADI · Perfil', 'cead-acad' ), 'manage_options', 'cead-acad-wa-profile', [ $this, 'page_profile' ] );
 	}
 
@@ -52,7 +53,7 @@ class Cead_Acad_WA_Admin {
 
 		if ( isset( $_POST['cead_acad_wa_action'] ) && check_admin_referer( 'cead_acad_wa_status' ) ) {
 			$action = sanitize_key( wp_unslash( $_POST['cead_acad_wa_action'] ) );
-			if ( $action === 'save_settings' || $action === 'ai_test' ) {
+			if ( $action === 'save_settings' ) {
 				$this->store->update_session( [
 					'bridge_url'   => esc_url_raw( wp_unslash( $_POST['bridge_url'] ?? '' ) ),
 					'shared_token' => sanitize_text_field( wp_unslash( $_POST['shared_token'] ?? '' ) ),
@@ -61,27 +62,11 @@ class Cead_Acad_WA_Admin {
 				update_option( 'cead_acad_wa_reminder_days', max( 1, (int) ( $_POST['reminder_days'] ?? 1 ) ), false );
 				update_option( 'cead_acad_wa_country_code', preg_replace( '/[^0-9]/', '', (string) ( $_POST['country_code'] ?? '595' ) ) ?: '595', false );
 				update_option( 'cead_acad_wa_bot_number', preg_replace( '/[^0-9]/', '', (string) ( $_POST['bot_number'] ?? '' ) ), false );
+				update_option( 'cead_acad_wa_registered_only', ! empty( $_POST['registered_only'] ) ? 1 : 0, false );
 				update_option( 'cead_acad_panel_intro', sanitize_textarea_field( wp_unslash( $_POST['panel_intro'] ?? '' ) ), false );
 				update_option( 'cead_acad_ceadi_intro', sanitize_textarea_field( wp_unslash( $_POST['ceadi_intro'] ?? '' ) ), false );
 				update_option( 'cead_acad_banned_words', sanitize_textarea_field( wp_unslash( $_POST['banned_words'] ?? '' ) ), false );
-				// --- IA ---
-				update_option( 'cead_acad_wa_ai_enabled', ! empty( $_POST['ai_enabled'] ) ? 1 : 0, false );
-				update_option( 'cead_acad_wa_ai_key', sanitize_text_field( wp_unslash( $_POST['ai_key'] ?? '' ) ), false );
-				update_option( 'cead_acad_wa_ai_model', sanitize_text_field( wp_unslash( $_POST['ai_model'] ?? '' ) ) ?: 'deepseek-chat', false );
-				update_option( 'cead_acad_wa_ai_endpoint', esc_url_raw( wp_unslash( $_POST['ai_endpoint'] ?? '' ) ), false );
-				update_option( 'cead_acad_wa_ai_temp', is_numeric( $_POST['ai_temp'] ?? '' ) ? (float) $_POST['ai_temp'] : 0.2, false );
-				update_option( 'cead_acad_wa_ai_maxtokens', max( 50, (int) ( $_POST['ai_maxtokens'] ?? 500 ) ), false );
-				update_option( 'cead_acad_wa_ai_prompt', sanitize_textarea_field( wp_unslash( $_POST['ai_prompt'] ?? '' ) ), false );
-				update_option( 'cead_acad_wa_ai_knowledge', sanitize_textarea_field( wp_unslash( $_POST['ai_knowledge'] ?? '' ) ), false );
-				update_option( 'cead_acad_wa_ai_memory', max( 0, min( 20, (int) ( $_POST['ai_memory'] ?? 0 ) ) ), false );
-
-				if ( $action === 'ai_test' ) {
-					$msg = sanitize_text_field( wp_unslash( $_POST['ai_test_message'] ?? '' ) ) ?: '¿qué clases tengo hoy?';
-					$t   = Cead_Acad_WA_AI::test( $msg );
-					$notice = [ $t['ok'] ? 'ok' : 'err', __( 'Prueba IA', 'cead-acad' ) . ': ' . $t['summary'] ];
-				} else {
-					$notice = [ 'ok', __( 'Configuración guardada.', 'cead-acad' ) ];
-				}
+				$notice = [ 'ok', __( 'Configuración guardada.', 'cead-acad' ) ];
 			} elseif ( $action === 'restart' ) {
 				$res = $this->bridge->restart();
 				$notice = isset( $res['error'] ) ? [ 'err', $res['error'] ] : [ 'ok', __( 'Reinicio solicitado.', 'cead-acad' ) ];
@@ -140,37 +125,112 @@ class Cead_Acad_WA_Admin {
 		$this->field( 'reminder_days', __( 'Días de anticipación de recordatorios', 'cead-acad' ), get_option( 'cead_acad_wa_reminder_days', 1 ), '', 'number' );
 		$this->field( 'country_code', __( 'Código de país (para reconocer alumnos)', 'cead-acad' ), get_option( 'cead_acad_wa_country_code', '595' ), '595' );
 			$this->field( 'bot_number', __( 'Número de CEADI (botón «Agregar a CEADI»)', 'cead-acad' ), get_option( 'cead_acad_wa_bot_number', '' ), '595991123456' );
+
+			// Acceso: a quién atiende CEADI.
+			echo '<tr><th scope="row">' . esc_html__( 'Acceso', 'cead-acad' ) . '</th><td>';
+			echo '<label><input type="checkbox" name="registered_only" value="1" ' . checked( get_option( 'cead_acad_wa_registered_only', 1 ), 1, false ) . '> ' . esc_html__( 'Atender solo a números registrados en el panel', 'cead-acad' ) . '</label>';
+			echo '<p class="description">' . esc_html__( 'Activado (recomendado): CEADI solo responde a números cargados en la ficha de un usuario. Desactivalo temporalmente si querés probar desde un número que no está registrado.', 'cead-acad' ) . '</p>';
+			echo '</td></tr>';
+
 			$this->field_textarea( 'panel_intro', __( 'Landing: ¿qué es el panel del CEAD?', 'cead-acad' ), get_option( 'cead_acad_panel_intro', '' ) );
 			$this->field_textarea( 'ceadi_intro', __( 'Landing: ¿qué es CEADI?', 'cead-acad' ), get_option( 'cead_acad_ceadi_intro', '' ) );
 			$this->field_textarea( 'banned_words', __( 'Palabras prohibidas (una por línea)', 'cead-acad' ), get_option( 'cead_acad_banned_words', '' ) );
-
-			// --- IA (CEADI inteligente) ---
-			echo '<tr><th colspan="2" style="padding-top:1.5em"><h3 style="margin:0">' . esc_html__( '🤖 CEADI inteligente (IA)', 'cead-acad' ) . '</h3></th></tr>';
-			echo '<tr><th scope="row">' . esc_html__( 'Activar', 'cead-acad' ) . '</th><td>';
-			echo '<label><input type="checkbox" name="ai_enabled" value="1" ' . checked( get_option( 'cead_acad_wa_ai_enabled', 0 ), 1, false ) . '> ' . esc_html__( 'Entender lenguaje natural con IA (además del menú numérico)', 'cead-acad' ) . '</label>';
-			echo '<p class="description">' . esc_html__( 'Cuando el alumno escribe en vez de elegir un número, la IA interpreta y dispara la función o responde con el conocimiento/FAQ. Si falla o está apagada, usa el menú.', 'cead-acad' ) . '</p>';
-			echo '</td></tr>';
-			$this->field( 'ai_endpoint', __( 'Endpoint (API compatible OpenAI)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_endpoint', '' ), Cead_Acad_WA_AI::ENDPOINT_DEFAULT, 'url' );
-			echo '<tr><th></th><td><p class="description">' . esc_html__( 'Ej.: DeepSeek https://api.deepseek.com/chat/completions · OpenRouter https://openrouter.ai/api/v1/chat/completions · tokenlb https://tokenlb.net/v1/chat/completions · OpenAI https://api.openai.com/v1/chat/completions', 'cead-acad' ) . '</p></td></tr>';
-			$this->field( 'ai_model', __( 'Modelo', 'cead-acad' ), get_option( 'cead_acad_wa_ai_model', 'deepseek-chat' ), 'deepseek-chat' );
-			$this->field( 'ai_key', __( 'API key', 'cead-acad' ), get_option( 'cead_acad_wa_ai_key', '' ), 'sk-... (o definir CEAD_ACAD_AI_KEY en wp-config)', 'password' );
-			$this->field( 'ai_temp', __( 'Temperatura (0–1)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_temp', '0.2' ), '0.2', 'text' );
-			$this->field( 'ai_maxtokens', __( 'Máx. tokens de respuesta', 'cead-acad' ), get_option( 'cead_acad_wa_ai_maxtokens', 500 ), '500', 'number' );
-			$this->field_textarea( 'ai_prompt', __( 'System prompt (personalidad / instrucciones)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_prompt', '' ) ?: Cead_Acad_WA_AI::default_persona(), 6 );
-			echo '<tr><th></th><td><p class="description">' . esc_html__( 'Definí el tono y rol de CEADI. El formato de salida (ruteo en JSON) se agrega automáticamente, no hace falta escribirlo.', 'cead-acad' ) . '</p></td></tr>';
-			$this->field_textarea( 'ai_knowledge', __( 'Conocimiento (base de datos para responder)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_knowledge', '' ), 8 );
-			echo '<tr><th></th><td><p class="description">' . esc_html__( 'Texto libre con info del colegio (horarios generales, reglas, contactos, fechas, etc.). La IA lo usa para responder dudas. Las FAQ del panel se suman a esto.', 'cead-acad' ) . '</p></td></tr>';
-			$this->field( 'ai_memory', __( 'Memoria (turnos a recordar)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_memory', 0 ), '0', 'number' );
-			echo '<tr><th></th><td><p class="description">' . esc_html__( '0 = sin memoria (cada mensaje es independiente). Ej. 5 = recuerda los últimos 5 intercambios de esa persona, por 30 minutos. Útil para conversaciones; usa más tokens.', 'cead-acad' ) . '</p></td></tr>';
-			echo '<tr><th scope="row">' . esc_html__( 'Probar', 'cead-acad' ) . '</th><td>';
-			echo '<input type="text" name="ai_test_message" class="regular-text" placeholder="' . esc_attr__( '¿qué clases tengo hoy?', 'cead-acad' ) . '">';
-			echo ' <button type="submit" class="button" name="cead_acad_wa_action" value="ai_test">' . esc_html__( 'Guardar y probar IA', 'cead-acad' ) . '</button>';
-			echo '<p class="description">' . esc_html__( 'Guarda la configuración y hace una consulta de prueba a la API; el resultado aparece arriba.', 'cead-acad' ) . '</p></td></tr>';
 		echo '</tbody></table>';
 		submit_button( __( 'Guardar configuración', 'cead-acad' ) );
 		echo '</form></div>';
 
+		// Acceso directo a la configuración de IA (vive en su propia pantalla).
+		$ai_on = (bool) get_option( 'cead_acad_wa_ai_enabled', 0 ) && Cead_Acad_WA_AI::key() !== '';
+		echo '<div class="card" style="max-width:720px"><h2>' . esc_html__( '🤖 CEADI inteligente (IA)', 'cead-acad' ) . '</h2>';
+		echo '<p>' . ( $ai_on
+			? '🟢 ' . esc_html__( 'La IA está activa: CEADI entiende lenguaje natural.', 'cead-acad' )
+			: '🔴 ' . esc_html__( 'La IA está desactivada: CEADI usa solo el menú numérico.', 'cead-acad' ) ) . '</p>';
+		echo '<p><a class="button button-primary" href="' . esc_url( admin_url( 'admin.php?page=cead-acad-wa-ai' ) ) . '">' . esc_html__( 'Configurar la IA de CEADI', 'cead-acad' ) . '</a></p>';
+		echo '</div>';
+
 		echo '<p><em>' . esc_html__( 'El bot reutiliza los datos del plugin: horarios/eventos, comunicados y cursos. Los alumnos se reconocen por el teléfono cargado en su ficha (meta _cead_acad_phone).', 'cead-acad' ) . '</em></p>';
+		echo '</div>';
+	}
+
+	// -------------------------------------------------- CEADI inteligente (IA)
+	public function page_ai() {
+		$this->guard( 'manage_options' );
+		$notice = null;
+
+		if ( isset( $_POST['cead_acad_wa_ai_action'] ) && check_admin_referer( 'cead_acad_wa_ai' ) ) {
+			$action = sanitize_key( wp_unslash( $_POST['cead_acad_wa_ai_action'] ) );
+			update_option( 'cead_acad_wa_ai_enabled', ! empty( $_POST['ai_enabled'] ) ? 1 : 0, false );
+			update_option( 'cead_acad_wa_ai_key', sanitize_text_field( wp_unslash( $_POST['ai_key'] ?? '' ) ), false );
+			update_option( 'cead_acad_wa_ai_model', sanitize_text_field( wp_unslash( $_POST['ai_model'] ?? '' ) ) ?: 'deepseek-chat', false );
+			update_option( 'cead_acad_wa_ai_endpoint', esc_url_raw( wp_unslash( $_POST['ai_endpoint'] ?? '' ) ), false );
+			update_option( 'cead_acad_wa_ai_temp', is_numeric( $_POST['ai_temp'] ?? '' ) ? (float) $_POST['ai_temp'] : 0.2, false );
+			update_option( 'cead_acad_wa_ai_maxtokens', max( 50, (int) ( $_POST['ai_maxtokens'] ?? 500 ) ), false );
+			update_option( 'cead_acad_wa_ai_prompt', sanitize_textarea_field( wp_unslash( $_POST['ai_prompt'] ?? '' ) ), false );
+			update_option( 'cead_acad_wa_ai_knowledge', sanitize_textarea_field( wp_unslash( $_POST['ai_knowledge'] ?? '' ) ), false );
+			update_option( 'cead_acad_wa_ai_memory', max( 0, min( 20, (int) ( $_POST['ai_memory'] ?? 4 ) ) ), false );
+
+			if ( $action === 'ai_test' ) {
+				$msg = sanitize_text_field( wp_unslash( $_POST['ai_test_message'] ?? '' ) ) ?: '¿qué clases tengo hoy?';
+				$t   = Cead_Acad_WA_AI::test( $msg );
+				$notice = [ $t['ok'] ? 'ok' : 'err', __( 'Prueba IA', 'cead-acad' ) . ': ' . $t['summary'] ];
+			} else {
+				$notice = [ 'ok', __( 'Configuración de IA guardada.', 'cead-acad' ) ];
+			}
+		}
+
+		$enabled = (bool) get_option( 'cead_acad_wa_ai_enabled', 0 );
+		$has_key = Cead_Acad_WA_AI::key() !== '';
+
+		echo '<div class="wrap"><h1>' . esc_html__( 'CEADI inteligente — IA', 'cead-acad' ) . '</h1>';
+		if ( $notice ) {
+			$this->notice( $notice[1], $notice[0] === 'ok' ? 'success' : 'error' );
+		}
+
+		// Banner de estado claro.
+		if ( $enabled && $has_key ) {
+			$this->notice( '🟢 ' . __( 'IA activa: CEADI entiende lenguaje natural. El alumno puede escribir su consulta y CEADI responde o lo lleva a la función correcta; el menú numérico sigue funcionando como apoyo.', 'cead-acad' ), 'success' );
+		} elseif ( $enabled && ! $has_key ) {
+			$this->notice( '⚠️ ' . __( 'IA activada pero falta la API key: hasta que la cargues, CEADI sigue usando solo el menú numérico.', 'cead-acad' ), 'warning' );
+		} else {
+			$this->notice( '🔴 ' . __( 'IA desactivada: CEADI usa solo el menú numérico. Activala abajo y cargá una API key para que entienda lenguaje natural.', 'cead-acad' ), 'info' );
+		}
+
+		echo '<div class="card" style="max-width:760px"><form method="post">';
+		wp_nonce_field( 'cead_acad_wa_ai' );
+		echo '<input type="hidden" name="cead_acad_wa_ai_action" value="save_ai" />';
+		echo '<table class="form-table"><tbody>';
+
+		echo '<tr><th scope="row">' . esc_html__( 'Activar', 'cead-acad' ) . '</th><td>';
+		echo '<label><input type="checkbox" name="ai_enabled" value="1" ' . checked( $enabled, true, false ) . '> ' . esc_html__( 'Entender lenguaje natural con IA (modo IA-first; el menú numérico queda de apoyo)', 'cead-acad' ) . '</label>';
+		echo '<p class="description">' . esc_html__( 'Cuando el alumno escribe en vez de elegir un número, la IA interpreta y dispara la función o responde con el conocimiento/FAQ. Si la IA falla o está apagada, cae al menú.', 'cead-acad' ) . '</p>';
+		echo '</td></tr>';
+
+		$this->field( 'ai_endpoint', __( 'Endpoint (API compatible OpenAI)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_endpoint', '' ), Cead_Acad_WA_AI::ENDPOINT_DEFAULT, 'url' );
+		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Ej.: DeepSeek https://api.deepseek.com/chat/completions · OpenRouter https://openrouter.ai/api/v1/chat/completions · tokenlb https://tokenlb.net/v1/chat/completions · OpenAI https://api.openai.com/v1/chat/completions', 'cead-acad' ) . '</p></td></tr>';
+		$this->field( 'ai_model', __( 'Modelo', 'cead-acad' ), get_option( 'cead_acad_wa_ai_model', 'deepseek-chat' ), 'deepseek-chat' );
+		$this->field( 'ai_key', __( 'API key', 'cead-acad' ), get_option( 'cead_acad_wa_ai_key', '' ), 'sk-... (o definir CEAD_ACAD_AI_KEY en wp-config)', 'password' );
+		if ( Cead_Acad_WA_AI::key() !== '' && defined( 'CEAD_ACAD_AI_KEY' ) && CEAD_ACAD_AI_KEY ) {
+			echo '<tr><th></th><td><p class="description">' . esc_html__( 'La API key está fijada por constante en wp-config.php (CEAD_ACAD_AI_KEY); este campo se ignora.', 'cead-acad' ) . '</p></td></tr>';
+		}
+		$this->field( 'ai_temp', __( 'Temperatura (0–1)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_temp', '0.2' ), '0.2', 'text' );
+		$this->field( 'ai_maxtokens', __( 'Máx. tokens de respuesta', 'cead-acad' ), get_option( 'cead_acad_wa_ai_maxtokens', 500 ), '500', 'number' );
+		$this->field_textarea( 'ai_prompt', __( 'System prompt (personalidad / instrucciones)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_prompt', '' ) ?: Cead_Acad_WA_AI::default_persona(), 6 );
+		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Definí el tono y rol de CEADI. El formato de salida (ruteo en JSON) se agrega automáticamente, no hace falta escribirlo.', 'cead-acad' ) . '</p></td></tr>';
+		$this->field_textarea( 'ai_knowledge', __( 'Conocimiento (base de datos para responder)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_knowledge', '' ), 8 );
+		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Texto libre con info del colegio (horarios generales, reglas, contactos, fechas, etc.). La IA lo usa para responder dudas. Las FAQ del panel se suman a esto.', 'cead-acad' ) . '</p></td></tr>';
+		$this->field( 'ai_memory', __( 'Memoria (turnos a recordar)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_memory', 4 ), '4', 'number' );
+		echo '<tr><th></th><td><p class="description">' . esc_html__( '0 = sin memoria (cada mensaje es independiente). 4 (recomendado) = recuerda los últimos 4 intercambios de esa persona, por 30 minutos, para que las charlas fluyan. Más memoria usa más tokens.', 'cead-acad' ) . '</p></td></tr>';
+
+		echo '<tr><th scope="row">' . esc_html__( 'Probar', 'cead-acad' ) . '</th><td>';
+		echo '<input type="text" name="ai_test_message" class="regular-text" placeholder="' . esc_attr__( '¿qué clases tengo hoy?', 'cead-acad' ) . '">';
+		echo ' <button type="submit" class="button" name="cead_acad_wa_ai_action" value="ai_test">' . esc_html__( 'Guardar y probar', 'cead-acad' ) . '</button>';
+		echo '<p class="description">' . esc_html__( 'Guarda la configuración y hace una consulta de prueba a la API; el resultado aparece arriba.', 'cead-acad' ) . '</p></td></tr>';
+
+		echo '</tbody></table>';
+		echo '<p><button type="submit" class="button button-primary" name="cead_acad_wa_ai_action" value="save_ai">' . esc_html__( 'Guardar configuración de IA', 'cead-acad' ) . '</button></p>';
+		echo '</form></div>';
+
+		echo '<p><em>' . esc_html__( 'Recordá: CEADI solo atiende a los números habilitados según el acceso configurado en WhatsApp → Estado y configuración.', 'cead-acad' ) . '</em></p>';
 		echo '</div>';
 	}
 
