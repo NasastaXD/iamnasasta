@@ -168,6 +168,8 @@ class Cead_Acad_WA_Admin {
 			update_option( 'cead_acad_wa_ai_prompt', sanitize_textarea_field( wp_unslash( $_POST['ai_prompt'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai_knowledge', sanitize_textarea_field( wp_unslash( $_POST['ai_knowledge'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai_memory', max( 0, min( 20, (int) ( $_POST['ai_memory'] ?? 4 ) ) ), false );
+			$dm = sanitize_key( wp_unslash( $_POST['ai_default_mode'] ?? 'auto' ) );
+			update_option( 'cead_acad_wa_default_mode', in_array( $dm, [ 'auto', 'ia', 'menu' ], true ) ? $dm : 'auto', false );
 
 			if ( $action === 'ai_test' ) {
 				$msg = sanitize_text_field( wp_unslash( $_POST['ai_test_message'] ?? '' ) ) ?: '¿qué clases tengo hoy?';
@@ -202,7 +204,22 @@ class Cead_Acad_WA_Admin {
 
 		echo '<tr><th scope="row">' . esc_html__( 'Activar', 'cead-acad' ) . '</th><td>';
 		echo '<label><input type="checkbox" name="ai_enabled" value="1" ' . checked( $enabled, true, false ) . '> ' . esc_html__( 'Entender lenguaje natural con IA (modo IA-first; el menú numérico queda de apoyo)', 'cead-acad' ) . '</label>';
-		echo '<p class="description">' . esc_html__( 'Cuando el alumno escribe en vez de elegir un número, la IA interpreta y dispara la función o responde con el conocimiento/FAQ. Si la IA falla o está apagada, cae al menú.', 'cead-acad' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Cuando alguien escribe en vez de elegir un número, la IA interpreta y dispara la función o responde con el conocimiento/FAQ. Si la IA falla o está apagada, cae al menú.', 'cead-acad' ) . '</p>';
+		echo '</td></tr>';
+
+		// Modo por defecto (asistente vs menú numérico) para conversaciones nuevas.
+		$dm = (string) get_option( 'cead_acad_wa_default_mode', 'auto' );
+		echo '<tr><th scope="row">' . esc_html__( 'Modo por defecto', 'cead-acad' ) . '</th><td>';
+		echo '<select name="ai_default_mode">';
+		foreach ( [
+			'auto' => __( 'Automático (asistente si la IA está activa)', 'cead-acad' ),
+			'ia'   => __( 'Asistente (IA): la persona escribe en lenguaje natural', 'cead-acad' ),
+			'menu' => __( 'Menú numérico clásico', 'cead-acad' ),
+		] as $val => $label ) {
+			echo '<option value="' . esc_attr( $val ) . '" ' . selected( $dm, $val, false ) . '>' . esc_html( $label ) . '</option>';
+		}
+		echo '</select>';
+		echo '<p class="description">' . esc_html__( 'Con qué modo arranca cada conversación (alumnado y personal). Cada persona puede cambiarlo desde WhatsApp escribiendo «modo asistente» o «modo menú»; su preferencia se recuerda.', 'cead-acad' ) . '</p>';
 		echo '</td></tr>';
 
 		$this->field( 'ai_endpoint', __( 'Endpoint (API compatible OpenAI)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_endpoint', '' ), Cead_Acad_WA_AI::ENDPOINT_DEFAULT, 'url' );
