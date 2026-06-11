@@ -165,6 +165,7 @@ class Cead_Acad_WA_Engine {
 			case 'menu_pending':         $this->menu_pending( $phone, $identity, $context ); break;
 			case 'role_chooser':         $this->role_chooser( $phone, $lc, $context, $identity ); break;
 			case 'ia_home':              $this->ia_home( $phone, $body, $lc, $identity ); break;
+			case 'ia_staff_confirm':     $this->ia_staff_confirm( $phone, $lc, $context, $identity ); break;
 			// Alumnado
 			case 'student_menu':         $this->student_menu( $phone, $lc, $identity, $body ); break;
 			case 'stu_report_type':      $this->report_type( $phone, $lc ); break;
@@ -500,12 +501,18 @@ class Cead_Acad_WA_Engine {
 		if ( ! $this->ai_enabled() ) {
 			return false;
 		}
-		$res = Cead_Acad_WA_AI::route( $text, $this->faq_context(), $phone );
+		$res = Cead_Acad_WA_AI::route( $text, $this->faq_context(), $phone, $this->ai_staff_tools( $identity ) );
 		if ( ! is_array( $res ) ) {
 			return false;
 		}
 		$action = (string) ( $res['intent'] ?? '' ); // '' = la IA respondió por su cuenta
 		$reply  = isset( $res['reply'] ) ? trim( (string) $res['reply'] ) : '';
+		$args   = isset( $res['args'] ) && is_array( $res['args'] ) ? $res['args'] : [];
+
+		// Acciones de gestión del staff: NO se ejecutan; se proponen y el menú aprueba.
+		if ( in_array( $action, [ 'enviar_comunicado', 'crear_evento' ], true ) ) {
+			return $this->propose_staff_action( $phone, $action, $args, $reply, $identity );
+		}
 
 		// La IA decidió disparar una función: su "reply" es la transición y va primero.
 		if ( $action !== '' ) {
@@ -546,6 +553,189 @@ class Cead_Acad_WA_Engine {
 			return true;
 		}
 		return false;
+	}
+
+	/* ------------------------------------------ acciones de staff vía IA (con aprobación) */
+
+	/**
+	 * Herramientas de gestión que la IA puede PROPONER, según los permisos reales
+	 * del usuario. Si no tiene permiso, ni siquiera se le ofrecen al modelo.
+	 */
+	private function ai_staff_tools( $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! $uid ) { return []; }
+		$tools = [];
+		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast' ) ) {
+			$aud = Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast_all' )
+				? 'students=alumnado, staff=personal, all=todos'
+				: 'students=alumnado, staff=personal';
+			$tools[] = [
+				'type'     => 'function',
+				'function' => [
+					'name'        => 'enviar_comunicado',
+					'description' => 'Proponer el envío de un comunicado por WhatsApp. NO se envía hasta que la persona lo apruebe.',
+					'parameters'  => [
+						'type'       => 'object',
+						'properties' => [
+							'mensaje'   => [ 'type' => 'string', 'description' => 'Texto del comunicado, ya redactado y listo para enviar.' ],
+							'audiencia' => [ 'type' => 'string', 'description' => "A quién enviarlo ($aud)." ],
+						],
+						'required'   => [ 'mensaje', 'audiencia' ],
+					],
+				],
+			];
+		}
+		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_schedule' ) ) {
+			$tools[] = [
+				'type'     => 'function',
+				'function' => [
+					'name'        => 'crear_evento',
+					'description' => 'Proponer la creación de un evento en el calendario. NO se crea hasta que la persona lo apruebe.',
+					'parameters'  => [
+						'type'       => 'object',
+						'properties' => [
+							'titulo' => [ 'type' => 'string', 'description' => 'Título del evento.' ],
+							'fecha'  => [ 'type' => 'string', 'description' => 'Fecha y hora (formato dd/mm/aaaa hh:mm o lenguaje natural).' ],
+						],
+						'required'   => [ 'titulo', 'fecha' ],
+					],
+				],
+			];
+		}
+		return $tools;
+	}
+
+	/** Arma la propuesta de una acción de staff y la deja a la espera de aprobación. */
+	private function propose_staff_action( $phone, $action, $args, $reply, $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+
+		if ( $action === 'enviar_comunicado' ) {
+			if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast' ) ) {
+				$this->send( $phone, $this->m( 'access_denied' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			$mensaje = trim( (string) ( $args['mensaje'] ?? '' ) );
+			$aud     = (string) ( $args['audiencia'] ?? '' );
+			$aud     = in_array( $aud, [ 'students', 'staff', 'all' ], true ) ? $aud : 'students';
+			if ( $aud === 'all' && ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast_all' ) ) {
+				$aud = 'students';
+			}
+			if ( $reply !== '' ) { $this->send( $phone, $reply ); }
+			if ( $mensaje === '' ) {
+				$this->send( $phone, '¿Qué querés que diga el comunicado?' );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			$labels = [ 'students' => 'Alumnado', 'staff' => 'Personal', 'all' => 'Todos' ];
+			$count  = (int) $this->broadcaster->count_for( $aud );
+			$this->store->set_state( $phone, 'ia_staff_confirm', [ 'kind' => 'comunicado', 'mensaje' => $mensaje, 'audiencia' => $aud ] );
+			$this->send(
+				$phone,
+				"📢 *Comunicado* — propuesta de CEADI\nPara: *{$labels[ $aud ]}* ({$count})\n────────\n{$mensaje}\n────────\n\n*1.* ✅ Aceptar y enviar\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar",
+				'ia_staff_propose'
+			);
+			return true;
+		}
+
+		// crear_evento
+		if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_schedule' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return true;
+		}
+		$titulo = trim( (string) ( $args['titulo'] ?? '' ) );
+		$start  = $this->parse_datetime( trim( (string) ( $args['fecha'] ?? '' ) ) );
+		if ( $reply !== '' ) { $this->send( $phone, $reply ); }
+		if ( $titulo === '' || $start === null ) {
+			$this->send( $phone, 'Para el evento necesito *título* y *fecha*. ¿Me los pasás?' );
+			$this->store->set_state( $phone, 'ia_home' );
+			return true;
+		}
+		$human = $this->human_date( substr( $start, 0, 10 ) ) . ' ' . substr( $start, 11, 5 );
+		$this->store->set_state( $phone, 'ia_staff_confirm', [ 'kind' => 'evento', 'titulo' => $titulo, 'start' => $start ] );
+		$this->send(
+			$phone,
+			"📅 *Evento* — propuesta de CEADI\n*{$titulo}*\n🗓️ {$human}\n\n*1.* ✅ Aceptar y crear\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar",
+			'ia_staff_propose'
+		);
+		return true;
+	}
+
+	/** Menú de aprobación de una acción propuesta por la IA. */
+	private function ia_staff_confirm( $phone, $lc, $context, $identity ) {
+		$kind = (string) ( $context['kind'] ?? '' );
+
+		if ( in_array( $lc, [ '1', 'aceptar', 'acepto', 'si', 'sí', 'ok', 'dale', 'confirmar' ], true ) ) {
+			if ( $kind === 'comunicado' ) { $this->execute_comunicado( $phone, $context, $identity ); }
+			elseif ( $kind === 'evento' ) { $this->execute_evento( $phone, $context, $identity ); }
+			else { $this->store->set_state( $phone, 'ia_home' ); }
+			return;
+		}
+		if ( in_array( $lc, [ '2', 'editar', 'edit', 'cambiar', 'modificar' ], true ) ) {
+			$this->store->set_state( $phone, 'ia_home' );
+			$this->send( $phone, '✏️ Dale, decime cómo lo ajusto y te lo propongo de nuevo.', 'ia_edit' );
+			return;
+		}
+		if ( in_array( $lc, [ '3', 'cancelar', 'cancel', 'no', 'denegar', 'descartar' ], true ) ) {
+			$this->store->set_state( $phone, 'ia_home' );
+			$this->send( $phone, '❌ Listo, lo descarté. ¿Algo más?', 'ia_cancel' );
+			return;
+		}
+		$this->send( $phone, 'Elegí *1* (aceptar), *2* (editar) o *3* (cancelar).' );
+	}
+
+	/** Ejecuta el comunicado aprobado (re-chequea permisos). */
+	private function execute_comunicado( $phone, $context, $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		$mensaje = (string) ( $context['mensaje'] ?? '' );
+		$aud     = (string) ( $context['audiencia'] ?? 'students' );
+		if ( $aud === 'all' && ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast_all' ) ) {
+			$aud = 'students';
+		}
+		$this->create_broadcast_post( $mensaje, $aud );
+		$res = $this->broadcaster->enqueue_for( $mensaje, $aud );
+		if ( ! empty( $res['busy'] ) ) {
+			$this->send( $phone, $this->m( 'comm_busy' ) );
+		} elseif ( empty( $res['queued'] ) ) {
+			$this->send( $phone, $this->m( 'comm_empty' ) );
+		} else {
+			$this->send( $phone, $this->interp( $this->m( 'comm_queued' ), [ 'total' => (int) ( $res['total'] ?? 0 ) ] ), 'broadcast_enqueued' );
+		}
+		$this->store->set_state( $phone, 'ia_home' );
+	}
+
+	/** Crea el evento aprobado (re-chequea permisos). */
+	private function execute_evento( $phone, $context, $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_schedule' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		$start  = (string) ( $context['start'] ?? '' );
+		$titulo = (string) ( $context['titulo'] ?? 'Evento' );
+		$post_id = wp_insert_post( [
+			'post_type'   => Cead_Acad_Schedule_CPT::POST_TYPE,
+			'post_status' => 'publish',
+			'post_title'  => $titulo,
+			'post_author' => $uid ?: 0,
+		], true );
+		if ( is_wp_error( $post_id ) ) {
+			$this->send( $phone, $this->m( 'error_generic' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		update_post_meta( $post_id, '_cead_acad_event_start', $start );
+		update_post_meta( $post_id, '_cead_acad_event_type', 'evento' );
+		Cead_Acad_Audiences::set( 'event', $post_id, [ [ 'type' => 'all', 'value' => '*' ] ] );
+		$this->send( $phone, $this->m( 'event_saved' ), 'event_created' );
+		$this->store->set_state( $phone, 'ia_home' );
 	}
 
 	/** Contexto compacto de las FAQ para que la IA responda dudas generales. */

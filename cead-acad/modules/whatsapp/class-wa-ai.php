@@ -102,6 +102,7 @@ class Cead_Acad_WA_AI {
 		return "Conversá con naturalidad, con tu propio criterio y sin límites artificiales de formato. "
 			. "Tenés herramientas para datos reales del sistema y trámites guiados (el horario personal del alumno, eventos, comunicados, contactos, reportar, escribir a un encargado, etc.). "
 			. "Usalas SOLO cuando aportan algo que vos no podés dar por tu cuenta (datos personales o actualizados) o cuando inician un trámite; el resto —saludos, dudas, explicaciones, charla— resolvelo vos mismo. "
+			. "Algunas herramientas son de gestión del personal (enviar un comunicado, crear un evento): proponelas con los datos completos que tengas; el sistema le mostrará a la persona un resumen para Aceptar, Editar o Cancelar antes de ejecutar, así que no hace falta que vos pidas confirmación. "
 			. "Si llamás a una herramienta, podés acompañarla con una frase breve de transición. Nunca inventes horarios, fechas ni datos personales: para eso están las herramientas.";
 	}
 
@@ -160,15 +161,23 @@ class Cead_Acad_WA_AI {
 	 * (HTTP 400), cae automáticamente al modo JSON. Devuelve un array de depuración:
 	 * [ ok, code, error, intent, reply, content ].
 	 */
-	public static function call( $message, $faq_context = '', $key = null, $endpoint = null, $model = null, $history = [] ) {
+	public static function call( $message, $faq_context = '', $key = null, $endpoint = null, $model = null, $history = [], $extra_tools = [] ) {
 		$key      = $key !== null ? $key : self::key();
 		$endpoint = $endpoint !== null && $endpoint !== '' ? $endpoint : self::endpoint();
 		$model    = $model !== null && $model !== '' ? $model : self::model();
 		$message  = trim( (string) $message );
 
-		$out = [ 'ok' => false, 'code' => 0, 'error' => '', 'intent' => '', 'reply' => '', 'content' => '' ];
+		$out = [ 'ok' => false, 'code' => 0, 'error' => '', 'intent' => '', 'reply' => '', 'content' => '', 'args' => [] ];
 		if ( $key === '' ) { $out['error'] = 'Falta la API key.'; return $out; }
 		if ( $message === '' ) { $out['error'] = 'Mensaje vacío.'; return $out; }
+
+		// Herramientas: base (informativas) + las de staff que pase el motor (con permiso).
+		$tools   = array_merge( self::tools_spec(), is_array( $extra_tools ) ? $extra_tools : [] );
+		$allowed = array_keys( self::actions() );
+		foreach ( $tools as $t ) {
+			if ( ! empty( $t['function']['name'] ) ) { $allowed[] = (string) $t['function']['name']; }
+		}
+		$allowed = array_values( array_unique( $allowed ) );
 
 		$messages = function ( $mode ) use ( $faq_context, $history, $message ) {
 			$m = [ [ 'role' => 'system', 'content' => self::build_system( $faq_context, $mode ) ] ];
@@ -187,7 +196,7 @@ class Cead_Acad_WA_AI {
 			'temperature' => self::temperature(),
 			'max_tokens'  => self::max_tokens(),
 			'messages'    => $messages( 'tools' ),
-			'tools'       => self::tools_spec(),
+			'tools'       => $tools,
 			'tool_choice' => 'auto',
 		] );
 
@@ -212,7 +221,7 @@ class Cead_Acad_WA_AI {
 			$out['error'] = 'HTTP ' . $r['code'] . ' — ' . mb_substr( wp_strip_all_tags( (string) $r['bodyraw'] ), 0, 300 );
 			return $out;
 		}
-		return self::parse_tools_mode( $r, $out );
+		return self::parse_tools_mode( $r, $out, $allowed );
 	}
 
 	/** POST al endpoint compatible OpenAI. Devuelve [ code, error, bodyraw, data ]. */
@@ -239,29 +248,37 @@ class Cead_Acad_WA_AI {
 	}
 
 	/** Lee la respuesta del modo herramientas: contenido libre + tool_call opcional. */
-	protected static function parse_tools_mode( $r, $out ) {
+	protected static function parse_tools_mode( $r, $out, $allowed = null ) {
+		$allowed = is_array( $allowed ) ? $allowed : array_keys( self::actions() );
 		$msg     = $r['data']['choices'][0]['message'] ?? [];
 		$content = (string) ( $msg['content'] ?? '' );
 		$reply   = sanitize_textarea_field( $content );
 
 		$action = '';
+		$args   = [];
 		if ( ! empty( $msg['tool_calls'][0]['function']['name'] ) ) {
-			$action = sanitize_key( (string) $msg['tool_calls'][0]['function']['name'] );
+			$fn     = $msg['tool_calls'][0]['function'];
+			$action = sanitize_key( (string) $fn['name'] );
+			if ( isset( $fn['arguments'] ) ) {
+				$args = is_array( $fn['arguments'] ) ? $fn['arguments'] : (array) json_decode( (string) $fn['arguments'], true );
+			}
 		}
-		if ( $action !== '' && ! array_key_exists( $action, self::actions() ) ) {
+		if ( $action !== '' && ! in_array( $action, $allowed, true ) ) {
 			$action = '';
+			$args   = [];
 		}
 
 		if ( $reply === '' && $action === '' ) { $out['error'] = 'Respuesta vacía del modelo.'; return $out; }
 		$out['ok']      = true;
 		$out['intent']  = $action;
+		$out['args']    = $args;
 		$out['reply']   = $reply;
 		$out['content'] = ( $content !== '' ) ? $content : $reply;
 		return $out;
 	}
 
 	/** Lee la respuesta del modo JSON (fallback): {reply, action} dentro del contenido. */
-	protected static function parse_json_mode( $r, $out ) {
+	protected static function parse_json_mode( $r, $out, $allowed = null ) {
 		$out['code'] = $r['code'];
 		$content     = (string) ( $r['data']['choices'][0]['message']['content'] ?? '' );
 		$out['content'] = $content;
@@ -291,17 +308,17 @@ class Cead_Acad_WA_AI {
 		return $out;
 	}
 
-	/** Decisión para el motor. Devuelve [intent, reply] o null. Usa memoria si está activa y hay $phone. */
-	public static function route( $message, $faq_context = '', $phone = '' ) {
+	/** Decisión para el motor. Devuelve [intent, reply, args] o null. Usa memoria si está activa y hay $phone. */
+	public static function route( $message, $faq_context = '', $phone = '', $extra_tools = [] ) {
 		$history = ( $phone !== '' ) ? self::load_memory( $phone ) : [];
-		$r = self::call( $message, $faq_context, null, null, null, $history );
+		$r = self::call( $message, $faq_context, null, null, null, $history, $extra_tools );
 		if ( ! $r['ok'] ) {
 			return null;
 		}
 		if ( $phone !== '' && self::memory_turns() > 0 ) {
 			self::save_memory( $phone, $message, $r['content'] );
 		}
-		return [ 'intent' => $r['intent'], 'reply' => $r['reply'] ];
+		return [ 'intent' => $r['intent'], 'reply' => $r['reply'], 'args' => $r['args'] ?? [] ];
 	}
 
 	/* ---------------- Memoria conversacional (por número, con expiración) ---------------- */
