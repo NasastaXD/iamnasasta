@@ -120,13 +120,13 @@ class Cead_Acad_WA_Engine {
 		if ( $want_ia || $want_menu ) {
 			$this->force_new = true;
 			if ( $want_ia && ! $this->ai_enabled() ) {
-				$this->send( $phone, '⚠️ El modo asistente no está disponible ahora; seguimos con el menú.', 'mode' );
+				$this->send( $phone, __( '⚠️ El modo asistente no está disponible ahora; seguimos con el menú.', 'cead-acad' ), 'mode' );
 				$this->enter_mode_landing( $phone, $identity, 'menu' );
 			} else {
 				$this->set_mode( $phone, $want_ia ? 'ia' : 'menu' );
 				$this->send( $phone, $want_ia
-					? '✅ Modo asistente activado. Escribime lo que necesites 💬 (mandá *menú* para ver opciones).'
-					: '✅ Modo menú activado.', 'mode' );
+					? __( '✅ Modo asistente activado. Escribime lo que necesites 💬 (mandá *menú* para ver opciones).', 'cead-acad' )
+					: __( '✅ Modo menú activado.', 'cead-acad' ), 'mode' );
 				$this->enter_mode_landing( $phone, $identity, $want_ia ? 'ia' : 'menu' );
 			}
 			$this->flush_outbox( $phone );
@@ -258,12 +258,12 @@ class Cead_Acad_WA_Engine {
 				? $this->interp( $this->m( 'greeting_staff' ),   [ 'name' => $name ?: 'Profe' ] )
 				: $this->interp( $this->m( 'greeting_student' ), [ 'name' => $name ?: 'che' ] );
 			$this->ia_turn = true;
-			$this->send( $phone, $greeting . "\n\n" . '💬 Escribime lo que necesites y te ayudo. Mandá *menú* si preferís las opciones.', 'ia_home' );
+			$this->send( $phone, $greeting . "\n\n" . __( '💬 Escribime lo que necesites y te ayudo. Mandá *menú* si preferís las opciones.', 'cead-acad' ), 'ia_home' );
 			return;
 		}
 
 		// Modo menú (clásico): personal → selector de roles; alumnado → menú numérico.
-		$switch_hint = $this->ai_enabled() ? "\n\n" . '_💬 Escribí *modo asistente* para hablar con CEADI en lenguaje natural._' : '';
+		$switch_hint = $this->ai_enabled() ? "\n\n" . __( '_💬 Escribí *modo asistente* para hablar con CEADI en lenguaje natural._', 'cead-acad' ) : '';
 		if ( $is_staff ) {
 			$greeting = $this->interp( $this->m( 'greeting_staff' ), [ 'name' => $name ?: 'Profe' ] ) . $switch_hint;
 			$this->enter_role_chooser( $phone, $identity, $this->available_role_menus( $identity ), $greeting );
@@ -467,7 +467,7 @@ class Cead_Acad_WA_Engine {
 					}
 					if ( $this->ai_enabled() ) {
 						$this->ia_turn = true;
-						$this->send( $phone, '🤔 No te entendí del todo. Probá con otras palabras, o escribí *menú* para ver las opciones.', 'ai_miss' );
+						$this->send( $phone, __( '🤔 No te entendí del todo. Probá con otras palabras, o escribí *menú* para ver las opciones.', 'cead-acad' ), 'ai_miss' );
 						return;
 					}
 				}
@@ -492,7 +492,7 @@ class Cead_Acad_WA_Engine {
 		}
 		if ( $this->ai_enabled() ) {
 			$this->ia_turn = true;
-			$this->send( $phone, '🤔 No te entendí del todo. Escribime de nuevo, o mandá *menú* para ver las opciones.', 'ai_miss' );
+			$this->send( $phone, __( '🤔 No te entendí del todo. Escribime de nuevo, o mandá *menú* para ver las opciones.', 'cead-acad' ), 'ai_miss' );
 			return;
 		}
 		// IA caída/desactivada: caemos al menú que corresponda.
@@ -635,16 +635,22 @@ class Cead_Acad_WA_Engine {
 			}
 			if ( $reply !== '' ) { $this->send( $phone, $reply ); }
 			if ( $mensaje === '' ) {
-				$this->send( $phone, '¿Qué querés que diga el comunicado?' );
+				$this->send( $phone, __( '¿Qué querés que diga el comunicado?', 'cead-acad' ) );
 				$this->store->set_state( $phone, 'ia_home' );
 				return true;
 			}
-			$labels = [ 'students' => 'Alumnado', 'staff' => 'Personal', 'all' => 'Todos' ];
+			$labels = [ 'students' => __( 'Alumnado', 'cead-acad' ), 'staff' => __( 'Personal', 'cead-acad' ), 'all' => __( 'Todos', 'cead-acad' ) ];
 			$count  = (int) $this->broadcaster->count_for( $aud );
 			$this->store->set_state( $phone, 'ia_staff_confirm', [ 'kind' => 'comunicado', 'mensaje' => $mensaje, 'audiencia' => $aud ] );
 			$this->send(
 				$phone,
-				"📢 *Comunicado* — propuesta de CEADI\nPara: *{$labels[ $aud ]}* ({$count})\n────────\n{$mensaje}\n────────\n\n*1.* ✅ Aceptar y enviar\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar",
+				sprintf(
+					/* translators: 1: audiencia, 2: cantidad de destinatarios, 3: texto del comunicado */
+					__( "📢 *Comunicado* — propuesta de CEADI\nPara: *%1\$s* (%2\$d)\n────────\n%3\$s\n────────\n\n*1.* ✅ Aceptar y enviar\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
+					$labels[ $aud ],
+					$count,
+					$mensaje
+				),
 				'ia_staff_propose'
 			);
 			return true;
@@ -660,7 +666,7 @@ class Cead_Acad_WA_Engine {
 		$start  = $this->parse_datetime( trim( (string) ( $args['fecha'] ?? '' ) ) );
 		if ( $reply !== '' ) { $this->send( $phone, $reply ); }
 		if ( $titulo === '' || $start === null ) {
-			$this->send( $phone, 'Para el evento necesito *título* y *fecha*. ¿Me los pasás?' );
+			$this->send( $phone, __( 'Para el evento necesito *título* y *fecha*. ¿Me los pasás?', 'cead-acad' ) );
 			$this->store->set_state( $phone, 'ia_home' );
 			return true;
 		}
@@ -668,7 +674,12 @@ class Cead_Acad_WA_Engine {
 		$this->store->set_state( $phone, 'ia_staff_confirm', [ 'kind' => 'evento', 'titulo' => $titulo, 'start' => $start ] );
 		$this->send(
 			$phone,
-			"📅 *Evento* — propuesta de CEADI\n*{$titulo}*\n🗓️ {$human}\n\n*1.* ✅ Aceptar y crear\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar",
+			sprintf(
+				/* translators: 1: título del evento, 2: fecha y hora */
+				__( "📅 *Evento* — propuesta de CEADI\n*%1\$s*\n🗓️ %2\$s\n\n*1.* ✅ Aceptar y crear\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
+				$titulo,
+				$human
+			),
 			'ia_staff_propose'
 		);
 		return true;
@@ -687,15 +698,15 @@ class Cead_Acad_WA_Engine {
 		}
 		if ( in_array( $lc, [ '2', 'editar', 'edit', 'cambiar', 'modificar' ], true ) ) {
 			$this->store->set_state( $phone, 'ia_home' );
-			$this->send( $phone, '✏️ Dale, decime cómo lo ajusto y te lo propongo de nuevo.', 'ia_edit' );
+			$this->send( $phone, __( '✏️ Dale, decime cómo lo ajusto y te lo propongo de nuevo.', 'cead-acad' ), 'ia_edit' );
 			return;
 		}
 		if ( in_array( $lc, [ '3', 'cancelar', 'cancel', 'no', 'denegar', 'descartar' ], true ) ) {
 			$this->store->set_state( $phone, 'ia_home' );
-			$this->send( $phone, '❌ Listo, lo descarté. ¿Algo más?', 'ia_cancel' );
+			$this->send( $phone, __( '❌ Listo, lo descarté. ¿Algo más?', 'cead-acad' ), 'ia_cancel' );
 			return;
 		}
-		$this->send( $phone, 'Elegí *1* (aceptar), *2* (editar) o *3* (cancelar).' );
+		$this->send( $phone, __( 'Elegí *1* (aceptar), *2* (editar) o *3* (cancelar).', 'cead-acad' ) );
 	}
 
 	/** Ejecuta el comunicado aprobado (re-chequea permisos). */
