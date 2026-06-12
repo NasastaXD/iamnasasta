@@ -84,8 +84,10 @@ El token compartido y la URL del bridge se configuran en
 **Alumnado:** horarios (con "ahora/sigue"), sitio web, calendario, contacto,
 lectura de comunicados, reporte anónimo/confidencial (cifrado + código de
 seguimiento + reenvío a un número responsable), sugerencias, FAQ, tablón del
-Consejo + propuestas, recordatorios de eventos opt-in, y **"Mi panel web"**
-(promoción del panel). `BAJA` para no recibir más.
+Consejo + propuestas, recordatorios de eventos opt-in, **"Mi panel web"**
+(promoción del panel) y **Ajustes** (ver sus datos, cambiar nombre, solicitar
+cambio de número a Secretaría, alternar modo IA/menú y recordatorios).
+`BAJA` para no recibir más.
 
 **Menú inicial por rol:** quien tiene permisos elige primero a qué menú entrar
 ("Estudiantes" o el/los menú(s) de su rol). Un alumno entra directo.

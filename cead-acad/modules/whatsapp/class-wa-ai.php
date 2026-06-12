@@ -40,6 +40,7 @@ class Cead_Acad_WA_AI {
 			'recordatorios' => 'activar o desactivar los recordatorios de eventos',
 			'panel'         => 'dar el enlace al panel web del alumno',
 			'faq'           => 'mostrar el listado completo de preguntas frecuentes',
+			'ajustes'       => 'abrir los ajustes del usuario (ver sus datos, cambiar su nombre, pedir cambio de número, activar/desactivar el modo IA o los recordatorios)',
 		];
 	}
 

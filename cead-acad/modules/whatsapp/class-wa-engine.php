@@ -72,7 +72,13 @@ class Cead_Acad_WA_Engine {
 		// Todas las respuestas de este turno se acumulan y se entregan juntas.
 		$this->outbox = [];
 
+		// El ancla solo se edita cuando la persona NAVEGA con números. Si escribe
+		// (palabras, una foto), editar dejaría la respuesta ARRIBA de su mensaje,
+		// como si el bot no hubiera contestado: el turno baja como mensaje nuevo.
 		$lc = strtolower( trim( $body ) );
+		if ( ! ctype_digit( $lc ) ) {
+			$this->force_new = true;
+		}
 		if ( $lc === 'baja' ) {
 			$this->store->set_opt_out( $phone, true );
 			$this->store->reset_state( $phone );
@@ -180,6 +186,9 @@ class Cead_Acad_WA_Engine {
 			case 'stu_msg_body':         $this->msg_body( $phone, $body, $lc, $context, $identity ); break;
 			case 'stu_council_menu':     $this->council_menu( $phone, $lc ); break;
 			case 'stu_council_proposal': $this->council_proposal( $phone, $body, $lc, $identity ); break;
+			case 'stu_settings_menu':    $this->settings_menu( $phone, $lc, $identity ); break;
+			case 'stu_settings_name':    $this->settings_name( $phone, $body, $lc, $identity ); break;
+			case 'stu_settings_phone':   $this->settings_phone( $phone, $body, $lc, $identity ); break;
 			// Staff
 			case 'staff_menu':           $this->staff_menu( $phone, $lc, $context, $identity ); break;
 			case 'staff_comm_compose':   $this->comm_compose( $phone, $body, $lc, $media ); break;
@@ -451,6 +460,7 @@ class Cead_Acad_WA_Engine {
 			case '9':  $this->council_open( $phone ); break;
 			case '10': $this->reminders_toggle( $phone ); break;
 			case '11': $this->show_panel( $phone ); break;
+			case '12': $this->settings_open( $phone ); break;
 			case '0': case 'salir': case 'adios': case 'adiós':
 				$this->store->reset_state( $phone );
 				if ( class_exists( 'Cead_Acad_WA_AI' ) ) { Cead_Acad_WA_AI::clear_memory( $phone ); }
@@ -563,6 +573,7 @@ class Cead_Acad_WA_Engine {
 				case 'reportar':      $this->in_ia = false; $this->report_start( $phone ); return true;
 				case 'escribir':      $this->in_ia = false; $this->suggestion_start( $phone ); return true;
 				case 'consejo':       $this->in_ia = false; $this->council_open( $phone ); return true;
+				case 'ajustes':       $this->in_ia = false; $this->settings_open( $phone ); return true;
 				default:              $handled = false;
 			}
 			$this->in_ia = false;
@@ -1108,6 +1119,132 @@ class Cead_Acad_WA_Engine {
 	private function show_panel( $phone ) {
 		$this->send( $phone, $this->m( 'panel_promo' ), 'panel_promo' );
 		$this->back_to_student( $phone );
+	}
+
+	// A12 Ajustes
+	private function settings_open( $phone ) {
+		$this->store->set_state( $phone, 'stu_settings_menu' );
+		$this->send_menu( $phone, $this->m( 'settings_menu' ), 'settings_menu' );
+	}
+
+	private function settings_menu( $phone, $lc, $identity ) {
+		switch ( $lc ) {
+			case '1': $this->settings_show_data( $phone, $identity ); break;
+			case '2':
+				$this->store->set_state( $phone, 'stu_settings_name' );
+				$this->send( $phone, $this->m( 'settings_name_prompt' ) . $this->cap_hint() );
+				break;
+			case '3':
+				$this->store->set_state( $phone, 'stu_settings_phone' );
+				$this->send( $phone, $this->m( 'settings_phone_prompt' ) . $this->cap_hint() );
+				break;
+			case '4': $this->settings_mode_toggle( $phone ); break;
+			case '5':
+				$new = ! $this->store->has_event_reminders( $phone );
+				$this->store->set_event_reminders( $phone, $new );
+				$this->send( $phone, $this->m( $new ? 'reminders_on' : 'reminders_off' ), 'reminders_toggle' );
+				$this->settings_open( $phone );
+				break;
+			case '0': $this->back_to_student( $phone ); break;
+			default:  $this->invalid( $phone );
+		}
+	}
+
+	/** Resumen de los datos del panel asociados al número. */
+	private function settings_show_data( $phone, $identity ) {
+		$uid  = (int) ( $identity['user_id'] ?? 0 );
+		$user = $uid ? get_user_by( 'id', $uid ) : null;
+		$row  = $this->store->get_number( $phone );
+
+		$lines   = [ $this->m( 'settings_data_header' ) ];
+		$lines[] = '👤 Nombre: ' . ( $user ? $user->display_name : (string) ( $row->name ?? '—' ) );
+		$lines[] = '📱 Número: +' . $phone;
+		if ( $user && $user->user_email !== '' ) {
+			$lines[] = '✉️ Correo: ' . $user->user_email;
+		}
+		$course_id = $this->user_course_id( $identity );
+		$lines[]   = '🎓 Curso: ' . ( $course_id ? get_the_title( $course_id ) : '—' );
+		$roles = $this->role_labels_for( $user );
+		if ( $roles !== '' ) {
+			$lines[] = '🧑‍🏫 Roles: ' . $roles;
+		}
+		$lines[] = '🤖 Modo: ' . ( $this->mode_for( $phone ) === 'ia' ? 'asistente (IA)' : 'menú' );
+		$lines[] = '🔔 Recordatorios: ' . ( $this->store->has_event_reminders( $phone ) ? 'activados' : 'desactivados' );
+		$this->send( $phone, implode( "\n", $lines ), 'settings_data' );
+		$this->settings_open( $phone );
+	}
+
+	/** Etiquetas legibles de los roles cead-acad del usuario. */
+	private function role_labels_for( $user ) {
+		if ( ! $user ) {
+			return '';
+		}
+		$defs = $this->role_menus();
+		$out  = [];
+		foreach ( (array) $user->roles as $r ) {
+			if ( $r === 'cead_acad_student' ) {
+				$out[] = 'Estudiante';
+			} elseif ( isset( $defs[ $r ] ) ) {
+				$out[] = $defs[ $r ]['label'];
+			}
+		}
+		return implode( ', ', $out );
+	}
+
+	private function settings_name( $phone, $body, $lc, $identity ) {
+		if ( $this->is_cancel( $lc ) ) { $this->settings_open( $phone ); return; }
+		$name = trim( preg_replace( '/\s+/', ' ', $body ) );
+		$len  = function_exists( 'mb_strlen' ) ? mb_strlen( $name ) : strlen( $name );
+		if ( $len < 3 || $len > 60 || ctype_digit( $name ) ) {
+			$this->send( $phone, $this->m( 'settings_name_invalid' ) );
+			return;
+		}
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( $uid ) {
+			wp_update_user( [ 'ID' => $uid, 'display_name' => $name ] );
+			Cead_Acad_Audit::log( 'wa_name_changed', [ 'user_id' => $uid, 'entity_type' => 'user', 'entity_id' => $uid, 'payload' => [ 'name' => $name, 'phone' => $phone ] ] );
+		}
+		$this->store->upsert_number( $phone, [ 'name' => $name ] );
+		$this->send( $phone, $this->interp( $this->m( 'settings_name_saved' ), [ 'name' => $name ] ), 'settings_name' );
+		$this->settings_open( $phone );
+	}
+
+	/**
+	 * Cambio de número: NO se cambia solo. El número es la identidad ante el bot
+	 * y el nuevo no se puede verificar desde este chat, así que se registra una
+	 * solicitud en el buzón (Administración) para que la confirmen en el panel.
+	 */
+	private function settings_phone( $phone, $body, $lc, $identity ) {
+		if ( $this->is_cancel( $lc ) ) { $this->settings_open( $phone ); return; }
+		$new = Cead_Acad_WA_Identity::normalize_phone( $body );
+		if ( strlen( $new ) < 8 ) {
+			$this->send( $phone, $this->m( 'settings_phone_invalid' ) );
+			return;
+		}
+		if ( $new === $phone ) {
+			$this->send( $phone, $this->m( 'settings_phone_same' ) );
+			return;
+		}
+		$uid  = (int) ( $identity['user_id'] ?? 0 );
+		$user = $uid ? get_user_by( 'id', $uid ) : null;
+		$who  = $user ? $user->display_name : '';
+		$this->store->create_suggestion( $phone, sprintf( 'Solicitud de cambio de número%s: +%s → +%s', $who !== '' ? " de {$who}" : '', $phone, $new ), 'administracion' );
+		Cead_Acad_Audit::log( 'wa_phone_change_requested', [ 'user_id' => $uid ?: null, 'payload' => [ 'old' => $phone, 'new' => $new ] ] );
+		$this->send( $phone, $this->interp( $this->m( 'settings_phone_requested' ), [ 'new' => '+' . $new ] ), 'settings_phone' );
+		$this->settings_open( $phone );
+	}
+
+	private function settings_mode_toggle( $phone ) {
+		if ( $this->mode_for( $phone ) === 'ia' ) {
+			$this->set_mode( $phone, 'menu' );
+			$this->send( $phone, $this->m( 'settings_mode_menu_on' ), 'mode' );
+		} elseif ( $this->ai_enabled() ) {
+			$this->set_mode( $phone, 'ia' );
+			$this->send( $phone, $this->m( 'settings_mode_ia_on' ), 'mode' );
+		} else {
+			$this->send( $phone, $this->m( 'settings_mode_unavailable' ), 'mode' );
+		}
+		$this->settings_open( $phone );
 	}
 
 	// ---------------------------------------------------------------- staff
@@ -1694,7 +1831,7 @@ class Cead_Acad_WA_Engine {
 	// --------------------------------------------------- filtro de lenguaje
 	/** Estados donde el usuario escribe texto libre que se guarda/reenvía. */
 	private function is_free_text_state( $state ) {
-		return in_array( $state, [ 'stu_report_body', 'stu_suggestion_body', 'stu_msg_body', 'stu_council_proposal', 'staff_comm_compose' ], true );
+		return in_array( $state, [ 'stu_report_body', 'stu_suggestion_body', 'stu_msg_body', 'stu_council_proposal', 'stu_settings_name', 'staff_comm_compose' ], true );
 	}
 
 	/** Lista de palabras prohibidas configurable (una por línea o separadas por coma). */
@@ -1870,7 +2007,7 @@ class Cead_Acad_WA_Engine {
 
 	/** Comando "volver": sube un nivel de menú según el estado actual. */
 	private function go_back( $phone, $state, $identity ) {
-		$student_sub = [ 'stu_report_type', 'stu_report_cat', 'stu_report_body', 'stu_suggestion_body', 'stu_msg_to', 'stu_msg_body', 'stu_council_menu', 'stu_council_proposal' ];
+		$student_sub = [ 'stu_report_type', 'stu_report_cat', 'stu_report_body', 'stu_suggestion_body', 'stu_msg_to', 'stu_msg_body', 'stu_council_menu', 'stu_council_proposal', 'stu_settings_menu', 'stu_settings_name', 'stu_settings_phone' ];
 		$staff_sub   = [
 			'staff_comm_compose', 'staff_comm_template', 'staff_comm_audience', 'staff_comm_when', 'staff_comm_confirm', 'staff_comm_schedule',
 			'staff_event_title', 'staff_event_date', 'staff_article_menu', 'staff_article_title', 'staff_article_body',

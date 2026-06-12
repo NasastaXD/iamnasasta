@@ -147,6 +147,14 @@ class Cead_Acad_WA_Tables {
 			) );
 			$wpdb->update( $t, [ 'description' => $meta['label'] ], [ 'msg_key' => $key ] );
 		}
+
+		// Migración suave: si el colegio NO editó el menú principal (sigue siendo
+		// el default anterior, sin "12. Ajustes"), lo actualizamos al nuevo default.
+		$old_menu = "*Menú CEAD*\n1. Horarios\n2. Sitio web\n3. Calendario de eventos\n4. Contacto\n5. Comunicados\n6. Reportar algo\n7. Sugerencias y quejas\n8. Preguntas frecuentes\n9. Consejo Estudiantil\n10. Recordatorios de eventos\n11. Mi panel web\n0. Salir\n\nEnviá *BAJA* para no recibir mensajes.";
+		$current  = (string) $wpdb->get_var( $wpdb->prepare( "SELECT content FROM {$t} WHERE msg_key = %s", 'student_menu' ) );
+		if ( $current === $old_menu ) {
+			$wpdb->update( $t, [ 'content' => self::default_messages()['student_menu'], 'updated_at' => $now ], [ 'msg_key' => 'student_menu' ] );
+		}
 	}
 
 	private static function seed_options() {
@@ -228,6 +236,7 @@ class Cead_Acad_WA_Tables {
 			'reportes'      => __( 'Reportes', 'cead-acad' ),
 			'sugerencias'   => __( 'Sugerencias y Consejo', 'cead-acad' ),
 			'recordatorios' => __( 'Recordatorios', 'cead-acad' ),
+			'ajustes'       => __( 'Ajustes del usuario', 'cead-acad' ),
 			'staff'         => __( 'Personal (staff)', 'cead-acad' ),
 			'otros'         => __( 'Otros', 'cead-acad' ),
 		];
@@ -282,6 +291,19 @@ class Cead_Acad_WA_Tables {
 			'reminders_on'   => [ 'recordatorios', 'Recordatorios activados' ],
 			'reminders_off'  => [ 'recordatorios', 'Recordatorios desactivados' ],
 			'event_reminder' => [ 'recordatorios', 'Texto del recordatorio (usa {events})' ],
+			// Ajustes (opción 12; los números se reconocen en el código)
+			'settings_menu'            => [ 'ajustes', 'Ajustes: submenú (las opciones se reconocen por número en el código)' ],
+			'settings_data_header'     => [ 'ajustes', 'Ajustes: encabezado de "Ver mis datos"' ],
+			'settings_name_prompt'     => [ 'ajustes', 'Ajustes: pedir nombre nuevo' ],
+			'settings_name_invalid'    => [ 'ajustes', 'Ajustes: nombre inválido' ],
+			'settings_name_saved'      => [ 'ajustes', 'Ajustes: nombre guardado (usa {name})' ],
+			'settings_phone_prompt'    => [ 'ajustes', 'Ajustes: pedir número nuevo' ],
+			'settings_phone_invalid'   => [ 'ajustes', 'Ajustes: número inválido' ],
+			'settings_phone_same'      => [ 'ajustes', 'Ajustes: el número nuevo es el actual' ],
+			'settings_phone_requested' => [ 'ajustes', 'Ajustes: solicitud de cambio enviada (usa {new})' ],
+			'settings_mode_ia_on'      => [ 'ajustes', 'Ajustes: modo asistente activado' ],
+			'settings_mode_menu_on'    => [ 'ajustes', 'Ajustes: modo menú activado' ],
+			'settings_mode_unavailable'=> [ 'ajustes', 'Ajustes: modo asistente no disponible' ],
 			// Staff
 			'comm_compose_prompt'   => [ 'staff', 'Comunicado: pedir texto' ],
 			'comm_audience_prompt'  => [ 'staff', 'Comunicado: elegir audiencia' ],
@@ -348,7 +370,7 @@ class Cead_Acad_WA_Tables {
 			'greeting_staff'   => 'Hola {name}! 👋 Panel del personal del CEAD.',
 			'staff_menu_header'=> '*Panel del personal* — ¿qué querés hacer?',
 			'greeting_student' => 'Hola {name}! 👋 Bienvenido/a al bot del CEAD. ¿En qué te ayudo?',
-			'student_menu'     => "*Menú CEAD*\n1. Horarios\n2. Sitio web\n3. Calendario de eventos\n4. Contacto\n5. Comunicados\n6. Reportar algo\n7. Sugerencias y quejas\n8. Preguntas frecuentes\n9. Consejo Estudiantil\n10. Recordatorios de eventos\n11. Mi panel web\n0. Salir\n\nEnviá *BAJA* para no recibir mensajes.",
+			'student_menu'     => "*Menú CEAD*\n1. Horarios\n2. Sitio web\n3. Calendario de eventos\n4. Contacto\n5. Comunicados\n6. Reportar algo\n7. Sugerencias y quejas\n8. Preguntas frecuentes\n9. Consejo Estudiantil\n10. Recordatorios de eventos\n11. Mi panel web\n12. Ajustes\n0. Salir\n\nEnviá *BAJA* para no recibir mensajes.",
 			'opt_out_confirmed'=> 'Listo, ya no vas a recibir mensajes de este bot. Escribinos de nuevo para volver.',
 			'goodbye'          => '¡Hasta luego! 👋 Escribí cuando quieras para volver al menú.',
 			'invalid_option'   => 'Opción no válida. Elegí una de las opciones del menú.',
@@ -398,6 +420,20 @@ class Cead_Acad_WA_Tables {
 			'reminders_on'   => '🔔 Recordatorios de eventos *activados*.',
 			'reminders_off'  => '🔕 Recordatorios de eventos *desactivados*.',
 			'event_reminder' => "🔔 *Recordatorio de eventos del CEAD*\n{events}",
+
+			// Ajustes (A12)
+			'settings_menu'            => "⚙️ *Ajustes*\n1. Ver mis datos\n2. Cambiar mi nombre\n3. Cambiar mi número\n4. Activar/desactivar modo asistente (IA)\n5. Recordatorios de eventos\n0. Volver",
+			'settings_data_header'     => '📋 *Tus datos en el CEAD*',
+			'settings_name_prompt'     => '✏️ Escribí tu nombre como querés que aparezca:',
+			'settings_name_invalid'    => 'Ese nombre no parece válido (entre 3 y 60 caracteres). Probá de nuevo:',
+			'settings_name_saved'      => '✅ Listo, {name}. Tu nombre quedó actualizado.',
+			'settings_phone_prompt'    => "📱 Escribí tu número NUEVO (ej.: 0981123456).\nOjo: el cambio lo confirma Secretaría; hasta entonces seguís usando este número.",
+			'settings_phone_invalid'   => 'Ese número no parece válido. Escribilo de nuevo (ej.: 0981123456):',
+			'settings_phone_same'      => 'Ese ya es tu número actual 😉',
+			'settings_phone_requested' => '✅ Solicitud enviada: tu número pasaría a {new}. Secretaría te va a confirmar cuando esté hecho.',
+			'settings_mode_ia_on'      => '✅ Modo asistente activado. Escribime en lenguaje natural 💬',
+			'settings_mode_menu_on'    => '✅ Modo menú activado. CEADI va a responder solo con el menú numérico. Escribí *modo asistente* si querés volver a la IA.',
+			'settings_mode_unavailable'=> '⚠️ El modo asistente no está disponible en este momento.',
 
 			// Staff: comunicados (D2)
 			'comm_compose_prompt'  => '✍️ Escribí el comunicado a enviar (0 para cancelar):',
