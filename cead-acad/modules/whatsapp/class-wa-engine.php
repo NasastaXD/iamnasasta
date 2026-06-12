@@ -467,7 +467,9 @@ class Cead_Acad_WA_Engine {
 				$this->send( $phone, $this->m( 'goodbye' ) );
 				break;
 			case 'menu': case 'menú': case 'hola': case 'inicio':
-				$this->back_to_student( $phone );
+				// Con rol de staff, «menú» vuelve al selector; un alumno sin
+				// roles cae igual a su menú (show_root_menu lo resuelve).
+				$this->show_root_menu( $phone, $identity );
 				break;
 			default:
 				// En modo asistente, el texto libre lo maneja la IA. En modo menú, no.
@@ -1254,6 +1256,10 @@ class Cead_Acad_WA_Engine {
 			$this->send( $phone, $this->m( 'goodbye' ) );
 			return;
 		}
+		if ( in_array( $lc, [ 'menu', 'menú', 'inicio' ], true ) ) {
+			$this->show_root_menu( $phone, $identity );
+			return;
+		}
 		$keys = $context['options'] ?? [];
 		$idx  = (int) $lc - 1;
 		if ( ! isset( $keys[ $idx ] ) ) { $this->invalid( $phone ); return; }
@@ -1945,9 +1951,10 @@ class Cead_Acad_WA_Engine {
 	/** Muestra el menú raíz que corresponda (rol o alumnado). */
 	private function show_root_menu( $phone, $identity ) {
 		$menus = $this->available_role_menus( $identity );
-		if ( count( $menus ) === 1 ) {
-			$this->enter_role_menu( $phone, array_key_first( $menus ), $identity );
-		} elseif ( $menus ) {
+		if ( $menus ) {
+			// Siempre el selector, aunque haya UN solo menú de rol: es el único
+			// lugar que también ofrece «Estudiantes», y quien tiene rol puede
+			// querer cualquiera de los dos.
 			$this->enter_role_chooser( $phone, $identity, $menus );
 		} else {
 			$this->back_to_student( $phone );
@@ -2024,9 +2031,9 @@ class Cead_Acad_WA_Engine {
 			return;
 		}
 		if ( $state === 'staff_menu' ) {
-			// Del menú del rol, subir al selector (si hay varios) o salir.
+			// Del menú del rol, subir al selector (que también ofrece «Estudiantes»).
 			$menus = $this->available_role_menus( $identity );
-			if ( count( $menus ) > 1 ) {
+			if ( $menus ) {
 				$this->enter_role_chooser( $phone, $identity, $menus );
 			} else {
 				$this->store->reset_state( $phone );
