@@ -313,12 +313,29 @@ class Cead_Acad_WA_AI {
 		$history = ( $phone !== '' ) ? self::load_memory( $phone ) : [];
 		$r = self::call( $message, $faq_context, null, null, null, $history, $extra_tools );
 		if ( ! $r['ok'] ) {
+			// Fallo TÉCNICO (no «no entendí»): registrarlo para diagnóstico. El
+			// motor lo usa para caer al menú, y el admin lo muestra en CEADI · IA.
+			self::$last_error = (string) ( $r['error'] ?: 'Error desconocido.' );
+			set_transient( 'cead_acad_wa_ai_last_error', [
+				'error' => self::$last_error,
+				'code'  => (int) ( $r['code'] ?? 0 ),
+				'time'  => current_time( 'mysql' ),
+			], DAY_IN_SECONDS );
+			error_log( '[CeadAcadWA][AI] fallo: ' . self::$last_error );
 			return null;
 		}
+		self::$last_error = '';
+		delete_transient( 'cead_acad_wa_ai_last_error' );
 		if ( $phone !== '' && self::memory_turns() > 0 ) {
 			self::save_memory( $phone, $message, $r['content'] );
 		}
 		return [ 'intent' => $r['intent'], 'reply' => $r['reply'], 'args' => $r['args'] ?? [] ];
+	}
+
+	/** Error técnico de la última llamada del request actual ('' si salió bien). */
+	protected static $last_error = '';
+	public static function last_error() {
+		return self::$last_error;
 	}
 
 	/* ---------------- Memoria conversacional (por número, con expiración) ---------------- */
@@ -355,10 +372,16 @@ class Cead_Acad_WA_AI {
 	public static function test( $message = '¿qué clases tengo hoy?' ) {
 		$r = self::call( $message );
 		if ( $r['ok'] ) {
+			delete_transient( 'cead_acad_wa_ai_last_error' );
 			$accion = $r['intent'] !== '' ? sprintf( 'función: "%s"', $r['intent'] ) : 'respuesta directa (sin función)';
 			$resp   = $r['reply'] !== '' ? ' · dice: ' . mb_substr( $r['reply'], 0, 160 ) : '';
 			return [ 'ok' => true, 'summary' => 'OK · ' . $accion . $resp ];
 		}
+		set_transient( 'cead_acad_wa_ai_last_error', [
+			'error' => (string) ( $r['error'] ?: 'Error desconocido.' ),
+			'code'  => (int) ( $r['code'] ?? 0 ),
+			'time'  => current_time( 'mysql' ),
+		], DAY_IN_SECONDS );
 		return [ 'ok' => false, 'summary' => $r['error'] ?: 'Error desconocido.' ];
 	}
 }

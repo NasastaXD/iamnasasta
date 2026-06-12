@@ -465,6 +465,12 @@ class Cead_Acad_WA_Engine {
 					if ( $this->ai_try( $phone, ( $body !== '' ? $body : $lc ), $identity ) ) {
 						return;
 					}
+					if ( $this->ai_failed() ) {
+						$this->force_new = true;
+						$this->send( $phone, __( '⚠️ Ahora mismo no puedo procesar tu mensaje. Te dejo el menú 👇', 'cead-acad' ), 'ai_error' );
+						$this->back_to_student( $phone );
+						return;
+					}
 					if ( $this->ai_enabled() ) {
 						$this->ia_turn = true;
 						$this->send( $phone, __( '🤔 No te entendí del todo. Probá con otras palabras, o escribí *menú* para ver las opciones.', 'cead-acad' ), 'ai_miss' );
@@ -490,6 +496,14 @@ class Cead_Acad_WA_Engine {
 		if ( $this->ai_try( $phone, ( $body !== '' ? $body : $lc ), $identity ) ) {
 			return;
 		}
+		// Fallo TÉCNICO de la IA (key/endpoint/red): no culpar al usuario con un
+		// «no te entendí»; avisar y dejar el menú, que siempre funciona.
+		if ( $this->ai_failed() ) {
+			$this->force_new = true;
+			$this->send( $phone, __( '⚠️ Ahora mismo no puedo procesar tu mensaje. Te dejo el menú 👇', 'cead-acad' ), 'ai_error' );
+			$this->show_root_menu( $phone, $identity );
+			return;
+		}
 		if ( $this->ai_enabled() ) {
 			$this->ia_turn = true;
 			$this->send( $phone, __( '🤔 No te entendí del todo. Escribime de nuevo, o mandá *menú* para ver las opciones.', 'cead-acad' ), 'ai_miss' );
@@ -497,6 +511,11 @@ class Cead_Acad_WA_Engine {
 		}
 		// IA caída/desactivada: caemos al menú que corresponda.
 		$this->show_root_menu( $phone, $identity );
+	}
+
+	/** ¿La última llamada a la IA falló por un error técnico (no «no entendí»)? */
+	private function ai_failed() {
+		return $this->ai_enabled() && class_exists( 'Cead_Acad_WA_AI' ) && Cead_Acad_WA_AI::last_error() !== '';
 	}
 
 	/* ---------------------------------------------------- IA (CEADI inteligente) */

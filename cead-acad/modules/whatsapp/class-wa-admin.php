@@ -191,6 +191,20 @@ class Cead_Acad_WA_Admin {
 		// Banner de estado claro.
 		if ( $enabled && $has_key ) {
 			$this->notice( '🟢 ' . __( 'IA activa: CEADI entiende lenguaje natural. El alumno puede escribir su consulta y CEADI responde o lo lleva a la función correcta; el menú numérico sigue funcionando como apoyo.', 'cead-acad' ), 'success' );
+			// Si una llamada real falló hace poco, mostrar el error exacto (clave para
+			// diagnosticar cuando el bot contesta «no puedo procesar tu mensaje»).
+			$last_err = get_transient( 'cead_acad_wa_ai_last_error' );
+			if ( is_array( $last_err ) && ! empty( $last_err['error'] ) ) {
+				$this->notice(
+					'⚠️ ' . sprintf(
+						/* translators: 1: fecha/hora, 2: mensaje de error */
+						__( 'Última falla de la IA (%1$s): %2$s — Mientras falle, CEADI responde con el menú. Usá «Guardar y probar» tras corregir.', 'cead-acad' ),
+						(string) $last_err['time'],
+						(string) $last_err['error']
+					),
+					'warning'
+				);
+			}
 		} elseif ( $enabled && ! $has_key ) {
 			$this->notice( '⚠️ ' . __( 'IA activada pero falta la API key: hasta que la cargues, CEADI sigue usando solo el menú numérico.', 'cead-acad' ), 'warning' );
 		} else {
