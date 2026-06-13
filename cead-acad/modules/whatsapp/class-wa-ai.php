@@ -140,17 +140,90 @@ class Cead_Acad_WA_AI {
 			'body'    => $body,
 		] );
 		if ( is_wp_error( $res ) ) {
-			error_log( '[CeadAcadWA][STT] ' . $res->get_error_message() );
+			$msg = $res->get_error_message();
+			error_log( '[CeadAcadWA][STT] ' . $msg );
+			self::store_stt_error( 'Error de red: ' . $msg );
 			return '';
 		}
 		$code = (int) wp_remote_retrieve_response_code( $res );
 		$raw  = (string) wp_remote_retrieve_body( $res );
 		$data = json_decode( $raw, true );
 		if ( $code !== 200 || ! is_array( $data ) ) {
-			error_log( '[CeadAcadWA][STT] HTTP ' . $code . ' — ' . mb_substr( wp_strip_all_tags( $raw ), 0, 200 ) );
+			$err = isset( $data['error']['message'] ) ? (string) $data['error']['message'] : mb_substr( wp_strip_all_tags( $raw ), 0, 200 );
+			error_log( '[CeadAcadWA][STT] HTTP ' . $code . ' — ' . $err );
+			self::store_stt_error( 'HTTP ' . $code . ' — ' . $err );
 			return '';
 		}
+		delete_transient( 'cead_acad_wa_stt_last_error' );
 		return trim( (string) ( $data['text'] ?? '' ) );
+	}
+
+	/** Almacena el último error de STT para mostrarlo en el panel admin. */
+	protected static function store_stt_error( $msg ) {
+		set_transient( 'cead_acad_wa_stt_last_error', [
+			'error' => (string) $msg,
+			'time'  => current_time( 'mysql' ),
+		], DAY_IN_SECONDS );
+	}
+
+	/** Último error de STT registrado, o null. */
+	public static function stt_last_error() {
+		$e = get_transient( 'cead_acad_wa_stt_last_error' );
+		return is_array( $e ) && ! empty( $e['error'] ) ? $e : null;
+	}
+
+	/**
+	 * Prueba de conectividad y credenciales para la transcripción de voz.
+	 * Envía un audio mínimo (WAV de silencio, 44 bytes) al endpoint configurado.
+	 * 200 / «credenciales OK» (400/422) = configuración correcta.
+	 * 401/403 = API key inválida. WP_Error = problema de red.
+	 */
+	public static function stt_test() {
+		$key = self::stt_key();
+		if ( $key === '' ) {
+			return [ 'ok' => false, 'summary' => 'Falta la API key de transcripción (configurala abajo o usará la de la IA).' ];
+		}
+		// WAV mínimo válido: cabecera PCM 44100 Hz mono 16bit, 0 muestras (44 bytes).
+		$wav_b64 = 'UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAAACABAAAABkYXRhAAAA';
+		$boundary = 'cead_stt_test_boundary';
+		$eol      = "\r\n";
+		$body  = '--' . $boundary . $eol;
+		$body .= 'Content-Disposition: form-data; name="model"' . $eol . $eol . self::stt_model() . $eol;
+		$body .= '--' . $boundary . $eol;
+		$body .= 'Content-Disposition: form-data; name="file"; filename="test.wav"' . $eol;
+		$body .= 'Content-Type: audio/wav' . $eol . $eol;
+		$body .= base64_decode( $wav_b64 ) . $eol;
+		$body .= '--' . $boundary . '--' . $eol;
+
+		$res = wp_remote_post( self::stt_endpoint(), [
+			'timeout' => 20,
+			'headers' => [
+				'Authorization' => 'Bearer ' . $key,
+				'Content-Type'  => 'multipart/form-data; boundary=' . $boundary,
+			],
+			'body' => $body,
+		] );
+		if ( is_wp_error( $res ) ) {
+			return [ 'ok' => false, 'summary' => 'Error de red: ' . $res->get_error_message() ];
+		}
+		$code = (int) wp_remote_retrieve_response_code( $res );
+		$raw  = (string) wp_remote_retrieve_body( $res );
+		$data = json_decode( $raw, true );
+		$err  = isset( $data['error']['message'] ) ? (string) $data['error']['message'] : mb_substr( wp_strip_all_tags( $raw ), 0, 200 );
+
+		if ( $code === 401 || $code === 403 ) {
+			return [ 'ok' => false, 'summary' => 'Credenciales inválidas (HTTP ' . $code . '): ' . $err ];
+		}
+		if ( $code === 200 ) {
+			delete_transient( 'cead_acad_wa_stt_last_error' );
+			return [ 'ok' => true, 'summary' => 'STT OK — respuesta: «' . mb_substr( (string) ( $data['text'] ?? '(silencio)' ), 0, 80 ) . '»' ];
+		}
+		// 400/422 = audio inválido (esperado con 0 muestras) pero autenticación OK.
+		if ( $code === 400 || $code === 422 ) {
+			delete_transient( 'cead_acad_wa_stt_last_error' );
+			return [ 'ok' => true, 'summary' => 'Credenciales OK — el endpoint respondió HTTP ' . $code . ' al audio de prueba (esperado): ' . mb_substr( $err, 0, 120 ) ];
+		}
+		return [ 'ok' => false, 'summary' => 'HTTP ' . $code . ' — ' . mb_substr( $err, 0, 200 ) ];
 	}
 
 	protected static function audio_ext( $mime ) {

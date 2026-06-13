@@ -181,6 +181,9 @@ class Cead_Acad_WA_Admin {
 				$msg = sanitize_text_field( wp_unslash( $_POST['ai_test_message'] ?? '' ) ) ?: '¿qué clases tengo hoy?';
 				$t   = Cead_Acad_WA_AI::test( $msg );
 				$notice = [ $t['ok'] ? 'ok' : 'err', __( 'Prueba IA', 'cead-acad' ) . ': ' . $t['summary'] ];
+			} elseif ( $action === 'stt_test' ) {
+				$t      = Cead_Acad_WA_AI::stt_test();
+				$notice = [ $t['ok'] ? 'ok' : 'err', __( 'Prueba STT', 'cead-acad' ) . ': ' . $t['summary'] ];
 			} else {
 				$notice = [ 'ok', __( 'Configuración de IA guardada.', 'cead-acad' ) ];
 			}
@@ -260,8 +263,28 @@ class Cead_Acad_WA_Admin {
 		echo '<tr><th></th><td><p class="description">' . esc_html__( '0 = sin memoria (cada mensaje es independiente). 4 (recomendado) = recuerda los últimos 4 intercambios de esa persona, por 30 minutos, para que las charlas fluyan. Más memoria usa más tokens.', 'cead-acad' ) . '</p></td></tr>';
 
 		// --- Transcripción de notas de voz (speech-to-text) ---
-		$stt_on = (bool) get_option( 'cead_acad_wa_stt_enabled', 0 );
+		$stt_on      = (bool) get_option( 'cead_acad_wa_stt_enabled', 0 );
+		$stt_has_key = Cead_Acad_WA_AI::stt_key() !== '';
+		$stt_err     = Cead_Acad_WA_AI::stt_last_error();
 		echo '<tr><th scope="row" colspan="2"><hr><h2 style="margin:0">' . esc_html__( '🎤 Notas de voz (transcripción)', 'cead-acad' ) . '</h2></th></tr>';
+		// Banner de estado de STT.
+		echo '<tr><td colspan="2">';
+		if ( $stt_on && $stt_has_key ) {
+			echo '<div class="notice notice-success inline"><p>🟢 ' . esc_html__( 'STT activo: las notas de voz se transcriben automáticamente y el bot las procesa como texto.', 'cead-acad' ) . '</p></div>';
+			if ( $stt_err ) {
+				echo '<div class="notice notice-warning inline"><p>⚠️ ' . sprintf(
+					/* translators: 1: fecha/hora, 2: error */
+					esc_html__( 'Último error de transcripción (%1$s): %2$s — Usá «Probar STT» para diagnosticar.', 'cead-acad' ),
+					esc_html( (string) $stt_err['time'] ),
+					esc_html( (string) $stt_err['error'] )
+				) . '</p></div>';
+			}
+		} elseif ( $stt_on && ! $stt_has_key ) {
+			echo '<div class="notice notice-warning inline"><p>⚠️ ' . esc_html__( 'STT activado pero falta la API key (configurala abajo o usará la de la IA si está cargada).', 'cead-acad' ) . '</p></div>';
+		} else {
+			echo '<div class="notice notice-info inline"><p>🔴 ' . esc_html__( 'STT desactivado: si la gente manda notas de voz, CEADI les pide que escriban el mensaje.', 'cead-acad' ) . '</p></div>';
+		}
+		echo '</td></tr>';
 		echo '<tr><th scope="row">' . esc_html__( 'Activar', 'cead-acad' ) . '</th><td>';
 		echo '<label><input type="checkbox" name="stt_enabled" value="1" ' . checked( $stt_on, true, false ) . '> ' . esc_html__( 'Transcribir las notas de voz que mande la gente y procesarlas como texto', 'cead-acad' ) . '</label>';
 		echo '<p class="description">' . esc_html__( 'Necesita un endpoint compatible con OpenAI /audio/transcriptions (ej.: Whisper). Si está apagado o falla, CEADI pide que escriban el mensaje.', 'cead-acad' ) . '</p>';
@@ -270,11 +293,14 @@ class Cead_Acad_WA_Admin {
 		$this->field( 'stt_model', __( 'Modelo de transcripción', 'cead-acad' ), get_option( 'cead_acad_wa_stt_model', '' ), 'whisper-1' );
 		$this->field( 'stt_key', __( 'API key de transcripción', 'cead-acad' ), get_option( 'cead_acad_wa_stt_key', '' ), __( 'vacío = reusar la API key de la IA (o CEAD_ACAD_STT_KEY en wp-config)', 'cead-acad' ), 'password' );
 		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Si lo dejás vacío, usa la misma API key de la IA. Ponelo solo si el proveedor de transcripción es distinto.', 'cead-acad' ) . '</p></td></tr>';
+		echo '<tr><th scope="row">' . esc_html__( 'Probar STT', 'cead-acad' ) . '</th><td>';
+		echo '<button type="submit" class="button" name="cead_acad_wa_ai_action" value="stt_test">' . esc_html__( 'Guardar y probar transcripción', 'cead-acad' ) . '</button>';
+		echo '<p class="description">' . esc_html__( 'Guarda la configuración y prueba si la API key y el endpoint de transcripción responden correctamente (sin necesitar una nota de voz real).', 'cead-acad' ) . '</p></td></tr>';
 
-		echo '<tr><th scope="row">' . esc_html__( 'Probar', 'cead-acad' ) . '</th><td>';
+		echo '<tr><th scope="row">' . esc_html__( 'Probar IA', 'cead-acad' ) . '</th><td>';
 		echo '<input type="text" name="ai_test_message" class="regular-text" placeholder="' . esc_attr__( '¿qué clases tengo hoy?', 'cead-acad' ) . '">';
-		echo ' <button type="submit" class="button" name="cead_acad_wa_ai_action" value="ai_test">' . esc_html__( 'Guardar y probar', 'cead-acad' ) . '</button>';
-		echo '<p class="description">' . esc_html__( 'Guarda la configuración y hace una consulta de prueba a la API; el resultado aparece arriba.', 'cead-acad' ) . '</p></td></tr>';
+		echo ' <button type="submit" class="button" name="cead_acad_wa_ai_action" value="ai_test">' . esc_html__( 'Guardar y probar IA', 'cead-acad' ) . '</button>';
+		echo '<p class="description">' . esc_html__( 'Guarda la configuración y hace una consulta de prueba a la API de IA; el resultado aparece arriba.', 'cead-acad' ) . '</p></td></tr>';
 
 		echo '</tbody></table>';
 		echo '<p><button type="submit" class="button button-primary" name="cead_acad_wa_ai_action" value="save_ai">' . esc_html__( 'Guardar configuración de IA', 'cead-acad' ) . '</button></p>';
