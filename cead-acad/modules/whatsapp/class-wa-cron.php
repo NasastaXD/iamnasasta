@@ -12,6 +12,7 @@ class Cead_Acad_WA_Cron {
 	const BROADCAST_EVENT = 'cead_acad_wa_broadcast';
 	const SCHEDULED_EVENT = 'cead_acad_wa_scheduled';
 	const REMINDERS_EVENT = 'cead_acad_wa_reminders';
+	const ACADEMIC_EVENT  = 'cead_acad_wa_academic';
 	const GC_EVENT        = 'cead_acad_wa_gc';
 
 	private $store;
@@ -30,6 +31,7 @@ class Cead_Acad_WA_Cron {
 		add_action( self::BROADCAST_EVENT, [ $this, 'run_broadcast' ] );
 		add_action( self::SCHEDULED_EVENT, [ $this, 'run_scheduled' ] );
 		add_action( self::REMINDERS_EVENT, [ $this, 'run_reminders' ] );
+		add_action( self::ACADEMIC_EVENT, [ $this, 'run_academic_notifications' ] );
 		add_action( self::GC_EVENT, [ $this, 'gc' ] );
 		add_action( 'init', [ $this, 'ensure_scheduled' ] );
 	}
@@ -54,13 +56,16 @@ class Cead_Acad_WA_Cron {
 		if ( ! wp_next_scheduled( self::REMINDERS_EVENT ) ) {
 			wp_schedule_event( time() + 300, 'daily', self::REMINDERS_EVENT );
 		}
+		if ( ! wp_next_scheduled( self::ACADEMIC_EVENT ) ) {
+			wp_schedule_event( time() + 360, 'daily', self::ACADEMIC_EVENT );
+		}
 		if ( ! wp_next_scheduled( self::GC_EVENT ) ) {
 			wp_schedule_event( time() + 600, 'hourly', self::GC_EVENT );
 		}
 	}
 
 	public static function clear_all() {
-		foreach ( [ self::HEARTBEAT_EVENT, self::BROADCAST_EVENT, self::SCHEDULED_EVENT, self::REMINDERS_EVENT, self::GC_EVENT ] as $hook ) {
+		foreach ( [ self::HEARTBEAT_EVENT, self::BROADCAST_EVENT, self::SCHEDULED_EVENT, self::REMINDERS_EVENT, self::ACADEMIC_EVENT, self::GC_EVENT ] as $hook ) {
 			wp_clear_scheduled_hook( $hook );
 		}
 	}
@@ -153,6 +158,116 @@ class Cead_Acad_WA_Cron {
 				[ 'key' => '_cead_acad_event_start', 'value' => $to, 'compare' => '<=', 'type' => 'DATETIME' ],
 			],
 		] );
+	}
+
+	/**
+	 * Avisos académicos diarios para quienes tienen los recordatorios activados:
+	 *  - notas nuevas (sin revelar la calificación: solo avisa que hay novedades),
+	 *  - tareas por vencer en los próximos 2 días.
+	 * Reusa el opt-in de recordatorios (reminder_numbers) como permiso de avisos.
+	 */
+	public function run_academic_notifications() {
+		$numbers = $this->store->reminder_numbers();
+		if ( ! $numbers ) {
+			return;
+		}
+		foreach ( $numbers as $n ) {
+			$uid = $n->user_id ? (int) $n->user_id : 0;
+			if ( ! $uid ) {
+				continue;
+			}
+			$blocks = [];
+
+			// 1) Notas nuevas (privacidad: no mandamos la nota, solo el aviso).
+			$new = $this->new_grades_info( $uid );
+			if ( $new['count'] > 0 ) {
+				$tpl = $this->store->get_message( 'notas_new_notify' );
+				$blocks[] = str_replace( '{count}', (string) $new['count'], $tpl );
+				update_user_meta( $uid, '_cead_acad_wa_notas_seen', (int) $new['max_id'] );
+			}
+
+			// 2) Tareas por vencer (próximos 2 días), dedup por número+tarea+fecha.
+			$tasklines = [];
+			foreach ( $this->due_tasks_for_notify( $uid, 2 ) as $t ) {
+				$rk = 'cead_acad_wa_tasknotif_' . md5( $n->phone . '|' . $t['id'] . '|' . $t['due'] );
+				if ( get_transient( $rk ) ) {
+					continue;
+				}
+				$tasklines[] = '• ' . $t['title'] . ' — ' . $t['when'];
+				set_transient( $rk, 1, 3 * DAY_IN_SECONDS );
+			}
+			if ( $tasklines ) {
+				$tpl = $this->store->get_message( 'task_due_notify' );
+				$blocks[] = str_replace( '{tasks}', implode( "\n", $tasklines ), $tpl );
+			}
+
+			if ( ! $blocks ) {
+				continue;
+			}
+			$msg = implode( "\n\n", $blocks );
+			$this->bridge->send_message( (string) $n->phone, $msg );
+			$this->store->log( (string) $n->phone, 'out', $msg, 'academic_notify' );
+			usleep( 300000 );
+		}
+	}
+
+	/**
+	 * Notas nuevas desde la última vez que se avisó (baseline por user_meta). En la
+	 * primera corrida solo fija el baseline (no avisa retroactivamente).
+	 * @return array{count:int,max_id:int}
+	 */
+	private function new_grades_info( $uid ) {
+		global $wpdb;
+		$t    = cead_acad_table( 'grades' );
+		$seen = (int) get_user_meta( $uid, '_cead_acad_wa_notas_seen', true );
+		$row  = $wpdb->get_row( $wpdb->prepare(
+			"SELECT MAX(id) AS max_id, COUNT(DISTINCT subject_term_id) AS subjects FROM {$t} WHERE student_user_id = %d AND id > %d",
+			$uid, $seen
+		) );
+		$max      = $row ? (int) $row->max_id : 0;
+		$subjects = $row ? (int) $row->subjects : 0;
+		// Primera vez (sin baseline) con notas ya cargadas: no spamear el histórico.
+		if ( $seen === 0 && $max > 0 ) {
+			update_user_meta( $uid, '_cead_acad_wa_notas_seen', $max );
+			return [ 'count' => 0, 'max_id' => $max ];
+		}
+		return [ 'count' => $subjects, 'max_id' => $max ?: $seen ];
+	}
+
+	/**
+	 * Tareas pendientes/en curso del alumno que vencen dentro de $days días.
+	 * @return array<int,array{id:int,due:string,title:string,when:string}>
+	 */
+	private function due_tasks_for_notify( $uid, $days = 2 ) {
+		if ( ! class_exists( 'Cead_Acad_Courses_Roster' ) || ! class_exists( 'Cead_Acad_Tasks_CPT' ) ) {
+			return [];
+		}
+		$courses = Cead_Acad_Courses_Roster::courses_for_user( $uid );
+		if ( ! $courses ) {
+			return [];
+		}
+		$today    = current_time( 'Y-m-d' );
+		$tomorrow = date( 'Y-m-d', strtotime( $today . ' +1 day' ) );
+		$limit    = date( 'Y-m-d', strtotime( $today . " +{$days} day" ) );
+		$tasks = get_posts( [
+			'post_type'      => Cead_Acad_Tasks_CPT::POST_TYPE,
+			'post_status'    => 'publish',
+			'posts_per_page' => 30,
+			'no_found_rows'  => true,
+			'meta_query'     => [
+				'relation' => 'AND',
+				[ 'key' => '_cead_acad_task_course', 'value' => array_map( 'intval', $courses ), 'compare' => 'IN' ],
+				[ 'key' => '_cead_acad_task_status', 'value' => [ 'pendiente', 'en_curso' ], 'compare' => 'IN' ],
+				[ 'key' => '_cead_acad_task_due_date', 'value' => [ $today, $limit ], 'compare' => 'BETWEEN', 'type' => 'DATE' ],
+			],
+		] );
+		$out = [];
+		foreach ( $tasks as $t ) {
+			$due  = (string) get_post_meta( $t->ID, '_cead_acad_task_due_date', true );
+			$when = $due === $today ? '¡hoy!' : ( $due === $tomorrow ? 'mañana' : date_i18n( 'D d/m', strtotime( $due ) ) );
+			$out[] = [ 'id' => (int) $t->ID, 'due' => $due, 'title' => get_the_title( $t ), 'when' => $when ];
+		}
+		return $out;
 	}
 
 	public function gc() {

@@ -149,10 +149,17 @@ class Cead_Acad_WA_Tables {
 		}
 
 		// Migración suave: si el colegio NO editó el menú principal (sigue siendo
-		// el default anterior, sin "12. Ajustes"), lo actualizamos al nuevo default.
-		$old_menu = "*Menú CEAD*\n1. Horarios\n2. Sitio web\n3. Calendario de eventos\n4. Contacto\n5. Comunicados\n6. Reportar algo\n7. Sugerencias y quejas\n8. Preguntas frecuentes\n9. Consejo Estudiantil\n10. Recordatorios de eventos\n11. Mi panel web\n0. Salir\n\nEnviá *BAJA* para no recibir mensajes.";
-		$current  = (string) $wpdb->get_var( $wpdb->prepare( "SELECT content FROM {$t} WHERE msg_key = %s", 'student_menu' ) );
-		if ( $current === $old_menu ) {
+		// alguno de los defaults anteriores), lo actualizamos al nuevo default. Así
+		// las opciones nuevas (Ajustes, Notas, Tareas, Carné) aparecen solas, pero
+		// nunca pisamos un menú que el colegio personalizó.
+		$base       = "*Menú CEAD*\n1. Horarios\n2. Sitio web\n3. Calendario de eventos\n4. Contacto\n5. Comunicados\n6. Reportar algo\n7. Sugerencias y quejas\n8. Preguntas frecuentes\n9. Consejo Estudiantil\n10. Recordatorios de eventos\n11. Mi panel web";
+		$tail       = "\n0. Salir\n\nEnviá *BAJA* para no recibir mensajes.";
+		$old_menus  = [
+			$base . $tail,                                                          // pre-0.28 (sin Ajustes)
+			$base . "\n12. Ajustes" . $tail,                                        // 0.28 (con Ajustes, sin académico)
+		];
+		$current = (string) $wpdb->get_var( $wpdb->prepare( "SELECT content FROM {$t} WHERE msg_key = %s", 'student_menu' ) );
+		if ( in_array( $current, $old_menus, true ) ) {
 			$wpdb->update( $t, [ 'content' => self::default_messages()['student_menu'], 'updated_at' => $now ], [ 'msg_key' => 'student_menu' ] );
 		}
 	}
@@ -233,6 +240,8 @@ class Cead_Acad_WA_Tables {
 			'menus'         => __( 'Menú principal', 'cead-acad' ),
 			'sistema'       => __( 'Saludos y sistema', 'cead-acad' ),
 			'info'          => __( 'Información para alumnado', 'cead-acad' ),
+			'academico'     => __( 'Académico (notas, tareas, carné)', 'cead-acad' ),
+			'tramites'      => __( 'Trámites (constancia, justificativo)', 'cead-acad' ),
 			'reportes'      => __( 'Reportes', 'cead-acad' ),
 			'sugerencias'   => __( 'Sugerencias y Consejo', 'cead-acad' ),
 			'recordatorios' => __( 'Recordatorios', 'cead-acad' ),
@@ -257,6 +266,7 @@ class Cead_Acad_WA_Tables {
 			'error_generic'     => [ 'sistema', 'Error genérico' ],
 			'identify_hint'     => [ 'sistema', 'Aviso de respuesta general (número no reconocido)' ],
 			'access_denied'     => [ 'sistema', 'Sin permisos' ],
+			'voice_unavailable' => [ 'sistema', 'Nota de voz no transcribible (STT off o falló)' ],
 			// Info alumnado
 			'horario_none'      => [ 'info', 'Horarios: sin eventos' ],
 			'horario_header'    => [ 'info', 'Horarios: encabezado personalizado' ],
@@ -269,6 +279,19 @@ class Cead_Acad_WA_Tables {
 			'contact_header'    => [ 'info', 'Contacto: encabezado' ],
 			'comm_read_header'  => [ 'info', 'Comunicados (lectura): encabezado' ],
 			'comm_read_none'    => [ 'info', 'Comunicados (lectura): sin comunicados' ],
+			// Académico
+			'academic_need_login' => [ 'academico', 'Académico: número no registrado / sin login' ],
+			'notas_header'        => [ 'academico', 'Notas: encabezado del boletín' ],
+			'notas_none'          => [ 'academico', 'Notas: sin calificaciones cargadas' ],
+			'tareas_header'       => [ 'academico', 'Tareas: encabezado' ],
+			'tareas_none'         => [ 'academico', 'Tareas: sin tareas pendientes' ],
+			'carne_link'          => [ 'academico', 'Carné: enlace al carné digital (usa {url})' ],
+			// Trámites
+			'constancia_prompt'   => [ 'tramites', 'Constancia: pedir motivo/uso' ],
+			'constancia_saved'    => [ 'tramites', 'Constancia: solicitud registrada' ],
+			'justif_fecha_prompt' => [ 'tramites', 'Justificativo: pedir fecha(s)' ],
+			'justif_motivo_prompt'=> [ 'tramites', 'Justificativo: pedir motivo (+ foto opcional)' ],
+			'justif_saved'        => [ 'tramites', 'Justificativo: registrado' ],
 			// Reportes
 			'report_type_prompt'     => [ 'reportes', 'Pregunta tipo de reporte' ],
 			'report_category_prompt' => [ 'reportes', 'Pregunta categoría del reporte' ],
@@ -291,6 +314,8 @@ class Cead_Acad_WA_Tables {
 			'reminders_on'   => [ 'recordatorios', 'Recordatorios activados' ],
 			'reminders_off'  => [ 'recordatorios', 'Recordatorios desactivados' ],
 			'event_reminder' => [ 'recordatorios', 'Texto del recordatorio (usa {events})' ],
+			'notas_new_notify' => [ 'recordatorios', 'Aviso de notas nuevas (usa {count})' ],
+			'task_due_notify'  => [ 'recordatorios', 'Aviso de tareas por vencer (usa {tasks})' ],
 			// Ajustes (opción 12; los números se reconocen en el código)
 			'settings_menu'            => [ 'ajustes', 'Ajustes: submenú (las opciones se reconocen por número en el código)' ],
 			'settings_data_header'     => [ 'ajustes', 'Ajustes: encabezado de "Ver mis datos"' ],
@@ -370,12 +395,13 @@ class Cead_Acad_WA_Tables {
 			'greeting_staff'   => 'Hola {name}! 👋 Panel del personal del CEAD.',
 			'staff_menu_header'=> '*Panel del personal* — ¿qué querés hacer?',
 			'greeting_student' => 'Hola {name}! 👋 Bienvenido/a al bot del CEAD. ¿En qué te ayudo?',
-			'student_menu'     => "*Menú CEAD*\n1. Horarios\n2. Sitio web\n3. Calendario de eventos\n4. Contacto\n5. Comunicados\n6. Reportar algo\n7. Sugerencias y quejas\n8. Preguntas frecuentes\n9. Consejo Estudiantil\n10. Recordatorios de eventos\n11. Mi panel web\n12. Ajustes\n0. Salir\n\nEnviá *BAJA* para no recibir mensajes.",
+			'student_menu'     => "*Menú CEAD*\n1. Horarios\n2. Sitio web\n3. Calendario de eventos\n4. Contacto\n5. Comunicados\n6. Reportar algo\n7. Sugerencias y quejas\n8. Preguntas frecuentes\n9. Consejo Estudiantil\n10. Recordatorios y avisos\n11. Mi panel web\n12. Ajustes\n13. Mis notas\n14. Tareas pendientes\n15. Mi carné digital\n16. Solicitar constancia\n17. Justificar inasistencia\n0. Salir\n\nEnviá *BAJA* para no recibir mensajes.",
 			'opt_out_confirmed'=> 'Listo, ya no vas a recibir mensajes de este bot. Escribinos de nuevo para volver.',
 			'goodbye'          => '¡Hasta luego! 👋 Escribí cuando quieras para volver al menú.',
 			'invalid_option'   => 'Opción no válida. Elegí una de las opciones del menú.',
 			'error_generic'    => 'Ocurrió un error. Probá de nuevo más tarde.',
 			'identify_hint'    => 'ℹ️ Te respondo con información general. Si tu número está registrado en el colegio, te muestro tus datos personalizados.',
+			'voice_unavailable'=> '🎤 Recibí tu nota de voz, pero ahora no puedo escucharla. ¿Me lo escribís en un mensaje? 🙏',
 			'vulgar_detected'  => '🚫 Lenguaje vulgar detectado, elimine las palabras: {words}',
 
 			// Horarios (A1)
@@ -394,6 +420,21 @@ class Cead_Acad_WA_Tables {
 			// Comunicados (lectura alumno)
 			'comm_read_header' => '📣 *Últimos comunicados*',
 			'comm_read_none'   => 'No tenés comunicados por ahora.',
+
+			// Académico (notas, tareas, carné)
+			'academic_need_login' => 'ℹ️ Para esto necesito reconocer tu número. Pedile a Secretaría que registre tu WhatsApp en el panel del CEAD y vuelvo a poder mostrarte tus datos.',
+			'notas_header'     => '📊 *Tu boletín*',
+			'notas_none'       => 'Todavía no tengo notas cargadas a tu nombre. Cuando las suban, las vas a ver acá.',
+			'tareas_header'    => '📝 *Tus tareas pendientes*',
+			'tareas_none'      => '🎉 ¡No tenés tareas pendientes! (o todavía no se cargaron).',
+			'carne_link'       => "🎟️ *Tu carné digital*\nAbrilo desde tu panel (con tu sesión iniciada):\n{url}",
+
+			// Trámites (constancia, justificativo)
+			'constancia_prompt'   => '📄 *Constancia de alumno regular*\n¿Para qué la necesitás? (ej.: beca, trámite, etc.). Contame en pocas palabras:',
+			'constancia_saved'    => '✅ Tu solicitud de constancia quedó registrada. Secretaría la va a preparar y te avisan cuando esté lista para retirar.',
+			'justif_fecha_prompt' => '📝 *Justificar inasistencia*\n¿Qué día (o días) faltaste? (ej.: 12/06 o 10 al 12/06):',
+			'justif_motivo_prompt'=> 'Contame el motivo de la inasistencia. Si tenés el certificado médico u otro comprobante, podés *adjuntar una foto* en este mismo mensaje:',
+			'justif_saved'        => '✅ Tu justificativo fue enviado a Secretaría. Si hace falta algo más, te contactan por acá.',
 
 			// Reporte (A5)
 			'report_type_prompt'    => "🛡️ Canal para reportar situaciones (bullying, seguridad, etc.).\n¿Cómo querés enviarlo?\n1. Anónimo total\n2. Confidencial (quiero que me contacten)\n0. Cancelar",
@@ -417,12 +458,14 @@ class Cead_Acad_WA_Tables {
 			'council_proposal_saved' => '✅ ¡Gracias! Tu propuesta fue enviada al Consejo.',
 
 			// Recordatorios (A3 opt-in)
-			'reminders_on'   => '🔔 Recordatorios de eventos *activados*.',
-			'reminders_off'  => '🔕 Recordatorios de eventos *desactivados*.',
+			'reminders_on'   => '🔔 Recordatorios y avisos *activados* (eventos, notas nuevas y tareas por vencer).',
+			'reminders_off'  => '🔕 Recordatorios y avisos *desactivados*.',
 			'event_reminder' => "🔔 *Recordatorio de eventos del CEAD*\n{events}",
+			'notas_new_notify' => '📊 ¡Tenés notas nuevas en {count} materia(s)! Escribí *notas* para ver tu boletín.',
+			'task_due_notify'  => "📝 *Tareas por vencer:*\n{tasks}",
 
 			// Ajustes (A12)
-			'settings_menu'            => "⚙️ *Ajustes*\n1. Ver mis datos\n2. Cambiar mi nombre\n3. Cambiar mi número\n4. Activar/desactivar modo asistente (IA)\n5. Recordatorios de eventos\n0. Volver",
+			'settings_menu'            => "⚙️ *Ajustes*\n1. Ver mis datos\n2. Cambiar mi nombre\n3. Cambiar mi número\n4. Activar/desactivar modo asistente (IA)\n5. Recordatorios y avisos\n0. Volver",
 			'settings_data_header'     => '📋 *Tus datos en el CEAD*',
 			'settings_name_prompt'     => '✏️ Escribí tu nombre como querés que aparezca:',
 			'settings_name_invalid'    => 'Ese nombre no parece válido (entre 3 y 60 caracteres). Probá de nuevo:',

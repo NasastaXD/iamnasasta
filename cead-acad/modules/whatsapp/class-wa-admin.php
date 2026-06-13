@@ -171,6 +171,12 @@ class Cead_Acad_WA_Admin {
 			$dm = sanitize_key( wp_unslash( $_POST['ai_default_mode'] ?? 'auto' ) );
 			update_option( 'cead_acad_wa_default_mode', in_array( $dm, [ 'auto', 'ia', 'menu' ], true ) ? $dm : 'auto', false );
 
+			// Transcripción de notas de voz (speech-to-text), endpoint aparte.
+			update_option( 'cead_acad_wa_stt_enabled', ! empty( $_POST['stt_enabled'] ) ? 1 : 0, false );
+			update_option( 'cead_acad_wa_stt_endpoint', esc_url_raw( wp_unslash( $_POST['stt_endpoint'] ?? '' ) ), false );
+			update_option( 'cead_acad_wa_stt_model', sanitize_text_field( wp_unslash( $_POST['stt_model'] ?? '' ) ), false );
+			update_option( 'cead_acad_wa_stt_key', sanitize_text_field( wp_unslash( $_POST['stt_key'] ?? '' ) ), false );
+
 			if ( $action === 'ai_test' ) {
 				$msg = sanitize_text_field( wp_unslash( $_POST['ai_test_message'] ?? '' ) ) ?: '¿qué clases tengo hoy?';
 				$t   = Cead_Acad_WA_AI::test( $msg );
@@ -252,6 +258,18 @@ class Cead_Acad_WA_Admin {
 		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Texto libre con info del colegio (horarios generales, reglas, contactos, fechas, etc.). La IA lo usa para responder dudas. Las FAQ del panel se suman a esto.', 'cead-acad' ) . '</p></td></tr>';
 		$this->field( 'ai_memory', __( 'Memoria (turnos a recordar)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_memory', 4 ), '4', 'number' );
 		echo '<tr><th></th><td><p class="description">' . esc_html__( '0 = sin memoria (cada mensaje es independiente). 4 (recomendado) = recuerda los últimos 4 intercambios de esa persona, por 30 minutos, para que las charlas fluyan. Más memoria usa más tokens.', 'cead-acad' ) . '</p></td></tr>';
+
+		// --- Transcripción de notas de voz (speech-to-text) ---
+		$stt_on = (bool) get_option( 'cead_acad_wa_stt_enabled', 0 );
+		echo '<tr><th scope="row" colspan="2"><hr><h2 style="margin:0">' . esc_html__( '🎤 Notas de voz (transcripción)', 'cead-acad' ) . '</h2></th></tr>';
+		echo '<tr><th scope="row">' . esc_html__( 'Activar', 'cead-acad' ) . '</th><td>';
+		echo '<label><input type="checkbox" name="stt_enabled" value="1" ' . checked( $stt_on, true, false ) . '> ' . esc_html__( 'Transcribir las notas de voz que mande la gente y procesarlas como texto', 'cead-acad' ) . '</label>';
+		echo '<p class="description">' . esc_html__( 'Necesita un endpoint compatible con OpenAI /audio/transcriptions (ej.: Whisper). Si está apagado o falla, CEADI pide que escriban el mensaje.', 'cead-acad' ) . '</p>';
+		echo '</td></tr>';
+		$this->field( 'stt_endpoint', __( 'Endpoint de transcripción', 'cead-acad' ), get_option( 'cead_acad_wa_stt_endpoint', '' ), 'https://api.openai.com/v1/audio/transcriptions', 'url' );
+		$this->field( 'stt_model', __( 'Modelo de transcripción', 'cead-acad' ), get_option( 'cead_acad_wa_stt_model', '' ), 'whisper-1' );
+		$this->field( 'stt_key', __( 'API key de transcripción', 'cead-acad' ), get_option( 'cead_acad_wa_stt_key', '' ), __( 'vacío = reusar la API key de la IA (o CEAD_ACAD_STT_KEY en wp-config)', 'cead-acad' ), 'password' );
+		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Si lo dejás vacío, usa la misma API key de la IA. Ponelo solo si el proveedor de transcripción es distinto.', 'cead-acad' ) . '</p></td></tr>';
 
 		echo '<tr><th scope="row">' . esc_html__( 'Probar', 'cead-acad' ) . '</th><td>';
 		echo '<input type="text" name="ai_test_message" class="regular-text" placeholder="' . esc_attr__( '¿qué clases tengo hoy?', 'cead-acad' ) . '">';

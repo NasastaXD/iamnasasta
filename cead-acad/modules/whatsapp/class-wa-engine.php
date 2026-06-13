@@ -62,12 +62,34 @@ class Cead_Acad_WA_Engine {
 		$state   = $st['state'];
 		$context = $st['context'];
 
-		// Log redactado para reportes sensibles.
-		$this->log_inbound( $phone, $state, $context, $body !== '' ? $body : '[imagen]' );
-
 		if ( $this->store->is_opted_out( $phone ) ) {
 			return;
 		}
+
+		// Nota de voz: si llega un audio, lo transcribimos y seguimos el flujo
+		// normal con ese texto. Solo se transcribe a números que vamos a atender
+		// (registrados, o modo abierto). Si la transcripción está apagada o falla,
+		// avisamos y cortamos. Audio = WhatsApp PTT (ogg/opus) u otros formatos.
+		if ( $media && $this->is_audio_media( $media ) ) {
+			$attend = ! get_option( 'cead_acad_wa_registered_only', 1 ) || ! empty( $identity['user_id'] );
+			if ( $attend ) {
+				$text = class_exists( 'Cead_Acad_WA_AI' )
+					? Cead_Acad_WA_AI::transcribe( (string) ( $media['data_base64'] ?? '' ), (string) ( $media['mime'] ?? 'audio/ogg' ) )
+					: '';
+				if ( $text !== '' ) {
+					$body  = sanitize_textarea_field( $text );
+					$media = null; // ya es texto: los handlers lo tratan normal.
+				} else {
+					$this->outbox = [];
+					$this->send( $phone, $this->m( 'voice_unavailable' ), 'voice_unavailable' );
+					$this->flush_outbox( $phone );
+					return;
+				}
+			}
+		}
+
+		// Log redactado para reportes sensibles.
+		$this->log_inbound( $phone, $state, $context, $body !== '' ? $body : '[imagen]' );
 
 		// Todas las respuestas de este turno se acumulan y se entregan juntas.
 		$this->outbox = [];
@@ -189,6 +211,9 @@ class Cead_Acad_WA_Engine {
 			case 'stu_settings_menu':    $this->settings_menu( $phone, $lc, $identity ); break;
 			case 'stu_settings_name':    $this->settings_name( $phone, $body, $lc, $identity ); break;
 			case 'stu_settings_phone':   $this->settings_phone( $phone, $body, $lc, $identity ); break;
+			case 'stu_constancia_motivo': $this->constancia_motivo( $phone, $body, $lc, $identity ); break;
+			case 'stu_justif_fecha':     $this->justif_fecha( $phone, $body, $lc, $context ); break;
+			case 'stu_justif_motivo':    $this->justif_motivo( $phone, $body, $lc, $context, $identity, $media ); break;
 			// Staff
 			case 'staff_menu':           $this->staff_menu( $phone, $lc, $context, $identity ); break;
 			case 'staff_comm_compose':   $this->comm_compose( $phone, $body, $lc, $media ); break;
@@ -461,6 +486,11 @@ class Cead_Acad_WA_Engine {
 			case '10': $this->reminders_toggle( $phone ); break;
 			case '11': $this->show_panel( $phone ); break;
 			case '12': $this->settings_open( $phone ); break;
+			case '13': $this->show_notas( $phone, $identity ); break;
+			case '14': $this->show_tareas( $phone, $identity ); break;
+			case '15': $this->show_carne( $phone, $identity ); break;
+			case '16': $this->constancia_start( $phone, $identity ); break;
+			case '17': $this->justificativo_start( $phone, $identity ); break;
 			case '0': case 'salir': case 'adios': case 'adiós':
 				$this->store->reset_state( $phone );
 				if ( class_exists( 'Cead_Acad_WA_AI' ) ) { Cead_Acad_WA_AI::clear_memory( $phone ); }
@@ -564,16 +594,21 @@ class Cead_Acad_WA_Engine {
 			switch ( $action ) {
 				// Informativas: tras mostrarlas volvemos al estado de espera del modo.
 				case 'horario':       $this->show_horario( $phone, $identity ); break;
+				case 'notas':         $this->show_notas( $phone, $identity ); break;
+				case 'tareas':        $this->show_tareas( $phone, $identity ); break;
 				case 'eventos':       $this->show_events( $phone, $identity ); break;
 				case 'comunicados':   $this->show_comunicados( $phone, $identity ); break;
 				case 'sitio':         $this->show_links( $phone ); break;
 				case 'contacto':      $this->show_contacts( $phone ); break;
 				case 'faq':           $this->show_faq( $phone ); break;
 				case 'panel':         $this->show_panel( $phone ); break;
+				case 'carne':         $this->show_carne( $phone, $identity ); break;
 				case 'recordatorios': $this->reminders_toggle( $phone ); break;
 				// Flujos guiados: mantienen el estado que fijan ellos mismos.
 				case 'reportar':      $this->in_ia = false; $this->report_start( $phone ); return true;
 				case 'escribir':      $this->in_ia = false; $this->suggestion_start( $phone ); return true;
+				case 'constancia':    $this->in_ia = false; $this->constancia_start( $phone, $identity ); return true;
+				case 'justificativo': $this->in_ia = false; $this->justificativo_start( $phone, $identity ); return true;
 				case 'consejo':       $this->in_ia = false; $this->council_open( $phone ); return true;
 				case 'ajustes':       $this->in_ia = false; $this->settings_open( $phone ); return true;
 				default:              $handled = false;
@@ -1249,6 +1284,203 @@ class Cead_Acad_WA_Engine {
 		$this->settings_open( $phone );
 	}
 
+	// A13 Notas / boletín
+	private function show_notas( $phone, $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! $uid ) {
+			$this->send( $phone, $this->m( 'academic_need_login' ) );
+			$this->back_to_student( $phone );
+			return;
+		}
+		$bulletin = class_exists( 'Cead_Acad_Grades_Db' ) ? Cead_Acad_Grades_Db::bulletin_for_student( $uid ) : [];
+		if ( ! $bulletin ) {
+			$this->send( $phone, $this->m( 'notas_none' ) );
+			$this->back_to_student( $phone );
+			return;
+		}
+		$this->send( $phone, $this->render_notas( $bulletin ), 'notas' );
+		$this->back_to_student( $phone );
+	}
+
+	/** Render del boletín: materias agrupadas por curso, con sus periodos. */
+	private function render_notas( $bulletin ) {
+		$lines  = [ $this->m( 'notas_header' ) ];
+		$course = null;
+		foreach ( $bulletin as $row ) {
+			if ( ( $row['course_title'] ?? '' ) !== $course ) {
+				$course  = (string) ( $row['course_title'] ?? '' );
+				$lines[] = "\n🎓 *" . $course . '*';
+			}
+			$parts = [];
+			foreach ( (array) ( $row['grades'] ?? [] ) as $period => $g ) {
+				if ( $g['score'] !== null ) {
+					$val = rtrim( rtrim( number_format( (float) $g['score'], 2 ), '0' ), '.' );
+				} else {
+					$val = ( (string) $g['letter'] !== '' ) ? (string) $g['letter'] : '—';
+				}
+				$parts[] = $period . ': *' . $val . '*';
+			}
+			$lines[] = '• ' . ( $row['subject_name'] ?? '' ) . ( $parts ? ' — ' . implode( ' · ', $parts ) : '' );
+		}
+		return implode( "\n", $lines );
+	}
+
+	// A14 Tareas pendientes
+	private function show_tareas( $phone, $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! $uid ) {
+			$this->send( $phone, $this->m( 'academic_need_login' ) );
+			$this->back_to_student( $phone );
+			return;
+		}
+		$tasks = $this->pending_tasks_for_user( $uid, 15 );
+		if ( ! $tasks ) {
+			$this->send( $phone, $this->m( 'tareas_none' ) );
+			$this->back_to_student( $phone );
+			return;
+		}
+		$this->send( $phone, $this->render_tareas( $tasks ), 'tareas' );
+		$this->back_to_student( $phone );
+	}
+
+	/** Tareas pendientes/en curso de los cursos del alumno, ordenadas por vencimiento. */
+	private function pending_tasks_for_user( $uid, $limit = 15 ) {
+		if ( ! class_exists( 'Cead_Acad_Courses_Roster' ) || ! class_exists( 'Cead_Acad_Tasks_CPT' ) ) {
+			return [];
+		}
+		$courses = Cead_Acad_Courses_Roster::courses_for_user( $uid );
+		if ( ! $courses ) { return []; }
+		$tasks = get_posts( [
+			'post_type'      => Cead_Acad_Tasks_CPT::POST_TYPE,
+			'post_status'    => 'publish',
+			'posts_per_page' => 50,
+			'no_found_rows'  => true,
+			'meta_query'     => [
+				'relation' => 'AND',
+				[ 'key' => '_cead_acad_task_course', 'value' => array_map( 'intval', $courses ), 'compare' => 'IN' ],
+				[ 'key' => '_cead_acad_task_status', 'value' => [ 'pendiente', 'en_curso' ], 'compare' => 'IN' ],
+			],
+		] );
+		// Orden por fecha de entrega (las sin fecha, al final).
+		usort( $tasks, static function ( $a, $b ) {
+			$da = (string) get_post_meta( $a->ID, '_cead_acad_task_due_date', true );
+			$db = (string) get_post_meta( $b->ID, '_cead_acad_task_due_date', true );
+			if ( $da === $db ) { return 0; }
+			if ( $da === '' ) { return 1; }
+			if ( $db === '' ) { return -1; }
+			return strcmp( $da, $db );
+		} );
+		return array_slice( $tasks, 0, (int) $limit );
+	}
+
+	/** Render de tareas con prioridad y vencimiento (hoy / vencida). */
+	private function render_tareas( $tasks ) {
+		$lines = [ $this->m( 'tareas_header' ) ];
+		$today = current_time( 'Y-m-d' );
+		foreach ( $tasks as $t ) {
+			$due       = (string) get_post_meta( $t->ID, '_cead_acad_task_due_date', true );
+			$prio      = (string) get_post_meta( $t->ID, '_cead_acad_task_priority', true );
+			$course_id = (int) get_post_meta( $t->ID, '_cead_acad_task_course', true );
+			$flag      = $prio === 'alta' ? '🔴 ' : '';
+			$when      = '';
+			if ( $due !== '' ) {
+				$when = ' — 📅 ' . $this->human_date( $due );
+				if ( $due < $today )      { $when .= ' *(vencida)*'; }
+				elseif ( $due === $today ) { $when .= ' *(¡hoy!)*'; }
+			}
+			$line = '• ' . $flag . get_the_title( $t ) . $when;
+			if ( $course_id ) { $line .= "\n   _" . get_the_title( $course_id ) . '_'; }
+			$lines[] = $line;
+		}
+		return implode( "\n", $lines );
+	}
+
+	// A15 Carné digital
+	private function show_carne( $phone, $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! $uid ) {
+			$this->send( $phone, $this->m( 'academic_need_login' ) );
+			$this->back_to_student( $phone );
+			return;
+		}
+		$this->send( $phone, $this->interp( $this->m( 'carne_link' ), [ 'url' => home_url( '/panel/carne' ) ] ), 'carne' );
+		$this->back_to_student( $phone );
+	}
+
+	/* ----------------------------------------------- trámites: constancia / justificativo */
+
+	// Constancia de alumno regular
+	private function constancia_start( $phone, $identity ) {
+		if ( ! (int) ( $identity['user_id'] ?? 0 ) ) {
+			$this->send( $phone, $this->m( 'academic_need_login' ) );
+			$this->back_to_student( $phone );
+			return;
+		}
+		$this->force_new = true;
+		$this->store->set_state( $phone, 'stu_constancia_motivo' );
+		$this->send( $phone, $this->m( 'constancia_prompt' ) . $this->cap_hint() );
+	}
+
+	private function constancia_motivo( $phone, $body, $lc, $identity ) {
+		if ( $this->is_cancel( $lc ) ) { $this->back_to_student( $phone ); return; }
+		$uid  = (int) ( $identity['user_id'] ?? 0 );
+		$who  = $uid ? ( get_userdata( $uid )->display_name ?? '' ) : '';
+		$text = sprintf(
+			"📄 *Solicitud de constancia de alumno regular*%s\nMotivo/uso: %s",
+			$who !== '' ? "\nAlumno/a: {$who}" : '',
+			trim( $body ) !== '' ? trim( $body ) : '(no especificado)'
+		);
+		$this->store->create_suggestion( $phone, $text, 'administracion' );
+		Cead_Acad_Audit::log( 'wa_constancia_requested', [ 'user_id' => $uid ?: null, 'payload' => [ 'phone' => $phone ] ] );
+		$this->send( $phone, $this->m( 'constancia_saved' ), 'constancia' );
+		$this->finish_capture( $phone, 'student' );
+	}
+
+	// Justificar inasistencia (con foto opcional del certificado)
+	private function justificativo_start( $phone, $identity ) {
+		if ( ! (int) ( $identity['user_id'] ?? 0 ) ) {
+			$this->send( $phone, $this->m( 'academic_need_login' ) );
+			$this->back_to_student( $phone );
+			return;
+		}
+		$this->force_new = true;
+		$this->store->set_state( $phone, 'stu_justif_fecha' );
+		$this->send( $phone, $this->m( 'justif_fecha_prompt' ) . $this->cap_hint() );
+	}
+
+	private function justif_fecha( $phone, $body, $lc, $context ) {
+		if ( $this->is_cancel( $lc ) ) { $this->back_to_student( $phone ); return; }
+		$fecha = trim( $body );
+		if ( $fecha === '' ) { $this->send( $phone, $this->m( 'justif_fecha_prompt' ) ); return; }
+		$this->store->set_state( $phone, 'stu_justif_motivo', [ 'fecha' => mb_substr( $fecha, 0, 60 ) ] );
+		$this->send( $phone, $this->m( 'justif_motivo_prompt' ) . $this->cap_hint() );
+	}
+
+	private function justif_motivo( $phone, $body, $lc, $context, $identity, $media = null ) {
+		if ( $this->is_cancel( $lc ) ) { $this->back_to_student( $phone ); return; }
+		$uid   = (int) ( $identity['user_id'] ?? 0 );
+		$who   = $uid ? ( get_userdata( $uid )->display_name ?? '' ) : '';
+		$fecha = (string) ( $context['fecha'] ?? '' );
+		// Foto opcional del certificado (se guarda en la biblioteca de medios).
+		$img_note = '';
+		if ( $media ) {
+			$image = $this->store_image( $media );
+			$img_note = $image && ! empty( $image['url'] ) ? "\n📎 Certificado adjunto: " . $image['url'] : "\n📎 (se intentó adjuntar una imagen pero no se pudo guardar)";
+		}
+		$motivo = trim( $body );
+		$text = sprintf(
+			"📝 *Justificativo de inasistencia*%s\nFecha(s): %s\nMotivo: %s%s",
+			$who !== '' ? "\nAlumno/a: {$who}" : '',
+			$fecha !== '' ? $fecha : '(no especificada)',
+			$motivo !== '' ? $motivo : '(sin detalle)',
+			$img_note
+		);
+		$this->store->create_suggestion( $phone, $text, 'administracion' );
+		Cead_Acad_Audit::log( 'wa_justificativo_submitted', [ 'user_id' => $uid ?: null, 'payload' => [ 'phone' => $phone, 'fecha' => $fecha, 'con_foto' => (bool) $media ] ] );
+		$this->send( $phone, $this->m( 'justif_saved' ), 'justificativo' );
+		$this->finish_capture( $phone, 'student' );
+	}
+
 	// ---------------------------------------------------------------- staff
 	private function staff_menu( $phone, $lc, $context, $identity ) {
 		if ( in_array( $lc, [ '0', 'salir', 'cancelar' ], true ) ) {
@@ -1759,6 +1991,13 @@ class Cead_Acad_WA_Engine {
 	 * Guarda una imagen entrante (base64 del bridge) en la biblioteca de medios.
 	 * Devuelve [ attachment_id, path, mime, url ] o null.
 	 */
+	/** ¿El media entrante es un audio (nota de voz)? Se decide por el MIME. */
+	private function is_audio_media( $media ) {
+		if ( ! is_array( $media ) ) { return false; }
+		$mime = strtolower( (string) ( $media['mime'] ?? '' ) );
+		return $mime !== '' && strpos( $mime, 'audio' ) === 0;
+	}
+
 	private function store_image( $media ) {
 		if ( ! is_array( $media ) || empty( $media['data_base64'] ) ) { return null; }
 		$mime  = (string) ( $media['mime'] ?? 'image/jpeg' );
@@ -1837,7 +2076,7 @@ class Cead_Acad_WA_Engine {
 	// --------------------------------------------------- filtro de lenguaje
 	/** Estados donde el usuario escribe texto libre que se guarda/reenvía. */
 	private function is_free_text_state( $state ) {
-		return in_array( $state, [ 'stu_report_body', 'stu_suggestion_body', 'stu_msg_body', 'stu_council_proposal', 'stu_settings_name', 'staff_comm_compose' ], true );
+		return in_array( $state, [ 'stu_report_body', 'stu_suggestion_body', 'stu_msg_body', 'stu_council_proposal', 'stu_settings_name', 'stu_constancia_motivo', 'stu_justif_motivo', 'staff_comm_compose' ], true );
 	}
 
 	/** Lista de palabras prohibidas configurable (una por línea o separadas por coma). */
@@ -2014,7 +2253,7 @@ class Cead_Acad_WA_Engine {
 
 	/** Comando "volver": sube un nivel de menú según el estado actual. */
 	private function go_back( $phone, $state, $identity ) {
-		$student_sub = [ 'stu_report_type', 'stu_report_cat', 'stu_report_body', 'stu_suggestion_body', 'stu_msg_to', 'stu_msg_body', 'stu_council_menu', 'stu_council_proposal', 'stu_settings_menu', 'stu_settings_name', 'stu_settings_phone' ];
+		$student_sub = [ 'stu_report_type', 'stu_report_cat', 'stu_report_body', 'stu_suggestion_body', 'stu_msg_to', 'stu_msg_body', 'stu_council_menu', 'stu_council_proposal', 'stu_settings_menu', 'stu_settings_name', 'stu_settings_phone', 'stu_constancia_motivo', 'stu_justif_fecha', 'stu_justif_motivo' ];
 		$staff_sub   = [
 			'staff_comm_compose', 'staff_comm_template', 'staff_comm_audience', 'staff_comm_when', 'staff_comm_confirm', 'staff_comm_schedule',
 			'staff_event_title', 'staff_event_date', 'staff_article_menu', 'staff_article_title', 'staff_article_body',

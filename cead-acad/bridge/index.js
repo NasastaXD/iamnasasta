@@ -225,12 +225,17 @@ async function connectToWhatsApp() {
 
             const from     = extractPhone( msg.key );
             const imageMsg = msg.message?.imageMessage;
+            // Nota de voz (ptt) o audio. WhatsApp manda audioMessage en ambos casos.
+            const audioMsg = msg.message?.audioMessage;
             const body = msg.message?.conversation
                       || msg.message?.extendedTextMessage?.text
                       || imageMsg?.caption
                       || '';
 
-            const media = imageMsg ? await downloadImage( msg, imageMsg ) : null;
+            let media = imageMsg ? await downloadImage( msg, imageMsg ) : null;
+            if ( ! media && audioMsg ) {
+                media = await downloadAudio( msg, audioMsg );
+            }
 
             if ( ! body.trim() && ! media ) continue;
 
@@ -342,6 +347,35 @@ async function downloadImage( msg, imageMsg ) {
         };
     } catch ( err ) {
         console.error( '[CaagBridge] Error descargando imagen:', err.message );
+        return null;
+    }
+}
+
+// Descarga una nota de voz / audio entrante y la devuelve en base64 para que
+// WordPress la transcriba. Acepta hasta 16 MB (notas de voz largas).
+async function downloadAudio( msg, audioMsg ) {
+    const baseMime = ( audioMsg.mimetype || 'audio/ogg' ).split( ';' )[ 0 ].trim();
+
+    try {
+        const buffer = await downloadMediaMessage(
+            msg,
+            'buffer',
+            {},
+            { logger, reuploadRequest: sock.updateMediaMessage }
+        );
+
+        if ( ! buffer || buffer.length > 16 * 1024 * 1024 ) {
+            console.warn( '[CaagBridge] Audio omitido (vacío o mayor a 16 MB).' );
+            return null;
+        }
+
+        return {
+            mime:        baseMime,
+            data_base64: buffer.toString( 'base64' ),
+            filename:    `whatsapp-${ Date.now() }.ogg`,
+        };
+    } catch ( err ) {
+        console.error( '[CaagBridge] Error descargando audio:', err.message );
         return null;
     }
 }

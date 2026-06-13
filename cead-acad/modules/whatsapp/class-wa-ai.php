@@ -30,15 +30,20 @@ class Cead_Acad_WA_AI {
 	public static function actions() {
 		return [
 			'horario'       => 'mostrar el horario de clases personal del alumno (datos reales del sistema)',
+			'notas'         => 'mostrar las notas/boletín del alumno (calificaciones reales por materia y periodo)',
+			'tareas'        => 'mostrar las tareas pendientes del alumno y sus fechas de entrega (datos reales del curso)',
 			'eventos'       => 'mostrar el calendario de eventos próximos',
 			'comunicados'   => 'mostrar los comunicados/avisos recientes del colegio',
 			'sitio'         => 'dar los enlaces oficiales del sitio web',
 			'contacto'      => 'dar los teléfonos y contactos del colegio',
 			'reportar'      => 'iniciar un reporte o denuncia (trámite guiado)',
 			'escribir'      => 'escribir un mensaje a Dirección, Consejo o Administración (trámite guiado)',
+			'constancia'    => 'iniciar una solicitud de constancia de alumno regular (trámite guiado)',
+			'justificativo' => 'justificar una inasistencia, con foto opcional del certificado (trámite guiado)',
 			'consejo'       => 'abrir el Consejo Estudiantil',
 			'recordatorios' => 'activar o desactivar los recordatorios de eventos',
 			'panel'         => 'dar el enlace al panel web del alumno',
+			'carne'         => 'dar el enlace al carné digital del alumno',
 			'faq'           => 'mostrar el listado completo de preguntas frecuentes',
 			'ajustes'       => 'abrir los ajustes del usuario (ver sus datos, cambiar su nombre, pedir cambio de número, activar/desactivar el modo IA o los recordatorios)',
 		];
@@ -78,6 +83,83 @@ class Cead_Acad_WA_AI {
 	/** Minutos que dura la memoria de una charla. */
 	public static function memory_ttl() {
 		return 30 * MINUTE_IN_SECONDS;
+	}
+
+	/* ---------------- Transcripción de voz (speech-to-text) ---------------- */
+
+	/** ¿La transcripción de notas de voz está activa y configurada? */
+	public static function stt_enabled() {
+		return (bool) get_option( 'cead_acad_wa_stt_enabled', 0 ) && self::stt_key() !== '';
+	}
+	/** Key del STT: constante, opción propia, o reusa la key de la IA. */
+	public static function stt_key() {
+		if ( defined( 'CEAD_ACAD_STT_KEY' ) && CEAD_ACAD_STT_KEY ) {
+			return (string) CEAD_ACAD_STT_KEY;
+		}
+		$k = (string) get_option( 'cead_acad_wa_stt_key', '' );
+		return $k !== '' ? $k : self::key();
+	}
+	public static function stt_endpoint() {
+		return (string) ( get_option( 'cead_acad_wa_stt_endpoint', '' ) ?: 'https://api.openai.com/v1/audio/transcriptions' );
+	}
+	public static function stt_model() {
+		return (string) ( get_option( 'cead_acad_wa_stt_model', '' ) ?: 'whisper-1' );
+	}
+
+	/**
+	 * Transcribe un audio (base64) con un endpoint compatible OpenAI
+	 * (/audio/transcriptions, multipart/form-data). Devuelve el texto o '' si la
+	 * transcripción está apagada o falla. Pensado para notas de voz de WhatsApp
+	 * (ogg/opus), pero acepta otros formatos comunes.
+	 */
+	public static function transcribe( $data_base64, $mime = 'audio/ogg', $lang = 'es' ) {
+		if ( ! self::stt_enabled() ) { return ''; }
+		$bytes = base64_decode( (string) $data_base64, true );
+		if ( $bytes === false || $bytes === '' ) { return ''; }
+
+		$boundary = wp_generate_password( 24, false );
+		$ext      = self::audio_ext( $mime );
+		$eol      = "\r\n";
+
+		$body  = '--' . $boundary . $eol;
+		$body .= 'Content-Disposition: form-data; name="model"' . $eol . $eol . self::stt_model() . $eol;
+		$body .= '--' . $boundary . $eol;
+		$body .= 'Content-Disposition: form-data; name="language"' . $eol . $eol . $lang . $eol;
+		$body .= '--' . $boundary . $eol;
+		$body .= 'Content-Disposition: form-data; name="file"; filename="audio.' . $ext . '"' . $eol;
+		$body .= 'Content-Type: ' . $mime . $eol . $eol;
+		$body .= $bytes . $eol;
+		$body .= '--' . $boundary . '--' . $eol;
+
+		$res = wp_remote_post( self::stt_endpoint(), [
+			'timeout' => 45,
+			'headers' => [
+				'Authorization' => 'Bearer ' . self::stt_key(),
+				'Content-Type'  => 'multipart/form-data; boundary=' . $boundary,
+			],
+			'body'    => $body,
+		] );
+		if ( is_wp_error( $res ) ) {
+			error_log( '[CeadAcadWA][STT] ' . $res->get_error_message() );
+			return '';
+		}
+		$code = (int) wp_remote_retrieve_response_code( $res );
+		$raw  = (string) wp_remote_retrieve_body( $res );
+		$data = json_decode( $raw, true );
+		if ( $code !== 200 || ! is_array( $data ) ) {
+			error_log( '[CeadAcadWA][STT] HTTP ' . $code . ' — ' . mb_substr( wp_strip_all_tags( $raw ), 0, 200 ) );
+			return '';
+		}
+		return trim( (string) ( $data['text'] ?? '' ) );
+	}
+
+	protected static function audio_ext( $mime ) {
+		$mime = strtolower( (string) $mime );
+		if ( strpos( $mime, 'mpeg' ) !== false || strpos( $mime, 'mp3' ) !== false ) { return 'mp3'; }
+		if ( strpos( $mime, 'mp4' ) !== false || strpos( $mime, 'm4a' ) !== false ) { return 'm4a'; }
+		if ( strpos( $mime, 'wav' ) !== false )  { return 'wav'; }
+		if ( strpos( $mime, 'webm' ) !== false ) { return 'webm'; }
+		return 'ogg'; // nota de voz de WhatsApp = ogg/opus
 	}
 
 	/* ---------------- Prompts ---------------- */
