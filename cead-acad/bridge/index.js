@@ -50,6 +50,44 @@ function ensureToken() {
 ensureToken();
 
 // -----------------------------------------------------------------------
+// Instancia única
+// -----------------------------------------------------------------------
+// Dos bridges compartiendo la misma cuenta es la causa típica del bucle
+// conectar/desconectar con "reason 440" (connectionReplaced): cada uno
+// reemplaza al otro sin parar. Un lock con el PID impide arrancar un segundo.
+
+const LOCK_FILE = './bridge.lock';
+
+function acquireSingleInstanceLock() {
+    if ( existsSync( LOCK_FILE ) ) {
+        const pid = parseInt( readFileSync( LOCK_FILE, 'utf8' ).trim(), 10 );
+        if ( pid && pid !== process.pid ) {
+            let alive = false;
+            try { process.kill( pid, 0 ); alive = true; } catch { alive = false; }
+            if ( alive ) {
+                console.error( `\n[CaagBridge] ⛔ Ya hay otra instancia del bridge corriendo (PID ${ pid }).` );
+                console.error( '[CaagBridge]    Cerrá esa instancia primero. Tener dos abiertas hace que WhatsApp se' );
+                console.error( '[CaagBridge]    desconecte y reconecte en bucle (reason 440).\n' );
+                process.exit( 1 );
+            }
+        }
+    }
+    writeFileSync( LOCK_FILE, String( process.pid ), 'utf8' );
+    const release = () => {
+        try {
+            if ( existsSync( LOCK_FILE ) && parseInt( readFileSync( LOCK_FILE, 'utf8' ).trim(), 10 ) === process.pid ) {
+                rmSync( LOCK_FILE, { force: true } );
+            }
+        } catch {}
+    };
+    process.on( 'exit', release );
+    process.on( 'SIGINT',  () => { release(); process.exit( 0 ); } );
+    process.on( 'SIGTERM', () => { release(); process.exit( 0 ); } );
+}
+
+acquireSingleInstanceLock();
+
+// -----------------------------------------------------------------------
 // Configuración
 // -----------------------------------------------------------------------
 
@@ -90,12 +128,21 @@ async function getFreePort( preferred ) {
 // Estado del bot
 // -----------------------------------------------------------------------
 
-let sock         = null;
-let qrBase64     = null;
-let isConnected  = false;
-let linkedNumber = null;
+let sock              = null;
+let qrBase64          = null;
+let isConnected       = false;
+let linkedNumber      = null;
+let waVersion         = null;  // versión del protocolo WA (se obtiene una sola vez)
+let reconnectTimer    = null;  // reconexión pendiente (solo una a la vez)
+let reconnectAttempts = 0;     // para el backoff exponencial
 
 const logger = pino( { level: 'silent' } );
+
+// Log con hora local (los logs eran ilegibles sin marca de tiempo).
+function blog( ...args ) {
+    const t = new Date().toLocaleTimeString( 'es-PY', { hour12: false } );
+    console.log( `[${ t }][CaagBridge]`, ...args );
+}
 
 // Deduplicación de mensajes: WhatsApp/Baileys puede entregar el mismo mensaje
 // más de una vez (reintentos, reconexión). Guardamos los IDs vistos un rato
@@ -145,17 +192,44 @@ function extractPhone( key ) {
 // Conexión a WhatsApp
 // -----------------------------------------------------------------------
 
+// Cierra y limpia el socket anterior antes de crear uno nuevo. Sin esto, cada
+// reconexión deja vivo el socket viejo (con sus listeners), y varias conexiones
+// del mismo proceso se reemplazan entre sí → bucle de "reason 440".
+function teardownSocket() {
+    if ( ! sock ) return;
+    try { sock.ev.removeAllListeners(); } catch {}
+    try { sock.end( undefined ); } catch {}
+    sock = null;
+}
+
+// Programa UNA reconexión con backoff exponencial (3s, 6s, 12s… máx. 60s). Si ya
+// hay una en camino, no agenda otra (evita reconexiones solapadas).
+function scheduleReconnect( clearSession = false ) {
+    if ( clearSession ) { clearAuthState(); reconnectAttempts = 0; }
+    if ( reconnectTimer ) return;
+    const delay = Math.min( 60000, 3000 * Math.pow( 2, reconnectAttempts ) );
+    reconnectAttempts++;
+    blog( `Reintentando conexión en ${ Math.round( delay / 1000 ) }s…` );
+    reconnectTimer = setTimeout( () => {
+        reconnectTimer = null;
+        connectToWhatsApp();
+    }, delay );
+}
+
 async function connectToWhatsApp() {
-    // Obtener la versión actual del protocolo WA antes de conectar
-    // Sin esto, WhatsApp puede rechazar la conexión con error 405
-    let waVersion;
-    try {
-        const { version, isLatest } = await fetchLatestBaileysVersion();
-        waVersion = version;
-        console.log( `[CaagBridge] Protocolo WA: ${ version.join( '.' ) } (última disponible: ${ isLatest })` );
-    } catch {
-        waVersion = [ 2, 3000, 1015901307 ]; // fallback conocido
-        console.log( '[CaagBridge] No se pudo obtener versión WA, usando fallback.' );
+    teardownSocket(); // limpia cualquier socket anterior antes de abrir uno nuevo
+
+    // Versión del protocolo WA: se obtiene UNA sola vez y se reutiliza en las
+    // reconexiones (antes se pedía en cada intento y llenaba el log).
+    if ( ! waVersion ) {
+        try {
+            const { version, isLatest } = await fetchLatestBaileysVersion();
+            waVersion = version;
+            blog( `Protocolo WA: ${ version.join( '.' ) } (última: ${ isLatest })` );
+        } catch {
+            waVersion = [ 2, 3000, 1015901307 ]; // fallback conocido
+            blog( 'No se pudo obtener versión WA, usando fallback.' );
+        }
     }
 
     const { state, saveCreds } = await useMultiFileAuthState( AUTH_DIR );
@@ -184,30 +258,36 @@ async function connectToWhatsApp() {
         }
 
         if ( connection === 'open' ) {
-            isConnected  = true;
-            qrBase64     = null;
-            linkedNumber = ( sock.user?.id || '' ).replace( /@.+$/, '' );
-            console.log( `\n[CaagBridge] ✅ Conectado como ${ linkedNumber }\n` );
+            isConnected       = true;
+            qrBase64          = null;
+            reconnectAttempts = 0; // conexión sana: reinicia el backoff
+            linkedNumber      = ( sock.user?.id || '' ).replace( /@.+$/, '' );
+            blog( `✅ Conectado como ${ linkedNumber }` );
         }
 
         if ( connection === 'close' ) {
             isConnected  = false;
             linkedNumber = null;
             const reason = lastDisconnect?.error?.output?.statusCode;
-            console.log( `[CaagBridge] Desconectado (reason: ${ reason })` );
 
-            const shouldClearSession =
-                reason === DisconnectReason.loggedOut ||   // 401 — logout explícito
-                reason === 405 ||                          // connectionReplaced — sesión inválida/reemplazada
-                reason === 500;                            // badSession — credenciales corruptas
-
-            if ( shouldClearSession ) {
-                console.log( '[CaagBridge] Sesión inválida — borrando auth_state y pidiendo QR nuevo...' );
-                clearAuthState();
-                setTimeout( connectToWhatsApp, 2000 );
-            } else {
-                setTimeout( connectToWhatsApp, 5000 );
+            // 401 (loggedOut) / 500 (badSession): la sesión ya no sirve → borrar
+            // credenciales y volver a emparejar con QR.
+            if ( reason === DisconnectReason.loggedOut || reason === 500 ) {
+                blog( 'Sesión cerrada o inválida — borrando credenciales y pidiendo QR nuevo.' );
+                scheduleReconnect( true );
+                return;
             }
+            // 440 (connectionReplaced): otra sesión tomó el lugar (¿WhatsApp Web
+            // abierto, u otra copia del bridge?). Reconectamos con backoff; el lock
+            // de instancia única evita el ping-pong entre dos bridges.
+            if ( reason === 440 ) {
+                blog( 'La conexión fue reemplazada por otra sesión (reason 440). Reconectando con espera…' );
+                scheduleReconnect( false );
+                return;
+            }
+            // 515 (restartRequired): paso normal tras emparejar; reconexión rápida.
+            blog( `Desconectado (reason: ${ reason ?? 'desconocido' }).` );
+            scheduleReconnect( false );
         }
     } );
 
@@ -502,7 +582,9 @@ app.get( '/api/status', ( _req, res ) => {
 
 app.post( '/api/restart', async ( _req, res ) => {
     res.json( { restarting: true } );
-    if ( sock ) sock.end( undefined );
+    if ( reconnectTimer ) { clearTimeout( reconnectTimer ); reconnectTimer = null; }
+    reconnectAttempts = 0;
+    teardownSocket(); // quita listeners: su 'close' ya no agenda otra reconexión
     isConnected  = false;
     linkedNumber = null;
     setTimeout( connectToWhatsApp, 1000 );
@@ -510,6 +592,9 @@ app.post( '/api/restart', async ( _req, res ) => {
 
 app.post( '/api/logout', async ( _req, res ) => {
     try { if ( sock ) await sock.logout().catch( () => {} ); } catch {}
+    if ( reconnectTimer ) { clearTimeout( reconnectTimer ); reconnectTimer = null; }
+    reconnectAttempts = 0;
+    teardownSocket();
     clearAuthState();
     isConnected  = false;
     linkedNumber = null;

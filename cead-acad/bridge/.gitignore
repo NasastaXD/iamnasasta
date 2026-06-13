@@ -1,0 +1,6 @@
+# Artefactos de ejecución del bridge (no se versionan).
+node_modules/
+.env
+auth_state/
+bridge.lock
+*.log
