@@ -95,6 +95,19 @@ let qrBase64     = null;
 let isConnected  = false;
 let linkedNumber = null;
 
+// Guards de reconexión: evitan abrir dos sockets a la vez (la causa real del
+// "otra sesión iniciada"/conflicto) y que se apilen varios reintentos.
+let connecting     = false;
+let reconnectTimer = null;
+
+function scheduleReconnect( ms ) {
+    if ( reconnectTimer ) return; // ya hay un reintento pendiente
+    reconnectTimer = setTimeout( () => {
+        reconnectTimer = null;
+        connectToWhatsApp();
+    }, ms );
+}
+
 const logger = pino( { level: 'silent' } );
 
 // Deduplicación de mensajes: WhatsApp/Baileys puede entregar el mismo mensaje
@@ -146,28 +159,58 @@ function extractPhone( key ) {
 // -----------------------------------------------------------------------
 
 async function connectToWhatsApp() {
-    // Obtener la versión actual del protocolo WA antes de conectar
-    // Sin esto, WhatsApp puede rechazar la conexión con error 405
-    let waVersion;
-    try {
-        const { version, isLatest } = await fetchLatestBaileysVersion();
-        waVersion = version;
-        console.log( `[CaagBridge] Protocolo WA: ${ version.join( '.' ) } (última disponible: ${ isLatest })` );
-    } catch {
-        waVersion = [ 2, 3000, 1015901307 ]; // fallback conocido
-        console.log( '[CaagBridge] No se pudo obtener versión WA, usando fallback.' );
+    // Single-flight: si ya estamos abriendo una conexión, no abrir otra. Dos
+    // sockets con las mismas credenciales se pelean y WhatsApp reporta "otra
+    // sesión iniciada"/conflicto.
+    if ( connecting ) {
+        console.log( '[CaagBridge] Conexión ya en curso — se ignora el reintento duplicado.' );
+        return;
+    }
+    connecting = true;
+
+    // Cerrar y desconectar el socket anterior antes de crear uno nuevo, para
+    // que no queden dos conexiones vivas (otra causa del conflicto).
+    if ( sock ) {
+        try { sock.ev.removeAllListeners(); } catch {}
+        try { sock.end( undefined ); } catch {}
+        sock = null;
     }
 
-    const { state, saveCreds } = await useMultiFileAuthState( AUTH_DIR );
+    let saveCreds;
+    try {
+        // Obtener la versión actual del protocolo WA antes de conectar
+        // Sin esto, WhatsApp puede rechazar la conexión con error 405
+        let waVersion;
+        try {
+            const { version, isLatest } = await fetchLatestBaileysVersion();
+            waVersion = version;
+            console.log( `[CaagBridge] Protocolo WA: ${ version.join( '.' ) } (última disponible: ${ isLatest })` );
+        } catch {
+            waVersion = [ 2, 3000, 1015901307 ]; // fallback conocido
+            console.log( '[CaagBridge] No se pudo obtener versión WA, usando fallback.' );
+        }
 
-    sock = makeWASocket( {
-        version: waVersion,
-        auth:    state,
-        logger,
-        browser: Browsers.ubuntu( 'Chrome' ),
-        connectTimeoutMs:    60000,
-        keepAliveIntervalMs: 25000,
-    } );
+        const auth = await useMultiFileAuthState( AUTH_DIR );
+        saveCreds  = auth.saveCreds;
+
+        sock = makeWASocket( {
+            version: waVersion,
+            auth:    auth.state,
+            logger,
+            browser: Browsers.ubuntu( 'Chrome' ),
+            connectTimeoutMs:    60000,
+            keepAliveIntervalMs: 25000,
+        } );
+    } catch ( err ) {
+        connecting = false;
+        console.error( '[CaagBridge] No se pudo crear el socket:', err.message );
+        scheduleReconnect( 5000 );
+        return;
+    }
+
+    // Socket creado: liberamos el guard para permitir un futuro reintento si
+    // esta conexión se cae.
+    connecting = false;
 
     sock.ev.on( 'creds.update', saveCreds );
 
@@ -196,17 +239,24 @@ async function connectToWhatsApp() {
             const reason = lastDisconnect?.error?.output?.statusCode;
             console.log( `[CaagBridge] Desconectado (reason: ${ reason })` );
 
-            const shouldClearSession =
-                reason === DisconnectReason.loggedOut ||   // 401 — logout explícito
-                reason === 405 ||                          // connectionReplaced — sesión inválida/reemplazada
-                reason === 500;                            // badSession — credenciales corruptas
-
-            if ( shouldClearSession ) {
+            // Solo borramos las credenciales cuando realmente dejaron de servir:
+            // logout explícito (401) o sesión corrupta (500). Borrar en otros
+            // casos obligaría a re-escanear el QR sin necesidad.
+            if ( reason === DisconnectReason.loggedOut || reason === DisconnectReason.badSession ) {
                 console.log( '[CaagBridge] Sesión inválida — borrando auth_state y pidiendo QR nuevo...' );
                 clearAuthState();
-                setTimeout( connectToWhatsApp, 2000 );
+                scheduleReconnect( 2000 );
+            } else if ( reason === DisconnectReason.connectionReplaced ) {
+                // 440: WhatsApp dice que "otra sesión" tomó el lugar. Tras un
+                // apagado sucio suele ser una sesión fantasma del lado del
+                // servidor. NO borramos credenciales; reconectamos UNA vez (el
+                // guard single-flight evita el loop que dejaba el bridge sin
+                // arrancar) y al reconectar retomamos la sesión.
+                console.log( '[CaagBridge] Conexión reemplazada (otra sesión) — reconectando para retomar...' );
+                scheduleReconnect( 8000 );
             } else {
-                setTimeout( connectToWhatsApp, 5000 );
+                // restartRequired (515), connectionLost (408), timeout, etc.
+                scheduleReconnect( 5000 );
             }
         }
     } );
@@ -434,10 +484,9 @@ app.get( '/api/status', ( _req, res ) => {
 
 app.post( '/api/restart', async ( _req, res ) => {
     res.json( { restarting: true } );
-    if ( sock ) sock.end( undefined );
     isConnected  = false;
     linkedNumber = null;
-    setTimeout( connectToWhatsApp, 1000 );
+    scheduleReconnect( 1000 );
 } );
 
 app.post( '/api/logout', async ( _req, res ) => {
@@ -447,7 +496,7 @@ app.post( '/api/logout', async ( _req, res ) => {
     linkedNumber = null;
     qrBase64     = null;
     res.json( { logged_out: true } );
-    setTimeout( connectToWhatsApp, 2000 );
+    scheduleReconnect( 2000 );
 } );
 
 // -----------------------------------------------------------------------
