@@ -97,6 +97,13 @@ const WP_WEBHOOK     = process.env.WP_WEBHOOK_URL || '';
 const TYPING_DELAY   = parseInt( process.env.TYPING_DELAY_MS || '1500', 10 );
 const AUTH_DIR       = './auth_state';
 
+// Tiempo que el bridge espera a que WordPress responda antes de cancelar la
+// petición (la IA "cancela su mensaje"). En audios se extiende: la nota de voz
+// se transcribe (puede tardar) y recién después responde la IA, así que es
+// natural que tarde más. Ambos configurables por .env.
+const WP_TIMEOUT_MS       = parseInt( process.env.WP_TIMEOUT_MS || '45000', 10 );
+const WP_TIMEOUT_AUDIO_MS = parseInt( process.env.WP_TIMEOUT_AUDIO_MS || '120000', 10 );
+
 if ( ! WP_WEBHOOK ) {
     console.warn( '[CaagBridge] ⚠️  WP_WEBHOOK_URL no configurado — los mensajes no se enviarán a WordPress.' );
     console.warn( '[CaagBridge]    Edite .env y agregue: WP_WEBHOOK_URL=https://su-sitio.com/wp-json/caag-bot/v1/incoming\n' );
@@ -316,6 +323,8 @@ async function connectToWhatsApp() {
             if ( ! media && audioMsg ) {
                 media = await downloadAudio( msg, audioMsg );
             }
+            // En audio damos más tiempo: transcripción + IA tardan más que un texto.
+            const isAudio = !! ( media && typeof media.mime === 'string' && media.mime.startsWith( 'audio' ) );
 
             if ( ! body.trim() && ! media ) continue;
 
@@ -345,7 +354,7 @@ async function connectToWhatsApp() {
                         timestamp: msg.messageTimestamp || Math.floor( Date.now() / 1000 ),
                         media:     media,
                         id:        msg.key.id || '',
-                    } );
+                    }, { timeout: isAudio ? WP_TIMEOUT_AUDIO_MS : WP_TIMEOUT_MS } );
                 }
             } finally {
                 clearInterval( typing );
@@ -361,12 +370,13 @@ async function connectToWhatsApp() {
 
 // POST a WordPress con reintentos y backoff exponencial (2s, 4s). Solo
 // reintenta errores de red y 5xx; un 4xx (token inválido) no se reintenta.
-async function postToWordPress( payload, attempts = 3 ) {
+// `timeout` es cuánto espera cada intento (más largo en audios).
+async function postToWordPress( payload, { timeout = WP_TIMEOUT_MS, attempts = 3 } = {} ) {
     for ( let attempt = 1; attempt <= attempts; attempt++ ) {
         try {
             const resp = await axios.post( WP_WEBHOOK, payload, {
                 headers: { 'X-Caag-Token': SHARED_TOKEN },
-                timeout: 30000,
+                timeout,
                 maxBodyLength: Infinity,
             } );
             // WordPress responde 200 incluso cuando descarta el mensaje por rate
