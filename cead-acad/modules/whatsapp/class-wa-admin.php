@@ -290,6 +290,7 @@ class Cead_Acad_WA_Admin {
 		echo '<p class="description">' . esc_html__( 'Necesita un endpoint compatible con OpenAI /audio/transcriptions (ej.: Whisper). Si está apagado o falla, CEADI pide que escriban el mensaje.', 'cead-acad' ) . '</p>';
 		echo '</td></tr>';
 		$this->field( 'stt_endpoint', __( 'Endpoint de transcripción', 'cead-acad' ), get_option( 'cead_acad_wa_stt_endpoint', '' ), 'https://api.openai.com/v1/audio/transcriptions', 'url' );
+		echo '<tr><th></th><td><p class="description">⚠️ ' . esc_html__( 'OJO: este endpoint NO es el mismo que el de la IA (chat). Tiene que ser uno de transcripción de audio, terminado en /audio/transcriptions (Whisper-compatible). Ej.: OpenAI https://api.openai.com/v1/audio/transcriptions o Groq https://api.groq.com/openai/v1/audio/transcriptions. Si ponés acá el endpoint de chat, vas a ver un error tipo «failed to unmarshal JSON».', 'cead-acad' ) . '</p></td></tr>';
 		$this->field( 'stt_model', __( 'Modelo de transcripción', 'cead-acad' ), get_option( 'cead_acad_wa_stt_model', '' ), 'whisper-1' );
 		$this->field( 'stt_key', __( 'API key de transcripción', 'cead-acad' ), get_option( 'cead_acad_wa_stt_key', '' ), __( 'vacío = reusar la API key de la IA (o CEAD_ACAD_STT_KEY en wp-config)', 'cead-acad' ), 'password' );
 		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Si lo dejás vacío, usa la misma API key de la IA. Ponelo solo si el proveedor de transcripción es distinto.', 'cead-acad' ) . '</p></td></tr>';

@@ -107,6 +107,34 @@ class Cead_Acad_WA_AI {
 	}
 
 	/**
+	 * Interpreta un error del endpoint de transcripción y devuelve una pista útil
+	 * en español ('' si el patrón no se reconoce). El caso clásico: el endpoint
+	 * intenta parsear el cuerpo como JSON (errores «unmarshal», «invalid character»,
+	 * «numeric literal») → es un endpoint de CHAT, no de transcripción. La
+	 * transcripción necesita un endpoint Whisper-compatible /audio/transcriptions
+	 * que acepte multipart/form-data, distinto del que usa la IA para chatear.
+	 */
+	protected static function stt_hint( $code, $err ) {
+		$e = strtolower( (string) $err );
+		$json_reject = strpos( $e, 'unmarshal' ) !== false
+			|| strpos( $e, 'numeric literal' ) !== false
+			|| strpos( $e, 'invalid character' ) !== false
+			|| ( strpos( $e, 'json' ) !== false && strpos( $e, 'multipart' ) === false );
+		if ( $json_reject ) {
+			return 'El endpoint espera JSON: parece ser de chat, no de transcripción de audio. '
+				. 'Para transcribir necesitás un endpoint Whisper-compatible terminado en /audio/transcriptions '
+				. '(por ejemplo OpenAI https://api.openai.com/v1/audio/transcriptions o Groq), distinto del endpoint de la IA.';
+		}
+		if ( (int) $code === 404 ) {
+			return 'El endpoint no existe (404). Revisá la URL: debe terminar en /audio/transcriptions.';
+		}
+		if ( (int) $code === 401 || (int) $code === 403 ) {
+			return 'Credenciales inválidas. Revisá la API key de transcripción (o la de la IA si dejaste la de STT vacía).';
+		}
+		return '';
+	}
+
+	/**
 	 * Transcribe un audio (base64) con un endpoint compatible OpenAI
 	 * (/audio/transcriptions, multipart/form-data). Devuelve el texto o '' si la
 	 * transcripción está apagada o falla. Pensado para notas de voz de WhatsApp
@@ -149,9 +177,11 @@ class Cead_Acad_WA_AI {
 		$raw  = (string) wp_remote_retrieve_body( $res );
 		$data = json_decode( $raw, true );
 		if ( $code !== 200 || ! is_array( $data ) ) {
-			$err = isset( $data['error']['message'] ) ? (string) $data['error']['message'] : mb_substr( wp_strip_all_tags( $raw ), 0, 200 );
-			error_log( '[CeadAcadWA][STT] HTTP ' . $code . ' — ' . $err );
-			self::store_stt_error( 'HTTP ' . $code . ' — ' . $err );
+			$err  = isset( $data['error']['message'] ) ? (string) $data['error']['message'] : mb_substr( wp_strip_all_tags( $raw ), 0, 200 );
+			$hint = self::stt_hint( $code, $err );
+			$full = 'HTTP ' . $code . ' — ' . $err . ( $hint !== '' ? ' · ' . $hint : '' );
+			error_log( '[CeadAcadWA][STT] ' . $full );
+			self::store_stt_error( $full );
 			return '';
 		}
 		delete_transient( 'cead_acad_wa_stt_last_error' );
@@ -211,18 +241,24 @@ class Cead_Acad_WA_AI {
 		$data = json_decode( $raw, true );
 		$err  = isset( $data['error']['message'] ) ? (string) $data['error']['message'] : mb_substr( wp_strip_all_tags( $raw ), 0, 200 );
 
-		if ( $code === 401 || $code === 403 ) {
-			return [ 'ok' => false, 'summary' => 'Credenciales inválidas (HTTP ' . $code . '): ' . $err ];
-		}
 		if ( $code === 200 ) {
 			delete_transient( 'cead_acad_wa_stt_last_error' );
 			return [ 'ok' => true, 'summary' => 'STT OK — respuesta: «' . mb_substr( (string) ( $data['text'] ?? '(silencio)' ), 0, 80 ) . '»' ];
 		}
-		// 400/422 = audio inválido (esperado con 0 muestras) pero autenticación OK.
+		// Error reconocido (endpoint de chat en vez de audio, 404, credenciales):
+		// es un problema real de configuración, NO un «esperado».
+		$hint = self::stt_hint( $code, $err );
+		if ( $hint !== '' ) {
+			self::store_stt_error( 'HTTP ' . $code . ' — ' . $err . ' · ' . $hint );
+			return [ 'ok' => false, 'summary' => 'HTTP ' . $code . ' — ' . $hint ];
+		}
+		// 400/422 con un error de audio (archivo corto/ inválido): el endpoint es
+		// correcto y la autenticación funciona; solo rechazó el audio de prueba vacío.
 		if ( $code === 400 || $code === 422 ) {
 			delete_transient( 'cead_acad_wa_stt_last_error' );
-			return [ 'ok' => true, 'summary' => 'Credenciales OK — el endpoint respondió HTTP ' . $code . ' al audio de prueba (esperado): ' . mb_substr( $err, 0, 120 ) ];
+			return [ 'ok' => true, 'summary' => 'Credenciales OK — el endpoint aceptó la petición y rechazó el audio de prueba vacío (HTTP ' . $code . ', esperado): ' . mb_substr( $err, 0, 120 ) ];
 		}
+		self::store_stt_error( 'HTTP ' . $code . ' — ' . $err );
 		return [ 'ok' => false, 'summary' => 'HTTP ' . $code . ' — ' . mb_substr( $err, 0, 200 ) ];
 	}
 
