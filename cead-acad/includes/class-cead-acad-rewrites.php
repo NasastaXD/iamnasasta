@@ -237,6 +237,12 @@ class Cead_Acad_Rewrites {
 				cead_acad_template( 'panel/faq/list.php' );
 				return;
 
+			case 'wiki':
+				// La wiki vive en /wiki (página pública, solo lectura). Desde el
+				// panel es una simple redirección, como pidió la dirección.
+				wp_safe_redirect( cead_acad_url( 'wiki' ) );
+				exit;
+
 			case 'delegado':
 				cead_acad_template( 'panel/delegado/dashboard.php' );
 				return;

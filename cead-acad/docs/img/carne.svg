@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" font-family="'Mulish','Segoe UI',sans-serif">
+  <defs>
+    <style>
+      .disp{font-family:'Arial Black','Helvetica Neue',Impact,sans-serif;font-weight:900}
+      .h{font-weight:800}.m{fill:#8E8E8E}.t{fill:#4A4A4A}
+    </style>
+  </defs>
+  <rect x="0" y="0" width="900" height="440" rx="18" fill="#F7F5F0"/>
+  <text x="40" y="56" class="disp" font-size="26" fill="#0B0B0B">MI CARNÉ</text>
+  <text x="40" y="80" class="m" font-size="13">Carné digital con código QR de verificación pública.</text>
+
+  <!-- tarjeta carné -->
+  <rect x="40" y="104" width="430" height="280" rx="20" fill="#0B0B0B"/>
+  <rect x="40" y="104" width="430" height="74" rx="20" fill="#E93B3C"/>
+  <rect x="40" y="150" width="430" height="28" fill="#E93B3C"/>
+  <g transform="translate(64,132)">
+    <circle cx="0" cy="0" r="6" fill="#fff"/><circle cx="14" cy="0" r="6" fill="#EDDF58"/><circle cx="28" cy="0" r="6" fill="#49A3C8"/><circle cx="42" cy="0" r="6" fill="#F4B74C"/>
+    <text x="60" y="6" class="disp" font-size="20" fill="#fff">CEAD</text>
+  </g>
+  <text x="64" y="166" fill="#FCE7E7" font-size="11" class="h">FÉLIX DE GUARANIA · CARNÉ ESTUDIANTIL</text>
+
+  <!-- foto -->
+  <rect x="64" y="202" width="110" height="130" rx="12" fill="#2A2A2A" stroke="#3a3a3a"/>
+  <circle cx="119" cy="248" r="26" fill="#5b5953"/><path d="M83 326 q36 -40 72 0 z" fill="#5b5953"/>
+  <!-- datos -->
+  <g transform="translate(194,206)">
+    <text x="0" y="14" fill="#8E8E8E" font-size="10" class="h">NOMBRE</text>
+    <text x="0" y="34" fill="#fff" class="disp" font-size="19">ANA BENÍTEZ</text>
+    <text x="0" y="62" fill="#8E8E8E" font-size="10" class="h">ROL</text>
+    <text x="0" y="80" fill="#fff" class="h" font-size="14">Alumna</text>
+    <text x="0" y="106" fill="#8E8E8E" font-size="10" class="h">CURSO</text>
+    <text x="0" y="124" fill="#fff" class="h" font-size="14">1.º año · Téc.</text>
+  </g>
+
+  <!-- QR panel -->
+  <rect x="500" y="104" width="360" height="280" rx="20" fill="#fff" stroke="#E4E1DA"/>
+  <text x="528" y="146" class="h" font-size="15" fill="#0B0B0B">Verificación pública</text>
+  <text x="528" y="166" class="m" font-size="12">Escaneá el QR para confirmar</text>
+  <text x="528" y="182" class="m" font-size="12">que el carné es válido.</text>
+  <!-- QR -->
+  <g transform="translate(560,200)">
+    <rect x="0" y="0" width="150" height="150" rx="10" fill="#fff" stroke="#E4E1DA"/>
+    <g fill="#0B0B0B" transform="translate(16,16)">
+      <rect x="0" y="0" width="34" height="34"/><rect x="6" y="6" width="22" height="22" fill="#fff"/><rect x="12" y="12" width="10" height="10" fill="#0B0B0B"/>
+      <rect x="84" y="0" width="34" height="34"/><rect x="90" y="6" width="22" height="22" fill="#fff"/><rect x="96" y="12" width="10" height="10" fill="#0B0B0B"/>
+      <rect x="0" y="84" width="34" height="34"/><rect x="6" y="90" width="22" height="22" fill="#fff"/><rect x="12" y="96" width="10" height="10" fill="#0B0B0B"/>
+      <rect x="44" y="6" width="8" height="8"/><rect x="58" y="0" width="8" height="8"/><rect x="44" y="20" width="8" height="8"/><rect x="68" y="14" width="8" height="8"/>
+      <rect x="48" y="48" width="8" height="8"/><rect x="62" y="48" width="8" height="8"/><rect x="76" y="56" width="8" height="8"/><rect x="44" y="62" width="8" height="8"/>
+      <rect x="90" y="48" width="8" height="8"/><rect x="104" y="48" width="8" height="8"/><rect x="90" y="62" width="8" height="8"/>
+      <rect x="48" y="90" width="8" height="8"/><rect x="62" y="98" width="8" height="8"/><rect x="76" y="90" width="8" height="8"/>
+      <rect x="90" y="90" width="8" height="8"/><rect x="104" y="104" width="8" height="8"/><rect x="90" y="104" width="8" height="8"/>
+    </g>
+  </g>
+  <rect x="560" y="362" width="150" height="6" rx="3" fill="#F7F5F0"/>
+
+  <!-- botón imprimir -->
+  <rect x="730" y="240" width="106" height="38" rx="10" fill="#E93B3C"/><text x="748" y="264" fill="#fff" class="h" font-size="12">⨂ Imprimir</text>
+  <rect x="730" y="288" width="106" height="38" rx="10" fill="#fff" stroke="#E4E1DA"/><text x="752" y="312" class="t" font-size="12">Guardar PDF</text>
+</svg>

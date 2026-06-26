@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" font-family="'Mulish','Segoe UI',sans-serif">
+  <defs>
+    <style>.disp{font-family:'Arial Black','Helvetica Neue',Impact,sans-serif;font-weight:900}.h{font-weight:800}.m{fill:#8E8E8E}.t{fill:#4A4A4A}</style>
+  </defs>
+  <rect x="0" y="0" width="900" height="560" rx="18" fill="#F7F5F0"/>
+  <text x="40" y="54" class="disp" font-size="26" fill="#0B0B0B">CEADI · BOT DE WHATSAPP</text>
+  <text x="40" y="78" class="m" font-size="13">Atiende por WhatsApp con menú numérico, lenguaje natural (IA) y notas de voz.</text>
+
+  <!-- teléfono -->
+  <rect x="300" y="100" width="300" height="440" rx="34" fill="#0B0B0B"/>
+  <rect x="312" y="112" width="276" height="416" rx="24" fill="#E5DDD4"/>
+  <!-- header WA -->
+  <rect x="312" y="112" width="276" height="58" rx="24" fill="#0A5C49"/>
+  <rect x="312" y="140" width="276" height="30" fill="#0A5C49"/>
+  <circle cx="346" cy="142" r="16" fill="#fff"/>
+  <g transform="translate(338,134)"><circle cx="4" cy="2" r="3.4" fill="#E93B3C"/><circle cx="11" cy="2" r="3.4" fill="#49A3C8"/><circle cx="4" cy="9" r="3.4" fill="#EDDF58"/><circle cx="11" cy="9" r="3.4" fill="#F4B74C"/></g>
+  <text x="372" y="138" fill="#fff" class="h" font-size="13">CEADI</text>
+  <text x="372" y="154" fill="#bfe3d8" font-size="10">en línea</text>
+
+  <!-- mensajes -->
+  <!-- bot -->
+  <rect x="328" y="186" width="216" height="118" rx="12" fill="#fff"/>
+  <text x="342" y="206" class="h" font-size="11" fill="#0B0B0B">Hola Ana 👋 ¿En qué te ayudo?</text>
+  <g class="t" font-size="10.5">
+    <text x="342" y="226">1. Horarios   2. Calendario</text>
+    <text x="342" y="244">3. Comunicados   4. Reportar</text>
+    <text x="342" y="262">5. Contacto   6. Consejo</text>
+    <text x="342" y="280">0. Salir</text>
+  </g>
+  <text x="342" y="298" class="m" font-size="9">09:41</text>
+
+  <!-- user -->
+  <rect x="392" y="316" width="152" height="40" rx="12" fill="#D9FDD3"/>
+  <text x="406" y="338" class="t" font-size="11">¿qué clases tengo mañana?</text>
+  <text x="520" y="351" class="m" font-size="9">09:41 ✓✓</text>
+
+  <!-- bot reply (IA) -->
+  <rect x="328" y="368" width="216" height="96" rx="12" fill="#fff"/>
+  <text x="342" y="388" class="h" font-size="11" fill="#0B0B0B">Mañana (mié) tenés:</text>
+  <g class="t" font-size="10.5">
+    <text x="342" y="406">• 07:30 Matemática</text>
+    <text x="342" y="424">• 09:10 Programación</text>
+    <text x="342" y="442">• 10:50 Lengua</text>
+  </g>
+  <text x="342" y="458" class="m" font-size="9">09:41</text>
+
+  <!-- barra de escribir -->
+  <rect x="328" y="480" width="180" height="34" rx="17" fill="#fff"/>
+  <text x="344" y="501" class="m" font-size="11">Escribí un mensaje…</text>
+  <circle cx="528" cy="497" r="20" fill="#0A5C49"/><text x="520" y="502" fill="#fff" font-size="14">🎤</text>
+
+  <!-- leyenda lateral -->
+  <g transform="translate(630,150)">
+    <text x="0" y="0" class="h" font-size="13" fill="#0B0B0B">Lo que sabe hacer</text>
+    <g font-size="12">
+      <circle cx="6" cy="28" r="4" fill="#E93B3C"/><text x="20" y="32" class="t">Horarios y calendario personales</text>
+      <circle cx="6" cy="58" r="4" fill="#49A3C8"/><text x="20" y="62" class="t">Leer comunicados</text>
+      <circle cx="6" cy="88" r="4" fill="#EDDF58"/><text x="20" y="92" class="t">Reportes confidenciales (cifrados)</text>
+      <circle cx="6" cy="118" r="4" fill="#F4B74C"/><text x="20" y="122" class="t">Escribir a un encargado</text>
+      <circle cx="6" cy="148" r="4" fill="#E93B3C"/><text x="20" y="152" class="t">Entender audios (notas de voz)</text>
+      <circle cx="6" cy="178" r="4" fill="#49A3C8"/><text x="20" y="182" class="t">Recordatorios de eventos</text>
+    </g>
+    <rect x="0" y="208" width="230" height="86" rx="12" fill="#FCE7E7"/>
+    <text x="16" y="234" class="h" font-size="11" fill="#B82A2B">Solo números registrados</text>
+    <text x="16" y="254" class="t" font-size="10.5">CEADI responde únicamente a</text>
+    <text x="16" y="270" class="t" font-size="10.5">teléfonos cargados en el panel.</text>
+    <text x="16" y="286" class="t" font-size="10.5">A un desconocido le avisa una vez.</text>
+  </g>
+</svg>
