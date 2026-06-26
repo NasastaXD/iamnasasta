@@ -1,9 +1,11 @@
 # 🛠️ CEAD Académico — Wiki técnica
 
 > Documentación técnica del sistema del **Centro Educativo de Alto Desempeño "Félix de Guarania"** (CEAD).
-> Plugin **v0.29.3** · DB schema **v16** · Requiere WordPress 6.4+ y PHP 8.1+.
+> Plugin **v0.30.0** · DB schema **v16** · Requiere WordPress 6.4+ y PHP 8.1+.
 
 Esta wiki está pensada para quien quiera entender **cómo está construido** el proyecto: arquitectura, módulos, modelo de datos, el bot, seguridad y despliegue. Para la guía de uso en lenguaje simple, ver **[Wiki del usuario](WIKI-USUARIO.md)**.
+
+> Ambas wikis se sirven online (solo lectura) en **`/wiki`** y **`/wiki/tecnica`**, renderizadas por el plugin desde estos mismos archivos Markdown (ver §5, módulo `wiki/`).
 
 ---
 
@@ -105,6 +107,7 @@ Arquitectura modular. `cead-acad.php` es el bootstrap: define constantes, hace `
 | `pwa/` | Service worker, manifest, instalación como app, offline |
 | `notifications/` | Centro de notificaciones in-app (campana): no leídos, próximos eventos, tareas |
 | `faq/` | Preguntas frecuentes configurables |
+| `wiki/` | Sirve esta documentación en `/wiki` y `/wiki/tecnica` (solo lectura, desde los `.md` empaquetados; Markdown→HTML con Parsedown) |
 | `updates/` | Autoactualización desde GitHub Releases (ver §11) |
 | `admin-ui/` | Escritorio wp-admin con estética CEAD y métricas |
 
@@ -188,7 +191,7 @@ Cuerpo cifrado con **libsodium** (`sodium_crypto_secretbox`) o AES-256-GCM como 
 
 ### Frontend (`/panel`, gestionado por rewrites)
 
-Públicas: `/login`, `/registro?t=<token>`, `/recuperar`, `/salir`.
+Públicas: `/login`, `/registro?t=<token>`, `/recuperar`, `/salir`, `/wiki` y `/wiki/tecnica` (esta documentación).
 Autenticadas: `/panel`, `/panel/comunicados`, `/panel/encuestas`, `/panel/horarios`, `/panel/recursos`, `/panel/boletin`, `/panel/delegado`, `/panel/secretaria`, `/panel/direccion`.
 
 `wp-login.php` se bloquea por defecto y redirige a `/login` para usuarios del plugin.
