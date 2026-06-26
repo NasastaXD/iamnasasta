@@ -48,6 +48,10 @@ class Cead_Acad_Rewrites {
 		// Suscripción de calendario (iCal) por token: /cal/<token>.ics
 		add_rewrite_rule( '^cal/([^/]+)\.ics$',  'index.php?' . self::QUERY_VAR . '=calfeed&cead_acad_t=$matches[1]', 'top' );
 
+		// Wiki pública del proyecto (solo lectura): /wiki y /wiki/<seccion>.
+		add_rewrite_rule( '^wiki/?$',                    'index.php?' . self::QUERY_VAR . '=wiki', 'top' );
+		add_rewrite_rule( '^wiki/(usuario|tecnica)/?$',  'index.php?' . self::QUERY_VAR . '=wiki&cead_acad_t=$matches[1]', 'top' );
+
 		// Panel y sub-rutas (stub en F0; los módulos las van completando).
 		add_rewrite_rule( '^panel/?$',           'index.php?' . self::QUERY_VAR . '=panel',          'top' );
 		add_rewrite_rule( '^panel/(.+?)/?$',     'index.php?' . self::QUERY_VAR . '=panel/$matches[1]', 'top' );
@@ -126,6 +130,10 @@ class Cead_Acad_Rewrites {
 
 			case 'calfeed' === $route:
 				Cead_Acad_Schedule_Feed::output_subscription( (string) get_query_var( 'cead_acad_t' ) );
+				return;
+
+			case 'wiki' === $route:
+				Cead_Acad_Wiki::render( (string) get_query_var( 'cead_acad_t' ) );
 				return;
 
 			case 'panel' === $route || str_starts_with( $route, 'panel/' ):

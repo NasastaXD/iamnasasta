@@ -83,6 +83,13 @@ final class Cead_Acad_Plugin {
 			Cead_Acad_Capabilities::install();
 			update_option( 'cead_acad_caps_version', CEAD_ACAD_VERSION );
 		}
+
+		// Refrescar rewrite rules en cada cambio de versión (no atado al schema),
+		// por si una versión nueva agrega rutas frontend como /wiki.
+		if ( get_option( 'cead_acad_rewrites_version' ) !== CEAD_ACAD_VERSION ) {
+			update_option( 'cead_acad_flush_rewrites', 1 );
+			update_option( 'cead_acad_rewrites_version', CEAD_ACAD_VERSION );
+		}
 	}
 
 	/**
