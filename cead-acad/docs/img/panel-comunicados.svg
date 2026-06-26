@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" font-family="'Mulish','Segoe UI',sans-serif">
+  <defs>
+    <style>.disp{font-family:'Arial Black','Helvetica Neue',Impact,sans-serif;font-weight:900}.h{font-weight:800}.m{fill:#8E8E8E}.t{fill:#4A4A4A}</style>
+  </defs>
+  <rect x="0" y="0" width="900" height="500" rx="18" fill="#F7F5F0"/>
+  <text x="40" y="56" class="disp" font-size="26" fill="#0B0B0B">COMUNICADOS</text>
+  <text x="40" y="78" class="m" font-size="13">Mensajes dirigidos a tu rol, curso o a vos. Los no leídos quedan marcados.</text>
+
+  <!-- filtros -->
+  <rect x="40" y="98" width="92" height="32" rx="16" fill="#E93B3C"/><text x="62" y="118" fill="#fff" class="h" font-size="12">Todos</text>
+  <rect x="140" y="98" width="110" height="32" rx="16" fill="#fff" stroke="#E4E1DA"/><text x="158" y="118" class="t" font-size="12">No leídos · 3</text>
+  <rect x="258" y="98" width="104" height="32" rx="16" fill="#fff" stroke="#E4E1DA"/><text x="276" y="118" class="t" font-size="12">Académico</text>
+  <rect x="370" y="98" width="92" height="32" rx="16" fill="#fff" stroke="#E4E1DA"/><text x="388" y="118" class="t" font-size="12">Urgente</text>
+
+  <!-- lista -->
+  <g>
+    <!-- item no leído -->
+    <rect x="40" y="146" width="820" height="74" rx="13" fill="#fff" stroke="#F2C9C9"/>
+    <rect x="40" y="146" width="6" height="74" rx="3" fill="#E93B3C"/>
+    <circle cx="74" cy="183" r="18" fill="#FCE7E7"/><text x="66" y="189" font-size="16">📣</text>
+    <text x="106" y="176" class="h" font-size="14" fill="#0B0B0B">Reunión de padres — viernes 16</text>
+    <circle cx="360" cy="171" r="5" fill="#E93B3C"/>
+    <text x="106" y="198" class="t" font-size="12">Se convoca a las familias a la reunión general en el salón de actos…</text>
+    <rect x="106" y="206" width="78" height="0" /><text x="106" y="214" class="m" font-size="11">Dirección</text>
+    <text x="788" y="176" class="m" font-size="11">hoy 08:10</text>
+    <rect x="700" y="190" width="62" height="20" rx="10" fill="#FCE7E7"/><text x="712" y="204" fill="#B82A2B" class="h" font-size="10">URGENTE</text>
+
+    <!-- item no leído 2 -->
+    <rect x="40" y="232" width="820" height="74" rx="13" fill="#fff" stroke="#F2C9C9"/>
+    <rect x="40" y="232" width="6" height="74" rx="3" fill="#E93B3C"/>
+    <circle cx="74" cy="269" r="18" fill="#E7F1F6"/><text x="66" y="275" font-size="16">📚</text>
+    <text x="106" y="262" class="h" font-size="14" fill="#0B0B0B">Entrega de proyectos de Programación</text>
+    <circle cx="420" cy="257" r="5" fill="#E93B3C"/>
+    <text x="106" y="284" class="t" font-size="12">Recuerden subir la entrega antes del lunes a las 23:59…</text>
+    <text x="106" y="300" class="m" font-size="11">Prof. Rolón · 1.º año</text>
+    <text x="788" y="262" class="m" font-size="11">ayer 17:30</text>
+    <rect x="690" y="276" width="72" height="20" rx="10" fill="#E7F1F6"/><text x="700" y="290" fill="#2C6E8A" class="h" font-size="10">ACADÉMICO</text>
+
+    <!-- item leído -->
+    <rect x="40" y="318" width="820" height="70" rx="13" fill="#fff" stroke="#E4E1DA"/>
+    <circle cx="74" cy="353" r="18" fill="#FBF7DA"/><text x="66" y="359" font-size="16">🎉</text>
+    <text x="106" y="346" class="h" font-size="14" fill="#4A4A4A">Acto del 14 de mayo</text>
+    <text x="106" y="368" class="t" font-size="12">Invitamos a toda la comunidad educativa al acto conmemorativo…</text>
+    <text x="106" y="383" class="m" font-size="11">Consejo Estudiantil</text>
+    <text x="788" y="346" class="m" font-size="11">2 días</text>
+
+    <!-- item leído 2 -->
+    <rect x="40" y="400" width="820" height="70" rx="13" fill="#fff" stroke="#E4E1DA"/>
+    <circle cx="74" cy="435" r="18" fill="#FDEFD8"/><text x="66" y="441" font-size="16">🗓️</text>
+    <text x="106" y="428" class="h" font-size="14" fill="#4A4A4A">Cambio de horario — Educación Física</text>
+    <text x="106" y="450" class="t" font-size="12">La clase del miércoles pasa a primera hora…</text>
+    <text x="106" y="465" class="m" font-size="11">Secretaría</text>
+    <text x="788" y="428" class="m" font-size="11">3 días</text>
+  </g>
+</svg>

@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" font-family="'Mulish','Segoe UI',sans-serif">
+  <defs>
+    <style>
+      .disp{font-family:'Arial Black','Helvetica Neue',Impact,sans-serif;font-weight:900;letter-spacing:.5px}
+      .h{font-weight:800}.t{fill:#4A4A4A}.m{fill:#8E8E8E}
+    </style>
+  </defs>
+  <!-- ventana -->
+  <rect x="0" y="0" width="900" height="560" rx="18" fill="#F7F5F0"/>
+  <rect x="0" y="0" width="900" height="40" rx="18" fill="#fff"/>
+  <rect x="0" y="22" width="900" height="18" fill="#fff"/>
+  <circle cx="22" cy="20" r="5" fill="#E93B3C"/><circle cx="40" cy="20" r="5" fill="#F4B74C"/><circle cx="58" cy="20" r="5" fill="#49A3C8"/>
+  <rect x="300" y="11" width="320" height="18" rx="9" fill="#F7F5F0"/>
+  <text x="316" y="24" class="m" font-size="11">cead.caaguazu.net/panel</text>
+
+  <!-- sidebar -->
+  <rect x="16" y="56" width="208" height="488" rx="14" fill="#fff" stroke="#E4E1DA"/>
+  <g transform="translate(36,80)">
+    <circle cx="0" cy="0" r="6" fill="#E93B3C"/><circle cx="14" cy="0" r="6" fill="#49A3C8"/>
+    <circle cx="28" cy="0" r="6" fill="#EDDF58"/><circle cx="42" cy="0" r="6" fill="#F4B74C"/>
+    <text x="64" y="6" class="disp" font-size="22" fill="#0B0B0B">CEAD</text>
+  </g>
+  <!-- nav items -->
+  <rect x="32" y="108" width="176" height="34" rx="9" fill="#E93B3C"/>
+  <text x="50" y="130" fill="#fff" class="h" font-size="13">Inicio</text>
+  <g class="t" font-size="13">
+    <text x="50" y="166">Comunicados</text>
+    <text x="50" y="200">Calendario</text>
+    <text x="50" y="234">Horarios</text>
+    <text x="50" y="268">Mis tareas</text>
+    <text x="50" y="302">Recursos</text>
+    <text x="50" y="336">Wiki / Ayuda</text>
+    <text x="50" y="370">Mi carné</text>
+    <text x="50" y="404">Mi perfil</text>
+  </g>
+  <g fill="#C9C5BC"><circle cx="40" cy="161" r="3"/><circle cx="40" cy="195" r="3"/><circle cx="40" cy="229" r="3"/><circle cx="40" cy="263" r="3"/><circle cx="40" cy="297" r="3"/><circle cx="40" cy="331" r="3"/><circle cx="40" cy="365" r="3"/><circle cx="40" cy="399" r="3"/></g>
+
+  <!-- topbar -->
+  <text x="248" y="86" class="disp" font-size="26" fill="#0B0B0B">¡HOLA, ANA!</text>
+  <text x="248" y="106" class="m" font-size="12">1.º año · Bachiller Técnico</text>
+  <circle cx="828" cy="84" r="16" fill="#fff" stroke="#E4E1DA"/><text x="822" y="89" font-size="14">🔔</text>
+  <circle cx="822" cy="84" r="8" fill="#E93B3C"/><text x="819" y="87" fill="#fff" font-size="9" class="h">3</text>
+  <circle cx="864" cy="84" r="16" fill="#fff" stroke="#E4E1DA"/><text x="857" y="89" font-size="13">🌗</text>
+
+  <!-- accesos rápidos -->
+  <g>
+    <rect x="248" y="124" width="120" height="56" rx="12" fill="#FCE7E7"/><text x="266" y="150" font-size="18">📣</text><text x="266" y="170" class="h" font-size="11" fill="#B82A2B">Comunicados</text>
+    <rect x="378" y="124" width="120" height="56" rx="12" fill="#E7F1F6"/><text x="396" y="150" font-size="18">📅</text><text x="396" y="170" class="h" font-size="11" fill="#2C6E8A">Calendario</text>
+    <rect x="508" y="124" width="120" height="56" rx="12" fill="#FBF7DA"/><text x="526" y="150" font-size="18">📚</text><text x="526" y="170" class="h" font-size="11" fill="#8a7a14">Horarios</text>
+    <rect x="638" y="124" width="120" height="56" rx="12" fill="#FDEFD8"/><text x="656" y="150" font-size="18">🪪</text><text x="656" y="170" class="h" font-size="11" fill="#9a6b1f">Mi carné</text>
+  </g>
+
+  <!-- card clases de hoy -->
+  <rect x="248" y="196" width="320" height="200" rx="14" fill="#fff" stroke="#E4E1DA"/>
+  <text x="268" y="224" class="h" font-size="14" fill="#0B0B0B">Clases de hoy</text>
+  <g font-size="12">
+    <rect x="268" y="238" width="280" height="36" rx="9" fill="#F7F5F0"/><rect x="268" y="238" width="5" height="36" rx="3" fill="#49A3C8"/><text x="284" y="255" class="h" fill="#0B0B0B">Matemática</text><text x="284" y="269" class="m">07:30 · Prof. Giménez</text>
+    <rect x="268" y="282" width="280" height="36" rx="9" fill="#F7F5F0"/><rect x="268" y="282" width="5" height="36" rx="3" fill="#F4B74C"/><text x="284" y="299" class="h" fill="#0B0B0B">Programación</text><text x="284" y="313" class="m">09:10 · Prof. Rolón</text>
+    <rect x="268" y="326" width="280" height="36" rx="9" fill="#F7F5F0"/><rect x="268" y="326" width="5" height="36" rx="3" fill="#E93B3C"/><text x="284" y="343" class="h" fill="#0B0B0B">Lengua y Literatura</text><text x="284" y="357" class="m">10:50 · Prof. Ayala</text>
+  </g>
+
+  <!-- card comunicados -->
+  <rect x="580" y="196" width="304" height="200" rx="14" fill="#fff" stroke="#E4E1DA"/>
+  <text x="600" y="224" class="h" font-size="14" fill="#0B0B0B">Últimos comunicados</text>
+  <g font-size="12">
+    <circle cx="606" cy="248" r="4" fill="#E93B3C"/><text x="618" y="252" class="h" fill="#0B0B0B">Reunión de padres</text><text x="618" y="268" class="m">Dirección · hoy</text>
+    <line x1="600" y1="282" x2="864" y2="282" stroke="#EFECE5"/>
+    <circle cx="606" cy="300" r="4" fill="#E93B3C"/><text x="618" y="304" class="h" fill="#0B0B0B">Entrega de proyectos</text><text x="618" y="320" class="m">Prof. Rolón · ayer</text>
+    <line x1="600" y1="334" x2="864" y2="334" stroke="#EFECE5"/>
+    <text x="618" y="356" class="t">Acto del 14 de mayo</text><text x="618" y="372" class="m">Consejo · 2 días</text>
+  </g>
+
+  <!-- card próximos eventos -->
+  <rect x="248" y="412" width="636" height="116" rx="14" fill="#fff" stroke="#E4E1DA"/>
+  <text x="268" y="440" class="h" font-size="14" fill="#0B0B0B">Próximos eventos</text>
+  <g>
+    <rect x="268" y="454" width="196" height="56" rx="11" fill="#F7F5F0"/><rect x="282" y="468" width="40" height="28" rx="7" fill="#E93B3C"/><text x="289" y="486" fill="#fff" class="h" font-size="13">12</text><text x="334" y="478" class="h" font-size="12" fill="#0B0B0B">Examen de Física</text><text x="334" y="496" class="m" font-size="11">Aula 3 · 08:00</text>
+    <rect x="476" y="454" width="196" height="56" rx="11" fill="#F7F5F0"/><rect x="490" y="468" width="40" height="28" rx="7" fill="#49A3C8"/><text x="497" y="486" fill="#fff" class="h" font-size="13">18</text><text x="542" y="478" class="h" font-size="12" fill="#0B0B0B">Reunión de delegados</text><text x="542" y="496" class="m" font-size="11">Biblioteca · 10:00</text>
+    <rect x="684" y="454" width="186" height="56" rx="11" fill="#F7F5F0"/><rect x="698" y="468" width="40" height="28" rx="7" fill="#F4B74C"/><text x="705" y="486" fill="#fff" class="h" font-size="13">25</text><text x="750" y="478" class="h" font-size="12" fill="#0B0B0B">Acto fin de mes</text><text x="750" y="496" class="m" font-size="11">Patio · 09:30</text>
+  </g>
+</svg>

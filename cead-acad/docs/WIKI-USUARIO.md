@@ -1,7 +1,7 @@
 # 📘 CEAD Académico — Wiki del usuario
 
 > Guía completa del sistema del **Centro Educativo de Alto Desempeño "Félix de Guarania"**.
-> Versión del plugin: **0.30.0**.
+> Versión del plugin: **0.31.0**.
 
 Esta wiki explica **todo lo que tiene el sistema** en lenguaje simple: el panel web, la app, el bot de WhatsApp (CEADI) y la parte de administración. Está pensada para alumnado, familias, docentes, delegados, secretaría, consejo y dirección.
 
@@ -34,6 +34,9 @@ Se puede usar desde el navegador o **instalarse como app** en el celular (ver §
 - **No hay registro libre**: para crear una cuenta hace falta una invitación enviada por la dirección/secretaría.
 - En el **login**, si te equivocás, **no se borra** el usuario que escribiste, y hay un botón **👁 para ver la contraseña**.
 - Si olvidaste la contraseña, usá *"¿Olvidaste tu contraseña?"* en el login.
+
+![Pantalla de ingreso al sistema CEAD](img/login.svg)
+*Ilustración de la pantalla de ingreso. La apariencia real puede variar levemente.*
 
 ---
 
@@ -68,8 +71,14 @@ Se puede usar desde el navegador o **instalarse como app** en el celular (ver §
 ### 🏠 Inicio
 Tablero con saludo, **accesos rápidos**, **clases de hoy** (del horario del curso), **próximos eventos** y **últimos comunicados**. La primera vez por sesión muestra una breve **intro animada** del logo CEAD.
 
+![Panel de inicio con accesos rápidos, clases de hoy, comunicados y eventos](img/panel-inicio.svg)
+*Ilustración del panel de inicio. Cada persona ve las secciones de su rol.*
+
 ### 📣 Comunicados
 Mensajes dirigidos a tu rol, curso o a vos. Marca los **no leídos**. Al abrir uno queda leído.
+
+![Lista de comunicados con filtros y avisos de no leídos](img/panel-comunicados.svg)
+*Ilustración del feed de comunicados, con filtros y marca de no leídos.*
 
 ### ✉️ Escribir al CEAD
 Mandá un **mensaje directo** a **Dirección**, **Consejo** o **Administración**. Lo reciben en su **buzón** (con tu nombre) y te responden desde la app. *(También se puede hacer desde el bot — ver §6.)*
@@ -94,6 +103,9 @@ Biblioteca de materiales (PDFs, enlaces, mapas). Tiene **búsqueda**, **filtros 
 
 ### 🪪 Mi carné
 Tu **carné digital** con foto, rol, curso, documento y un **código QR**. Al escanearlo, abre una **página pública de verificación** que confirma que el carné es válido (muestra nombre, rol, curso y foto; **no** expone datos sensibles). Botón para **imprimir / guardar PDF**.
+
+![Carné digital con foto, datos del alumno y código QR de verificación](img/carne.svg)
+*Ilustración del carné digital y su QR de verificación pública.*
 
 ### 👤 Mi perfil
 - Cambiar **foto**, **nombre** y **teléfono**.
@@ -121,6 +133,9 @@ Bandeja para gestionar **reportes** y **mensajes/sugerencias**:
 ## 6. CEADI — el bot de WhatsApp
 
 CEADI atiende por WhatsApp. **Solo responde a números registrados** en el panel del CEAD; a un número desconocido le avisa una vez y no entra a los menús.
+
+![Conversación con CEADI por WhatsApp: menú, lenguaje natural y notas de voz](img/ceadi-chat.svg)
+*Ilustración de una conversación con CEADI por WhatsApp.*
 
 ### Dos formas de hablarle
 - **Lenguaje natural (IA)**: le escribís como a una persona ("¿qué tengo mañana?", "¿cuándo es la reunión?") y CEADI entiende y responde. Si la dirección lo deja activado, es el modo por defecto.
