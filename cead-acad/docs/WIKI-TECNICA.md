@@ -1,7 +1,7 @@
 # 🛠️ CEAD Académico — Wiki técnica
 
 > Documentación técnica del sistema del **Centro Educativo de Alto Desempeño "Félix de Guarania"** (CEAD).
-> Plugin **v0.31.0** · DB schema **v16** · Requiere WordPress 6.4+ y PHP 8.1+.
+> Plugin **v0.31.1** · DB schema **v16** · Requiere WordPress 6.4+ y PHP 8.1+.
 
 Esta wiki está pensada para quien quiera entender **cómo está construido** el proyecto: arquitectura, módulos, modelo de datos, el bot, seguridad y despliegue. Para la guía de uso en lenguaje simple, ver **[Wiki del usuario](WIKI-USUARIO.md)**.
 
@@ -25,6 +25,11 @@ No es un LMS genérico: está hecho a medida para el flujo real de la instituci�
 ## 2. Arquitectura general
 
 El repositorio es un **monorepo** con tres componentes que cooperan:
+
+![Diagrama de arquitectura: canales (web, app, WhatsApp), WordPress con tema y plugin, base de datos y bridge](img/arquitectura.svg)
+*Vista general: los tres canales entran a WordPress (tema + plugin); el plugin habla con la base de datos y, para WhatsApp, con el bridge.*
+
+El mismo diagrama en texto:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐

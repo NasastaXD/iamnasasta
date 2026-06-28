@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 640" font-family="'Mulish','Segoe UI',sans-serif">
+  <defs>
+    <style>
+      .disp{font-family:'Arial Black','Helvetica Neue',Impact,sans-serif;font-weight:900;letter-spacing:.3px}
+      .h{font-weight:800}.t{fill:#4A4A4A}.m{fill:#8E8E8E}.w{fill:#fff}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#8E8E8E"/>
+    </marker>
+    <marker id="arrowR" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#E93B3C"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="920" height="640" rx="18" fill="#F7F5F0"/>
+  <text x="40" y="48" class="disp" font-size="24" fill="#0B0B0B">ARQUITECTURA DEL SISTEMA</text>
+  <text x="40" y="70" class="m" font-size="13">Monorepo: un tema + un plugin (toda la app) + un bridge para WhatsApp.</text>
+
+  <!-- Capa 1: canales / personas -->
+  <g>
+    <rect x="60" y="92" width="220" height="58" rx="13" fill="#fff" stroke="#E4E1DA"/>
+    <text x="80" y="118" font-size="20">🧑‍🎓</text><text x="110" y="116" class="h" font-size="13" fill="#0B0B0B">Navegador</text><text x="110" y="134" class="m" font-size="11">Panel web /panel</text>
+
+    <rect x="350" y="92" width="220" height="58" rx="13" fill="#fff" stroke="#E4E1DA"/>
+    <text x="370" y="118" font-size="20">📱</text><text x="400" y="116" class="h" font-size="13" fill="#0B0B0B">App (PWA)</text><text x="400" y="134" class="m" font-size="11">Instalable, offline</text>
+
+    <rect x="640" y="92" width="220" height="58" rx="13" fill="#E7F7EF" stroke="#bfe3d8"/>
+    <text x="660" y="118" font-size="20">💬</text><text x="690" y="116" class="h" font-size="13" fill="#0A5C49">WhatsApp</text><text x="690" y="134" class="m" font-size="11">CEADI (bot)</text>
+  </g>
+
+  <!-- flechas hacia WordPress -->
+  <line x1="170" y1="150" x2="170" y2="186" stroke="#8E8E8E" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="460" y1="150" x2="460" y2="186" stroke="#8E8E8E" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Capa 2: WordPress -->
+  <rect x="60" y="190" width="800" height="196" rx="16" fill="#fff" stroke="#E4E1DA"/>
+  <text x="84" y="220" class="disp" font-size="16" fill="#0B0B0B">WORDPRESS</text>
+  <text x="200" y="220" class="m" font-size="12">· PHP 8.1+ · alojado en Hostinger</text>
+
+  <!-- tema -->
+  <rect x="84" y="236" width="230" height="130" rx="12" fill="#F7F5F0" stroke="#E4E1DA"/>
+  <text x="104" y="262" class="h" font-size="13" fill="#0B0B0B">cead/ — Tema</text>
+  <g class="t" font-size="11.5">
+    <text x="104" y="286">Landing pública institucional</text>
+    <text x="104" y="306">CPT Divisiones / Vida</text>
+    <text x="104" y="326">Customizer (colores, hero…)</text>
+    <text x="104" y="346">Intro 3D WebGL</text>
+  </g>
+
+  <!-- plugin -->
+  <rect x="330" y="236" width="506" height="130" rx="12" fill="#FCE7E7" stroke="#F2C9C9"/>
+  <text x="352" y="262" class="h" font-size="13" fill="#B82A2B">cead-acad/ — Plugin (toda la aplicación)</text>
+  <g class="t" font-size="11.5">
+    <text x="352" y="286">• Panel /panel · login · invitaciones</text>
+    <text x="352" y="306">• 17 módulos: comunicados, encuestas,</text>
+    <text x="364" y="324">  horarios, recursos, notas, tareas, carné…</text>
+    <text x="352" y="346">• REST API · cron · IA · autoupdate</text>
+  </g>
+  <rect x="600" y="276" width="220" height="74" rx="10" fill="#fff" stroke="#F2C9C9"/>
+  <text x="616" y="298" class="h" font-size="11" fill="#B82A2B">Módulo whatsapp/</text>
+  <text x="616" y="316" class="t" font-size="10.5">Motor de estados + IA + reportes</text>
+  <text x="616" y="334" class="t" font-size="10.5">(cerebro del bot, agnóstico)</text>
+
+  <!-- Capa 3: datos + bridge -->
+  <!-- datos -->
+  <line x1="200" y1="386" x2="200" y2="430" stroke="#8E8E8E" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="60" y="434" width="360" height="150" rx="14" fill="#fff" stroke="#E4E1DA"/>
+  <text x="84" y="462" class="h" font-size="14" fill="#0B0B0B">🗄️ Base de datos (MySQL)</text>
+  <g class="t" font-size="11.5">
+    <text x="84" y="488">• 18 tablas <tspan font-family="monospace" font-size="10.5" fill="#B82A2B">wp_cead_acad_*</tspan></text>
+    <text x="84" y="510">• 6 CPTs nativos de WordPress</text>
+    <text x="84" y="532">• Audiencias polimórficas (rol/curso/cohorte/…)</text>
+    <text x="84" y="554">• Esquema versionado (DB v16, dbDelta)</text>
+  </g>
+
+  <!-- bridge -->
+  <path d="M620 386 L620 410 L710 410 L710 430" fill="none" stroke="#E93B3C" stroke-width="1.8" marker-end="url(#arrowR)"/>
+  <text x="628" y="404" class="h" font-size="10" fill="#E93B3C">REST · /caag-bot/v1</text>
+  <rect x="460" y="434" width="400" height="150" rx="14" fill="#fff" stroke="#F2C9C9"/>
+  <text x="484" y="462" class="h" font-size="14" fill="#0B0B0B">🔌 Bridge (Node.js + Baileys)</text>
+  <g class="t" font-size="11.5">
+    <text x="484" y="488">• Mantiene la sesión de WhatsApp Web</text>
+    <text x="484" y="510">• Proceso 24/7 (PC del director o VPS)</text>
+    <text x="484" y="532">• Se expone vía Cloudflare Tunnel</text>
+  </g>
+  <rect x="700" y="540" width="142" height="32" rx="9" fill="#E7F7EF" stroke="#bfe3d8"/>
+  <text x="716" y="561" class="h" font-size="11" fill="#0A5C49">💬 WhatsApp Web</text>
+  <line x1="640" y1="556" x2="698" y2="556" stroke="#0A5C49" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- autoupdate -->
+  <rect x="60" y="600" width="800" height="0" />
+  <g transform="translate(60,598)">
+    <text x="0" y="14" class="m" font-size="11.5">🔄 Autoactualización: GitHub Releases → el plugin se actualiza solo desde wp-admin (plugin-update-checker).</text>
+  </g>
+</svg>
