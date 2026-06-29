@@ -580,7 +580,7 @@ class Cead_Acad_WA_Engine {
 		$args   = isset( $res['args'] ) && is_array( $res['args'] ) ? $res['args'] : [];
 
 		// Acciones de gestión del staff: NO se ejecutan; se proponen y el menú aprueba.
-		if ( in_array( $action, [ 'enviar_comunicado', 'crear_evento' ], true ) ) {
+		if ( in_array( $action, [ 'enviar_comunicado', 'crear_evento', 'crear_invitacion' ], true ) ) {
 			return $this->propose_staff_action( $phone, $action, $args, $reply, $identity );
 		}
 
@@ -680,6 +680,23 @@ class Cead_Acad_WA_Engine {
 				],
 			];
 		}
+		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_invitations' ) ) {
+			$tools[] = [
+				'type'     => 'function',
+				'function' => [
+					'name'        => 'crear_invitacion',
+					'description' => 'Proponer la creación de invitación(es) para sumar usuarios nuevos. SOLO admite los roles alumno, delegado o profe (nunca dirección ni secretaría). NO se crea hasta que la persona lo apruebe; al confirmar devuelve un link de registro para compartir.',
+					'parameters'  => [
+						'type'       => 'object',
+						'properties' => [
+							'rol'      => [ 'type' => 'string', 'description' => "Rol del nuevo usuario: solo 'alumno', 'delegado' o 'profe'." ],
+							'cantidad' => [ 'type' => 'integer', 'description' => 'Cuántas invitaciones crear (opcional, por defecto 1).' ],
+						],
+						'required'   => [ 'rol' ],
+					],
+				],
+			];
+		}
 		return $tools;
 	}
 
@@ -723,6 +740,35 @@ class Cead_Acad_WA_Engine {
 			return true;
 		}
 
+		if ( $action === 'crear_invitacion' ) {
+			if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_invitations' ) ) {
+				$this->send( $phone, $this->m( 'access_denied' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			$role  = $this->invite_role_from_text( (string) ( $args['rol'] ?? '' ) );
+			$count = max( 1, min( 30, (int) ( $args['cantidad'] ?? 1 ) ) );
+			if ( $reply !== '' ) { $this->send( $phone, $reply ); }
+			if ( $role === '' ) {
+				$this->send( $phone, __( '¿Para qué rol creo la invitación? Puede ser *alumno*, *delegado* o *profe*.', 'cead-acad' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			$label = $this->invite_role_label( $role );
+			$this->store->set_state( $phone, 'ia_staff_confirm', [ 'kind' => 'invitacion', 'role' => $role, 'count' => $count ] );
+			$this->send(
+				$phone,
+				sprintf(
+					/* translators: 1: rol, 2: cantidad de invitaciones */
+					__( "👤 *Invitación* — propuesta de CEADI\nRol: *%1\$s*\nCantidad: *%2\$d*\n\n*1.* ✅ Aceptar y crear\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
+					$label,
+					$count
+				),
+				'ia_staff_propose'
+			);
+			return true;
+		}
+
 		// crear_evento
 		if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_schedule' ) ) {
 			$this->send( $phone, $this->m( 'access_denied' ) );
@@ -760,6 +806,7 @@ class Cead_Acad_WA_Engine {
 		if ( in_array( $lc, [ '1', 'aceptar', 'acepto', 'si', 'sí', 'ok', 'dale', 'confirmar' ], true ) ) {
 			if ( $kind === 'comunicado' ) { $this->execute_comunicado( $phone, $context, $identity ); }
 			elseif ( $kind === 'evento' ) { $this->execute_evento( $phone, $context, $identity ); }
+			elseif ( $kind === 'invitacion' ) { $this->execute_invitacion( $phone, $context, $identity ); }
 			else { $this->store->set_state( $phone, 'ia_home' ); }
 			return;
 		}
@@ -827,6 +874,78 @@ class Cead_Acad_WA_Engine {
 		Cead_Acad_Audiences::set( 'event', $post_id, [ [ 'type' => 'all', 'value' => '*' ] ] );
 		$this->send( $phone, $this->m( 'event_saved' ), 'event_created' );
 		$this->store->set_state( $phone, 'ia_home' );
+	}
+
+	/** Ejecuta la invitación aprobada (re-chequea permisos y restringe el rol). */
+	private function execute_invitacion( $phone, $context, $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_invitations' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		$role  = (string) ( $context['role'] ?? '' );
+		$count = max( 1, min( 30, (int) ( $context['count'] ?? 1 ) ) );
+		// Cinturón de seguridad: nunca más allá de los tres roles permitidos por chat.
+		if ( ! in_array( $role, [ 'cead_acad_student', 'cead_acad_delegate', 'cead_acad_teacher' ], true ) ) {
+			$this->send( $phone, __( 'Por seguridad, por acá solo puedo crear invitaciones de alumno, delegado o profe.', 'cead-acad' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		if ( ! class_exists( 'Cead_Acad_Invitations' ) ) {
+			$this->send( $phone, $this->m( 'error_generic' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		// Que el audit log e «invited_by» reflejen a quien la pidió.
+		wp_set_current_user( $uid );
+		$tokens = Cead_Acad_Invitations::create( [
+			'role'  => $role,
+			'count' => $count,
+		] );
+		if ( empty( $tokens ) ) {
+			$this->send( $phone, $this->m( 'error_generic' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		$links = array_map( [ 'Cead_Acad_Invitations', 'registration_url' ], $tokens );
+		$label = $this->invite_role_label( $role );
+		if ( count( $links ) === 1 ) {
+			$msg = sprintf(
+				/* translators: 1: rol, 2: link de registro */
+				__( "✅ Invitación de *%1\$s* creada. Compartí este link (un solo uso, vence en 14 días):\n%2\$s", 'cead-acad' ),
+				$label,
+				$links[0]
+			);
+		} else {
+			$msg = sprintf(
+				/* translators: 1: cantidad, 2: rol */
+				__( "✅ %1\$d invitaciones de *%2\$s* creadas (un solo uso, vencen en 14 días):\n", 'cead-acad' ),
+				count( $links ),
+				$label
+			) . implode( "\n", $links );
+		}
+		$this->send( $phone, $msg, 'invitation_created' );
+		$this->store->set_state( $phone, 'ia_home' );
+	}
+
+	/** Mapea texto libre de rol a un slug permitido por chat ('' si no coincide). */
+	private function invite_role_from_text( $s ) {
+		$s = strtolower( trim( (string) $s ) );
+		if ( $s === '' ) { return ''; }
+		if ( strpos( $s, 'deleg' ) !== false ) { return 'cead_acad_delegate'; }
+		if ( strpos( $s, 'profe' ) !== false || strpos( $s, 'docent' ) !== false ) { return 'cead_acad_teacher'; }
+		if ( strpos( $s, 'alumn' ) !== false || strpos( $s, 'estudiant' ) !== false ) { return 'cead_acad_student'; }
+		return '';
+	}
+
+	/** Etiqueta legible del rol invitable. */
+	private function invite_role_label( $role ) {
+		switch ( $role ) {
+			case 'cead_acad_delegate': return __( 'Delegado/a', 'cead-acad' );
+			case 'cead_acad_teacher':  return __( 'Docente', 'cead-acad' );
+			default:                   return __( 'Alumno/a', 'cead-acad' );
+		}
 	}
 
 	/** Contexto compacto de las FAQ para que la IA responda dudas generales. */

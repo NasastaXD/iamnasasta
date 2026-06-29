@@ -1,7 +1,7 @@
 # 📘 CEAD Académico — Wiki del usuario
 
 > Guía completa del sistema del **Centro Educativo de Alto Desempeño "Félix de Guarania"**.
-> Versión del plugin: **0.31.0**.
+> Versión del plugin: **0.32.0**.
 
 Esta wiki explica **todo lo que tiene el sistema** en lenguaje simple: el panel web, la app, el bot de WhatsApp (CEADI) y la parte de administración. Está pensada para alumnado, familias, docentes, delegados, secretaría, consejo y dirección.
 
@@ -166,9 +166,11 @@ CEADI atiende por WhatsApp. **Solo responde a números registrados** en el panel
 > Para no llenar el chat, CEADI **edita el mismo mensaje** mientras te guía (durante unos minutos) y baja un mensaje nuevo recién con tu próxima respuesta.
 
 ### Para staff (según rol)
-Dirección/Secretaría/Docente pueden, desde el bot: enviar **comunicados**, **agregar eventos**, gestionar **artículos**, **asignar roles** a un número, ver **métricas** y **atajos**.
+Dirección/Secretaría/Docente pueden, desde el bot: enviar **comunicados**, **agregar eventos**, **crear invitaciones** para sumar gente, gestionar **artículos**, **asignar roles** a un número, ver **métricas** y **atajos**.
 
-Si usan el modo IA, pueden pedir estas acciones en lenguaje natural ("mandá un comunicado a todos avisando que…") y CEADI **pide confirmación antes de ejecutar** (aprobación humana). Cada acción respeta el permiso del rol.
+Si usan el modo IA, pueden pedir estas acciones en lenguaje natural ("mandá un comunicado a todos avisando que…", "creá una invitación para un profe") y CEADI **pide confirmación antes de ejecutar** (aprobación humana). Cada acción respeta el permiso del rol.
+
+> **Crear invitaciones por chat**: dirección/secretaría pueden pedirle a CEADI *"creá 5 invitaciones de alumno"* y, tras aprobar, reciben el/los **link(s) de registro** para compartir. Por seguridad, **solo** se pueden crear invitaciones de **alumno, delegado o profe** (nunca de dirección o secretaría).
 
 ---
 
