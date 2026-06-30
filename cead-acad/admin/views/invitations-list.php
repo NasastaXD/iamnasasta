@@ -82,7 +82,7 @@ $reg_users = get_users( [ 'number' => 300, 'orderby' => 'display_name', 'fields'
 			</tr>
 			<tr>
 				<th><label for="expires_days"><?php esc_html_e( 'Expira en (días)', 'cead-acad' ); ?></label></th>
-				<td><input type="number" name="expires_days" id="expires_days" value="14" min="1" max="90" class="small-text"></td>
+				<td><input type="number" name="expires_days" id="expires_days" value="1095" min="1" max="3650" class="small-text"></td>
 			</tr>
 			<tr>
 				<th><label for="count"><?php esc_html_e( 'Cantidad', 'cead-acad' ); ?></label></th>
@@ -112,7 +112,7 @@ $reg_users = get_users( [ 'number' => 300, 'orderby' => 'display_name', 'fields'
 			</tr>
 			<tr>
 				<th><label for="ac_expires"><?php esc_html_e( 'Expira en (días)', 'cead-acad' ); ?></label></th>
-				<td><input type="number" name="expires_days" id="ac_expires" value="14" min="1" max="90" class="small-text"></td>
+				<td><input type="number" name="expires_days" id="ac_expires" value="1095" min="1" max="3650" class="small-text"></td>
 			</tr>
 		</table>
 		<p class="description"><?php esc_html_e( 'Crea una invitación por cada curso cargado, cada una ya atada a su curso. Ideal para repartir un link a cada división.', 'cead-acad' ); ?></p>

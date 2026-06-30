@@ -913,14 +913,14 @@ class Cead_Acad_WA_Engine {
 		if ( count( $links ) === 1 ) {
 			$msg = sprintf(
 				/* translators: 1: rol, 2: link de registro */
-				__( "✅ Invitación de *%1\$s* creada. Compartí este link (un solo uso, vence en 14 días):\n%2\$s", 'cead-acad' ),
+				__( "✅ Invitación de *%1\$s* creada. Compartí este link (un solo uso, vence en ~3 años):\n%2\$s", 'cead-acad' ),
 				$label,
 				$links[0]
 			);
 		} else {
 			$msg = sprintf(
 				/* translators: 1: cantidad, 2: rol */
-				__( "✅ %1\$d invitaciones de *%2\$s* creadas (un solo uso, vencen en 14 días):\n", 'cead-acad' ),
+				__( "✅ %1\$d invitaciones de *%2\$s* creadas (un solo uso, vencen en ~3 años):\n", 'cead-acad' ),
 				count( $links ),
 				$label
 			) . implode( "\n", $links );
