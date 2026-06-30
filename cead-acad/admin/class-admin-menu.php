@@ -192,7 +192,7 @@ class Cead_Acad_Admin_Menu {
 			'role'         => $role,
 			'course_id'    => ! empty( $_POST['course_id'] ) ? (int) $_POST['course_id'] : null,
 			'email'        => $email,
-			'expires_days' => max( 1, min( 90, (int) ( $_POST['expires_days'] ?? 14 ) ) ),
+			'expires_days' => max( 1, min( 3650, (int) ( $_POST['expires_days'] ?? 1095 ) ) ),
 			'count'        => max( 1, min( 100, (int) ( $_POST['count'] ?? 1 ) ) ),
 		] );
 
@@ -211,7 +211,7 @@ class Cead_Acad_Admin_Menu {
 
 	protected function do_create_all_courses() {
 		$role    = sanitize_text_field( wp_unslash( $_POST['role'] ?? 'cead_acad_student' ) );
-		$expires = max( 1, min( 90, (int) ( $_POST['expires_days'] ?? 14 ) ) );
+		$expires = max( 1, min( 3650, (int) ( $_POST['expires_days'] ?? 1095 ) ) );
 		$courses = cead_acad_courses_for_select();
 		if ( ! $courses ) {
 			return [ 'type' => 'error', 'msg' => __( 'No hay cursos cargados todavía. Creá los cursos primero.', 'cead-acad' ) ];
@@ -250,7 +250,7 @@ class Cead_Acad_Admin_Menu {
 			$tokens = Cead_Acad_Invitations::create( [
 				'role'         => $role,
 				'email'        => $u->user_email,
-				'expires_days' => 14,
+				'expires_days' => 1095,
 				'count'        => 1,
 			] );
 			if ( $tokens ) {

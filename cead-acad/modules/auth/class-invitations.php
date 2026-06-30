@@ -23,7 +23,7 @@ class Cead_Acad_Invitations {
 			'role'         => 'cead_acad_student',
 			'course_id'    => null,
 			'email'        => null,
-			'expires_days' => 14,
+			'expires_days' => 1095, // ~3 años por defecto.
 			'count'        => 1,
 		] );
 
@@ -113,7 +113,7 @@ class Cead_Acad_Invitations {
 			'paragraphs' => $paragraphs,
 			'cta_label'  => __( 'Crear mi cuenta', 'cead-acad' ),
 			'cta_url'    => $url,
-			'footnote'   => __( 'El link es de un solo uso y vence pronto. Si no esperabas esta invitación, ignorá este mensaje.', 'cead-acad' ),
+			'footnote'   => __( 'El link es de un solo uso. Si no esperabas esta invitación, ignorá este mensaje.', 'cead-acad' ),
 		] );
 	}
 
