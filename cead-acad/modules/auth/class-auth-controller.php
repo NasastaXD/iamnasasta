@@ -123,6 +123,12 @@ class Cead_Acad_Auth_Controller {
 			$this->bail_to( 'registro', 'missing_course', [ 't' => $token ] );
 		}
 
+		// Reservar un uso de la invitación de forma atómica ANTES de crear el usuario:
+		// si el link ya llegó a su tope de usos (multiuso), no dejamos pasar.
+		if ( ! Cead_Acad_Invitations::consume( (int) $invitation['id'] ) ) {
+			$this->bail_to( 'registro', 'invitation_used', [ 't' => $token ] );
+		}
+
 		$user_id = wp_insert_user( [
 			'user_login'   => $user_login,
 			'user_pass'    => $password,
@@ -133,6 +139,8 @@ class Cead_Acad_Auth_Controller {
 		] );
 
 		if ( is_wp_error( $user_id ) ) {
+			// Devolver el uso reservado: la creación no prosperó.
+			Cead_Acad_Invitations::refund( (int) $invitation['id'] );
 			$this->bail_to( 'registro', 'insert_failed', [ 't' => $token ] );
 		}
 
@@ -147,7 +155,8 @@ class Cead_Acad_Auth_Controller {
 			}
 		}
 
-		Cead_Acad_Invitations::mark_used( (int) $invitation['id'], (int) $user_id );
+		// El uso ya se reservó con consume() antes de crear el usuario; el vínculo
+		// usuario → invitación queda en el meta _cead_acad_invited_via (arriba).
 
 		wp_set_current_user( $user_id );
 		wp_set_auth_cookie( $user_id, true, is_ssl() );

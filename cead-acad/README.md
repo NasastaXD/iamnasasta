@@ -205,10 +205,10 @@ Rutas disponibles luego de activar el plugin y refrescar permalink:
 
 - Tokens de 48 chars hex generados con `random_bytes()`, almacenados solo como SHA-256 hash
 - Vinculan rol y curso al usuario que se registra
-- Se pueden crear en cantidad (ej. 30 invitaciones de golpe para un curso entero)
-- Expiración configurable (1–90 días, default 14)
+- **Multiuso**: un mismo link puede reutilizarse `max_uses` veces (campo "Usos del link"); el consumo es atómico (`consume()`), sin pasarse del tope aunque varios se registren a la vez. `max_uses = 1` = link de un solo uso
+- Expiración configurable (1–3650 días); **default según el rol**: Delegado/a 365 (1 año), resto 1095 (~3 años)
 - Envío automático por email si se especifica dirección
-- Estados: válida / usada / expirada / revocada
+- Estados: válida / usada (tope alcanzado) / expirada / revocada. El listado muestra `usos: N/M`
 
 **Gestión:** *wp-admin → CEAD Académico → Invitaciones*
 
@@ -541,7 +541,7 @@ Cada acción está gateada por una capability de cead-acad:
 |--------|-----------|-------------|
 | **Comunicados** | `publish_broadcast` | Redactar y enviar a alumnos/staff/todos. Soporta imagen. Programar para más tarde |
 | **Eventos** | `manage_schedule` | Crear evento rápido (título + fecha) |
-| **Invitaciones** | `manage_invitations` | Crear invitación(es) y devolver el link de registro. Vía IA con aprobación. **Solo** roles alumno/delegado/profe (nunca dirección/secretaría) |
+| **Invitaciones** | `manage_invitations` | Crear **un link de registro reutilizable** N veces y devolverlo. Vía IA con aprobación. **Solo** roles alumno/delegado/profe (nunca dirección/secretaría). Vencimiento por rol (delegado 1 año) |
 | **Artículos** | `manage_articles` | Publicar / editar / borrar posts del blog de WordPress |
 | **Reportes** | `manage_reports` | Bandeja de reportes con estados y notas |
 | **Sugerencias** | `manage_reports` | Bandeja de sugerencias recibidas |

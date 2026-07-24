@@ -12,9 +12,21 @@ class Cead_Acad_Invitations {
 	}
 
 	/**
-	 * Crea N invitaciones. Devuelve array de tokens en plano (la única oportunidad de verlos).
+	 * Días de validez por defecto según el rol. Delegado/a rota cada ciclo lectivo,
+	 * así que su link dura 1 año; el resto ~3 años.
+	 */
+	public static function default_expires_days( $role ) {
+		return ( 'cead_acad_delegate' === $role ) ? 365 : 1095;
+	}
+
+	/**
+	 * Crea invitaciones y devuelve los tokens en plano (única oportunidad de verlos).
 	 *
-	 * @param array{role:string,course_id:?int,email:?string,expires_days:int,count:int} $args
+	 * Multiuso: con `max_uses` > 1 se crea **un solo link** reutilizable esa cantidad
+	 * de veces. Con `max_uses` = 1 (default) se comporta como antes y respeta `count`
+	 * (N links de un solo uso). `expires_days` null = default según el rol.
+	 *
+	 * @param array{role:string,course_id:?int,email:?string,expires_days:?int,count:int,max_uses:int} $args
 	 * @return array<int,string> tokens en plano
 	 */
 	public static function create( $args ) {
@@ -23,13 +35,20 @@ class Cead_Acad_Invitations {
 			'role'         => 'cead_acad_student',
 			'course_id'    => null,
 			'email'        => null,
-			'expires_days' => 1095, // ~3 años por defecto.
+			'expires_days' => null,
 			'count'        => 1,
+			'max_uses'     => 1,
 		] );
 
-		$role  = self::sanitize_role( $args['role'] );
-		$count = max( 1, min( 200, (int) $args['count'] ) );
-		$expires = gmdate( 'Y-m-d H:i:s', time() + ( (int) $args['expires_days'] * DAY_IN_SECONDS ) );
+		$role     = self::sanitize_role( $args['role'] );
+		$max_uses = max( 1, min( 1000, (int) $args['max_uses'] ) );
+		// Un link multiuso es uno solo; el modo de N links sueltos solo aplica a single-use.
+		$count    = ( $max_uses > 1 ) ? 1 : max( 1, min( 200, (int) $args['count'] ) );
+
+		$days = ( null === $args['expires_days'] ) ? self::default_expires_days( $role ) : (int) $args['expires_days'];
+		$days = max( 1, min( 3650, $days ) );
+		$expires = gmdate( 'Y-m-d H:i:s', time() + ( $days * DAY_IN_SECONDS ) );
+
 		$now   = current_time( 'mysql', 1 );
 		$user_id = get_current_user_id();
 		$table = cead_acad_table( 'invitations' );
@@ -42,7 +61,7 @@ class Cead_Acad_Invitations {
 			$plain_tokens[] = $token;
 			// Guardamos el token en claro en metadata para poder mostrar/copiar
 			// el link y reenviar email cuando haga falta. Las invitaciones son
-			// de bajo riesgo (single-use, expiran, su propósito es compartirse).
+			// de bajo riesgo (con tope de usos, expiran, su propósito es compartirse).
 			$wpdb->insert(
 				$table,
 				[
@@ -52,10 +71,12 @@ class Cead_Acad_Invitations {
 					'course_id'  => $args['course_id'] ? (int) $args['course_id'] : null,
 					'invited_by' => $user_id,
 					'expires_at' => $expires,
+					'max_uses'   => $max_uses,
+					'used_count' => 0,
 					'created_at' => $now,
 					'metadata'   => wp_json_encode( [ 'token' => $token ] ),
 				],
-				[ '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' ]
+				[ '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%d', '%s', '%s' ]
 			);
 			$invitation_id = (int) $wpdb->insert_id;
 
@@ -69,6 +90,7 @@ class Cead_Acad_Invitations {
 			'entity_type' => 'invitation',
 			'payload'     => array_filter( [
 				'count'     => $count,
+				'max_uses'  => $max_uses,
 				'role'      => $role,
 				'course_id' => $args['course_id'] ? (int) $args['course_id'] : null,
 				'email'     => $email,
@@ -140,6 +162,7 @@ class Cead_Acad_Invitations {
 
 	/**
 	 * Estado calculado: valid|used|expired|revoked|invalid.
+	 * "used" = se alcanzó el tope de usos (max_uses).
 	 */
 	public static function status( $row ) {
 		if ( ! $row ) {
@@ -148,13 +171,68 @@ class Cead_Acad_Invitations {
 		if ( ! empty( $row['revoked_at'] ) ) {
 			return 'revoked';
 		}
-		if ( ! empty( $row['used_at'] ) ) {
+		$max  = isset( $row['max_uses'] ) ? max( 1, (int) $row['max_uses'] ) : 1;
+		$used = isset( $row['used_count'] ) ? (int) $row['used_count'] : 0;
+		// Compatibilidad: las invitaciones single-use viejas marcaban solo used_at.
+		if ( $used < 1 && ! empty( $row['used_at'] ) ) {
+			$used = 1;
+		}
+		if ( $used >= $max ) {
 			return 'used';
 		}
 		if ( strtotime( $row['expires_at'] . ' UTC' ) < time() ) {
 			return 'expired';
 		}
 		return 'valid';
+	}
+
+	/** Usos restantes de una invitación (0 si agotada). */
+	public static function uses_left( $row ) {
+		$max  = isset( $row['max_uses'] ) ? max( 1, (int) $row['max_uses'] ) : 1;
+		$used = isset( $row['used_count'] ) ? (int) $row['used_count'] : 0;
+		if ( $used < 1 && ! empty( $row['used_at'] ) ) { $used = 1; }
+		return max( 0, $max - $used );
+	}
+
+	/**
+	 * Consume (reserva) un uso de forma atómica antes de crear el usuario, para no
+	 * pasarse del tope aunque varios se registren a la vez. Devuelve true si quedaba
+	 * cupo y se tomó, false si no. La trazabilidad de quién usó qué invitación queda
+	 * en el user meta `_cead_acad_invited_via`.
+	 */
+	public static function consume( $invitation_id ) {
+		global $wpdb;
+		$table = cead_acad_table( 'invitations' );
+		$now   = current_time( 'mysql', 1 );
+		$affected = $wpdb->query( $wpdb->prepare(
+			"UPDATE {$table}
+			    SET used_count = used_count + 1,
+			        used_at = COALESCE(used_at, %s)
+			  WHERE id = %d
+			    AND revoked_at IS NULL
+			    AND expires_at > %s
+			    AND used_count < GREATEST(max_uses, 1)",
+			$now,
+			(int) $invitation_id,
+			$now
+		) );
+		if ( $affected ) {
+			Cead_Acad_Audit::log( 'invitation_used', [
+				'entity_type' => 'invitation',
+				'entity_id'   => (int) $invitation_id,
+			] );
+		}
+		return (bool) $affected;
+	}
+
+	/** Devuelve un uso (p. ej. si falla la creación del usuario tras consumir). */
+	public static function refund( $invitation_id ) {
+		global $wpdb;
+		$table = cead_acad_table( 'invitations' );
+		$wpdb->query( $wpdb->prepare(
+			"UPDATE {$table} SET used_count = GREATEST(used_count - 1, 0) WHERE id = %d",
+			(int) $invitation_id
+		) );
 	}
 
 	public static function mark_used( $invitation_id, $user_id ) {

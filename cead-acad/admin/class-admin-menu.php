@@ -188,20 +188,25 @@ class Cead_Acad_Admin_Menu {
 	protected function do_create() {
 		$email = ! empty( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : null;
 		$role  = sanitize_text_field( wp_unslash( $_POST['role'] ?? 'cead_acad_student' ) );
+		$max_uses = max( 1, min( 1000, (int) ( $_POST['max_uses'] ?? 1 ) ) );
 		$tokens = Cead_Acad_Invitations::create( [
 			'role'         => $role,
 			'course_id'    => ! empty( $_POST['course_id'] ) ? (int) $_POST['course_id'] : null,
 			'email'        => $email,
 			'expires_days' => max( 1, min( 3650, (int) ( $_POST['expires_days'] ?? 1095 ) ) ),
-			'count'        => max( 1, min( 100, (int) ( $_POST['count'] ?? 1 ) ) ),
+			'max_uses'     => $max_uses,
 		] );
 
 		foreach ( $tokens as $t ) {
 			$this->last_created_links[] = [ 'url' => Cead_Acad_Invitations::registration_url( $t ), 'email' => $email ?: '' ];
 		}
 
-		/* translators: %d: cantidad de invitaciones creadas */
-		$msg = sprintf( _n( '%d invitación creada.', '%d invitaciones creadas.', count( $tokens ), 'cead-acad' ), count( $tokens ) );
+		if ( $max_uses > 1 ) {
+			/* translators: %d: cantidad de usos del link */
+			$msg = sprintf( __( 'Link creado: se puede usar %d veces.', 'cead-acad' ), $max_uses );
+		} else {
+			$msg = __( 'Invitación creada.', 'cead-acad' );
+		}
 		if ( $email ) {
 			/* translators: %s: dirección de email del invitado */
 			$msg .= ' ' . sprintf( __( 'Email enviado a %s (si el correo del sitio está configurado).', 'cead-acad' ), $email );
@@ -248,10 +253,9 @@ class Cead_Acad_Admin_Menu {
 				continue;
 			}
 			$tokens = Cead_Acad_Invitations::create( [
-				'role'         => $role,
-				'email'        => $u->user_email,
-				'expires_days' => 1095,
-				'count'        => 1,
+				'role'  => $role,
+				'email' => $u->user_email,
+				// expires_days omitido → default según el rol (Delegado/a = 1 año).
 			] );
 			if ( $tokens ) {
 				$this->last_created_links[] = [ 'url' => Cead_Acad_Invitations::registration_url( $tokens[0] ), 'email' => $u->user_email ];

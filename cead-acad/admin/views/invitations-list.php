@@ -82,13 +82,16 @@ $reg_users = get_users( [ 'number' => 300, 'orderby' => 'display_name', 'fields'
 			</tr>
 			<tr>
 				<th><label for="expires_days"><?php esc_html_e( 'Expira en (días)', 'cead-acad' ); ?></label></th>
-				<td><input type="number" name="expires_days" id="expires_days" value="1095" min="1" max="3650" class="small-text"></td>
+				<td>
+					<input type="number" name="expires_days" id="expires_days" value="1095" min="1" max="3650" class="small-text">
+					<p class="description"><?php esc_html_e( 'Delegado/a arranca en 1 año (365); el resto en ~3 años (1095). Podés cambiarlo.', 'cead-acad' ); ?></p>
+				</td>
 			</tr>
 			<tr>
-				<th><label for="count"><?php esc_html_e( 'Cantidad', 'cead-acad' ); ?></label></th>
+				<th><label for="max_uses"><?php esc_html_e( 'Usos del link', 'cead-acad' ); ?></label></th>
 				<td>
-					<input type="number" name="count" id="count" value="1" min="1" max="100" class="small-text">
-					<p class="description"><?php esc_html_e( 'Útil para crear muchos links de una vez (p. ej. para un curso entero).', 'cead-acad' ); ?></p>
+					<input type="number" name="max_uses" id="max_uses" value="1" min="1" max="1000" class="small-text">
+					<p class="description"><?php esc_html_e( 'Cuántas veces se puede usar este único link. Ej.: 30 = un solo link para que se registren hasta 30 personas. Dejalo en 1 para un link de un solo uso.', 'cead-acad' ); ?></p>
 				</td>
 			</tr>
 		</table>
@@ -180,7 +183,17 @@ $reg_users = get_users( [ 'number' => 300, 'orderby' => 'display_name', 'fields'
 			<tr>
 				<td><?php echo (int) $row['id']; ?></td>
 				<td><?php echo esc_html( $roles[ $row['role'] ]['display'] ?? $row['role'] ); ?></td>
-				<td><?php echo esc_html( $label ); ?><?php if ( $row['email'] ) : ?><br><small><?php echo esc_html( $row['email'] ); ?></small><?php endif; ?></td>
+				<td>
+					<?php echo esc_html( $label ); ?>
+					<?php
+					$row_max = max( 1, (int) ( $row['max_uses'] ?? 1 ) );
+					if ( $row_max > 1 ) :
+						$row_used = (int) ( $row['used_count'] ?? 0 );
+						?>
+						<br><small><?php echo esc_html( sprintf( /* translators: 1: usos consumidos, 2: usos totales */ __( 'usos: %1$d/%2$d', 'cead-acad' ), $row_used, $row_max ) ); ?></small>
+					<?php endif; ?>
+					<?php if ( $row['email'] ) : ?><br><small><?php echo esc_html( $row['email'] ); ?></small><?php endif; ?>
+				</td>
 				<td>
 					<?php if ( 'valid' === $status && $url ) : ?>
 						<input type="text" readonly value="<?php echo esc_attr( $url ); ?>" onfocus="this.select()" style="width:100%;font-family:monospace;font-size:11px;padding:4px 6px" />
@@ -212,3 +225,24 @@ $reg_users = get_users( [ 'number' => 300, 'orderby' => 'display_name', 'fields'
 		</tbody>
 	</table>
 </div>
+<script>
+( function () {
+	// Default de expiración según el rol: Delegado/a = 1 año (365); resto = ~3 años (1095).
+	function bind( roleId, expiresId ) {
+		var role = document.getElementById( roleId ),
+		    exp  = document.getElementById( expiresId );
+		if ( ! role || ! exp ) { return; }
+		var edited = false;
+		exp.addEventListener( 'input', function () { edited = true; } );
+		function apply() {
+			// No pisar un valor que el usuario ya cambió a mano.
+			if ( edited && exp.value !== '365' && exp.value !== '1095' ) { return; }
+			exp.value = ( role.value === 'cead_acad_delegate' ) ? '365' : '1095';
+		}
+		role.addEventListener( 'change', apply );
+		apply();
+	}
+	bind( 'role', 'expires_days' );
+	bind( 'ac_role', 'ac_expires' );
+} )();
+</script>

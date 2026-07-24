@@ -170,7 +170,7 @@ Dirección/Secretaría/Docente pueden, desde el bot: enviar **comunicados**, **a
 
 Si usan el modo IA, pueden pedir estas acciones en lenguaje natural ("mandá un comunicado a todos avisando que…", "creá una invitación para un profe") y CEADI **pide confirmación antes de ejecutar** (aprobación humana). Cada acción respeta el permiso del rol.
 
-> **Crear invitaciones por chat**: dirección/secretaría pueden pedirle a CEADI *"creá 5 invitaciones de alumno"* y, tras aprobar, reciben el/los **link(s) de registro** para compartir. Por seguridad, **solo** se pueden crear invitaciones de **alumno, delegado o profe** (nunca de dirección o secretaría).
+> **Crear invitaciones por chat**: dirección/secretaría pueden pedirle a CEADI *"creá un link de alumno para 30 personas"* y, tras aprobar, reciben **un solo link de registro reutilizable** esa cantidad de veces. Por seguridad, **solo** se pueden crear invitaciones de **alumno, delegado o profe** (nunca de dirección o secretaría). Los links de **delegado** vencen al año; el resto, a los ~3 años.
 
 ---
 
