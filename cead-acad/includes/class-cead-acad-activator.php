@@ -48,6 +48,8 @@ class Cead_Acad_Activator {
 			expires_at      DATETIME NOT NULL,
 			used_at         DATETIME NULL,
 			used_by_user_id BIGINT(20) UNSIGNED NULL,
+			max_uses        INT NOT NULL DEFAULT 1,
+			used_count      INT NOT NULL DEFAULT 0,
 			created_at      DATETIME NOT NULL,
 			revoked_at      DATETIME NULL,
 			metadata        LONGTEXT NULL,
@@ -188,6 +190,10 @@ class Cead_Acad_Activator {
 		) {$charset};";
 
 		dbDelta( $sql_invitations );
+		// Migración a invitaciones multiuso: las single-use ya consumidas (con
+		// used_at pero sin contador) pasan a used_count = 1 para que el tope por
+		// usos sea la única fuente de verdad. Idempotente.
+		$wpdb->query( "UPDATE {$invitations} SET used_count = 1 WHERE used_at IS NOT NULL AND used_count = 0" ); // phpcs:ignore WordPress.DB
 		dbDelta( $sql_audit );
 		dbDelta( $sql_roster );
 		dbDelta( $sql_audiences );

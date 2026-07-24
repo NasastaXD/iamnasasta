@@ -685,12 +685,12 @@ class Cead_Acad_WA_Engine {
 				'type'     => 'function',
 				'function' => [
 					'name'        => 'crear_invitacion',
-					'description' => 'Proponer la creación de invitación(es) para sumar usuarios nuevos. SOLO admite los roles alumno, delegado o profe (nunca dirección ni secretaría). NO se crea hasta que la persona lo apruebe; al confirmar devuelve un link de registro para compartir.',
+					'description' => 'Proponer la creación de una invitación para sumar usuarios nuevos. SOLO admite los roles alumno, delegado o profe (nunca dirección ni secretaría). Genera UN SOLO link reutilizable la cantidad de veces indicada. NO se crea hasta que la persona lo apruebe; al confirmar devuelve el link para compartir.',
 					'parameters'  => [
 						'type'       => 'object',
 						'properties' => [
 							'rol'      => [ 'type' => 'string', 'description' => "Rol del nuevo usuario: solo 'alumno', 'delegado' o 'profe'." ],
-							'cantidad' => [ 'type' => 'integer', 'description' => 'Cuántas invitaciones crear (opcional, por defecto 1).' ],
+							'cantidad' => [ 'type' => 'integer', 'description' => 'Cuántas veces se puede usar el link, es decir cuántas personas podrán registrarse con él (opcional, por defecto 1). Es UN solo link reutilizable, no varios links.' ],
 						],
 						'required'   => [ 'rol' ],
 					],
@@ -746,8 +746,8 @@ class Cead_Acad_WA_Engine {
 				$this->store->set_state( $phone, 'ia_home' );
 				return true;
 			}
-			$role  = $this->invite_role_from_text( (string) ( $args['rol'] ?? '' ) );
-			$count = max( 1, min( 30, (int) ( $args['cantidad'] ?? 1 ) ) );
+			$role = $this->invite_role_from_text( (string) ( $args['rol'] ?? '' ) );
+			$uses = max( 1, min( 500, (int) ( $args['cantidad'] ?? 1 ) ) );
 			if ( $reply !== '' ) { $this->send( $phone, $reply ); }
 			if ( $role === '' ) {
 				$this->send( $phone, __( '¿Para qué rol creo la invitación? Puede ser *alumno*, *delegado* o *profe*.', 'cead-acad' ) );
@@ -755,14 +755,17 @@ class Cead_Acad_WA_Engine {
 				return true;
 			}
 			$label = $this->invite_role_label( $role );
-			$this->store->set_state( $phone, 'ia_staff_confirm', [ 'kind' => 'invitacion', 'role' => $role, 'count' => $count ] );
+			$usos_txt = ( $uses > 1 )
+				? sprintf( /* translators: %d: usos */ __( 'un solo link para *%d* usos', 'cead-acad' ), $uses )
+				: __( 'un link de un solo uso', 'cead-acad' );
+			$this->store->set_state( $phone, 'ia_staff_confirm', [ 'kind' => 'invitacion', 'role' => $role, 'uses' => $uses ] );
 			$this->send(
 				$phone,
 				sprintf(
-					/* translators: 1: rol, 2: cantidad de invitaciones */
-					__( "👤 *Invitación* — propuesta de CEADI\nRol: *%1\$s*\nCantidad: *%2\$d*\n\n*1.* ✅ Aceptar y crear\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
+					/* translators: 1: rol, 2: descripción de usos del link */
+					__( "👤 *Invitación* — propuesta de CEADI\nRol: *%1\$s*\n%2\$s\n\n*1.* ✅ Aceptar y crear\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
 					$label,
-					$count
+					ucfirst( $usos_txt )
 				),
 				'ia_staff_propose'
 			);
@@ -884,8 +887,8 @@ class Cead_Acad_WA_Engine {
 			$this->store->set_state( $phone, 'ia_home' );
 			return;
 		}
-		$role  = (string) ( $context['role'] ?? '' );
-		$count = max( 1, min( 30, (int) ( $context['count'] ?? 1 ) ) );
+		$role = (string) ( $context['role'] ?? '' );
+		$uses = max( 1, min( 500, (int) ( $context['uses'] ?? 1 ) ) );
 		// Cinturón de seguridad: nunca más allá de los tres roles permitidos por chat.
 		if ( ! in_array( $role, [ 'cead_acad_student', 'cead_acad_delegate', 'cead_acad_teacher' ], true ) ) {
 			$this->send( $phone, __( 'Por seguridad, por acá solo puedo crear invitaciones de alumno, delegado o profe.', 'cead-acad' ) );
@@ -900,31 +903,31 @@ class Cead_Acad_WA_Engine {
 		// Que el audit log e «invited_by» reflejen a quien la pidió.
 		wp_set_current_user( $uid );
 		$tokens = Cead_Acad_Invitations::create( [
-			'role'  => $role,
-			'count' => $count,
+			'role'     => $role,
+			'max_uses' => $uses, // un solo link reutilizable esa cantidad de veces
 		] );
 		if ( empty( $tokens ) ) {
 			$this->send( $phone, $this->m( 'error_generic' ) );
 			$this->store->set_state( $phone, 'ia_home' );
 			return;
 		}
-		$links = array_map( [ 'Cead_Acad_Invitations', 'registration_url' ], $tokens );
+		$link  = Cead_Acad_Invitations::registration_url( $tokens[0] );
 		$label = $this->invite_role_label( $role );
-		if ( count( $links ) === 1 ) {
-			$msg = sprintf(
-				/* translators: 1: rol, 2: link de registro */
-				__( "✅ Invitación de *%1\$s* creada. Compartí este link (un solo uso, vence en ~3 años):\n%2\$s", 'cead-acad' ),
-				$label,
-				$links[0]
-			);
-		} else {
-			$msg = sprintf(
-				/* translators: 1: cantidad, 2: rol */
-				__( "✅ %1\$d invitaciones de *%2\$s* creadas (un solo uso, vencen en ~3 años):\n", 'cead-acad' ),
-				count( $links ),
-				$label
-			) . implode( "\n", $links );
-		}
+		// Vencimiento según el rol (Delegado/a = 1 año; resto ~3 años).
+		$venc  = ( Cead_Acad_Invitations::default_expires_days( $role ) <= 366 )
+			? __( '1 año', 'cead-acad' )
+			: __( '~3 años', 'cead-acad' );
+		$usos  = ( $uses > 1 )
+			? sprintf( /* translators: %d: usos */ __( 'sirve para %d registros', 'cead-acad' ), $uses )
+			: __( 'de un solo uso', 'cead-acad' );
+		$msg = sprintf(
+			/* translators: 1: rol, 2: usos, 3: vencimiento, 4: link */
+			__( "✅ Link de invitación de *%1\$s* creado (%2\$s, vence en %3\$s). Compartilo:\n%4\$s", 'cead-acad' ),
+			$label,
+			$usos,
+			$venc,
+			$link
+		);
 		$this->send( $phone, $msg, 'invitation_created' );
 		$this->store->set_state( $phone, 'ia_home' );
 	}
