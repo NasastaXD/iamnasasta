@@ -2,7 +2,7 @@
 
 Plugin modular para el portal del **Centro Educativo de Alto Desempeño "Félix de Guarania"** (CEAD). Convive con el tema `cead-theme` (mismo repo) y gestiona toda la operación académica y administrativa de la institución: alumnado, cursos, comunicados, encuestas, horarios, recursos, calificaciones, tareas y un bot de WhatsApp integrado.
 
-- **Versión:** 0.35.0 · **DB Version:** 17
+- **Versión:** 0.36.0 · **DB Version:** 17
 - **Requiere:** WordPress 6.4+ · PHP 8.1+
 - **Rama principal:** `main`
 - **Documentación de usuario y técnica:** ver `docs/WIKI-USUARIO.md` y `docs/WIKI-TECNICA.md` (online en `/wiki`).
@@ -639,7 +639,8 @@ Endpoints que expone el bridge:
 |----------|--------|-------------|
 | `/api/send` | POST | Enviar mensaje de texto a un número |
 | `/api/send-image` | POST | Enviar imagen con caption |
-| `/api/status` | GET | Estado de conexión + QR si desconectado |
+| `/api/status` | GET | Estado de conexión + QR y código de vinculación si está desconectado |
+| `/api/pair` | POST | Pide a WhatsApp un código de 8 caracteres para vincular por número (alternativa al QR) |
 | `/api/restart` | POST | Reiniciar la sesión de Baileys |
 | `/api/logout` | POST | Cerrar sesión de WhatsApp |
 

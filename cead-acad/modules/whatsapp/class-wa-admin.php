@@ -49,7 +49,8 @@ class Cead_Acad_WA_Admin {
 	// -------------------------------------------------- Estado + Configuración
 	public function page_status() {
 		$this->guard();
-		$notice = null;
+		$notice       = null;
+		$pairing_code = null;
 
 		if ( isset( $_POST['cead_acad_wa_action'] ) && check_admin_referer( 'cead_acad_wa_status' ) ) {
 			$action = sanitize_key( wp_unslash( $_POST['cead_acad_wa_action'] ) );
@@ -73,6 +74,21 @@ class Cead_Acad_WA_Admin {
 			} elseif ( $action === 'logout' ) {
 				$res = $this->bridge->logout();
 				$notice = isset( $res['error'] ) ? [ 'err', $res['error'] ] : [ 'ok', __( 'Sesión cerrada en el bridge.', 'cead-acad' ) ];
+			} elseif ( $action === 'pair' ) {
+				$phone = preg_replace( '/\D/', '', (string) ( $_POST['pair_phone'] ?? '' ) );
+				if ( strlen( $phone ) < 8 ) {
+					$notice = [ 'err', __( 'Escribí el número completo con código de país, por ejemplo 595981123456.', 'cead-acad' ) ];
+				} else {
+					$res = $this->bridge->pair( $phone );
+					if ( isset( $res['error'] ) ) {
+						$notice = [ 'err', $res['error'] ];
+					} elseif ( ! empty( $res['pairing_code'] ) ) {
+						$pairing_code = (string) $res['pairing_code'];
+						$notice = [ 'ok', __( 'Código generado. Ingresalo en el celular.', 'cead-acad' ) ];
+					} else {
+						$notice = [ 'err', __( 'WhatsApp todavía no devolvió el código. Esperá unos segundos y tocá «Refrescar estado».', 'cead-acad' ) ];
+					}
+				}
 			} elseif ( $action === 'refresh' ) {
 				$res = $this->bridge->status();
 				if ( isset( $res['error'] ) ) {
@@ -84,6 +100,10 @@ class Cead_Acad_WA_Admin {
 						'qr_data'           => isset( $res['qr'] ) ? (string) $res['qr'] : null,
 						'last_heartbeat'    => current_time( 'mysql' ),
 					] );
+					// Si hay una vinculación por número en curso, el código sigue vivo.
+					if ( ! empty( $res['pairing_code'] ) ) {
+						$pairing_code = (string) $res['pairing_code'];
+					}
 					$notice = [ 'ok', __( 'Estado actualizado.', 'cead-acad' ) ];
 				}
 			}
@@ -112,7 +132,27 @@ class Cead_Acad_WA_Admin {
 		$this->inline_button( 'refresh', __( 'Refrescar estado', 'cead-acad' ) );
 		$this->inline_button( 'restart', __( 'Reiniciar bridge', 'cead-acad' ) );
 		$this->inline_button( 'logout', __( 'Cerrar sesión', 'cead-acad' ), 'delete' );
-		echo '</p></div>';
+		echo '</p>';
+
+		// Vinculación por número: la salida cuando el QR no funciona.
+		if ( ! $connected ) {
+			echo '<hr><h3 style="margin-bottom:4px">' . esc_html__( '¿El QR no funciona? Vinculá con el número', 'cead-acad' ) . '</h3>';
+			if ( $pairing_code ) {
+				echo '<div class="notice notice-success inline" style="padding:10px 14px">';
+				echo '<p style="margin:0 0 6px"><strong>' . esc_html__( 'Código de vinculación', 'cead-acad' ) . '</strong></p>';
+				echo '<p style="margin:0 0 8px;font-size:30px;letter-spacing:5px;font-family:monospace"><strong>' . esc_html( $pairing_code ) . '</strong></p>';
+				echo '<p style="margin:0">' . esc_html__( 'En el celular del bot: WhatsApp → ⋮ → Dispositivos vinculados → Vincular con número de teléfono. Vence en pocos minutos.', 'cead-acad' ) . '</p>';
+				echo '</div>';
+			}
+			echo '<form method="post" style="margin-top:8px">';
+			wp_nonce_field( 'cead_acad_wa_status' );
+			echo '<input type="hidden" name="cead_acad_wa_action" value="pair" />';
+			echo '<input type="text" name="pair_phone" class="regular-text" inputmode="numeric" placeholder="595981123456" value="' . esc_attr( (string) get_option( 'cead_acad_wa_bot_number', '' ) ) . '" /> ';
+			echo '<button class="button">' . esc_html__( 'Pedir código', 'cead-acad' ) . '</button>';
+			echo '<p class="description">' . esc_html__( 'Número del celular donde corre el bot, con código de país y sin +. Puede tardar unos segundos.', 'cead-acad' ) . '</p>';
+			echo '</form>';
+		}
+		echo '</div>';
 
 		echo '<div class="card" style="max-width:720px"><h2>' . esc_html__( 'Configuración', 'cead-acad' ) . '</h2>';
 		echo '<form method="post">';
