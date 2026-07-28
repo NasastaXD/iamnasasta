@@ -88,6 +88,15 @@ class Cead_Acad_WA_Engine {
 			}
 		}
 
+		// Planilla de notas: el docente manda el Excel que ya usa y lo procesamos
+		// acá mismo, sin archivarlo. No pasa por el dispatch normal.
+		if ( $media && Cead_Acad_Grades_Sheet::looks_like_sheet( $media ) ) {
+			$this->outbox = [];
+			$this->sheet_received( $phone, $media, $body, $identity );
+			$this->flush_outbox( $phone );
+			return;
+		}
+
 		// Log redactado para reportes sensibles.
 		$this->log_inbound( $phone, $state, $context, $body !== '' ? $body : '[imagen]' );
 
@@ -576,7 +585,7 @@ class Cead_Acad_WA_Engine {
 			$this->faq_context(),
 			$phone,
 			$this->ai_staff_tools( $identity ),
-			$this->ai_user_context( $identity )
+			$this->ai_context_with_sheet( $identity, $phone )
 		);
 		if ( ! is_array( $res ) ) {
 			return false;
@@ -715,7 +724,26 @@ class Cead_Acad_WA_Engine {
 		$lines[] = 'Hoy es ' . date_i18n( 'l j \d\e F \d\e Y, H:i', (int) current_time( 'timestamp' ) ) . '.';
 
 		$ctx = implode( "\n", $lines );
+
+		// Nota: la planilla recién enviada NO se cachea junto al resto, porque
+		// cambia dentro de la misma conversación.
 		$this->ai_ctx_cache[ $uid ] = $ctx;
+		return $ctx;
+	}
+
+	/** Ficha del usuario + la planilla que mandó recién, si sigue en memoria. */
+	private function ai_context_with_sheet( $identity, $phone ) {
+		$ctx   = $this->ai_user_context( $identity );
+		$sheet = Cead_Acad_Grades_Sheet::recall( $phone );
+		if ( ! $sheet || empty( $sheet['rows'] ) ) { return $ctx; }
+
+		$ctx .= "\n\n[PLANILLA QUE ACABA DE ENVIAR]\n"
+			. ( ! empty( $sheet['course_id'] ) ? 'Curso: ' . get_the_title( (int) $sheet['course_id'] ) . "\n" : '' )
+			. Cead_Acad_Grades_Sheet::to_text( (array) $sheet['rows'] ) . "\n"
+			. 'Podés responder preguntas sobre esta planilla (promedios, cuántos aprobaron, quién bajó). '
+			. 'La escala del colegio va de 0 a ' . Cead_Acad_Grades_Writer::fmt( Cead_Acad_Grades_Writer::score_max() )
+			. ' y se aprueba desde ' . Cead_Acad_Grades_Writer::fmt( Cead_Acad_Grades_Writer::score_pass() ) . '. '
+			. 'Es un archivo de trabajo: no está guardado en el sistema salvo que lo carguen.';
 		return $ctx;
 	}
 
@@ -1157,6 +1185,7 @@ class Cead_Acad_WA_Engine {
 			elseif ( $kind === 'evento' ) { $this->execute_evento( $phone, $context, $identity ); }
 			elseif ( $kind === 'invitacion' ) { $this->execute_invitacion( $phone, $context, $identity ); }
 			elseif ( $kind === 'nota' ) { $this->execute_nota( $phone, $context, $identity ); }
+			elseif ( $kind === 'planilla' ) { $this->execute_planilla( $phone, $context, $identity ); }
 			else { $this->store->set_state( $phone, 'ia_home' ); }
 			return;
 		}
@@ -1276,6 +1305,253 @@ class Cead_Acad_WA_Engine {
 			$link
 		);
 		$this->send( $phone, $msg, 'invitation_created' );
+		$this->store->set_state( $phone, 'ia_home' );
+	}
+
+	/* ------------------------------------------- planillas de notas (Excel) */
+
+	/**
+	 * Llegó una planilla. Se lee, se interpreta y se propone la carga; el
+	 * archivo no se archiva y la grilla queda en memoria un rato para poder
+	 * confirmar y hacer preguntas sobre ella.
+	 */
+	private function sheet_received( $phone, $media, $caption, $identity ) {
+		$this->ia_turn = true;
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+
+		if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_record_grade' ) ) {
+			$this->send( $phone, __( 'Recibí la planilla, pero no tenés permiso para cargar notas.', 'cead-acad' ), 'sheet_denied' );
+			return;
+		}
+		// El .xls viejo no se puede abrir: el bridge lo marca y avisamos cómo seguir.
+		if ( ! empty( $media['unsupported'] ) ) {
+			$this->send( $phone, __( '📄 Ese archivo es un Excel viejo (.xls) y no puedo abrirlo. Abrilo en Excel y usá *Guardar como → .xlsx*, después reenviámelo.', 'cead-acad' ), 'sheet_xls' );
+			return;
+		}
+
+		$read = Cead_Acad_Grades_Sheet::read( $media );
+		if ( is_wp_error( $read ) ) {
+			$this->send( $phone, '📄 ' . $read->get_error_message(), 'sheet_error' );
+			return;
+		}
+		$rows = $read['rows'];
+		if ( count( $rows ) < 2 ) {
+			$this->send( $phone, __( 'La planilla parece vacía o tiene una sola fila.', 'cead-acad' ), 'sheet_error' );
+			return;
+		}
+
+		// Curso: del caption si lo mencionó, o el único que tenga a cargo.
+		$c = $this->resolve_course_arg( $uid, $caption );
+		if ( 'ok' !== $c['status'] ) {
+			$c = $this->resolve_course_arg( $uid, '' );
+		}
+
+		$interp = $this->sheet_interpret( $rows, $caption, $identity, (int) $c['id'] );
+		if ( ! is_array( $interp ) ) {
+			$this->send( $phone, __( 'Pude leer la planilla pero no entendí cómo está armada. ¿Me decís qué columna tiene los nombres y cuál las notas?', 'cead-acad' ), 'sheet_error' );
+			return;
+		}
+
+		// El curso que dedujo la IA manda si la persona puede tocarlo.
+		$course_id = (int) ( $interp['course_id'] ?? 0 ) ?: (int) $c['id'];
+		if ( ! $course_id || ! Cead_Acad_Grades_Writer::user_can_grade_course( $uid, $course_id ) ) {
+			$opts = $this->course_options_text( $c['options'] );
+			$this->send( $phone, $opts
+				? sprintf( /* translators: %s: cursos */ __( 'Leí la planilla. ¿De qué curso es? Puede ser: %s', 'cead-acad' ), $opts )
+				: __( 'Leí la planilla, pero no tenés cursos asignados.', 'cead-acad' ), 'sheet_course' );
+			Cead_Acad_Grades_Sheet::remember( $phone, [ 'rows' => $rows, 'caption' => $caption ] );
+			return;
+		}
+
+		$built = Cead_Acad_Grades_Sheet::build_rows( $rows, $interp, $course_id );
+
+		// La planilla queda disponible un rato para confirmar y preguntar sobre ella.
+		Cead_Acad_Grades_Sheet::remember( $phone, [
+			'rows'      => $rows,
+			'caption'   => $caption,
+			'course_id' => $course_id,
+			'mapping'   => $interp,
+		] );
+
+		if ( ! $built['ok'] ) {
+			$this->send( $phone, sprintf(
+				/* translators: %d: filas leídas */
+				__( "📄 Leí %d filas pero no pude emparejar a ningún alumno del curso. ¿La planilla es de otro curso, o los nombres están escritos distinto?", 'cead-acad' ),
+				$built['total']
+			), 'sheet_nomatch' );
+			return;
+		}
+
+		$W       = 'Cead_Acad_Grades_Writer';
+		$materia = (string) ( $interp['materia'] ?? '' );
+		$periodo = $W::norm_period( $interp['periodo'] ?? '' );
+
+		$resumen = [];
+		foreach ( array_slice( $built['ok'], 0, 6 ) as $r ) {
+			$resumen[] = '• ' . $r['nombre'] . ': *' . $W::fmt( $r['score'] ) . '*';
+		}
+		if ( count( $built['ok'] ) > 6 ) {
+			/* translators: %d: alumnos restantes */
+			$resumen[] = sprintf( __( '…y %d más.', 'cead-acad' ), count( $built['ok'] ) - 6 );
+		}
+
+		$avisos = '';
+		if ( $built['fallidas'] ) {
+			$lst = [];
+			foreach ( array_slice( $built['fallidas'], 0, 5 ) as $f ) {
+				$lst[] = '· ' . $f['nombre'] . ' (' . $f['motivo'] . ')';
+			}
+			/* translators: %d: filas con problema */
+			$avisos = "\n\n⚠️ " . sprintf( __( '%d fila/s que voy a saltear:', 'cead-acad' ), count( $built['fallidas'] ) )
+				. "\n" . implode( "\n", $lst );
+		}
+		if ( (int) $read['sheets'] > 1 ) {
+			/* translators: %d: cantidad de hojas */
+			$avisos .= "\n\n" . sprintf( __( 'ℹ️ El archivo tiene %d hojas; leí la primera.', 'cead-acad' ), (int) $read['sheets'] );
+		}
+		$aplazados = count( array_filter( $built['ok'], static fn( $r ) => $r['score'] < $W::score_pass() ) );
+		if ( $aplazados > 0 ) {
+			/* translators: %d: cantidad de aplazados */
+			$avisos .= "\n\n" . sprintf( __( '📉 Quedan %d aplazado/s.', 'cead-acad' ), $aplazados );
+		}
+
+		if ( '' === $materia || '' === $periodo ) {
+			$this->send( $phone, sprintf(
+				/* translators: 1: cantidad de alumnos, 2: curso */
+				__( "📄 Leí la planilla: *%1\$d alumnos* de *%2\$s*.\nMe falta saber **de qué materia y periodo** es. ¿Me lo decís?", 'cead-acad' ),
+				count( $built['ok'] ),
+				get_the_title( $course_id )
+			), 'sheet_need_meta' );
+			return;
+		}
+
+		$this->store->set_state( $phone, 'ia_staff_confirm', [
+			'kind'      => 'planilla',
+			'course_id' => $course_id,
+			'materia'   => $materia,
+			'periodo'   => $periodo,
+			'filas'     => $built['ok'],
+		] );
+		$this->send(
+			$phone,
+			sprintf(
+				/* translators: 1: cantidad, 2: curso, 3: materia, 4: periodo, 5: muestra, 6: avisos */
+				__( "📄 *Cargar planilla* — propuesta de CEADI\nCurso: *%2\$s*\nMateria: *%3\$s* · Periodo: *%4\$s*\nAlumnos a cargar: *%1\$d*\n\n%5\$s%6\$s\n\n*1.* ✅ Aceptar y cargar\n*2.* ✏️ Corregir (decime qué cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
+				count( $built['ok'] ),
+				get_the_title( $course_id ),
+				$materia,
+				$periodo,
+				implode( "\n", $resumen ),
+				$avisos
+			),
+			'sheet_propose'
+		);
+	}
+
+	/**
+	 * Le pide al modelo que lea la grilla y diga cómo está armada. Devuelve el
+	 * mapeo o null. Sin IA no hay interpretación posible de una planilla libre.
+	 */
+	private function sheet_interpret( $rows, $caption, $identity, $course_hint ) {
+		if ( ! $this->ai_enabled() ) { return null; }
+
+		$cursos = [];
+		$scope  = $this->courses_scope_for( (int) ( $identity['user_id'] ?? 0 ) );
+		foreach ( $this->course_titles( null === $scope ? [] : $scope, 12 ) as $t ) {
+			$cursos[] = $t;
+		}
+
+		$prompt = "Mirá esta planilla de notas de un colegio y decime cómo está armada.\n\n"
+			. "PLANILLA (cada línea es una fila, las celdas van separadas por |):\n"
+			. Cead_Acad_Grades_Sheet::to_text( (array) $rows ) . "\n\n"
+			. ( '' !== trim( (string) $caption ) ? "LO QUE ESCRIBIÓ EL DOCENTE: " . trim( (string) $caption ) . "\n" : '' )
+			. ( $cursos ? 'CURSOS QUE TIENE A CARGO: ' . implode( ', ', $cursos ) . "\n" : '' )
+			. "\nRespondé SOLO un JSON con estas claves:\n"
+			. '{"fila_encabezado":N,"col_alumno":N,"col_nota":N,"materia":"","periodo":"","curso":"","formato":"nota|porcentaje|puntaje","puntaje_total":null}' . "\n"
+			. "Las columnas y filas se numeran desde 1. \"fila_encabezado\" es la fila con los títulos (0 si no hay).\n"
+			. "\"col_nota\" es la columna con la calificación final; si hay varias evaluaciones, elegí la de la nota o promedio final.\n"
+			. "\"formato\": \"nota\" si ya son notas del colegio, \"porcentaje\" si son 0-100, \"puntaje\" si son puntos sobre un total (poné el total en \"puntaje_total\").\n"
+			. "Si la materia, el periodo o el curso no aparecen, dejalos en \"\". No inventes.";
+
+		$res = Cead_Acad_WA_AI::route( $prompt, '', '', [], $this->ai_user_context( $identity ) );
+		$txt = is_array( $res ) ? (string) ( $res['reply'] ?? '' ) : '';
+		if ( '' === $txt ) { return null; }
+
+		// El modelo suele envolver el JSON en texto o en un bloque de código.
+		if ( preg_match( '/\{.*\}/s', $txt, $m ) ) { $txt = $m[0]; }
+		$data = json_decode( $txt, true );
+		if ( ! is_array( $data ) ) { return null; }
+
+		$course_id = (int) $course_hint;
+		if ( ! empty( $data['curso'] ) ) {
+			$c = $this->resolve_course_arg( (int) ( $identity['user_id'] ?? 0 ), (string) $data['curso'] );
+			if ( 'ok' === $c['status'] ) { $course_id = (int) $c['id']; }
+		}
+
+		return [
+			'fila_encabezado' => max( 0, (int) ( $data['fila_encabezado'] ?? 1 ) ),
+			'col_alumno'      => max( 1, (int) ( $data['col_alumno'] ?? 1 ) ),
+			'col_nota'        => max( 1, (int) ( $data['col_nota'] ?? 2 ) ),
+			'materia'         => sanitize_text_field( (string) ( $data['materia'] ?? '' ) ),
+			'periodo'         => sanitize_text_field( (string) ( $data['periodo'] ?? '' ) ),
+			'formato'         => in_array( $data['formato'] ?? '', [ 'nota', 'porcentaje', 'puntaje' ], true ) ? $data['formato'] : 'nota',
+			'puntaje_total'   => isset( $data['puntaje_total'] ) && is_numeric( $data['puntaje_total'] ) ? (float) $data['puntaje_total'] : null,
+			'course_id'       => $course_id,
+		];
+	}
+
+	/** Carga las notas de la planilla aprobada. */
+	private function execute_planilla( $phone, $context, $identity ) {
+		$uid       = (int) ( $identity['user_id'] ?? 0 );
+		$course_id = (int) ( $context['course_id'] ?? 0 );
+
+		if ( ! Cead_Acad_Grades_Writer::user_can_grade_course( $uid, $course_id ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		$sub = Cead_Acad_Grades_Writer::match_subject( (string) ( $context['materia'] ?? '' ), $course_id, true );
+		$subject_id = (int) $sub['term_id'];
+		if ( ! $subject_id ) {
+			$this->send( $phone, $this->m( 'error_generic' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		$period = (string) ( $context['periodo'] ?? '' );
+		$hechas = 0;
+		$fallos = 0;
+		foreach ( (array) ( $context['filas'] ?? [] ) as $f ) {
+			$res = Cead_Acad_Grades_Writer::record( [
+				'student_user_id' => (int) $f['student_id'],
+				'course_id'       => $course_id,
+				'subject_term_id' => $subject_id,
+				'period'          => $period,
+				'score'           => $f['score'],
+				'recorded_by'     => $uid,
+			] );
+			if ( is_wp_error( $res ) ) { $fallos++; } else { $hechas++; }
+		}
+
+		Cead_Acad_Audit::log( 'grades_sheet_imported', [
+			'user_id'     => $uid,
+			'entity_type' => 'course',
+			'entity_id'   => $course_id,
+			'payload'     => [ 'source' => 'whatsapp', 'materia' => $subject_id, 'periodo' => $period, 'ok' => $hechas, 'fallos' => $fallos ],
+		] );
+
+		$msg = sprintf(
+			/* translators: 1: cantidad cargada, 2: materia, 3: periodo */
+			__( '✅ Cargué *%1$d notas* en %2$s (periodo %3$s). Ya se ven en los boletines.', 'cead-acad' ),
+			$hechas,
+			(string) ( $context['materia'] ?? '' ),
+			$period
+		);
+		if ( $fallos ) {
+			/* translators: %d: filas que fallaron */
+			$msg .= "\n" . sprintf( __( '⚠️ %d no se pudieron guardar.', 'cead-acad' ), $fallos );
+		}
+		$this->send( $phone, $msg, 'sheet_imported' );
 		$this->store->set_state( $phone, 'ia_home' );
 	}
 

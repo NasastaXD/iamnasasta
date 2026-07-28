@@ -70,4 +70,5 @@ require_once dirname( __DIR__, 2 ) . '/modules/auth/class-invitations.php';
 require_once dirname( __DIR__, 2 ) . '/modules/broadcasts/class-broadcasts-audiences.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-csv-reader.php';
 require_once dirname( __DIR__, 2 ) . '/modules/grades/class-grades-writer.php';
+require_once dirname( __DIR__, 2 ) . '/modules/grades/class-grades-sheet.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-engine.php';
