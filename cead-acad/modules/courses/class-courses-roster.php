@@ -94,6 +94,21 @@ class Cead_Acad_Courses_Roster {
 		return array_map( 'intval', $ids ?: [] );
 	}
 
+	/**
+	 * ¿El usuario sigue activo con ese rol en algún otro curso? Útil para no
+	 * sacarle el rol global (p. ej. cead_acad_delegate) si todavía lo ejerce
+	 * en otro curso.
+	 */
+	public static function has_active_role_elsewhere( $user_id, $role_in_course, $exclude_course_id ) {
+		global $wpdb;
+		$table = cead_acad_table( 'roster' );
+		$count = (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND role_in_course = %s AND status = 'active' AND course_id != %d",
+			(int) $user_id, $role_in_course, (int) $exclude_course_id
+		) );
+		return $count > 0;
+	}
+
 	public static function count_active_in_course( $course_id ) {
 		global $wpdb;
 		$table = cead_acad_table( 'roster' );

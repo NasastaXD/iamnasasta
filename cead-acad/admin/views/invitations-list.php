@@ -15,6 +15,10 @@ $rows    = Cead_Acad_Invitations::list_recent( 50 );
 $courses = cead_acad_courses_for_select();
 $self    = admin_url( 'admin.php?page=cead-acad-invitations' );
 
+// Solo quien gestiona roles puede generar invitaciones para Dirección.
+$can_assign_direction = current_user_can( 'cead_acad_manage_roles' ) || current_user_can( 'manage_options' );
+$roles_selectable      = $can_assign_direction ? $roles : array_diff_key( $roles, [ 'cead_acad_direction' => true ] );
+
 // Usuarios registrados para el selector (limitado).
 $reg_users = get_users( [ 'number' => 300, 'orderby' => 'display_name', 'fields' => [ 'ID', 'display_name', 'user_email' ] ] );
 ?>
@@ -50,7 +54,7 @@ $reg_users = get_users( [ 'number' => 300, 'orderby' => 'display_name', 'fields'
 				<th><label for="role"><?php esc_html_e( 'Rol', 'cead-acad' ); ?></label></th>
 				<td>
 					<select name="role" id="role">
-						<?php foreach ( $roles as $slug => $cfg ) : ?>
+						<?php foreach ( $roles_selectable as $slug => $cfg ) : ?>
 							<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $cfg['display'] ); ?></option>
 						<?php endforeach; ?>
 					</select>
@@ -132,7 +136,7 @@ $reg_users = get_users( [ 'number' => 300, 'orderby' => 'display_name', 'fields'
 				<th><label for="iu_role"><?php esc_html_e( 'Rol', 'cead-acad' ); ?></label></th>
 				<td>
 					<select name="role" id="iu_role">
-						<?php foreach ( $roles as $slug => $cfg ) : ?>
+						<?php foreach ( $roles_selectable as $slug => $cfg ) : ?>
 							<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $cfg['display'] ); ?></option>
 						<?php endforeach; ?>
 					</select>

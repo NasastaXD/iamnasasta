@@ -30,6 +30,11 @@ class Cead_Acad_WA_Identity {
 		if ( ! $uid ) {
 			return $cache[ $n ] = [ 'user_id' => null, 'is_student' => false, 'is_staff' => false ];
 		}
+		// Cuenta suspendida: el bot la trata como no registrada (sin datos
+		// personalizados ni permisos), igual que bloquea el login en el sitio.
+		if ( class_exists( 'Cead_Acad_User_Suspension' ) && Cead_Acad_User_Suspension::is_suspended( $uid ) ) {
+			return $cache[ $n ] = [ 'user_id' => null, 'is_student' => false, 'is_staff' => false ];
+		}
 
 		$user  = get_user_by( 'id', $uid );
 		$roles = $user ? (array) $user->roles : [];

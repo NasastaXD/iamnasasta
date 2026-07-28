@@ -81,8 +81,15 @@ class Cead_Acad_Invitations {
 			$invitation_id = (int) $wpdb->insert_id;
 
 			// Enviar email si se proveyó una dirección.
-			if ( $email ) {
-				self::send_email( $email, $token, $role );
+			if ( $email && ! self::send_email( $email, $token, $role ) ) {
+				// El link ya quedó creado (se puede copiar/reenviar desde el
+				// panel); solo dejamos rastro de que el correo no salió, para
+				// que no sea un "se envió" silencioso que nunca llegó.
+				Cead_Acad_Audit::log( 'invitation_email_failed', [
+					'entity_type' => 'invitation',
+					'entity_id'   => $invitation_id,
+					'payload'     => [ 'email' => $email ],
+				] );
 			}
 		}
 

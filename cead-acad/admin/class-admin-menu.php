@@ -185,9 +185,24 @@ class Cead_Acad_Admin_Menu {
 		return null;
 	}
 
+	/**
+	 * Solo Dirección (o manage_options) puede generar invitaciones / crear o
+	 * editar cuentas con el rol Dirección — evita que Secretaría se autoasigne
+	 * o le asigne a otro el rol más alto del colegio.
+	 */
+	protected function can_assign_role( $role ) {
+		if ( 'cead_acad_direction' !== $role ) {
+			return true;
+		}
+		return current_user_can( 'cead_acad_manage_roles' ) || current_user_can( 'manage_options' );
+	}
+
 	protected function do_create() {
 		$email = ! empty( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : null;
 		$role  = sanitize_text_field( wp_unslash( $_POST['role'] ?? 'cead_acad_student' ) );
+		if ( ! $this->can_assign_role( $role ) ) {
+			return [ 'type' => 'error', 'msg' => __( 'No tenés permiso para generar invitaciones con el rol Dirección.', 'cead-acad' ) ];
+		}
 		$max_uses = max( 1, min( 1000, (int) ( $_POST['max_uses'] ?? 1 ) ) );
 		$tokens = Cead_Acad_Invitations::create( [
 			'role'         => $role,
@@ -216,6 +231,9 @@ class Cead_Acad_Admin_Menu {
 
 	protected function do_create_all_courses() {
 		$role    = sanitize_text_field( wp_unslash( $_POST['role'] ?? 'cead_acad_student' ) );
+		if ( ! $this->can_assign_role( $role ) ) {
+			return [ 'type' => 'error', 'msg' => __( 'No tenés permiso para generar invitaciones con el rol Dirección.', 'cead-acad' ) ];
+		}
 		$expires = max( 1, min( 3650, (int) ( $_POST['expires_days'] ?? 1095 ) ) );
 		$courses = cead_acad_courses_for_select();
 		if ( ! $courses ) {
@@ -241,6 +259,9 @@ class Cead_Acad_Admin_Menu {
 
 	protected function do_invite_registered() {
 		$role     = sanitize_text_field( wp_unslash( $_POST['role'] ?? 'cead_acad_student' ) );
+		if ( ! $this->can_assign_role( $role ) ) {
+			return [ 'type' => 'error', 'msg' => __( 'No tenés permiso para generar invitaciones con el rol Dirección.', 'cead-acad' ) ];
+		}
 		$user_ids = array_map( 'intval', (array) ( $_POST['user_ids'] ?? [] ) );
 		$user_ids = array_filter( array_unique( $user_ids ) );
 		if ( ! $user_ids ) {
@@ -418,6 +439,9 @@ class Cead_Acad_Admin_Menu {
 		if ( ! in_array( $role, $valid_roles, true ) ) {
 			$role = 'cead_acad_student';
 		}
+		if ( ! $this->can_assign_role( $role ) ) {
+			return [ 'type' => 'error', 'msg' => __( 'No tenés permiso para asignar el rol Dirección.', 'cead-acad' ) ];
+		}
 
 		$password = wp_generate_password( 12, false );
 		$args     = [
@@ -488,6 +512,9 @@ class Cead_Acad_Admin_Menu {
 
 		if ( $role !== '' ) {
 			$valid_roles = array_keys( Cead_Acad_Capabilities::roles() );
+			if ( ! $this->can_assign_role( $role ) ) {
+				return [ 'type' => 'error', 'msg' => __( 'No tenés permiso para asignar el rol Dirección.', 'cead-acad' ) ];
+			}
 			if ( in_array( $role, $valid_roles, true ) ) {
 				$user = new WP_User( $user_id );
 				// Eliminar roles cead_acad_* previos y asignar el nuevo.

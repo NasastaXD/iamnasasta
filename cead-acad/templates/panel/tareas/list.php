@@ -37,8 +37,10 @@ $body = function () use ( $user, $pend, $done ) {
 		$due_txt = '';
 		$due_cls = '';
 		if ( $due ) {
-			$dts  = strtotime( $due . ' 23:59:59' );
-			$days = (int) floor( ( $dts - current_time( 'timestamp' ) ) / DAY_IN_SECONDS );
+			// Comparación por fecha (no por instante): evita que un date.timezone
+			// de PHP distinto a la zona horaria del sitio corra el corte de
+			// "vencida"/"vence hoy" unas horas de más o de menos.
+			$days = (int) floor( ( strtotime( $due ) - strtotime( current_time( 'Y-m-d' ) ) ) / DAY_IN_SECONDS );
 			$due_txt = date_i18n( 'd/m/Y', strtotime( $due ) );
 			if ( ! $is_done ) {
 				if ( $days < 0 )      { $due_cls = 'is-late';  $due_txt .= ' · ' . __( 'vencida', 'cead-acad' ); }

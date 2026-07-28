@@ -183,6 +183,10 @@ class Cead_Acad_Courses_Admin {
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) { return; }
 		if ( ! current_user_can( 'edit_post', $post_id ) ) { return; }
 
+		// Delegado/a anterior (antes de que el loop de abajo pise el meta), para
+		// poder revocarle el rol/roster si cambia.
+		$old_delegate_id = (int) get_post_meta( $post_id, '_cead_acad_delegate', true );
+
 		foreach ( [ '_cead_acad_turno', '_cead_acad_division', '_cead_acad_delegate', '_cead_acad_tutor' ] as $key ) {
 			$val = isset( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '';
 			update_post_meta( $post_id, $key, $val );
@@ -213,6 +217,17 @@ class Cead_Acad_Courses_Admin {
 			if ( $u ) {
 				$u->add_role( 'cead_acad_delegate' );
 				Cead_Acad_Courses_Roster::add( $delegate_id, $post_id, 'delegate' );
+			}
+		}
+		// Delegado/a rotado: revocar el rol/roster de quien dejó de serlo en
+		// este curso, salvo que siga siendo delegado/a de otro curso.
+		if ( $old_delegate_id && $old_delegate_id !== $delegate_id ) {
+			Cead_Acad_Courses_Roster::remove( $old_delegate_id, $post_id );
+			if ( ! Cead_Acad_Courses_Roster::has_active_role_elsewhere( $old_delegate_id, 'delegate', $post_id ) ) {
+				$old_u = get_user_by( 'id', $old_delegate_id );
+				if ( $old_u ) {
+					$old_u->remove_role( 'cead_acad_delegate' );
+				}
 			}
 		}
 		$tutor_id = (int) ( $_POST['_cead_acad_tutor'] ?? 0 );

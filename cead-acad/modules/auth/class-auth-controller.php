@@ -158,6 +158,13 @@ class Cead_Acad_Auth_Controller {
 		// El uso ya se reservó con consume() antes de crear el usuario; el vínculo
 		// usuario → invitación queda en el meta _cead_acad_invited_via (arriba).
 
+		Cead_Acad_Audit::log( 'user_self_registered', [
+			'user_id'     => $user_id,
+			'entity_type' => 'user',
+			'entity_id'   => $user_id,
+			'payload'     => [ 'login' => $user_login, 'role' => $invitation['role'], 'invitation_id' => (int) $invitation['id'] ],
+		] );
+
 		wp_set_current_user( $user_id );
 		wp_set_auth_cookie( $user_id, true, is_ssl() );
 

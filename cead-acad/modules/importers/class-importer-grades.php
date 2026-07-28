@@ -27,7 +27,8 @@ class Cead_Acad_Importer_Grades extends Cead_Acad_Importer_Base {
 		$curso   = trim( (string) ( $row['curso']     ?? '' ) );
 		$materia = trim( (string) ( $row['materia']   ?? '' ) );
 		$periodo = trim( (string) ( $row['periodo']   ?? '' ) );
-		$nota    = trim( (string) ( $row['nota']      ?? '' ) );
+		// Coma decimal (Excel en español, ej. "8,5") además del punto habitual.
+		$nota    = str_replace( ',', '.', trim( (string) ( $row['nota'] ?? '' ) ) );
 
 		if ( ! $doc || ! $curso || ! $materia || ! $periodo ) {
 			return [ 'level' => 'error', 'message' => __( 'Faltan campos obligatorios.', 'cead-acad' ) ];
@@ -53,7 +54,8 @@ class Cead_Acad_Importer_Grades extends Cead_Acad_Importer_Base {
 		$course_id  = $this->resolve_course_id( $row['curso'] );
 		$subject_id = $this->resolve_or_create_subject_term( $row['materia'] );
 		$period     = sanitize_text_field( $row['periodo'] );
-		$score      = isset( $row['nota'] )       && $row['nota'] !== ''   ? (float) $row['nota'] : null;
+		$nota_raw   = str_replace( ',', '.', trim( (string) ( $row['nota'] ?? '' ) ) );
+		$score      = $nota_raw !== '' ? (float) $nota_raw : null;
 		$letter     = isset( $row['letra'] )      ? sanitize_text_field( $row['letra'] ) : '';
 		$comments   = isset( $row['comentario'] ) ? sanitize_textarea_field( $row['comentario'] ) : '';
 
@@ -78,9 +80,12 @@ class Cead_Acad_Importer_Grades extends Cead_Acad_Importer_Base {
 		$formats = [ '%d', '%d', '%d', '%s', '%f', '%s', '%s', '%d', '%s', '%d' ];
 
 		if ( $existing ) {
-			$wpdb->update( $table, $data, [ 'id' => (int) $existing ], $formats, [ '%d' ] );
+			$res = $wpdb->update( $table, $data, [ 'id' => (int) $existing ], $formats, [ '%d' ] );
 		} else {
-			$wpdb->insert( $table, $data, $formats );
+			$res = $wpdb->insert( $table, $data, $formats );
+		}
+		if ( false === $res ) {
+			return new WP_Error( 'db_error', __( 'No se pudo guardar la nota en la base de datos.', 'cead-acad' ) );
 		}
 		return true;
 	}

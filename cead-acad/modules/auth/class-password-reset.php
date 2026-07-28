@@ -44,7 +44,7 @@ class Cead_Acad_Password_Reset {
 				/* translators: %s: nombre del sitio */
 				$subject = sprintf( __( '[%s] Restablecer contraseña', 'cead-acad' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) );
 
-				Cead_Acad_Email::send( $user->user_email, $subject, [
+				$sent = Cead_Acad_Email::send( $user->user_email, $subject, [
 					'title'      => __( 'Restablecer tu contraseña', 'cead-acad' ),
 					'paragraphs' => [
 						/* translators: %s: nombre del usuario */
@@ -55,6 +55,16 @@ class Cead_Acad_Password_Reset {
 					'cta_url'    => $reset_url,
 					'footnote'   => __( 'Si no fuiste vos, ignorá este mensaje: tu contraseña sigue siendo la misma.', 'cead-acad' ),
 				] );
+				if ( ! $sent ) {
+					// No cambiamos la respuesta al visitante (seguimos sin filtrar
+					// si la cuenta existe); esto es solo para que el staff pueda
+					// diagnosticar "nunca me llegó el mail de recuperación".
+					Cead_Acad_Audit::log( 'password_reset_email_failed', [
+						'user_id'     => $user->ID,
+						'entity_type' => 'user',
+						'entity_id'   => $user->ID,
+					] );
+				}
 			}
 		}
 
@@ -91,6 +101,12 @@ class Cead_Acad_Password_Reset {
 		}
 
 		reset_password( $user, $password );
+
+		Cead_Acad_Audit::log( 'password_reset', [
+			'user_id'     => $user->ID,
+			'entity_type' => 'user',
+			'entity_id'   => $user->ID,
+		] );
 
 		wp_safe_redirect( add_query_arg( 'ok', 'reset', cead_acad_url( 'login' ) ) );
 		exit;
