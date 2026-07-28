@@ -74,6 +74,18 @@ class Cead_Acad_WA_Admin {
 			} elseif ( $action === 'logout' ) {
 				$res = $this->bridge->logout();
 				$notice = isset( $res['error'] ) ? [ 'err', $res['error'] ] : [ 'ok', __( 'Sesión cerrada en el bridge.', 'cead-acad' ) ];
+			} elseif ( $action === 'temp_access' ) {
+				Cead_Acad_WA_Temp_Access::configure(
+					(string) ( $_POST['temp_pass'] ?? '' ),
+					sanitize_text_field( wp_unslash( $_POST['temp_until'] ?? '' ) ),
+					(int) ( $_POST['temp_max'] ?? 5 ),
+					(int) ( $_POST['temp_user'] ?? 0 ),
+					(int) ( $_POST['temp_minutes'] ?? 15 )
+				);
+				$notice = [ 'ok', __( 'Acceso temporal actualizado.', 'cead-acad' ) ];
+			} elseif ( $action === 'temp_revoke' ) {
+				Cead_Acad_WA_Temp_Access::revoke();
+				$notice = [ 'ok', __( 'Acceso temporal desactivado.', 'cead-acad' ) ];
 			} elseif ( $action === 'pair' ) {
 				$phone = preg_replace( '/\D/', '', (string) ( $_POST['pair_phone'] ?? '' ) );
 				if ( strlen( $phone ) < 8 ) {
@@ -152,6 +164,56 @@ class Cead_Acad_WA_Admin {
 			echo '<p class="description">' . esc_html__( 'Número del celular donde corre el bot, con código de país y sin +. Puede tardar unos segundos.', 'cead-acad' ) . '</p>';
 			echo '</form>';
 		}
+		echo '</div>';
+
+		// ---- Acceso temporal (clave de un día) ----
+		$ta_active = Cead_Acad_WA_Temp_Access::active();
+		echo '<div class="card" style="max-width:720px"><h2>' . esc_html__( 'Acceso temporal al bot', 'cead-acad' ) . '</h2>';
+		echo '<p class="description">' . esc_html__( 'Clave para que alguien opere CEADI durante una jornada puntual sin tener su número cargado. Se guarda cifrada, vence sola y se puede cortar en cualquier momento.', 'cead-acad' ) . '</p>';
+		echo '<p><strong>' . esc_html__( 'Estado', 'cead-acad' ) . ':</strong> '
+			. ( $ta_active ? '🟢 ' : '⚪ ' ) . esc_html( Cead_Acad_WA_Temp_Access::status_label() ) . '</p>';
+
+		$dir_users = get_users( [
+			'role__in' => [ 'cead_acad_direction', 'cead_acad_secretary', 'administrator' ],
+			'orderby'  => 'display_name',
+			'number'   => 100,
+		] );
+
+		echo '<form method="post">';
+		wp_nonce_field( 'cead_acad_wa_status' );
+		echo '<input type="hidden" name="cead_acad_wa_action" value="temp_access" />';
+		echo '<table class="form-table" role="presentation">';
+		echo '<tr><th><label for="temp_pass">' . esc_html__( 'Clave', 'cead-acad' ) . '</label></th><td>';
+		echo '<input type="text" name="temp_pass" id="temp_pass" class="regular-text" autocomplete="off" placeholder="' . esc_attr__( '(dejar vacío para no cambiarla)', 'cead-acad' ) . '" />';
+		echo '<p class="description">' . esc_html__( 'Se guarda cifrada: no queda escrita en ningún lado ni se puede volver a ver. Al cambiarla se reinicia el contador de usos.', 'cead-acad' ) . '</p>';
+		echo '</td></tr>';
+		echo '<tr><th><label for="temp_until">' . esc_html__( 'Sirve hasta', 'cead-acad' ) . '</label></th><td>';
+		echo '<input type="datetime-local" name="temp_until" id="temp_until" value="' . esc_attr( str_replace( ' ', 'T', substr( Cead_Acad_WA_Temp_Access::until(), 0, 16 ) ) ) . '" />';
+		echo '<p class="description">' . esc_html__( 'Pasada esa fecha y hora deja de funcionar sola.', 'cead-acad' ) . '</p>';
+		echo '</td></tr>';
+		echo '<tr><th><label for="temp_max">' . esc_html__( 'Usos totales', 'cead-acad' ) . '</label></th><td>';
+		echo '<input type="number" name="temp_max" id="temp_max" min="1" max="100" class="small-text" value="' . esc_attr( (string) Cead_Acad_WA_Temp_Access::max_uses() ) . '" /> ';
+		echo '<span class="description">' . esc_html( sprintf( /* translators: %d: usos ya consumidos */ __( 'usados hasta ahora: %d', 'cead-acad' ), Cead_Acad_WA_Temp_Access::used() ) ) . '</span>';
+		echo '</td></tr>';
+		echo '<tr><th><label for="temp_minutes">' . esc_html__( 'Duración de cada sesión', 'cead-acad' ) . '</label></th><td>';
+		echo '<input type="number" name="temp_minutes" id="temp_minutes" min="1" max="240" class="small-text" value="' . esc_attr( (string) Cead_Acad_WA_Temp_Access::minutes() ) . '" /> ' . esc_html__( 'minutos', 'cead-acad' );
+		echo '</td></tr>';
+		echo '<tr><th><label for="temp_user">' . esc_html__( 'Opera como', 'cead-acad' ) . '</label></th><td>';
+		echo '<select name="temp_user" id="temp_user"><option value="0">' . esc_html__( '— elegir —', 'cead-acad' ) . '</option>';
+		foreach ( $dir_users as $u ) {
+			echo '<option value="' . (int) $u->ID . '" ' . selected( Cead_Acad_WA_Temp_Access::user_id(), $u->ID, false ) . '>' . esc_html( $u->display_name ) . '</option>';
+		}
+		echo '</select>';
+		echo '<p class="description">' . esc_html__( 'Quien use la clave actúa con los permisos de esta persona, y todo lo que haga queda registrado a su nombre. No se crean permisos nuevos.', 'cead-acad' ) . '</p>';
+		echo '</td></tr>';
+		echo '</table>';
+		submit_button( __( 'Guardar acceso temporal', 'cead-acad' ), 'secondary', 'submit', false );
+		echo '</form>';
+		echo '<form method="post" style="margin-top:8px" onsubmit="return confirm(\'' . esc_js( __( '¿Desactivar la clave y cortar las sesiones abiertas?', 'cead-acad' ) ) . '\');">';
+		wp_nonce_field( 'cead_acad_wa_status' );
+		echo '<input type="hidden" name="cead_acad_wa_action" value="temp_revoke" />';
+		echo '<button class="button button-link-delete">' . esc_html__( 'Desactivar ahora', 'cead-acad' ) . '</button>';
+		echo '</form>';
 		echo '</div>';
 
 		echo '<div class="card" style="max-width:720px"><h2>' . esc_html__( 'Configuración', 'cead-acad' ) . '</h2>';

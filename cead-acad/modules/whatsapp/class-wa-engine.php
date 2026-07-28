@@ -118,6 +118,20 @@ class Cead_Acad_WA_Engine {
 			return;
 		}
 
+		// Clave de acceso temporal: va antes del filtro de registrados, porque
+		// justamente sirve para números que todavía no están cargados.
+		if ( class_exists( 'Cead_Acad_WA_Temp_Access' ) && Cead_Acad_WA_Temp_Access::attempt( $phone, $body ) ) {
+			$identity = $this->resolve_identity( $phone );
+			$this->send( $phone, sprintf(
+				/* translators: %d: minutos de la sesión */
+				__( '🔓 Acceso temporal habilitado por *%d minutos*. Escribí *menú* para empezar.', 'cead-acad' ),
+				Cead_Acad_WA_Temp_Access::minutes()
+			), 'temp_access' );
+			$this->store->reset_state( $phone );
+			$this->flush_outbox( $phone );
+			return;
+		}
+
 		// CEADI solo atiende a números registrados en el panel del CEAD. A los
 		// desconocidos se les avisa una vez (cada 6h) y no se entra a los menús.
 		if ( get_option( 'cead_acad_wa_registered_only', 1 ) && empty( $identity['user_id'] ) ) {
@@ -181,6 +195,12 @@ class Cead_Acad_WA_Engine {
 	}
 
 	private function log_inbound( $phone, $state, $context, $body ) {
+		// Nunca dejar una clave escrita en el historial: si el mensaje coincide
+		// con la clave temporal vigente, se registra sin el contenido.
+		if ( class_exists( 'Cead_Acad_WA_Temp_Access' ) && Cead_Acad_WA_Temp_Access::looks_like_key( $body ) ) {
+			$this->store->log( $phone, 'in', '[clave de acceso temporal]' );
+			return;
+		}
 		if ( $state === 'stu_report_body' ) {
 			$type = $context['report_type'] ?? 'anonymous';
 			if ( $type === 'anonymous' ) {
@@ -3063,7 +3083,19 @@ class Cead_Acad_WA_Engine {
 	 * Resuelve la identidad del número a partir del usuario asociado (si existe).
 	 */
 	private function resolve_identity( $phone ) {
-		return Cead_Acad_WA_Identity::resolve( $phone );
+		$identity = Cead_Acad_WA_Identity::resolve( $phone );
+		// Acceso temporal vigente: el número opera con la identidad prestada,
+		// así los permisos y la auditoría salen de un usuario real y no de un
+		// sistema de permisos paralelo.
+		if ( empty( $identity['user_id'] ) && class_exists( 'Cead_Acad_WA_Temp_Access' ) ) {
+			$uid = Cead_Acad_WA_Temp_Access::granted_user( $phone );
+			if ( $uid ) {
+				$identity['user_id'] = $uid;
+				$identity['is_staff'] = true;
+				$identity['temp']     = true;
+			}
+		}
+		return $identity;
 	}
 
 	// --------------------------------------------------- filtro de lenguaje
