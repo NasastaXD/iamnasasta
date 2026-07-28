@@ -1,7 +1,7 @@
 # 🛠️ CEAD Académico — Wiki técnica
 
 > Documentación técnica del sistema del **Centro Educativo de Alto Desempeño "Félix de Guarania"** (CEAD).
-> Plugin **v0.32.0** · DB schema **v16** · Requiere WordPress 6.4+ y PHP 8.1+.
+> Plugin **v0.34.0** · DB schema **v17** · Requiere WordPress 6.4+ y PHP 8.1+.
 
 Esta wiki está pensada para quien quiera entender **cómo está construido** el proyecto: arquitectura, módulos, modelo de datos, el bot, seguridad y despliegue. Para la guía de uso en lenguaje simple, ver **[Wiki del usuario](WIKI-USUARIO.md)**.
 
@@ -144,7 +144,7 @@ Dos familias de datos: **CPTs nativos** de WordPress y **tablas custom**.
 
 ### Tablas custom (`wp_cead_acad_*`)
 
-Se crean/actualizan idempotentemente con `dbDelta()` cuando sube `CEAD_ACAD_DB_VERSION` (actual: **16**).
+Se crean/actualizan idempotentemente con `dbDelta()` cuando sube `CEAD_ACAD_DB_VERSION` (actual: **17**).
 
 | Grupo | Tablas |
 |-------|--------|

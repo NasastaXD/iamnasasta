@@ -2,7 +2,7 @@
 
 Plugin modular para el portal del **Centro Educativo de Alto Desempeño "Félix de Guarania"** (CEAD). Convive con el tema `cead-theme` (mismo repo) y gestiona toda la operación académica y administrativa de la institución: alumnado, cursos, comunicados, encuestas, horarios, recursos, calificaciones, tareas y un bot de WhatsApp integrado.
 
-- **Versión:** 0.32.0 · **DB Version:** 16
+- **Versión:** 0.34.0 · **DB Version:** 17
 - **Requiere:** WordPress 6.4+ · PHP 8.1+
 - **Rama principal:** `main`
 - **Documentación de usuario y técnica:** ver `docs/WIKI-USUARIO.md` y `docs/WIKI-TECNICA.md` (online en `/wiki`).
@@ -540,7 +540,10 @@ Cada acción está gateada por una capability de cead-acad:
 | Acción | Capability | Descripción |
 |--------|-----------|-------------|
 | **Comunicados** | `publish_broadcast` | Redactar y enviar a alumnos/staff/todos. Soporta imagen. Programar para más tarde |
-| **Eventos** | `manage_schedule` | Crear evento rápido (título + fecha) |
+| **Eventos** | `manage_schedule` | Crear evento rápido (título + fecha, entiende «mañana a las 10») |
+| **Cargar nota** | `record_grade` | Vía IA con aprobación: resuelve alumno/materia por nombre dentro del curso y guarda la calificación (idempotente). Docente limitado a sus cursos |
+| **Ver notas del curso** | `view_course_grades` | Consulta de las notas ya cargadas, con filtro por materia/periodo |
+| **Panorama** | `view_metrics` | Resumen de uso del bot y pendientes del buzón |
 | **Invitaciones** | `manage_invitations` | Crear **un link de registro reutilizable** N veces y devolverlo. Vía IA con aprobación. **Solo** roles alumno/delegado/profe (nunca dirección/secretaría). Vencimiento por rol (delegado 1 año) |
 | **Artículos** | `manage_articles` | Publicar / editar / borrar posts del blog de WordPress |
 | **Reportes** | `manage_reports` | Bandeja de reportes con estados y notas |

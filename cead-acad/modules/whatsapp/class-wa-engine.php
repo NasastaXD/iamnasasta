@@ -571,7 +571,13 @@ class Cead_Acad_WA_Engine {
 		if ( ! $this->ai_enabled() ) {
 			return false;
 		}
-		$res = Cead_Acad_WA_AI::route( $text, $this->faq_context(), $phone, $this->ai_staff_tools( $identity ) );
+		$res = Cead_Acad_WA_AI::route(
+			$text,
+			$this->faq_context(),
+			$phone,
+			$this->ai_staff_tools( $identity ),
+			$this->ai_user_context( $identity )
+		);
 		if ( ! is_array( $res ) ) {
 			return false;
 		}
@@ -580,7 +586,7 @@ class Cead_Acad_WA_Engine {
 		$args   = isset( $res['args'] ) && is_array( $res['args'] ) ? $res['args'] : [];
 
 		// Acciones de gestión del staff: NO se ejecutan; se proponen y el menú aprueba.
-		if ( in_array( $action, [ 'enviar_comunicado', 'crear_evento', 'crear_invitacion' ], true ) ) {
+		if ( in_array( $action, [ 'enviar_comunicado', 'crear_evento', 'crear_invitacion', 'cargar_nota' ], true ) ) {
 			return $this->propose_staff_action( $phone, $action, $args, $reply, $identity );
 		}
 
@@ -603,6 +609,8 @@ class Cead_Acad_WA_Engine {
 				case 'faq':           $this->show_faq( $phone ); break;
 				case 'panel':         $this->show_panel( $phone ); break;
 				case 'carne':         $this->show_carne( $phone, $identity ); break;
+				case 'ver_notas_curso': $this->show_notas_curso( $phone, $identity, $args ); break;
+				case 'panorama':      $this->metrics_show( $phone, $identity ); break;
 				case 'recordatorios': $this->reminders_toggle( $phone ); break;
 				// Flujos guiados: mantienen el estado que fijan ellos mismos.
 				case 'reportar':      $this->in_ia = false; $this->report_start( $phone ); return true;
@@ -634,6 +642,82 @@ class Cead_Acad_WA_Engine {
 	}
 
 	/* ------------------------------------------ acciones de staff vía IA (con aprobación) */
+
+	/** Cache por request de la ficha de contexto (una petición = un mensaje). */
+	private $ai_ctx_cache = [];
+
+	/**
+	 * Cursos que la persona puede gestionar: null = todos (dirección/secretaría),
+	 * o la lista de IDs donde está inscripta o figura como tutor/a (docente).
+	 *
+	 * @return int[]|null
+	 */
+	private function courses_scope_for( $uid ) {
+		$uid = (int) $uid;
+		if ( ! $uid ) { return []; }
+		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_courses' ) ) { return null; }
+
+		$ids = class_exists( 'Cead_Acad_Courses_Roster' )
+			? Cead_Acad_Courses_Roster::courses_for_user( $uid )
+			: [];
+		// Cursos donde figura como tutor/a aunque no esté en el roster.
+		$tutor = get_posts( [
+			'post_type'      => 'cead_acad_course',
+			'post_status'    => 'publish',
+			'fields'         => 'ids',
+			'posts_per_page' => 50,
+			'meta_key'       => '_cead_acad_tutor',
+			'meta_value'     => $uid,
+		] );
+		return array_values( array_unique( array_map( 'intval', array_merge( (array) $ids, (array) $tutor ) ) ) );
+	}
+
+	/** Títulos legibles de una lista de cursos. */
+	private function course_titles( $ids, $limit = 8 ) {
+		$out = [];
+		foreach ( array_slice( (array) $ids, 0, $limit ) as $cid ) {
+			$t = get_the_title( (int) $cid );
+			if ( $t ) { $out[] = $t; }
+		}
+		return $out;
+	}
+
+	/**
+	 * Ficha breve de quien escribe (nombre, rol, cursos) + la fecha de hoy, para
+	 * que la IA responda con datos en vez de a ciegas: así sabe a qué se refiere
+	 * con «mi curso» y qué día cae «el viernes».
+	 */
+	private function ai_user_context( $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( isset( $this->ai_ctx_cache[ $uid ] ) ) { return $this->ai_ctx_cache[ $uid ]; }
+
+		$lines = [];
+		$user  = $uid ? get_user_by( 'id', $uid ) : null;
+
+		if ( $user ) {
+			$lines[] = 'Nombre: ' . $user->display_name;
+			$roles   = $this->role_labels_for( $user );
+			if ( '' !== $roles ) { $lines[] = 'Rol: ' . $roles; }
+
+			$scope = $this->courses_scope_for( $uid );
+			if ( null === $scope ) {
+				$lines[] = 'Alcance: todos los cursos del colegio.';
+			} else {
+				$titles  = $this->course_titles( $scope );
+				$lines[] = $titles
+					? 'Cursos: ' . implode( ' · ', $titles )
+					: 'Todavía no tiene cursos asignados.';
+			}
+		} else {
+			$lines[] = 'Es un número que no está registrado en el panel del CEAD.';
+		}
+
+		$lines[] = 'Hoy es ' . date_i18n( 'l j \d\e F \d\e Y, H:i', (int) current_time( 'timestamp' ) ) . '.';
+
+		$ctx = implode( "\n", $lines );
+		$this->ai_ctx_cache[ $uid ] = $ctx;
+		return $ctx;
+	}
 
 	/**
 	 * Herramientas de gestión que la IA puede PROPONER, según los permisos reales
@@ -697,7 +781,96 @@ class Cead_Acad_WA_Engine {
 				],
 			];
 		}
+		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_record_grade' ) ) {
+			$tools[] = [
+				'type'     => 'function',
+				'function' => [
+					'name'        => 'cargar_nota',
+					'description' => 'Proponer la carga de una calificación a un alumno. NO se guarda hasta que la persona lo apruebe. Si ya hay nota para ese alumno, materia y periodo, se actualiza.',
+					'parameters'  => [
+						'type'       => 'object',
+						'properties' => [
+							'alumno'     => [ 'type' => 'string', 'description' => 'Nombre, apellido o documento del alumno.' ],
+							'materia'    => [ 'type' => 'string', 'description' => 'Nombre de la materia.' ],
+							'periodo'    => [ 'type' => 'string', 'description' => 'Periodo: 1, 2, 3, 4 o Final.' ],
+							'nota'       => [ 'type' => 'number', 'description' => 'Calificación numérica.' ],
+							'curso'      => [ 'type' => 'string', 'description' => 'Curso. Solo hace falta si la persona tiene más de un curso a cargo.' ],
+							'comentario' => [ 'type' => 'string', 'description' => 'Observación opcional.' ],
+						],
+						'required'   => [ 'alumno', 'materia', 'periodo', 'nota' ],
+					],
+				],
+			];
+		}
+		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_view_metrics' ) ) {
+			$tools[] = [
+				'type'     => 'function',
+				'function' => [
+					'name'        => 'panorama',
+					'description' => 'Mostrar el panorama del colegio: uso del bot, reportes y sugerencias pendientes. Solo lectura.',
+					'parameters'  => [ 'type' => 'object', 'properties' => (object) [] ],
+				],
+			];
+		}
+		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_view_course_grades' ) ) {
+			$tools[] = [
+				'type'     => 'function',
+				'function' => [
+					'name'        => 'ver_notas_curso',
+					'description' => 'Mostrar las calificaciones ya cargadas de un curso (opcionalmente de una materia o periodo). Solo lectura.',
+					'parameters'  => [
+						'type'       => 'object',
+						'properties' => [
+							'curso'   => [ 'type' => 'string', 'description' => 'Curso. Solo si tiene más de uno a cargo.' ],
+							'materia' => [ 'type' => 'string', 'description' => 'Filtrar por materia (opcional).' ],
+							'periodo' => [ 'type' => 'string', 'description' => 'Filtrar por periodo (opcional).' ],
+						],
+					],
+				],
+			];
+		}
 		return $tools;
+	}
+
+	/**
+	 * Resuelve a qué curso se refiere la persona, dentro de los que puede tocar.
+	 * Si tiene uno solo, no hace falta que lo nombre.
+	 *
+	 * @return array{status:string,id:int,options:array} status: ok|need|ambiguous|none
+	 */
+	private function resolve_course_arg( $uid, $hint ) {
+		$scope = $this->courses_scope_for( $uid );
+		if ( null === $scope ) {
+			$scope = array_map( 'intval', array_keys( cead_acad_courses_for_select() ) );
+		}
+		$scope = array_values( array_filter( array_map( 'intval', (array) $scope ) ) );
+		if ( ! $scope ) { return [ 'status' => 'none', 'id' => 0, 'options' => [] ]; }
+
+		$hint = trim( (string) $hint );
+		if ( '' === $hint ) {
+			return ( 1 === count( $scope ) )
+				? [ 'status' => 'ok', 'id' => (int) $scope[0], 'options' => $scope ]
+				: [ 'status' => 'need', 'id' => 0, 'options' => $scope ];
+		}
+
+		$people = [];
+		foreach ( $scope as $cid ) {
+			$people[] = [ 'id' => (int) $cid, 'name' => (string) get_the_title( $cid ), 'doc' => '' ];
+		}
+		$hit = Cead_Acad_Grades_Writer::pick_by_name( $people, $hint );
+		if ( 'exact' === $hit['status'] ) {
+			return [ 'status' => 'ok', 'id' => (int) $hit['matches'][0]['id'], 'options' => $scope ];
+		}
+		if ( 'ambiguous' === $hit['status'] ) {
+			return [ 'status' => 'ambiguous', 'id' => 0, 'options' => array_column( $hit['matches'], 'id' ) ];
+		}
+		return [ 'status' => 'none', 'id' => 0, 'options' => $scope ];
+	}
+
+	/** Lista corta de cursos para repreguntar. */
+	private function course_options_text( $ids ) {
+		$t = $this->course_titles( $ids, 8 );
+		return $t ? ( '*' . implode( '*, *', $t ) . '*' ) : '';
 	}
 
 	/** Arma la propuesta de una acción de staff y la deja a la espera de aprobación. */
@@ -772,6 +945,134 @@ class Cead_Acad_WA_Engine {
 			return true;
 		}
 
+		if ( $action === 'cargar_nota' ) {
+			if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_record_grade' ) ) {
+				$this->send( $phone, $this->m( 'access_denied' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			if ( $reply !== '' ) { $this->send( $phone, $reply ); }
+
+			// 1) Curso (si tiene uno solo, no hace falta que lo nombre).
+			$c = $this->resolve_course_arg( $uid, $args['curso'] ?? '' );
+			if ( 'ok' !== $c['status'] ) {
+				$opts = $this->course_options_text( $c['options'] );
+				$this->send( $phone, $opts
+					? sprintf( /* translators: %s: lista de cursos */ __( '¿En qué curso? Puede ser: %s', 'cead-acad' ), $opts )
+					: __( 'No tenés cursos asignados, así que no puedo cargar notas.', 'cead-acad' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			$course_id = (int) $c['id'];
+			if ( ! Cead_Acad_Grades_Writer::user_can_grade_course( $uid, $course_id ) ) {
+				$this->send( $phone, $this->m( 'access_denied' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+
+			// 2) Alumno, dentro de ese curso.
+			$stu = Cead_Acad_Grades_Writer::match_student_in_course( $course_id, $args['alumno'] ?? '' );
+			if ( 'ambiguous' === $stu['status'] ) {
+				$names = implode( ', ', array_map( static fn( $m ) => '*' . $m['name'] . '*', $stu['matches'] ) );
+				$this->send( $phone, sprintf( /* translators: %s: nombres */ __( '¿A cuál de estos? %s', 'cead-acad' ), $names ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			if ( 'exact' !== $stu['status'] ) {
+				$this->send( $phone, sprintf(
+					/* translators: 1: nombre buscado, 2: curso */
+					__( 'No encontré a *%1$s* en %2$s. ¿Me pasás el nombre como figura en el sistema?', 'cead-acad' ),
+					trim( (string) ( $args['alumno'] ?? '' ) ),
+					get_the_title( $course_id )
+				) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			$student = $stu['matches'][0];
+
+			// 3) Materia (si no existe, se avisa en la tarjeta antes de crearla).
+			$materia_raw = trim( (string) ( $args['materia'] ?? '' ) );
+			$sub         = Cead_Acad_Grades_Writer::match_subject( $materia_raw, $course_id, false );
+			if ( 'ambiguous' === $sub['status'] ) {
+				$names = implode( ', ', array_map( static fn( $m ) => '*' . $m['name'] . '*', $sub['matches'] ) );
+				$this->send( $phone, sprintf( /* translators: %s: materias */ __( '¿Qué materia exactamente? %s', 'cead-acad' ), $names ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			if ( '' === $materia_raw ) {
+				$this->send( $phone, __( '¿De qué materia es la nota?', 'cead-acad' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			$subject_id   = (int) $sub['term_id'];
+			$subject_new  = ( 0 === $subject_id );
+			$subject_name = $subject_new ? $materia_raw : (string) $sub['matches'][0]['name'];
+
+			// 4) Periodo y nota.
+			$period = Cead_Acad_Grades_Writer::norm_period( $args['periodo'] ?? '' );
+			if ( '' === $period ) {
+				$this->send( $phone, __( '¿De qué periodo? (1, 2, 3, 4 o Final)', 'cead-acad' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			$score = $args['nota'] ?? null;
+			if ( null === $score || '' === $score || ! is_numeric( $score ) ) {
+				$this->send( $phone, __( '¿Qué nota le pongo?', 'cead-acad' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			$score = round( (float) $score, 2 );
+			$max   = Cead_Acad_Grades_Writer::score_max();
+			if ( $score < 0 || $score > $max ) {
+				$this->send( $phone, sprintf(
+					/* translators: %s: nota máxima */
+					__( 'Esa nota está fuera de la escala (0 a %s).', 'cead-acad' ),
+					rtrim( rtrim( number_format( $max, 2, ',', '' ), '0' ), ',' )
+				) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+
+			$prev  = $subject_id ? Cead_Acad_Grades_Writer::find( (int) $student['id'], $course_id, $subject_id, $period ) : null;
+			$fmt   = static fn( $n ) => rtrim( rtrim( number_format( (float) $n, 2, ',', '' ), '0' ), ',' );
+			$extra = '';
+			if ( $prev && null !== $prev['score'] ) {
+				/* translators: %s: nota anterior */
+				$extra = ' ' . sprintf( __( '(antes: %s)', 'cead-acad' ), $fmt( $prev['score'] ) );
+			}
+			if ( $subject_new ) {
+				$extra .= "\n" . __( '⚠️ La materia es nueva, se va a crear.', 'cead-acad' );
+			}
+
+			$this->store->set_state( $phone, 'ia_staff_confirm', [
+				'kind'         => 'nota',
+				'student_id'   => (int) $student['id'],
+				'student_name' => (string) $student['name'],
+				'course_id'    => $course_id,
+				'subject_id'   => $subject_id,
+				'subject_name' => $subject_name,
+				'subject_new'  => $subject_new ? 1 : 0,
+				'period'       => $period,
+				'score'        => $score,
+				'comments'     => trim( (string) ( $args['comentario'] ?? '' ) ),
+			] );
+			$this->send(
+				$phone,
+				sprintf(
+					/* translators: 1: alumno, 2: curso, 3: materia, 4: periodo, 5: nota, 6: aclaraciones */
+					__( "📝 *Cargar nota* — propuesta de CEADI\nAlumno/a: *%1\$s*\nCurso: *%2\$s*\nMateria: *%3\$s*\nPeriodo: *%4\$s*\nNota: *%5\$s*%6\$s\n\n*1.* ✅ Aceptar y guardar\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
+					$student['name'],
+					get_the_title( $course_id ),
+					$subject_name,
+					$period,
+					$fmt( $score ),
+					$extra
+				),
+				'ia_staff_propose'
+			);
+			return true;
+		}
+
 		// crear_evento
 		if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_schedule' ) ) {
 			$this->send( $phone, $this->m( 'access_denied' ) );
@@ -810,6 +1111,7 @@ class Cead_Acad_WA_Engine {
 			if ( $kind === 'comunicado' ) { $this->execute_comunicado( $phone, $context, $identity ); }
 			elseif ( $kind === 'evento' ) { $this->execute_evento( $phone, $context, $identity ); }
 			elseif ( $kind === 'invitacion' ) { $this->execute_invitacion( $phone, $context, $identity ); }
+			elseif ( $kind === 'nota' ) { $this->execute_nota( $phone, $context, $identity ); }
 			else { $this->store->set_state( $phone, 'ia_home' ); }
 			return;
 		}
@@ -930,6 +1232,131 @@ class Cead_Acad_WA_Engine {
 		);
 		$this->send( $phone, $msg, 'invitation_created' );
 		$this->store->set_state( $phone, 'ia_home' );
+	}
+
+	/** Guarda la nota aprobada (re-chequea permisos y que el alumno sea del curso). */
+	private function execute_nota( $phone, $context, $identity ) {
+		$uid       = (int) ( $identity['user_id'] ?? 0 );
+		$course_id = (int) ( $context['course_id'] ?? 0 );
+		$student   = (int) ( $context['student_id'] ?? 0 );
+
+		if ( ! Cead_Acad_Grades_Writer::user_can_grade_course( $uid, $course_id ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		// El alumno tiene que seguir perteneciendo al curso (pudo cambiar entre
+		// la propuesta y la aprobación).
+		$in_course = array_map( 'intval', (array) Cead_Acad_Courses_Roster::users_in_course( $course_id ) );
+		if ( ! in_array( $student, $in_course, true ) ) {
+			$this->send( $phone, __( 'Ese alumno ya no figura en el curso, así que no cargué la nota.', 'cead-acad' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		// La materia nueva recién se crea acá, con la aprobación ya dada.
+		$subject_id = (int) ( $context['subject_id'] ?? 0 );
+		if ( ! $subject_id && ! empty( $context['subject_new'] ) ) {
+			$made       = Cead_Acad_Grades_Writer::match_subject( (string) ( $context['subject_name'] ?? '' ), $course_id, true );
+			$subject_id = (int) $made['term_id'];
+		}
+		if ( ! $subject_id ) {
+			$this->send( $phone, $this->m( 'error_generic' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		$res = Cead_Acad_Grades_Writer::record( [
+			'student_user_id' => $student,
+			'course_id'       => $course_id,
+			'subject_term_id' => $subject_id,
+			'period'          => (string) ( $context['period'] ?? '' ),
+			'score'           => $context['score'] ?? null,
+			'comments'        => (string) ( $context['comments'] ?? '' ),
+			'recorded_by'     => $uid,
+		] );
+
+		if ( is_wp_error( $res ) ) {
+			$this->send( $phone, '⚠️ ' . $res->get_error_message() );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		$fmt = static fn( $n ) => rtrim( rtrim( number_format( (float) $n, 2, ',', '' ), '0' ), ',' );
+		$this->send(
+			$phone,
+			sprintf(
+				/* translators: 1: nota, 2: alumno, 3: materia, 4: periodo */
+				__( '✅ Nota *%1$s* guardada para *%2$s* en %3$s (periodo %4$s). Ya se ve en su boletín.', 'cead-acad' ),
+				$fmt( $context['score'] ?? 0 ),
+				(string) ( $context['student_name'] ?? '' ),
+				(string) ( $context['subject_name'] ?? '' ),
+				(string) ( $context['period'] ?? '' )
+			),
+			'grade_recorded'
+		);
+		$this->store->set_state( $phone, 'ia_home' );
+	}
+
+	/** Notas ya cargadas de un curso (lectura para docentes y dirección). */
+	private function show_notas_curso( $phone, $identity, $args = [] ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_view_course_grades' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			return;
+		}
+		$c = $this->resolve_course_arg( $uid, $args['curso'] ?? '' );
+		if ( 'ok' !== $c['status'] ) {
+			$opts = $this->course_options_text( $c['options'] );
+			$this->send( $phone, $opts
+				? sprintf( /* translators: %s: cursos */ __( '¿De qué curso? Puede ser: %s', 'cead-acad' ), $opts )
+				: __( 'No tenés cursos asignados.', 'cead-acad' ) );
+			return;
+		}
+		$course_id = (int) $c['id'];
+		$rows      = Cead_Acad_Grades_Db::for_course( $course_id );
+		if ( ! $rows ) {
+			$this->send( $phone, sprintf(
+				/* translators: %s: curso */
+				__( 'Todavía no hay notas cargadas en *%s*.', 'cead-acad' ),
+				get_the_title( $course_id )
+			) );
+			return;
+		}
+
+		$f_sub = Cead_Acad_Grades_Writer::norm( (string) ( $args['materia'] ?? '' ) );
+		$f_per = Cead_Acad_Grades_Writer::norm_period( $args['periodo'] ?? '' );
+
+		$by_student = [];
+		foreach ( $rows as $r ) {
+			$sub_name = get_term( (int) $r['subject_term_id'] )->name ?? '—';
+			if ( '' !== $f_sub && false === strpos( Cead_Acad_Grades_Writer::norm( $sub_name ), $f_sub ) ) { continue; }
+			if ( '' !== $f_per && (string) $r['period'] !== $f_per ) { continue; }
+			$u   = get_user_by( 'id', (int) $r['student_user_id'] );
+			$key = $u ? $u->display_name : ( '#' . (int) $r['student_user_id'] );
+			$val = ( null !== $r['score'] ) ? rtrim( rtrim( number_format( (float) $r['score'], 2, ',', '' ), '0' ), ',' ) : (string) $r['letter'];
+			$by_student[ $key ][] = $sub_name . ' P' . $r['period'] . ': *' . $val . '*';
+		}
+		if ( ! $by_student ) {
+			$this->send( $phone, __( 'No hay notas que coincidan con ese filtro.', 'cead-acad' ) );
+			return;
+		}
+
+		ksort( $by_student );
+		$out = [ sprintf( /* translators: %s: curso */ __( '📊 *Notas de %s*', 'cead-acad' ), get_the_title( $course_id ) ) ];
+		$n   = 0;
+		foreach ( $by_student as $name => $items ) {
+			if ( $n++ >= 20 ) {
+				$out[] = sprintf(
+					/* translators: %d: cantidad restante */
+					__( '…y %d alumno/s más. Mirá el detalle completo en el panel.', 'cead-acad' ),
+					count( $by_student ) - 20
+				);
+				break;
+			}
+			$out[] = '• *' . $name . '* — ' . implode( ' · ', $items );
+		}
+		$this->send( $phone, implode( "\n", $out ), 'grades_course' );
 	}
 
 	/** Mapea texto libre de rol a un slug permitido por chat ('' si no coincide). */
@@ -2155,9 +2582,132 @@ class Cead_Acad_WA_Engine {
 	}
 
 	private function parse_datetime( $input ) {
-		$dt = DateTime::createFromFormat( 'Y-m-d H:i', $input );
-		if ( ! $dt || $dt->format( 'Y-m-d H:i' ) !== $input ) { return null; }
-		return $dt->format( 'Y-m-d H:i:s' );
+		return self::parse_human_datetime( $input, (int) current_time( 'timestamp' ) );
+	}
+
+	/** Aplica am/pm a una hora de 1 a 12. */
+	private static function apply_meridiem( $hour, $mer ) {
+		if ( 'pm' === $mer && $hour < 12 ) { return $hour + 12; }
+		if ( 'am' === $mer && 12 === $hour ) { return 0; }
+		return $hour;
+	}
+
+	/**
+	 * Interpreta una fecha/hora escrita por una persona y devuelve 'Y-m-d H:i:s'
+	 * (o null si no la entiende). Acepta desde el formato estricto que usan los
+	 * menús (`Y-m-d H:i`) hasta lenguaje natural en español: «mañana 10:00»,
+	 * «5/8 14:30», «el viernes a las 9», «hoy 15hs», «12/09/2026».
+	 *
+	 * Sin hora asume 08:00; sólo con hora asume hoy (o mañana si ya pasó); una
+	 * fecha sin año que ya quedó atrás se entiende como del año siguiente.
+	 *
+	 * Estática y pura (recibe el "ahora") para poder testearla sin WordPress.
+	 *
+	 * @param string   $input Texto de la persona.
+	 * @param int|null $now   Timestamp local de referencia; null = time().
+	 * @return string|null
+	 */
+	public static function parse_human_datetime( $input, $now = null ) {
+		$raw = trim( (string) $input );
+		if ( '' === $raw ) { return null; }
+		$now = ( null === $now ) ? time() : (int) $now;
+
+		// Formato estricto de los menús y del cron: se respeta tal cual.
+		$dt = DateTime::createFromFormat( 'Y-m-d H:i', $raw );
+		if ( $dt && $dt->format( 'Y-m-d H:i' ) === $raw ) {
+			return $dt->format( 'Y-m-d H:i:s' );
+		}
+		$dt = DateTime::createFromFormat( 'Y-m-d H:i:s', $raw );
+		if ( $dt && $dt->format( 'Y-m-d H:i:s' ) === $raw ) {
+			return $raw;
+		}
+
+		$s = self::normalize_text( $raw );
+		$s = str_replace( [ ',', ';' ], ' ', $s );
+
+		$hour = null;
+		$min  = 0;
+
+		// «14:30», «14.30», «2:30 pm»
+		if ( preg_match( '/\b(\d{1,2})[:.](\d{2})\s*(am|pm)?/', $s, $m ) ) {
+			$h  = (int) $m[1];
+			$mi = (int) $m[2];
+			if ( $h <= 23 && $mi <= 59 ) {
+				$hour = empty( $m[3] ) ? $h : self::apply_meridiem( $h, $m[3] );
+				$min  = $mi;
+				$s    = str_replace( $m[0], ' ', $s );
+			}
+		}
+		// «a las 9», «9 hs», «7pm»
+		if ( null === $hour && preg_match( '/(?:a\s+las\s+(\d{1,2})|\b(\d{1,2})\s*(am|pm|hs|hrs|horas?)\b)/', $s, $m ) ) {
+			$h   = (int) ( '' !== $m[1] ? $m[1] : $m[2] );
+			$mer = $m[3] ?? '';
+			if ( $h <= 23 ) {
+				$hour = ( 'am' === $mer || 'pm' === $mer ) ? self::apply_meridiem( $h, $mer ) : $h;
+				$s    = str_replace( $m[0], ' ', $s );
+			}
+		}
+
+		// Había algo con pinta de hora pero fuera de rango («25:00», «99:99»):
+		// preferimos no entender antes que agendar a una hora inventada.
+		if ( null === $hour && preg_match( '/\d{1,2}\s*[:.]\s*\d{1,2}/', $s ) ) {
+			return null;
+		}
+
+		$today = date( 'Y-m-d', $now );
+		$date  = null;
+
+		// «5/8», «05-08-2026», «12/09/26»
+		if ( preg_match( '/\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/', $s, $m ) ) {
+			$d       = (int) $m[1];
+			$mo      = (int) $m[2];
+			$has_year = isset( $m[3] ) && '' !== $m[3];
+			$y       = $has_year ? (int) $m[3] : (int) date( 'Y', $now );
+			if ( $y < 100 ) { $y += 2000; }
+			if ( checkdate( $mo, $d, $y ) ) {
+				$date = sprintf( '%04d-%02d-%02d', $y, $mo, $d );
+				// Sin año explícito y ya pasó → se entiende el año que viene.
+				if ( ! $has_year && $date < $today ) {
+					$date = sprintf( '%04d-%02d-%02d', $y + 1, $mo, $d );
+				}
+			}
+		}
+		// «hoy», «mañana», «pasado mañana»
+		if ( null === $date ) {
+			if ( preg_match( '/\bpasado\s+manana\b/', $s ) ) {
+				$date = date( 'Y-m-d', strtotime( '+2 days', $now ) );
+			} elseif ( preg_match( '/\bmanana\b/', $s ) ) {
+				$date = date( 'Y-m-d', strtotime( '+1 day', $now ) );
+			} elseif ( preg_match( '/\bhoy\b/', $s ) ) {
+				$date = $today;
+			}
+		}
+		// Día de la semana: siempre el próximo (si es hoy, la semana que viene).
+		if ( null === $date ) {
+			$days = [ 'lunes' => 1, 'martes' => 2, 'miercoles' => 3, 'jueves' => 4, 'viernes' => 5, 'sabado' => 6, 'domingo' => 7 ];
+			foreach ( $days as $name => $iso ) {
+				if ( preg_match( '/\b' . $name . '\b/', $s ) ) {
+					$ahead = ( $iso - (int) date( 'N', $now ) + 7 ) % 7;
+					if ( 0 === $ahead ) { $ahead = 7; }
+					$date = date( 'Y-m-d', strtotime( '+' . $ahead . ' days', $now ) );
+					break;
+				}
+			}
+		}
+
+		if ( null === $date && null === $hour ) { return null; }
+
+		if ( null === $date ) {
+			// Sólo hora: hoy, o mañana si esa hora ya pasó.
+			$date = $today;
+			if ( sprintf( '%02d:%02d', $hour, $min ) <= date( 'H:i', $now ) ) {
+				$date = date( 'Y-m-d', strtotime( '+1 day', $now ) );
+			}
+		}
+		if ( null === $hour ) { $hour = 8; $min = 0; }
+		if ( $hour > 23 || $min > 59 ) { return null; }
+
+		return sprintf( '%s %02d:%02d:00', $date, $hour, $min );
 	}
 
 	private function m( $key ) {
@@ -2225,7 +2775,7 @@ class Cead_Acad_WA_Engine {
 		return array_values( array_unique( $hits ) );
 	}
 
-	private function normalize_text( $s ) {
+	private static function normalize_text( $s ) {
 		$s = function_exists( 'mb_strtolower' ) ? mb_strtolower( (string) $s, 'UTF-8' ) : strtolower( (string) $s );
 		return strtr( $s, [ 'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n' ] );
 	}
