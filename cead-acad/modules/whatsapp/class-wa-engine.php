@@ -79,6 +79,10 @@ class Cead_Acad_WA_Engine {
 				if ( $text !== '' ) {
 					$body  = sanitize_textarea_field( $text );
 					$media = null; // ya es texto: los handlers lo tratan normal.
+					// La IA recibe la transcripción, no el audio. Sin esta marca no
+					// tiene forma de saber que hubo una nota de voz, y termina
+					// negando que pueda escucharlas.
+					$this->from_voice = true;
 				} else {
 					$this->outbox = [];
 					$this->send( $phone, $this->m( 'voice_unavailable' ), 'voice_unavailable' );
@@ -675,6 +679,9 @@ class Cead_Acad_WA_Engine {
 	/** Cache por request de la ficha de contexto (una petición = un mensaje). */
 	private $ai_ctx_cache = [];
 
+	/** El mensaje de este turno llegó como nota de voz y fue transcripto. */
+	private $from_voice = false;
+
 	/**
 	 * Cursos que la persona puede gestionar: null = todos (dirección/secretaría),
 	 * o la lista de IDs donde está inscripta o figura como tutor/a (docente).
@@ -751,11 +758,19 @@ class Cead_Acad_WA_Engine {
 		return $ctx;
 	}
 
+	/** Marca de este turno: si el mensaje llegó hablado, la IA tiene que saberlo. */
+	private function ai_channel_note() {
+		if ( ! $this->from_voice ) { return ''; }
+		return "\n\nEste mensaje llegó como NOTA DE VOZ y el sistema lo transcribió: lo que leés es la transcripción. "
+			. "Si te preguntan si escuchás audios, la respuesta es sí. "
+			. "La transcripción puede traer errores de palabras: si algo no cierra, pedí que lo aclaren.";
+	}
+
 	/** Ficha del usuario + la planilla que mandó recién, si sigue en memoria. */
 	private function ai_context_with_sheet( $identity, $phone ) {
 		$ctx   = $this->ai_user_context( $identity );
 		$sheet = Cead_Acad_Grades_Sheet::recall( $phone );
-		if ( ! $sheet || empty( $sheet['rows'] ) ) { return $ctx; }
+		if ( ! $sheet || empty( $sheet['rows'] ) ) { return $ctx . $this->ai_channel_note(); }
 
 		$ctx .= "\n\n[PLANILLA QUE ACABA DE ENVIAR]\n"
 			. ( ! empty( $sheet['course_id'] ) ? 'Curso: ' . get_the_title( (int) $sheet['course_id'] ) . "\n" : '' )
@@ -764,7 +779,7 @@ class Cead_Acad_WA_Engine {
 			. 'La escala del colegio va de 0 a ' . Cead_Acad_Grades_Writer::fmt( Cead_Acad_Grades_Writer::score_max() )
 			. ' y se aprueba desde ' . Cead_Acad_Grades_Writer::fmt( Cead_Acad_Grades_Writer::score_pass() ) . '. '
 			. 'Es un archivo de trabajo: no está guardado en el sistema salvo que lo carguen.';
-		return $ctx;
+		return $ctx . $this->ai_channel_note();
 	}
 
 	/**
