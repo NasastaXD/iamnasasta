@@ -25,13 +25,83 @@ class Cead_Acad_Grades_Writer {
 		return [ '1', '2', '3', '4', 'Final' ];
 	}
 
-	/** Nota máxima de la escala (por si el colegio usa 1-5, 1-10, 1-100). */
+	/**
+	 * Nota máxima de la escala. Default 5: es la escala de la educación media
+	 * paraguaya (1 a 5). Configurable por si la institución usa otra.
+	 */
 	public static function score_max() {
-		$m = (float) get_option( 'cead_acad_grades_score_max', 100 );
-		return ( $m > 0 && $m <= 999.99 ) ? $m : 100.0;
+		$m = (float) get_option( 'cead_acad_grades_score_max', 5 );
+		return ( $m > 0 && $m <= 999.99 ) ? $m : 5.0;
+	}
+
+	/** Nota mínima que se considera aprobada (default 2 en la escala de 5). */
+	public static function score_pass() {
+		$p = (float) get_option( 'cead_acad_grades_score_pass', 2 );
+		return ( $p > 0 && $p <= self::score_max() ) ? $p : 2.0;
+	}
+
+	/**
+	 * Bandas de porcentaje de logro → nota, de mayor a menor.
+	 * El default sigue la práctica habitual en Paraguay (60 % para aprobar);
+	 * cada institución puede ajustarlo con la opción `cead_acad_grades_scale_bands`.
+	 *
+	 * @return array<int,array{0:float,1:float}> [ [mínimo %, nota], ... ]
+	 */
+	public static function scale_bands() {
+		$raw = get_option( 'cead_acad_grades_scale_bands', '' );
+		if ( is_array( $raw ) && $raw ) {
+			$bands = [];
+			foreach ( $raw as $b ) {
+				if ( ! is_array( $b ) || count( $b ) < 2 ) { continue; }
+				$bands[] = [ (float) $b[0], (float) $b[1] ];
+			}
+			if ( $bands ) {
+				usort( $bands, static fn( $a, $b ) => $b[0] <=> $a[0] );
+				return $bands;
+			}
+		}
+		return [ [ 90.0, 5.0 ], [ 80.0, 4.0 ], [ 70.0, 3.0 ], [ 60.0, 2.0 ], [ 0.0, 1.0 ] ];
+	}
+
+	/** Porcentaje de logro → nota de la escala. null si el dato no sirve. */
+	public static function percent_to_score( $percent ) {
+		if ( ! is_numeric( $percent ) ) { return null; }
+		$p = (float) $percent;
+		if ( $p < 0 || $p > 100 ) { return null; }
+		foreach ( self::scale_bands() as $band ) {
+			if ( $p >= $band[0] ) { return (float) $band[1]; }
+		}
+		return null;
+	}
+
+	/**
+	 * Puntaje obtenido sobre el total → porcentaje.
+	 * Rechaza sacar más puntos que el total (el error de tipeo más común).
+	 */
+	public static function points_to_percent( $obtained, $total ) {
+		if ( ! is_numeric( $obtained ) || ! is_numeric( $total ) ) { return null; }
+		$o = (float) $obtained;
+		$t = (float) $total;
+		if ( $t <= 0 || $o < 0 || $o > $t ) { return null; }
+		return round( $o / $t * 100, 2 );
+	}
+
+	/** Cuánto falta para aprobar, en porcentaje. Para responderle al alumnado. */
+	public static function percent_needed_to_pass() {
+		$pass = self::score_pass();
+		$min  = null;
+		foreach ( self::scale_bands() as $band ) {
+			if ( $band[1] >= $pass ) { $min = $band[0]; }
+		}
+		return $min;
 	}
 
 	/* ----------------------------------------------------------------- puras */
+
+	/** Número legible: sin decimales inútiles y con coma decimal. */
+	public static function fmt( $n ) {
+		return rtrim( rtrim( number_format( (float) $n, 2, ',', '' ), '0' ), ',' );
+	}
 
 	/** Minúsculas, sin acentos y con espacios colapsados, para comparar nombres. */
 	public static function norm( $s ) {
@@ -163,8 +233,17 @@ class Cead_Acad_Grades_Writer {
 			if ( $score < 0 || $score > $max ) {
 				return new WP_Error(
 					'cead_grade_score',
-					sprintf( /* translators: %s: nota máxima */ __( 'La nota tiene que estar entre 0 y %s.', 'cead-acad' ), (string) $max )
+					sprintf(
+						/* translators: %s: nota máxima de la escala */
+						__( 'Esa nota está fuera de la escala del colegio (0 a %s). Si estás usando porcentaje, decímelo así lo convierto.', 'cead-acad' ),
+						self::fmt( $max )
+					)
 				);
+			}
+			// Failsafe: en una escala chica (1 a 5), un número como 45 u 85 casi
+			// siempre es un porcentaje o un puntaje escrito por error como nota.
+			if ( $max <= 10 && $score > $max ) {
+				return new WP_Error( 'cead_grade_score', __( 'Esa nota parece un porcentaje, no una nota.', 'cead-acad' ) );
 			}
 		}
 

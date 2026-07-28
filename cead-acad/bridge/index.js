@@ -314,14 +314,22 @@ async function connectToWhatsApp() {
             const imageMsg = msg.message?.imageMessage;
             // Nota de voz (ptt) o audio. WhatsApp manda audioMessage en ambos casos.
             const audioMsg = msg.message?.audioMessage;
+            // Planilla (Excel/CSV) que manda un docente para cargar notas.
+            const docMsg   = msg.message?.documentMessage
+                          || msg.message?.documentWithCaptionMessage?.message?.documentMessage;
             const body = msg.message?.conversation
                       || msg.message?.extendedTextMessage?.text
                       || imageMsg?.caption
+                      || docMsg?.caption
+                      || msg.message?.documentWithCaptionMessage?.message?.documentMessage?.caption
                       || '';
 
             let media = imageMsg ? await downloadImage( msg, imageMsg ) : null;
             if ( ! media && audioMsg ) {
                 media = await downloadAudio( msg, audioMsg );
+            }
+            if ( ! media && docMsg ) {
+                media = await downloadDocument( msg, docMsg );
             }
             // En audio damos más tiempo: transcripción + IA tardan más que un texto.
             const isAudio = !! ( media && typeof media.mime === 'string' && media.mime.startsWith( 'audio' ) );
@@ -466,6 +474,60 @@ async function downloadAudio( msg, audioMsg ) {
         };
     } catch ( err ) {
         console.error( '[CaagBridge] Error descargando audio:', err.message );
+        return null;
+    }
+}
+
+// Descarga una planilla entrante (Excel/CSV) para que WordPress la interprete
+// y cargue las notas. Se pasa en base64 igual que las imágenes; WordPress la
+// procesa y la descarta, no la archiva.
+//
+// El .xls viejo (binario, Excel 97-2003) queda fuera a propósito: el lector de
+// WordPress trabaja sobre el formato xlsx (zip + XML) y no puede abrirlo.
+async function downloadDocument( msg, docMsg ) {
+    const allowed = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'application/vnd.ms-excel',                                         // .xls y algunos .csv mal etiquetados
+        'text/csv',
+        'text/plain',
+        'text/comma-separated-values',
+        'application/csv',
+    ];
+    const baseMime = ( docMsg.mimetype || '' ).split( ';' )[ 0 ].trim().toLowerCase();
+    const name     = ( docMsg.fileName || '' ).toLowerCase();
+    const extOk    = name.endsWith( '.xlsx' ) || name.endsWith( '.csv' );
+
+    // Vale por extensión o por mime: WhatsApp etiqueta los adjuntos de forma
+    // muy despareja según el celular que los mande.
+    if ( ! extOk && ! allowed.includes( baseMime ) ) {
+        console.warn( `[CaagBridge] Documento ignorado (${ baseMime || 'sin mime' } · ${ name || 'sin nombre' }).` );
+        return null;
+    }
+    if ( name.endsWith( '.xls' ) ) {
+        console.warn( '[CaagBridge] .xls antiguo: hay que guardarlo como .xlsx.' );
+        return { unsupported: 'xls', filename: docMsg.fileName || 'planilla.xls' };
+    }
+
+    try {
+        const buffer = await downloadMediaMessage(
+            msg,
+            'buffer',
+            {},
+            { logger, reuploadRequest: sock.updateMediaMessage }
+        );
+
+        if ( ! buffer || buffer.length > 8 * 1024 * 1024 ) {
+            console.warn( '[CaagBridge] Planilla omitida (vacía o mayor a 8 MB).' );
+            return null;
+        }
+
+        return {
+            mime:        baseMime || ( name.endsWith( '.csv' ) ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ),
+            data_base64: buffer.toString( 'base64' ),
+            filename:    docMsg.fileName || `planilla-${ Date.now() }.xlsx`,
+        };
+    } catch ( err ) {
+        console.error( '[CaagBridge] Error descargando planilla:', err.message );
         return null;
     }
 }

@@ -19,6 +19,7 @@ class GradesWriterTest extends TestCase {
 		];
 	}
 
+	/** Nota 4 sobre la escala paraguaya de 1 a 5. */
 	private function base() {
 		return [
 			'student_user_id' => 1,
@@ -26,7 +27,7 @@ class GradesWriterTest extends TestCase {
 			'subject_term_id' => 3,
 			'recorded_by'     => 9,
 			'period'          => '2',
-			'score'           => 8,
+			'score'           => 4,
 		];
 	}
 
@@ -75,8 +76,64 @@ class GradesWriterTest extends TestCase {
 	public function test_validacion_caso_feliz() {
 		$v = Cead_Acad_Grades_Writer::validate( $this->base() );
 		$this->assertIsArray( $v );
-		$this->assertSame( 8.0, $v['score'] );
+		$this->assertSame( 4.0, $v['score'] );
 		$this->assertSame( '2', $v['period'] );
+	}
+
+	/** En Paraguay la educación media califica del 1 al 5. */
+	public function test_la_escala_por_defecto_es_la_paraguaya() {
+		$this->assertSame( 5.0, Cead_Acad_Grades_Writer::score_max() );
+		$this->assertSame( 2.0, Cead_Acad_Grades_Writer::score_pass() );
+	}
+
+	/**
+	 * El error más típico: dictar el porcentaje como si fuera la nota.
+	 * En una escala de 5, un 85 tiene que rebotar siempre.
+	 */
+	public function test_rechaza_un_porcentaje_dictado_como_nota() {
+		$this->assertTrue( is_wp_error( Cead_Acad_Grades_Writer::validate( array_merge( $this->base(), [ 'score' => 85 ] ) ) ) );
+		$this->assertTrue( is_wp_error( Cead_Acad_Grades_Writer::validate( array_merge( $this->base(), [ 'score' => 6 ] ) ) ) );
+	}
+
+	public function test_convierte_porcentaje_a_nota() {
+		$casos = [ 100 => 5.0, 95 => 5.0, 90 => 5.0, 89 => 4.0, 80 => 4.0, 75 => 3.0, 70 => 3.0, 65 => 2.0, 60 => 2.0, 59 => 1.0, 0 => 1.0 ];
+		foreach ( $casos as $pct => $esperado ) {
+			$this->assertSame( $esperado, Cead_Acad_Grades_Writer::percent_to_score( $pct ), "falló con {$pct}%" );
+		}
+	}
+
+	public function test_porcentaje_invalido_no_da_nota() {
+		$this->assertNull( Cead_Acad_Grades_Writer::percent_to_score( -1 ) );
+		$this->assertNull( Cead_Acad_Grades_Writer::percent_to_score( 101 ) );
+		$this->assertNull( Cead_Acad_Grades_Writer::percent_to_score( 'ocho' ) );
+	}
+
+	public function test_convierte_puntaje_a_porcentaje() {
+		$this->assertSame( 75.0, Cead_Acad_Grades_Writer::points_to_percent( 45, 60 ) );
+		$this->assertSame( 100.0, Cead_Acad_Grades_Writer::points_to_percent( 60, 60 ) );
+		$this->assertSame( 0.0, Cead_Acad_Grades_Writer::points_to_percent( 0, 60 ) );
+	}
+
+	/** Failsafe: nadie saca más puntos que el total, es un error de tipeo. */
+	public function test_rechaza_puntajes_imposibles() {
+		$this->assertNull( Cead_Acad_Grades_Writer::points_to_percent( 70, 60 ) );
+		$this->assertNull( Cead_Acad_Grades_Writer::points_to_percent( -5, 60 ) );
+		$this->assertNull( Cead_Acad_Grades_Writer::points_to_percent( 45, 0 ) );
+	}
+
+	/** El circuito completo: «45 de 60» tiene que terminar en un 3. */
+	public function test_de_puntaje_a_nota_de_punta_a_punta() {
+		$pct = Cead_Acad_Grades_Writer::points_to_percent( 45, 60 );
+		$this->assertSame( 3.0, Cead_Acad_Grades_Writer::percent_to_score( $pct ) );
+	}
+
+	public function test_respeta_bandas_configuradas_por_la_institucion() {
+		cead_test_set_option( 'cead_acad_grades_scale_bands', [ [ 85, 5 ], [ 70, 4 ], [ 50, 3 ], [ 0, 1 ] ] );
+		$this->assertSame( 5.0, Cead_Acad_Grades_Writer::percent_to_score( 90 ) );
+		$this->assertSame( 4.0, Cead_Acad_Grades_Writer::percent_to_score( 75 ) );
+		$this->assertSame( 3.0, Cead_Acad_Grades_Writer::percent_to_score( 55 ) );
+		$this->assertSame( 1.0, Cead_Acad_Grades_Writer::percent_to_score( 20 ) );
+		cead_test_reset_options();
 	}
 
 	/**
@@ -95,7 +152,7 @@ class GradesWriterTest extends TestCase {
 			'sin autor'           => [ [ 'recorded_by' => 0 ] ],
 			'periodo ilegible'    => [ [ 'period' => 'asdf' ] ],
 			'nota negativa'       => [ [ 'score' => -1 ] ],
-			'nota fuera de escala'=> [ [ 'score' => 101 ] ],
+			'nota fuera de escala'=> [ [ 'score' => 5.5 ] ],
 			'nota no numérica'    => [ [ 'score' => 'ocho' ] ],
 			'sin nota ni letra'   => [ [ 'score' => null, 'letter' => '' ] ],
 		];
@@ -110,7 +167,7 @@ class GradesWriterTest extends TestCase {
 		$this->assertSame( 8, strlen( $v['letter'] ) );
 	}
 
-	/** La escala es configurable: con 1-10, un 85 tiene que rebotar. */
+	/** La escala es configurable: si la institución usa 1-10, un 9 tiene que entrar. */
 	public function test_respeta_la_escala_configurada() {
 		cead_test_set_option( 'cead_acad_grades_score_max', 10 );
 		$this->assertTrue( is_wp_error( Cead_Acad_Grades_Writer::validate( array_merge( $this->base(), [ 'score' => 85 ] ) ) ) );
