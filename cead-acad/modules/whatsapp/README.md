@@ -85,8 +85,7 @@ El token compartido y la URL del bridge se configuran en
 pendientes** (con vencimiento), **carné digital**, sitio web, calendario,
 contacto, lectura de comunicados, reporte anónimo/confidencial (cifrado +
 código de seguimiento + reenvío a un número responsable), sugerencias, FAQ,
-tablón del Consejo + propuestas, **trámites** (constancia de alumno regular,
-justificar inasistencia con foto opcional del certificado), recordatorios y
+tablón del Consejo + propuestas, recordatorios y
 avisos opt-in (eventos, notas nuevas y tareas por vencer), **"Mi panel web"** y
 **Ajustes** (ver sus datos, cambiar nombre, solicitar cambio de número a
 Secretaría, alternar modo IA/menú y avisos). `BAJA` para no recibir más.
@@ -113,8 +112,10 @@ escriban el mensaje.
 **Atajos rápidos (staff):** `-AA <texto>` publica un anuncio para todos;
 `-AE <texto>` agrega un evento (el bot pregunta la fecha).
 
-**Imágenes:** el bot recibe imágenes y, en un comunicado/anuncio, las **replica**
-a la audiencia y las deja como imagen destacada del comunicado en el panel.
+**Imágenes:** el bot recibe imágenes y las adjunta como imagen destacada tanto
+en comunicados/anuncios (que además **replica** a la audiencia) como en
+artículos del sitio publicados desde WhatsApp. Funciona tanto en modo menú
+como en modo IA (asistente en lenguaje natural).
 
 ## Tablas (`wp_cead_acad_wa_*`)
 

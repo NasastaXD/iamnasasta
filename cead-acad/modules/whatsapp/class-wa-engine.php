@@ -226,13 +226,13 @@ class Cead_Acad_WA_Engine {
 			}
 		}
 		switch ( $state ) {
-			case 'idle':                 $this->idle( $phone, $name, $identity, $body ); break;
+			case 'idle':                 $this->idle( $phone, $name, $identity, $body, $media ); break;
 			case 'menu_pending':         $this->menu_pending( $phone, $identity, $context ); break;
 			case 'role_chooser':         $this->role_chooser( $phone, $lc, $context, $identity ); break;
-			case 'ia_home':              $this->ia_home( $phone, $body, $lc, $identity ); break;
+			case 'ia_home':              $this->ia_home( $phone, $body, $lc, $identity, $media ); break;
 			case 'ia_staff_confirm':     $this->ia_staff_confirm( $phone, $lc, $context, $identity ); break;
 			// Alumnado
-			case 'student_menu':         $this->student_menu( $phone, $lc, $identity, $body ); break;
+			case 'student_menu':         $this->student_menu( $phone, $lc, $identity, $body, $media ); break;
 			case 'stu_report_type':      $this->report_type( $phone, $lc ); break;
 			case 'stu_report_cat':       $this->report_cat( $phone, $lc, $context ); break;
 			case 'stu_report_body':      $this->report_body( $phone, $body, $lc, $context ); break;
@@ -244,9 +244,6 @@ class Cead_Acad_WA_Engine {
 			case 'stu_settings_menu':    $this->settings_menu( $phone, $lc, $identity ); break;
 			case 'stu_settings_name':    $this->settings_name( $phone, $body, $lc, $identity ); break;
 			case 'stu_settings_phone':   $this->settings_phone( $phone, $body, $lc, $identity ); break;
-			case 'stu_constancia_motivo': $this->constancia_motivo( $phone, $body, $lc, $identity ); break;
-			case 'stu_justif_fecha':     $this->justif_fecha( $phone, $body, $lc, $context ); break;
-			case 'stu_justif_motivo':    $this->justif_motivo( $phone, $body, $lc, $context, $identity, $media ); break;
 			// Staff
 			case 'staff_menu':           $this->staff_menu( $phone, $lc, $context, $identity ); break;
 			case 'staff_comm_compose':   $this->comm_compose( $phone, $body, $lc, $media ); break;
@@ -259,7 +256,7 @@ class Cead_Acad_WA_Engine {
 			case 'staff_event_date':     $this->event_date( $phone, $body, $lc, $context, $identity ); break;
 			case 'staff_article_menu':   $this->article_menu( $phone, $lc, $identity ); break;
 			case 'staff_article_title':  $this->article_title( $phone, $body, $lc ); break;
-			case 'staff_article_body':   $this->article_body( $phone, $body, $lc, $context, $identity ); break;
+			case 'staff_article_body':   $this->article_body( $phone, $body, $lc, $context, $identity, $media ); break;
 			case 'staff_article_edit_pick': $this->article_edit_pick( $phone, $lc, $context ); break;
 			case 'staff_article_edit_body': $this->article_edit_body( $phone, $body, $lc, $context ); break;
 			case 'staff_article_del_pick':  $this->article_del_pick( $phone, $lc, $context ); break;
@@ -310,7 +307,7 @@ class Cead_Acad_WA_Engine {
 	}
 
 	// ---------------------------------------------------------------- idle
-	private function idle( $phone, $name, $identity, $body = '' ) {
+	private function idle( $phone, $name, $identity, $body = '', $media = null ) {
 		$is_staff = (bool) $this->available_role_menus( $identity );
 		$mode     = $this->mode_for( $phone );
 
@@ -318,7 +315,7 @@ class Cead_Acad_WA_Engine {
 		// lo maneja la IA; el menú (lo que corresponda al rol) queda a un «menú».
 		if ( $mode === 'ia' && $this->ai_enabled() ) {
 			$this->store->set_state( $phone, 'ia_home' );
-			if ( $this->looks_like_query( $body ) && $this->ai_try( $phone, $body, $identity ) ) {
+			if ( $this->looks_like_query( $body ) && $this->ai_try( $phone, $body, $identity, 'ia_home', $media ) ) {
 				return;
 			}
 			$greeting = $is_staff
@@ -505,7 +502,7 @@ class Cead_Acad_WA_Engine {
 	}
 
 	// ---------------------------------------------------------------- alumnado
-	private function student_menu( $phone, $lc, $identity, $body = '' ) {
+	private function student_menu( $phone, $lc, $identity, $body = '', $media = null ) {
 		switch ( $lc ) {
 			case '1':  $this->show_horario( $phone, $identity ); break;
 			case '2':  $this->show_links( $phone ); break;
@@ -522,8 +519,6 @@ class Cead_Acad_WA_Engine {
 			case '13': $this->show_notas( $phone, $identity ); break;
 			case '14': $this->show_tareas( $phone, $identity ); break;
 			case '15': $this->show_carne( $phone, $identity ); break;
-			case '16': $this->constancia_start( $phone, $identity ); break;
-			case '17': $this->justificativo_start( $phone, $identity ); break;
 			case '0': case 'salir': case 'adios': case 'adiós':
 				$this->store->reset_state( $phone );
 				if ( class_exists( 'Cead_Acad_WA_AI' ) ) { Cead_Acad_WA_AI::clear_memory( $phone ); }
@@ -537,7 +532,7 @@ class Cead_Acad_WA_Engine {
 			default:
 				// En modo asistente, el texto libre lo maneja la IA. En modo menú, no.
 				if ( $this->mode_for( $phone ) === 'ia' ) {
-					if ( $this->ai_try( $phone, ( $body !== '' ? $body : $lc ), $identity ) ) {
+					if ( $this->ai_try( $phone, ( $body !== '' ? $body : $lc ), $identity, 'ia_home', $media ) ) {
 						return;
 					}
 					if ( $this->ai_failed() ) {
@@ -561,14 +556,14 @@ class Cead_Acad_WA_Engine {
 	 * personal. El texto libre va a la IA; "menú" / un número abren el menú que
 	 * corresponda al rol (alumnado → menú de alumno; personal → su panel).
 	 */
-	private function ia_home( $phone, $body, $lc, $identity ) {
+	private function ia_home( $phone, $body, $lc, $identity, $media = null ) {
 		if ( in_array( $lc, [ 'menu', 'menú', 'opciones', 'panel', 'inicio' ], true ) || ctype_digit( $lc ) ) {
 			// El menú arranca como mensaje nuevo; de ahí en más se edita el ancla.
 			$this->force_new = true;
 			$this->show_root_menu( $phone, $identity );
 			return;
 		}
-		if ( $this->ai_try( $phone, ( $body !== '' ? $body : $lc ), $identity ) ) {
+		if ( $this->ai_try( $phone, ( $body !== '' ? $body : $lc ), $identity, 'ia_home', $media ) ) {
 			return;
 		}
 		// Fallo TÉCNICO de la IA (key/endpoint/red): no culpar al usuario con un
@@ -600,7 +595,7 @@ class Cead_Acad_WA_Engine {
 	 * responde ella misma (charla); solo dispara una función del sistema cuando
 	 * de verdad hace falta. Devuelve true si lo manejó, false para caer al menú.
 	 */
-	private function ai_try( $phone, $text, $identity, $home_state = 'ia_home' ) {
+	private function ai_try( $phone, $text, $identity, $home_state = 'ia_home', $media = null ) {
 		if ( ! $this->ai_enabled() ) {
 			return false;
 		}
@@ -620,7 +615,7 @@ class Cead_Acad_WA_Engine {
 
 		// Acciones de gestión del staff: NO se ejecutan; se proponen y el menú aprueba.
 		if ( in_array( $action, [ 'enviar_comunicado', 'crear_evento', 'crear_invitacion', 'cargar_nota' ], true ) ) {
-			return $this->propose_staff_action( $phone, $action, $args, $reply, $identity );
+			return $this->propose_staff_action( $phone, $action, $args, $reply, $identity, $media );
 		}
 
 		// La IA decidió disparar una función: su "reply" es la transición y va primero.
@@ -648,8 +643,6 @@ class Cead_Acad_WA_Engine {
 				// Flujos guiados: mantienen el estado que fijan ellos mismos.
 				case 'reportar':      $this->in_ia = false; $this->report_start( $phone ); return true;
 				case 'escribir':      $this->in_ia = false; $this->suggestion_start( $phone ); return true;
-				case 'constancia':    $this->in_ia = false; $this->constancia_start( $phone, $identity ); return true;
-				case 'justificativo': $this->in_ia = false; $this->justificativo_start( $phone, $identity ); return true;
 				case 'consejo':       $this->in_ia = false; $this->council_open( $phone ); return true;
 				case 'ajustes':       $this->in_ia = false; $this->settings_open( $phone ); return true;
 				default:              $handled = false;
@@ -798,7 +791,7 @@ class Cead_Acad_WA_Engine {
 				'type'     => 'function',
 				'function' => [
 					'name'        => 'enviar_comunicado',
-					'description' => 'Proponer el envío de un comunicado por WhatsApp. NO se envía hasta que la persona lo apruebe.',
+					'description' => 'Proponer el envío de un comunicado por WhatsApp. NO se envía hasta que la persona lo apruebe. Si el mensaje vino acompañado de una foto, se adjunta sola al comunicado: no hace falta (ni es posible) pasarla como argumento.',
 					'parameters'  => [
 						'type'       => 'object',
 						'properties' => [
@@ -943,7 +936,7 @@ class Cead_Acad_WA_Engine {
 	}
 
 	/** Arma la propuesta de una acción de staff y la deja a la espera de aprobación. */
-	private function propose_staff_action( $phone, $action, $args, $reply, $identity ) {
+	private function propose_staff_action( $phone, $action, $args, $reply, $identity, $media = null ) {
 		$this->ia_turn = true; // propuesta conversacional → mensaje nuevo
 		$uid = (int) ( $identity['user_id'] ?? 0 );
 
@@ -965,17 +958,22 @@ class Cead_Acad_WA_Engine {
 				$this->store->set_state( $phone, 'ia_home' );
 				return true;
 			}
+			// Si mandó una foto junto con el pedido, se guarda ahora para poder
+			// reenviarla al aceptar (igual que en el flujo del menú numérico).
+			$image = $media ? $this->store_image( $media ) : null;
+
 			$labels = [ 'students' => __( 'Alumnado', 'cead-acad' ), 'staff' => __( 'Personal', 'cead-acad' ), 'all' => __( 'Todos', 'cead-acad' ) ];
 			$count  = (int) $this->broadcaster->count_for( $aud );
-			$this->store->set_state( $phone, 'ia_staff_confirm', [ 'kind' => 'comunicado', 'mensaje' => $mensaje, 'audiencia' => $aud ] );
+			$this->store->set_state( $phone, 'ia_staff_confirm', [ 'kind' => 'comunicado', 'mensaje' => $mensaje, 'audiencia' => $aud, 'image' => $image ] );
 			$this->send(
 				$phone,
 				sprintf(
-					/* translators: 1: audiencia, 2: cantidad de destinatarios, 3: texto del comunicado */
-					__( "📢 *Comunicado* — propuesta de CEADI\nPara: *%1\$s* (%2\$d)\n────────\n%3\$s\n────────\n\n*1.* ✅ Aceptar y enviar\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
+					/* translators: 1: audiencia, 2: cantidad de destinatarios, 3: texto del comunicado, 4: nota de imagen adjunta */
+					__( "📢 *Comunicado* — propuesta de CEADI\nPara: *%1\$s* (%2\$d)\n────────\n%3\$s\n────────%4\$s\n\n*1.* ✅ Aceptar y enviar\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
 					$labels[ $aud ],
 					$count,
-					$mensaje
+					$mensaje,
+					$image ? "\n📎 " . __( 'Con imagen adjunta.', 'cead-acad' ) : ''
 				),
 				'ia_staff_propose'
 			);
@@ -1247,11 +1245,12 @@ class Cead_Acad_WA_Engine {
 		}
 		$mensaje = (string) ( $context['mensaje'] ?? '' );
 		$aud     = (string) ( $context['audiencia'] ?? 'students' );
+		$image   = $context['image'] ?? null;
 		if ( $aud === 'all' && ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast_all' ) ) {
 			$aud = 'students';
 		}
-		$this->create_broadcast_post( $mensaje, $aud );
-		$res = $this->broadcaster->enqueue_for( $mensaje, $aud );
+		$this->create_broadcast_post( $mensaje, $aud, $image );
+		$res = $this->broadcaster->enqueue_for( $mensaje, $aud, $image );
 		if ( ! empty( $res['busy'] ) ) {
 			$this->send( $phone, $this->m( 'comm_busy' ) );
 		} elseif ( empty( $res['queued'] ) ) {
@@ -2312,80 +2311,6 @@ class Cead_Acad_WA_Engine {
 		$this->back_to_student( $phone );
 	}
 
-	/* ----------------------------------------------- trámites: constancia / justificativo */
-
-	// Constancia de alumno regular
-	private function constancia_start( $phone, $identity ) {
-		if ( ! (int) ( $identity['user_id'] ?? 0 ) ) {
-			$this->send( $phone, $this->m( 'academic_need_login' ) );
-			$this->back_to_student( $phone );
-			return;
-		}
-		$this->force_new = true;
-		$this->store->set_state( $phone, 'stu_constancia_motivo' );
-		$this->send( $phone, $this->m( 'constancia_prompt' ) . $this->cap_hint() );
-	}
-
-	private function constancia_motivo( $phone, $body, $lc, $identity ) {
-		if ( $this->is_cancel( $lc ) ) { $this->back_to_student( $phone ); return; }
-		$uid  = (int) ( $identity['user_id'] ?? 0 );
-		$who  = $uid ? ( get_userdata( $uid )->display_name ?? '' ) : '';
-		$text = sprintf(
-			"📄 *Solicitud de constancia de alumno regular*%s\nMotivo/uso: %s",
-			$who !== '' ? "\nAlumno/a: {$who}" : '',
-			trim( $body ) !== '' ? trim( $body ) : '(no especificado)'
-		);
-		$this->store->create_suggestion( $phone, $text, 'administracion' );
-		Cead_Acad_Audit::log( 'wa_constancia_requested', [ 'user_id' => $uid ?: null, 'payload' => [ 'phone' => $phone ] ] );
-		$this->send( $phone, $this->m( 'constancia_saved' ), 'constancia' );
-		$this->finish_capture( $phone, 'student' );
-	}
-
-	// Justificar inasistencia (con foto opcional del certificado)
-	private function justificativo_start( $phone, $identity ) {
-		if ( ! (int) ( $identity['user_id'] ?? 0 ) ) {
-			$this->send( $phone, $this->m( 'academic_need_login' ) );
-			$this->back_to_student( $phone );
-			return;
-		}
-		$this->force_new = true;
-		$this->store->set_state( $phone, 'stu_justif_fecha' );
-		$this->send( $phone, $this->m( 'justif_fecha_prompt' ) . $this->cap_hint() );
-	}
-
-	private function justif_fecha( $phone, $body, $lc, $context ) {
-		if ( $this->is_cancel( $lc ) ) { $this->back_to_student( $phone ); return; }
-		$fecha = trim( $body );
-		if ( $fecha === '' ) { $this->send( $phone, $this->m( 'justif_fecha_prompt' ) ); return; }
-		$this->store->set_state( $phone, 'stu_justif_motivo', [ 'fecha' => mb_substr( $fecha, 0, 60 ) ] );
-		$this->send( $phone, $this->m( 'justif_motivo_prompt' ) . $this->cap_hint() );
-	}
-
-	private function justif_motivo( $phone, $body, $lc, $context, $identity, $media = null ) {
-		if ( $this->is_cancel( $lc ) ) { $this->back_to_student( $phone ); return; }
-		$uid   = (int) ( $identity['user_id'] ?? 0 );
-		$who   = $uid ? ( get_userdata( $uid )->display_name ?? '' ) : '';
-		$fecha = (string) ( $context['fecha'] ?? '' );
-		// Foto opcional del certificado (se guarda en la biblioteca de medios).
-		$img_note = '';
-		if ( $media ) {
-			$image = $this->store_image( $media );
-			$img_note = $image && ! empty( $image['url'] ) ? "\n📎 Certificado adjunto: " . $image['url'] : "\n📎 (se intentó adjuntar una imagen pero no se pudo guardar)";
-		}
-		$motivo = trim( $body );
-		$text = sprintf(
-			"📝 *Justificativo de inasistencia*%s\nFecha(s): %s\nMotivo: %s%s",
-			$who !== '' ? "\nAlumno/a: {$who}" : '',
-			$fecha !== '' ? $fecha : '(no especificada)',
-			$motivo !== '' ? $motivo : '(sin detalle)',
-			$img_note
-		);
-		$this->store->create_suggestion( $phone, $text, 'administracion' );
-		Cead_Acad_Audit::log( 'wa_justificativo_submitted', [ 'user_id' => $uid ?: null, 'payload' => [ 'phone' => $phone, 'fecha' => $fecha, 'con_foto' => (bool) $media ] ] );
-		$this->send( $phone, $this->m( 'justif_saved' ), 'justificativo' );
-		$this->finish_capture( $phone, 'student' );
-	}
-
 	// ---------------------------------------------------------------- staff
 	private function staff_menu( $phone, $lc, $context, $identity ) {
 		if ( in_array( $lc, [ '0', 'salir', 'cancelar' ], true ) ) {
@@ -2573,7 +2498,7 @@ class Cead_Acad_WA_Engine {
 		$this->send( $phone, $this->m( 'article_body_prompt' ) );
 	}
 
-	private function article_body( $phone, $body, $lc, $context, $identity ) {
+	private function article_body( $phone, $body, $lc, $context, $identity, $media = null ) {
 		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
 		$pid = wp_insert_post( [
 			'post_type'    => 'post',
@@ -2583,6 +2508,12 @@ class Cead_Acad_WA_Engine {
 			'post_author'  => (int) ( $identity['user_id'] ?: 0 ),
 		], true );
 		if ( is_wp_error( $pid ) ) { $this->send( $phone, $this->m( 'error_generic' ) ); $this->reenter_staff( $phone ); return; }
+		if ( $media ) {
+			$image = $this->store_image( $media );
+			if ( $image && ! empty( $image['attachment_id'] ) ) {
+				set_post_thumbnail( $pid, (int) $image['attachment_id'] );
+			}
+		}
 		$this->send( $phone, $this->interp( $this->m( 'article_published' ), [ 'url' => get_permalink( $pid ) ] ), 'article_published' );
 		$this->reenter_staff( $phone );
 	}
@@ -3116,7 +3047,7 @@ class Cead_Acad_WA_Engine {
 	// --------------------------------------------------- filtro de lenguaje
 	/** Estados donde el usuario escribe texto libre que se guarda/reenvía. */
 	private function is_free_text_state( $state ) {
-		return in_array( $state, [ 'stu_report_body', 'stu_suggestion_body', 'stu_msg_body', 'stu_council_proposal', 'stu_settings_name', 'stu_constancia_motivo', 'stu_justif_motivo', 'staff_comm_compose' ], true );
+		return in_array( $state, [ 'stu_report_body', 'stu_suggestion_body', 'stu_msg_body', 'stu_council_proposal', 'stu_settings_name', 'staff_comm_compose' ], true );
 	}
 
 	/** Lista de palabras prohibidas configurable (una por línea o separadas por coma). */
@@ -3293,7 +3224,7 @@ class Cead_Acad_WA_Engine {
 
 	/** Comando "volver": sube un nivel de menú según el estado actual. */
 	private function go_back( $phone, $state, $identity ) {
-		$student_sub = [ 'stu_report_type', 'stu_report_cat', 'stu_report_body', 'stu_suggestion_body', 'stu_msg_to', 'stu_msg_body', 'stu_council_menu', 'stu_council_proposal', 'stu_settings_menu', 'stu_settings_name', 'stu_settings_phone', 'stu_constancia_motivo', 'stu_justif_fecha', 'stu_justif_motivo' ];
+		$student_sub = [ 'stu_report_type', 'stu_report_cat', 'stu_report_body', 'stu_suggestion_body', 'stu_msg_to', 'stu_msg_body', 'stu_council_menu', 'stu_council_proposal', 'stu_settings_menu', 'stu_settings_name', 'stu_settings_phone' ];
 		$staff_sub   = [
 			'staff_comm_compose', 'staff_comm_template', 'staff_comm_audience', 'staff_comm_when', 'staff_comm_confirm', 'staff_comm_schedule',
 			'staff_event_title', 'staff_event_date', 'staff_article_menu', 'staff_article_title', 'staff_article_body',

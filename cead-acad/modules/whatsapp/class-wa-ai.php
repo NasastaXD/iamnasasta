@@ -38,8 +38,6 @@ class Cead_Acad_WA_AI {
 			'contacto'      => 'dar los teléfonos y contactos del colegio',
 			'reportar'      => 'iniciar un reporte o denuncia (trámite guiado)',
 			'escribir'      => 'escribir un mensaje a Dirección, Consejo o Administración (trámite guiado)',
-			'constancia'    => 'iniciar una solicitud de constancia de alumno regular (trámite guiado)',
-			'justificativo' => 'justificar una inasistencia, con foto opcional del certificado (trámite guiado)',
 			'consejo'       => 'abrir el Consejo Estudiantil',
 			'recordatorios' => 'activar o desactivar los recordatorios de eventos',
 			'panel'         => 'dar el enlace al panel web del alumno',
@@ -314,7 +312,8 @@ Existís para lo del colegio: horarios, notas, comunicados, eventos, tareas, tr�
 
 # QUÉ PODÉS HACER
 Tenés herramientas conectadas al sistema real del colegio. Las que ves en cada conversación dependen del rol de quien te escribe: si una herramienta no aparece, esa persona no tiene ese permiso y la acción no existe para ella.
-Según el caso podés: consultar horarios, calendario, comunicados, tareas, notas y carné; iniciar trámites (reportes, mensajes a un encargado, constancias, justificativos); y para el personal, enviar comunicados, crear eventos, generar invitaciones, cargar calificaciones y ver métricas.
+Según el caso podés: consultar horarios, calendario, comunicados, tareas, notas y carné; iniciar trámites (reportes, mensajes a un encargado); y para el personal, enviar comunicados (con imagen adjunta si corresponde), crear eventos, generar invitaciones, cargar calificaciones, publicar artículos (con imagen adjunta si corresponde) y ver métricas.
+Trámites como constancias de alumno regular o justificativos de inasistencia NO se gestionan por WhatsApp: si te los piden, indicá con amabilidad que deben hacerse en persona en Administración/Dirección.
 Todo lo que MODIFICA datos se propone y lo confirma la persona con 1/2/3. Vos nunca ejecutás nada por tu cuenta.
 
 # VERDAD Y DATOS

@@ -157,6 +157,7 @@ class Cead_Acad_WA_Tables {
 		$old_menus  = [
 			$base . $tail,                                                          // pre-0.28 (sin Ajustes)
 			$base . "\n12. Ajustes" . $tail,                                        // 0.28 (con Ajustes, sin académico)
+			"*Menú CEAD*\n1. Horarios\n2. Sitio web\n3. Calendario de eventos\n4. Contacto\n5. Comunicados\n6. Reportar algo\n7. Sugerencias y quejas\n8. Preguntas frecuentes\n9. Consejo Estudiantil\n10. Recordatorios y avisos\n11. Mi panel web\n12. Ajustes\n13. Mis notas\n14. Tareas pendientes\n15. Mi carné digital\n16. Solicitar constancia\n17. Justificar inasistencia" . $tail, // 0.34–0.39 (con constancia/justificativo)
 		];
 		$current = (string) $wpdb->get_var( $wpdb->prepare( "SELECT content FROM {$t} WHERE msg_key = %s", 'student_menu' ) );
 		if ( in_array( $current, $old_menus, true ) ) {
@@ -241,7 +242,6 @@ class Cead_Acad_WA_Tables {
 			'sistema'       => __( 'Saludos y sistema', 'cead-acad' ),
 			'info'          => __( 'Información para alumnado', 'cead-acad' ),
 			'academico'     => __( 'Académico (notas, tareas, carné)', 'cead-acad' ),
-			'tramites'      => __( 'Trámites (constancia, justificativo)', 'cead-acad' ),
 			'reportes'      => __( 'Reportes', 'cead-acad' ),
 			'sugerencias'   => __( 'Sugerencias y Consejo', 'cead-acad' ),
 			'recordatorios' => __( 'Recordatorios', 'cead-acad' ),
@@ -286,12 +286,6 @@ class Cead_Acad_WA_Tables {
 			'tareas_header'       => [ 'academico', 'Tareas: encabezado' ],
 			'tareas_none'         => [ 'academico', 'Tareas: sin tareas pendientes' ],
 			'carne_link'          => [ 'academico', 'Carné: enlace al carné digital (usa {url})' ],
-			// Trámites
-			'constancia_prompt'   => [ 'tramites', 'Constancia: pedir motivo/uso' ],
-			'constancia_saved'    => [ 'tramites', 'Constancia: solicitud registrada' ],
-			'justif_fecha_prompt' => [ 'tramites', 'Justificativo: pedir fecha(s)' ],
-			'justif_motivo_prompt'=> [ 'tramites', 'Justificativo: pedir motivo (+ foto opcional)' ],
-			'justif_saved'        => [ 'tramites', 'Justificativo: registrado' ],
 			// Reportes
 			'report_type_prompt'     => [ 'reportes', 'Pregunta tipo de reporte' ],
 			'report_category_prompt' => [ 'reportes', 'Pregunta categoría del reporte' ],
@@ -395,7 +389,7 @@ class Cead_Acad_WA_Tables {
 			'greeting_staff'   => 'Hola {name}! 👋 Panel del personal del CEAD.',
 			'staff_menu_header'=> '*Panel del personal* — ¿qué querés hacer?',
 			'greeting_student' => 'Hola {name}! 👋 Bienvenido/a al bot del CEAD. ¿En qué te ayudo?',
-			'student_menu'     => "*Menú CEAD*\n1. Horarios\n2. Sitio web\n3. Calendario de eventos\n4. Contacto\n5. Comunicados\n6. Reportar algo\n7. Sugerencias y quejas\n8. Preguntas frecuentes\n9. Consejo Estudiantil\n10. Recordatorios y avisos\n11. Mi panel web\n12. Ajustes\n13. Mis notas\n14. Tareas pendientes\n15. Mi carné digital\n16. Solicitar constancia\n17. Justificar inasistencia\n0. Salir\n\nEnviá *BAJA* para no recibir mensajes.",
+			'student_menu'     => "*Menú CEAD*\n1. Horarios\n2. Sitio web\n3. Calendario de eventos\n4. Contacto\n5. Comunicados\n6. Reportar algo\n7. Sugerencias y quejas\n8. Preguntas frecuentes\n9. Consejo Estudiantil\n10. Recordatorios y avisos\n11. Mi panel web\n12. Ajustes\n13. Mis notas\n14. Tareas pendientes\n15. Mi carné digital\n0. Salir\n\nEnviá *BAJA* para no recibir mensajes.",
 			'opt_out_confirmed'=> 'Listo, ya no vas a recibir mensajes de este bot. Escribinos de nuevo para volver.',
 			'goodbye'          => '¡Hasta luego! 👋 Escribí cuando quieras para volver al menú.',
 			'invalid_option'   => 'Opción no válida. Elegí una de las opciones del menú.',
@@ -428,13 +422,6 @@ class Cead_Acad_WA_Tables {
 			'tareas_header'    => '📝 *Tus tareas pendientes*',
 			'tareas_none'      => '🎉 ¡No tenés tareas pendientes! (o todavía no se cargaron).',
 			'carne_link'       => "🎟️ *Tu carné digital*\nAbrilo desde tu panel (con tu sesión iniciada):\n{url}",
-
-			// Trámites (constancia, justificativo)
-			'constancia_prompt'   => '📄 *Constancia de alumno regular*\n¿Para qué la necesitás? (ej.: beca, trámite, etc.). Contame en pocas palabras:',
-			'constancia_saved'    => '✅ Tu solicitud de constancia quedó registrada. Secretaría la va a preparar y te avisan cuando esté lista para retirar.',
-			'justif_fecha_prompt' => '📝 *Justificar inasistencia*\n¿Qué día (o días) faltaste? (ej.: 12/06 o 10 al 12/06):',
-			'justif_motivo_prompt'=> 'Contame el motivo de la inasistencia. Si tenés el certificado médico u otro comprobante, podés *adjuntar una foto* en este mismo mensaje:',
-			'justif_saved'        => '✅ Tu justificativo fue enviado a Secretaría. Si hace falta algo más, te contactan por acá.',
 
 			// Reporte (A5)
 			'report_type_prompt'    => "🛡️ Canal para reportar situaciones (bullying, seguridad, etc.).\n¿Cómo querés enviarlo?\n1. Anónimo total\n2. Confidencial (quiero que me contacten)\n0. Cancelar",
@@ -533,7 +520,7 @@ class Cead_Acad_WA_Tables {
 			// Staff: artículos del blog
 			'article_menu_prompt'     => "📝 *Artículos del sitio*\n1. Publicar artículo\n2. Editar artículo\n3. Borrar artículo\n0. Volver",
 			'article_title_prompt'    => 'Título del artículo (0 para cancelar):',
-			'article_body_prompt'     => 'Escribí el contenido del artículo (0 para cancelar):',
+			'article_body_prompt'     => 'Escribí el contenido del artículo. Si querés, adjuntá una foto junto con el texto para usarla como imagen destacada (0 para cancelar):',
 			'article_published'       => '✅ Artículo publicado: {url}',
 			'article_none'            => 'No hay artículos para mostrar.',
 			'article_pick_edit'       => 'Elegí el artículo a editar:',
