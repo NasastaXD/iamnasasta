@@ -49,14 +49,23 @@ class Cead_Acad_WA_Bridge_Client {
 	public function restart() { return $this->request( 'POST', '/api/restart' ); }
 	public function logout()  { return $this->request( 'POST', '/api/logout' ); }
 
-	private function request( $method, $path, $body = [] ) {
+	/**
+	 * Pide a WhatsApp un código de vinculación para un número, como alternativa
+	 * al QR. El bridge espera hasta 20 s a que WhatsApp lo devuelva, así que
+	 * esta llamada tarda más que las demás.
+	 */
+	public function pair( $phone ) {
+		return $this->request( 'POST', '/api/pair', [ 'phone' => (string) $phone ], 30 );
+	}
+
+	private function request( $method, $path, $body = [], $timeout = 15 ) {
 		$url = rtrim( $this->store->bridge_url(), '/' );
 		if ( $url === '' ) {
 			return [ 'error' => 'URL del bridge no configurada.' ];
 		}
 		$args = [
 			'method'  => $method,
-			'timeout' => 15,
+			'timeout' => (int) $timeout,
 			'headers' => [
 				'X-Caag-Token' => $this->store->shared_token(),
 				'Content-Type' => 'application/json',
@@ -80,7 +89,10 @@ class Cead_Acad_WA_Bridge_Client {
 		$raw  = wp_remote_retrieve_body( $response );
 		$data = json_decode( $raw, true );
 		if ( $code !== 200 ) {
-			return [ 'error' => "HTTP $code", 'body' => $data ];
+			// El bridge explica el motivo en el cuerpo; conviene mostrarlo tal cual
+			// en vez de un «HTTP 409» que no le dice nada a nadie.
+			$msg = is_array( $data ) && ! empty( $data['error'] ) ? (string) $data['error'] : "HTTP $code";
+			return [ 'error' => $msg, 'body' => $data ];
 		}
 		return is_array( $data ) ? $data : [ 'raw' => $raw ];
 	}

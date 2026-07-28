@@ -139,6 +139,8 @@ let sock              = null;
 let qrBase64          = null;
 let isConnected       = false;
 let linkedNumber      = null;
+let pairingCode       = null;  // código de 8 caracteres para vincular por número
+let pairingPhone      = null;  // número al que se le pidió ese código
 let waVersion         = null;  // versión del protocolo WA (se obtiene una sola vez)
 let reconnectTimer    = null;  // reconexión pendiente (solo una a la vez)
 let reconnectAttempts = 0;     // para el backoff exponencial
@@ -252,6 +254,27 @@ async function connectToWhatsApp() {
 
     sock.ev.on( 'creds.update', saveCreds );
 
+    // Vinculación por número: alternativa al QR para cuando el QR no funciona
+    // (cámara, pantalla chica, o WhatsApp que no lo toma). Solo tiene sentido
+    // sobre una sesión nueva: si ya hay credenciales, no hay nada que vincular.
+    // El código vence a los pocos minutos; se pide de nuevo y listo.
+    if ( pairingPhone && ! state.creds.registered ) {
+        setTimeout( async () => {
+            try {
+                const code  = await sock.requestPairingCode( pairingPhone );
+                const clean = String( code || '' ).replace( /[^A-Z0-9]/gi, '' );
+                // WhatsApp lo muestra en dos bloques de 4.
+                pairingCode = clean.length === 8 ? `${ clean.slice( 0, 4 ) }-${ clean.slice( 4 ) }` : clean;
+                blog( `🔗 Código de vinculación para ${ pairingPhone }: ${ pairingCode }` );
+                console.log( '  WhatsApp → ⋮ → Dispositivos vinculados → Vincular con número de teléfono\n' );
+            } catch ( err ) {
+                blog( `No se pudo pedir el código de vinculación: ${ err.message }` );
+                pairingCode  = null;
+                pairingPhone = null;
+            }
+        }, 4000 );
+    }
+
     sock.ev.on( 'connection.update', async ( update ) => {
         const { connection, lastDisconnect, qr } = update;
 
@@ -267,6 +290,8 @@ async function connectToWhatsApp() {
         if ( connection === 'open' ) {
             isConnected       = true;
             qrBase64          = null;
+            pairingCode       = null; // ya vinculado: el código no sirve más
+            pairingPhone      = null;
             reconnectAttempts = 0; // conexión sana: reinicia el backoff
             linkedNumber      = ( sock.user?.id || '' ).replace( /@.+$/, '' );
             blog( `✅ Conectado como ${ linkedNumber }` );
@@ -649,7 +674,52 @@ app.post( '/api/profile-picture', async ( req, res ) => {
 } );
 
 app.get( '/api/status', ( _req, res ) => {
-    res.json( { connected: isConnected, number: linkedNumber, qr: qrBase64 } );
+    res.json( {
+        connected:     isConnected,
+        number:        linkedNumber,
+        qr:            qrBase64,
+        pairing_code:  pairingCode,
+        pairing_phone: pairingPhone,
+    } );
+} );
+
+// Vincular por número de teléfono en vez de escanear el QR. WhatsApp devuelve
+// un código de 8 caracteres que se ingresa en el celular:
+// WhatsApp → ⋮ → Dispositivos vinculados → Vincular con número de teléfono.
+app.post( '/api/pair', async ( req, res ) => {
+    const phone = String( req.body?.phone || '' ).replace( /\D/g, '' );
+
+    if ( phone.length < 8 || phone.length > 15 ) {
+        return res.status( 400 ).json( { error: 'Número inválido. Usá el formato internacional sin +, por ejemplo 595981123456.' } );
+    }
+    if ( isConnected ) {
+        return res.status( 409 ).json( { error: 'Ya hay un número vinculado. Cerrá sesión antes de vincular otro.' } );
+    }
+
+    blog( `Pidiendo código de vinculación para ${ phone }…` );
+    pairingCode  = null;
+    pairingPhone = phone;
+
+    // El código solo se puede pedir sobre credenciales nuevas: si quedó una
+    // sesión a medias, hay que limpiarla antes.
+    if ( reconnectTimer ) { clearTimeout( reconnectTimer ); reconnectTimer = null; }
+    reconnectAttempts = 0;
+    teardownSocket();
+    clearAuthState();
+    connectToWhatsApp();
+
+    // Le damos un rato a WhatsApp; si tarda más, el panel lo verá en /api/status.
+    const deadline = Date.now() + 20000;
+    while ( ! pairingCode && Date.now() < deadline ) {
+        await new Promise( ( r ) => setTimeout( r, 500 ) );
+    }
+
+    res.json( {
+        ok:           true,
+        phone,
+        pairing_code: pairingCode,
+        pending:      ! pairingCode,
+    } );
 } );
 
 app.post( '/api/restart', async ( _req, res ) => {
@@ -671,6 +741,8 @@ app.post( '/api/logout', async ( _req, res ) => {
     isConnected  = false;
     linkedNumber = null;
     qrBase64     = null;
+    pairingCode  = null;
+    pairingPhone = null;
     res.json( { logged_out: true } );
     setTimeout( connectToWhatsApp, 2000 );
 } );
