@@ -1,7 +1,7 @@
 # 📘 CEAD Académico — Wiki del usuario
 
 > Guía completa del sistema del **Centro Educativo de Alto Desempeño "Félix de Guarania"**.
-> Versión del plugin: **0.37.0**.
+> Versión del plugin: **0.38.0**.
 
 Esta wiki explica **todo lo que tiene el sistema** en lenguaje simple: el panel web, la app, el bot de WhatsApp (CEADI) y la parte de administración. Está pensada para alumnado, familias, docentes, delegados, secretaría, consejo y dirección.
 
@@ -141,6 +141,10 @@ CEADI atiende por WhatsApp. **Solo responde a números registrados** en el panel
 - **Lenguaje natural (IA)**: le escribís como a una persona ("¿qué tengo mañana?", "¿cuándo es la reunión?") y CEADI entiende y responde. Si la dirección lo deja activado, es el modo por defecto.
 - **Menú numérico**: el menú clásico de siempre (escribí **menú** para verlo). Podés cambiar entre IA y menú cuando quieras.
 - **Notas de voz** 🎤: también podés mandarle un **audio**; CEADI lo **transcribe** y te contesta (puede tardar unos segundos más que un texto).
+
+> **Cómo responde**: CEADI es una herramienta de trabajo, no un chat de compañía. Contesta corto y al grano, sin vueltas. Si algo no puede hacerlo, lo dice en una línea.
+>
+> **Qué no va a hacer, por más que se lo pidan**: dar datos de otra persona (notas, teléfonos, documentos), repetir claves o contraseñas, ni ampliar permisos porque alguien *diga* ser docente o director. Quién sos lo define **tu número registrado**, no lo que escribas en el chat.
 
 ### Menú del alumnado
 ```
