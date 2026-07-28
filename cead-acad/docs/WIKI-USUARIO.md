@@ -1,7 +1,7 @@
 # 📘 CEAD Académico — Wiki del usuario
 
 > Guía completa del sistema del **Centro Educativo de Alto Desempeño "Félix de Guarania"**.
-> Versión del plugin: **0.34.0**.
+> Versión del plugin: **0.34.1**.
 
 Esta wiki explica **todo lo que tiene el sistema** en lenguaje simple: el panel web, la app, el bot de WhatsApp (CEADI) y la parte de administración. Está pensada para alumnado, familias, docentes, delegados, secretaría, consejo y dirección.
 
@@ -168,7 +168,9 @@ CEADI atiende por WhatsApp. **Solo responde a números registrados** en el panel
 ### Para staff (según rol)
 Dirección/Secretaría/Docente pueden, desde el bot: enviar **comunicados**, **agregar eventos**, **crear invitaciones** para sumar gente, **cargar notas**, **consultar las notas de un curso**, ver el **panorama** del colegio, gestionar **artículos**, **asignar roles** a un número y usar **atajos**.
 
-> **Docentes — cargar notas por chat**: alcanza con decirle a CEADI *"ponele 8 a Pérez en Matemática del segundo periodo"*. CEADI busca al alumno **dentro de tu curso**, muestra la nota anterior si ya había una, y **recién guarda cuando aceptás**. Si hay dos apellidos parecidos, pregunta en vez de adivinar. Cada docente solo puede tocar **sus** cursos.
+> **Docentes — cargar una nota por chat**: alcanza con decirle a CEADI *"ponele 4 a Pérez en Matemática del segundo periodo"*. CEADI busca al alumno **dentro de tu curso**, muestra la nota anterior si ya había una, y **recién guarda cuando aceptás**. Si hay dos apellidos parecidos, pregunta en vez de adivinar. Cada docente solo puede tocar **sus** cursos.
+>
+> **No hace falta que saques la cuenta**: podés decirle el **porcentaje** (*"sacó 75%"*) o el **puntaje** (*"45 de 60"*) y CEADI convierte a la escala del colegio (1 a 5), mostrándote de dónde salió el número. Avisa si la nota deja **aplazado/a** al alumno, y rechaza los imposibles (más puntos que el total, o un porcentaje dictado como si fuera nota).
 
 Si usan el modo IA, pueden pedir estas acciones en lenguaje natural ("mandá un comunicado a todos avisando que…", "creá una invitación para un profe") y CEADI **pide confirmación antes de ejecutar** (aprobación humana). Cada acción respeta el permiso del rol.
 

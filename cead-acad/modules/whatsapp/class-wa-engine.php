@@ -786,18 +786,24 @@ class Cead_Acad_WA_Engine {
 				'type'     => 'function',
 				'function' => [
 					'name'        => 'cargar_nota',
-					'description' => 'Proponer la carga de una calificación a un alumno. NO se guarda hasta que la persona lo apruebe. Si ya hay nota para ese alumno, materia y periodo, se actualiza.',
+					'description' => sprintf(
+						'Proponer la carga de una calificación a un alumno. NO se guarda hasta que la persona lo apruebe. Si ya hay nota para ese alumno, materia y periodo, se actualiza. La escala del colegio va de 0 a %s. Si la persona da un PORCENTAJE ("sacó 75%%") o un PUNTAJE ("45 de 60"), NO lo conviertas vos: mandalo en "porcentaje" o en "puntaje" y "puntaje_total", que el sistema calcula la nota.',
+						Cead_Acad_Grades_Writer::fmt( Cead_Acad_Grades_Writer::score_max() )
+					),
 					'parameters'  => [
 						'type'       => 'object',
 						'properties' => [
-							'alumno'     => [ 'type' => 'string', 'description' => 'Nombre, apellido o documento del alumno.' ],
-							'materia'    => [ 'type' => 'string', 'description' => 'Nombre de la materia.' ],
-							'periodo'    => [ 'type' => 'string', 'description' => 'Periodo: 1, 2, 3, 4 o Final.' ],
-							'nota'       => [ 'type' => 'number', 'description' => 'Calificación numérica.' ],
-							'curso'      => [ 'type' => 'string', 'description' => 'Curso. Solo hace falta si la persona tiene más de un curso a cargo.' ],
-							'comentario' => [ 'type' => 'string', 'description' => 'Observación opcional.' ],
+							'alumno'        => [ 'type' => 'string', 'description' => 'Nombre, apellido o documento del alumno.' ],
+							'materia'       => [ 'type' => 'string', 'description' => 'Nombre de la materia.' ],
+							'periodo'       => [ 'type' => 'string', 'description' => 'Periodo: 1, 2, 3, 4 o Final.' ],
+							'nota'          => [ 'type' => 'number', 'description' => 'Calificación ya en la escala del colegio.' ],
+							'porcentaje'    => [ 'type' => 'number', 'description' => 'Porcentaje de logro (0 a 100), si lo dieron así en vez de la nota.' ],
+							'puntaje'       => [ 'type' => 'number', 'description' => 'Puntos obtenidos, si lo dieron como "X de Y".' ],
+							'puntaje_total' => [ 'type' => 'number', 'description' => 'Puntos totales de la evaluación.' ],
+							'curso'         => [ 'type' => 'string', 'description' => 'Curso. Solo hace falta si la persona tiene más de un curso a cargo.' ],
+							'comentario'    => [ 'type' => 'string', 'description' => 'Observación opcional.' ],
 						],
-						'required'   => [ 'alumno', 'materia', 'periodo', 'nota' ],
+						'required'   => [ 'alumno', 'materia', 'periodo' ],
 					],
 				],
 			];
@@ -1015,30 +1021,69 @@ class Cead_Acad_WA_Engine {
 				$this->store->set_state( $phone, 'ia_home' );
 				return true;
 			}
-			$score = $args['nota'] ?? null;
+			// La nota puede venir directa, como porcentaje o como «X de Y».
+			$score  = $args['nota'] ?? null;
+			$origen = '';
+			$W      = 'Cead_Acad_Grades_Writer';
+
+			$pts   = $args['puntaje'] ?? null;
+			$total = $args['puntaje_total'] ?? null;
+			$pct   = $args['porcentaje'] ?? null;
+
+			if ( ( null === $score || '' === $score ) && null !== $pts && null !== $total ) {
+				$calc = $W::points_to_percent( $pts, $total );
+				if ( null === $calc ) {
+					$this->send( $phone, __( 'Ese puntaje no cierra (revisá que los puntos obtenidos no superen el total).', 'cead-acad' ) );
+					$this->store->set_state( $phone, 'ia_home' );
+					return true;
+				}
+				$pct = $calc;
+				/* translators: 1: puntos obtenidos, 2: puntos totales, 3: porcentaje */
+				$origen = sprintf( __( 'de %1$s/%2$s = %3$s%%', 'cead-acad' ), $W::fmt( $pts ), $W::fmt( $total ), $W::fmt( $calc ) );
+			}
+			if ( ( null === $score || '' === $score ) && null !== $pct && is_numeric( $pct ) ) {
+				$score = $W::percent_to_score( $pct );
+				if ( null === $score ) {
+					$this->send( $phone, __( 'Ese porcentaje no es válido (tiene que ir de 0 a 100).', 'cead-acad' ) );
+					$this->store->set_state( $phone, 'ia_home' );
+					return true;
+				}
+				if ( '' === $origen ) {
+					/* translators: %s: porcentaje */
+					$origen = sprintf( __( 'de %s%%', 'cead-acad' ), $W::fmt( $pct ) );
+				}
+			}
+
 			if ( null === $score || '' === $score || ! is_numeric( $score ) ) {
-				$this->send( $phone, __( '¿Qué nota le pongo?', 'cead-acad' ) );
+				$this->send( $phone, __( '¿Qué nota le pongo? Podés decirme la nota, el porcentaje o el puntaje («45 de 60»).', 'cead-acad' ) );
 				$this->store->set_state( $phone, 'ia_home' );
 				return true;
 			}
 			$score = round( (float) $score, 2 );
-			$max   = Cead_Acad_Grades_Writer::score_max();
+			$max   = $W::score_max();
 			if ( $score < 0 || $score > $max ) {
 				$this->send( $phone, sprintf(
-					/* translators: %s: nota máxima */
-					__( 'Esa nota está fuera de la escala (0 a %s).', 'cead-acad' ),
-					rtrim( rtrim( number_format( $max, 2, ',', '' ), '0' ), ',' )
+					/* translators: %s: nota máxima de la escala */
+					__( 'Esa nota está fuera de la escala del colegio (0 a %s). Si me estás pasando un porcentaje, decímelo y lo convierto.', 'cead-acad' ),
+					$W::fmt( $max )
 				) );
 				$this->store->set_state( $phone, 'ia_home' );
 				return true;
 			}
 
-			$prev  = $subject_id ? Cead_Acad_Grades_Writer::find( (int) $student['id'], $course_id, $subject_id, $period ) : null;
-			$fmt   = static fn( $n ) => rtrim( rtrim( number_format( (float) $n, 2, ',', '' ), '0' ), ',' );
+			$prev  = $subject_id ? $W::find( (int) $student['id'], $course_id, $subject_id, $period ) : null;
+			$fmt   = static fn( $n ) => $W::fmt( $n );
 			$extra = '';
+			if ( '' !== $origen ) {
+				$extra .= ' _' . $origen . '_';
+			}
 			if ( $prev && null !== $prev['score'] ) {
 				/* translators: %s: nota anterior */
-				$extra = ' ' . sprintf( __( '(antes: %s)', 'cead-acad' ), $fmt( $prev['score'] ) );
+				$extra .= ' ' . sprintf( __( '(antes: %s)', 'cead-acad' ), $fmt( $prev['score'] ) );
+			}
+			// Avisos para que un número mal dictado no pase de largo.
+			if ( $score < $W::score_pass() ) {
+				$extra .= "\n" . __( '⚠️ Con esa nota queda *aplazado/a*.', 'cead-acad' );
 			}
 			if ( $subject_new ) {
 				$extra .= "\n" . __( '⚠️ La materia es nueva, se va a crear.', 'cead-acad' );
