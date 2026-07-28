@@ -44,14 +44,22 @@ class Cead_Acad_Tasks_Frontend {
 			'post_type'      => Cead_Acad_Tasks_CPT::POST_TYPE,
 			'posts_per_page' => 100,
 			'no_found_rows'  => true,
-			'orderby'        => 'meta_value',
-			'meta_key'       => '_cead_acad_task_due_date',
-			'order'          => 'ASC',
 			'meta_query'     => [
 				[ 'key' => '_cead_acad_task_course', 'value' => $courses, 'compare' => 'IN' ],
 			],
 		] );
-		return $q->posts;
+		$posts = $q->posts;
+		// Orden por vencimiento; las tareas sin fecha van al final (no al
+		// principio, que es como MySQL ordena los NULL en ASC por defecto).
+		usort( $posts, static function ( $a, $b ) {
+			$da = (string) get_post_meta( $a->ID, '_cead_acad_task_due_date', true );
+			$db = (string) get_post_meta( $b->ID, '_cead_acad_task_due_date', true );
+			if ( $da === '' && $db === '' ) { return 0; }
+			if ( $da === '' ) { return 1; }
+			if ( $db === '' ) { return -1; }
+			return strcmp( $da, $db );
+		} );
+		return $posts;
 	}
 
 	/** ¿La tarea pertenece a un curso del usuario? */

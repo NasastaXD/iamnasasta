@@ -72,12 +72,15 @@ class Cead_Acad_Importer_Students extends Cead_Acad_Importer_Base {
 		}
 
 		if ( $user_id ) {
-			wp_update_user( [
+			$updated = wp_update_user( [
 				'ID'           => $user_id,
 				'display_name' => $nombre,
 				'first_name'   => $first,
 				'last_name'    => $last,
 			] + ( $email ? [ 'user_email' => $email ] : [] ) );
+			if ( is_wp_error( $updated ) ) {
+				return $updated;
+			}
 		} else {
 			$login = $this->generate_login( $doc, $first, $last, $nombre );
 			$user_email = $email ?: $this->placeholder_email( $login );

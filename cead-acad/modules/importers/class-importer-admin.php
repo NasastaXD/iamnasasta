@@ -206,6 +206,12 @@ class Cead_Acad_Importer_Admin {
 		$ok = $importer->commit_all( $rows, $mapping, $job_id );
 		Cead_Acad_Importer_Job::mark_committed( $job_id, $ok );
 
+		Cead_Acad_Audit::log( 'import_committed', [
+			'entity_type' => 'import_job',
+			'entity_id'   => $job_id,
+			'payload'     => [ 'type' => $job['type'], 'rows' => count( $rows ), 'ok' => $ok ],
+		] );
+
 		wp_safe_redirect( admin_url( 'admin.php?page=cead-acad-importers&job=' . (int) $job_id ) );
 		exit;
 	}

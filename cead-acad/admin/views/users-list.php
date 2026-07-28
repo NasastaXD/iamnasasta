@@ -22,6 +22,10 @@ $users          = get_users( [
 
 $roles_cfg  = Cead_Acad_Capabilities::roles();
 $page_url   = admin_url( 'admin.php?page=cead-acad-users' );
+
+// Solo quien gestiona roles puede asignar/ver el rol Dirección en el selector.
+$can_assign_direction = current_user_can( 'cead_acad_manage_roles' ) || current_user_can( 'manage_options' );
+$roles_cfg_selectable = $can_assign_direction ? $roles_cfg : array_diff_key( $roles_cfg, [ 'cead_acad_direction' => true ] );
 ?>
 <div class="wrap">
 	<h1><?php esc_html_e( 'Usuarios', 'cead-acad' ); ?></h1>
@@ -69,20 +73,23 @@ $page_url   = admin_url( 'admin.php?page=cead-acad-users' );
 				<?php
 				// Solo permitir cambio de rol si el usuario NO es administrador de WordPress.
 				$is_wp_admin = in_array( 'administrator', (array) $editing_user->roles, true );
-				if ( ! $is_wp_admin ) :
-					$current_cead_role = '';
-					foreach ( $all_cead_roles as $r ) {
-						if ( in_array( $r, (array) $editing_user->roles, true ) ) {
-							$current_cead_role = $r;
-							break;
-						}
+				$current_cead_role = '';
+				foreach ( $all_cead_roles as $r ) {
+					if ( in_array( $r, (array) $editing_user->roles, true ) ) {
+						$current_cead_role = $r;
+						break;
 					}
+				}
+				// Si ya es Dirección y quien edita no gestiona roles, no se le muestra
+				// el selector: no debe poder tocar (ni degradar) ese rol.
+				$can_edit_role = ! $is_wp_admin && ( $can_assign_direction || 'cead_acad_direction' !== $current_cead_role );
+				if ( $can_edit_role ) :
 				?>
 				<tr>
 					<th scope="row"><label for="edit_role"><?php esc_html_e( 'Rol', 'cead-acad' ); ?></label></th>
 					<td>
 						<select id="edit_role" name="role">
-							<?php foreach ( $roles_cfg as $slug => $cfg ) : ?>
+							<?php foreach ( $roles_cfg_selectable as $slug => $cfg ) : ?>
 								<option value="<?php echo esc_attr( $slug ); ?>" <?php selected( $current_cead_role, $slug ); ?>>
 									<?php echo esc_html( $cfg['display'] ); ?>
 								</option>
@@ -138,7 +145,7 @@ $page_url   = admin_url( 'admin.php?page=cead-acad-users' );
 					<th scope="row"><label for="new_role"><?php esc_html_e( 'Rol', 'cead-acad' ); ?> <span style="color:red">*</span></label></th>
 					<td>
 						<select id="new_role" name="role">
-							<?php foreach ( $roles_cfg as $slug => $cfg ) : ?>
+							<?php foreach ( $roles_cfg_selectable as $slug => $cfg ) : ?>
 								<option value="<?php echo esc_attr( $slug ); ?>" <?php selected( $slug, 'cead_acad_student' ); ?>>
 									<?php echo esc_html( $cfg['display'] ); ?>
 								</option>

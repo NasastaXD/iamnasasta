@@ -236,7 +236,6 @@ class Cead_Acad_WA_Engine {
 			case 'stu_report_type':      $this->report_type( $phone, $lc ); break;
 			case 'stu_report_cat':       $this->report_cat( $phone, $lc, $context ); break;
 			case 'stu_report_body':      $this->report_body( $phone, $body, $lc, $context ); break;
-			case 'stu_suggestion_body':  $this->suggestion_body( $phone, $body, $lc, $identity ); break;
 			case 'stu_msg_to':           $this->msg_to( $phone, $lc, $identity ); break;
 			case 'stu_msg_body':         $this->msg_body( $phone, $body, $lc, $context, $identity ); break;
 			case 'stu_council_menu':     $this->council_menu( $phone, $lc ); break;
@@ -250,7 +249,7 @@ class Cead_Acad_WA_Engine {
 			case 'staff_comm_template':  $this->comm_template( $phone, $lc ); break;
 			case 'staff_comm_audience':  $this->comm_audience( $phone, $lc, $context ); break;
 			case 'staff_comm_when':      $this->comm_when( $phone, $lc, $context ); break;
-			case 'staff_comm_confirm':   $this->comm_confirm( $phone, $lc, $context ); break;
+			case 'staff_comm_confirm':   $this->comm_confirm( $phone, $lc, $context, $identity ); break;
 			case 'staff_comm_schedule':  $this->comm_schedule( $phone, $body, $lc, $context, $identity ); break;
 			case 'staff_event_title':    $this->event_title( $phone, $body, $lc ); break;
 			case 'staff_event_date':     $this->event_date( $phone, $body, $lc, $context, $identity ); break;
@@ -258,16 +257,11 @@ class Cead_Acad_WA_Engine {
 			case 'staff_article_title':  $this->article_title( $phone, $body, $lc ); break;
 			case 'staff_article_body':   $this->article_body( $phone, $body, $lc, $context, $identity, $media ); break;
 			case 'staff_article_edit_pick': $this->article_edit_pick( $phone, $lc, $context ); break;
-			case 'staff_article_edit_body': $this->article_edit_body( $phone, $body, $lc, $context ); break;
+			case 'staff_article_edit_body': $this->article_edit_body( $phone, $body, $lc, $context, $identity ); break;
 			case 'staff_article_del_pick':  $this->article_del_pick( $phone, $lc, $context ); break;
-			case 'staff_article_del_confirm': $this->article_del_confirm( $phone, $lc, $context ); break;
+			case 'staff_article_del_confirm': $this->article_del_confirm( $phone, $lc, $context, $identity ); break;
 			case 'staff_role_phone':     $this->role_phone( $phone, $body, $lc ); break;
 			case 'staff_role_choose':    $this->role_choose( $phone, $lc, $context, $identity ); break;
-			case 'staff_reports_list':   $this->reports_list( $phone, $lc, $context ); break;
-			case 'staff_report_view':    $this->report_view( $phone, $lc, $context ); break;
-			case 'staff_report_note':    $this->report_note( $phone, $body, $lc, $context ); break;
-			case 'staff_sugg_list':      $this->sugg_list( $phone, $lc, $context ); break;
-			case 'staff_sugg_view':      $this->sugg_view( $phone, $lc, $context ); break;
 			default:                     $this->idle( $phone, $name, $identity );
 		}
 	}
@@ -287,12 +281,18 @@ class Cead_Acad_WA_Engine {
 		$cmd  = strtolower( $m[1] );
 		$text = trim( $m[2] );
 		if ( $cmd === 'aa' ) {
-			if ( ! Cead_Acad_WA_Identity::can( $identity['user_id'], 'cead_acad_publish_broadcast' ) ) {
+			$uid = (int) ( $identity['user_id'] ?? 0 );
+			if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast' ) ) {
 				return false;
 			}
 			if ( $text === '' ) { $this->send( $phone, $this->m( 'shortcut_aa_usage' ) ); return true; }
-			$this->create_broadcast_post( $text, 'all' );
-			$res = $this->broadcaster->enqueue_for( $text, 'all' );
+			$aud = Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast_all' ) ? 'all' : 'students';
+			$this->create_broadcast_post( $text, $aud );
+			$res = $this->broadcaster->enqueue_for( $text, $aud );
+			Cead_Acad_Audit::log( 'wa_broadcast_sent', [
+				'user_id' => $uid ?: null,
+				'payload' => [ 'target' => $aud, 'total' => (int) ( $res['total'] ?? 0 ), 'via' => 'shortcut_aa' ],
+			] );
 			$this->send( $phone, $this->interp( $this->m( 'shortcut_announce_ok' ), [ 'total' => (int) ( $res['total'] ?? 0 ) ] ), 'quick_announce' );
 			return true;
 		}
@@ -960,11 +960,13 @@ class Cead_Acad_WA_Engine {
 			}
 			// Si mandó una foto junto con el pedido, se guarda ahora para poder
 			// reenviarla al aceptar (igual que en el flujo del menú numérico).
-			$image = $media ? $this->store_image( $media ) : null;
+			$image        = $media ? $this->store_image( $media ) : null;
+			$image_failed = $media && ! $image;
 
 			$labels = [ 'students' => __( 'Alumnado', 'cead-acad' ), 'staff' => __( 'Personal', 'cead-acad' ), 'all' => __( 'Todos', 'cead-acad' ) ];
 			$count  = (int) $this->broadcaster->count_for( $aud );
 			$this->store->set_state( $phone, 'ia_staff_confirm', [ 'kind' => 'comunicado', 'mensaje' => $mensaje, 'audiencia' => $aud, 'image' => $image ] );
+			$image_note = $image ? "\n📎 " . __( 'Con imagen adjunta.', 'cead-acad' ) : ( $image_failed ? "\n" . $this->m( 'image_attach_failed' ) : '' );
 			$this->send(
 				$phone,
 				sprintf(
@@ -973,7 +975,7 @@ class Cead_Acad_WA_Engine {
 					$labels[ $aud ],
 					$count,
 					$mensaje,
-					$image ? "\n📎 " . __( 'Con imagen adjunta.', 'cead-acad' ) : ''
+					$image_note
 				),
 				'ia_staff_propose'
 			);
@@ -1251,6 +1253,10 @@ class Cead_Acad_WA_Engine {
 		}
 		$this->create_broadcast_post( $mensaje, $aud, $image );
 		$res = $this->broadcaster->enqueue_for( $mensaje, $aud, $image );
+		Cead_Acad_Audit::log( 'wa_broadcast_sent', [
+			'user_id' => $uid ?: null,
+			'payload' => [ 'target' => $aud, 'total' => (int) ( $res['total'] ?? 0 ), 'con_imagen' => (bool) $image, 'via' => 'ia' ],
+		] );
 		if ( ! empty( $res['busy'] ) ) {
 			$this->send( $phone, $this->m( 'comm_busy' ) );
 		} elseif ( empty( $res['queued'] ) ) {
@@ -2002,12 +2008,6 @@ class Cead_Acad_WA_Engine {
 		$this->finish_capture( $phone, 'student' );
 	}
 
-	private function suggestion_body( $phone, $body, $lc, $identity ) {
-		if ( $this->is_cancel( $lc ) ) { $this->send( $phone, $this->m( 'suggestion_cancelled' ) ); $this->back_to_student( $phone ); return; }
-		$this->store->create_suggestion( $phone, $body, 'administracion' );
-		$this->send( $phone, $this->m( 'suggestion_saved' ), 'suggestion_received' );
-		$this->finish_capture( $phone, 'student' );
-	}
 
 	// A7 FAQ
 	private function show_faq( $phone ) {
@@ -2329,8 +2329,6 @@ class Cead_Acad_WA_Engine {
 			case 'comm':      $this->comm_start( $phone, $identity ); break;
 			case 'event':     $this->event_start( $phone, $identity ); break;
 			case 'articles':  $this->articles_start( $phone, $identity ); break;
-			case 'reports':   $this->reports_open( $phone, $identity ); break;
-			case 'sugg':      $this->sugg_open( $phone, $identity ); break;
 			case 'roles':     $this->roles_start( $phone, $identity ); break;
 			case 'metrics':   $this->metrics_show( $phone, $identity ); break;
 			case 'shortcuts': $this->send( $phone, $this->m( 'shortcuts_help' ) ); $this->reenter_staff( $phone ); break;
@@ -2414,14 +2412,27 @@ class Cead_Acad_WA_Engine {
 		}
 	}
 
-	private function comm_confirm( $phone, $lc, $context ) {
+	private function comm_confirm( $phone, $lc, $context, $identity ) {
 		if ( in_array( $lc, [ 'si', 'sí', 'yes' ], true ) ) {
+			$uid = (int) ( $identity['user_id'] ?? 0 );
+			if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast' ) ) {
+				$this->send( $phone, $this->m( 'access_denied' ) );
+				$this->reenter_staff( $phone );
+				return;
+			}
 			$message = (string) ( $context['message'] ?? '' );
 			$target  = (string) ( $context['target'] ?? 'all' );
 			$image   = $context['image'] ?? null;
+			if ( $target === 'all' && ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast_all' ) ) {
+				$target = 'students';
+			}
 			// Crear el comunicado como post (se ve en el panel web) y enviarlo por WA.
 			$this->create_broadcast_post( $message, $target, $image );
 			$res = $this->broadcaster->enqueue_for( $message, $target, $image );
+			Cead_Acad_Audit::log( 'wa_broadcast_sent', [
+				'user_id' => $uid ?: null,
+				'payload' => [ 'target' => $target, 'total' => (int) ( $res['total'] ?? 0 ), 'con_imagen' => (bool) $image ],
+			] );
 			if ( ! empty( $res['busy'] ) ) { $this->send( $phone, $this->m( 'comm_busy' ) ); }
 			elseif ( empty( $res['queued'] ) ) { $this->send( $phone, $this->m( 'comm_empty' ) ); }
 			else { $this->send( $phone, $this->interp( $this->m( 'comm_queued' ), [ 'total' => (int) ( $res['total'] ?? 0 ) ] ), 'broadcast_enqueued' ); }
@@ -2436,9 +2447,18 @@ class Cead_Acad_WA_Engine {
 
 	private function comm_schedule( $phone, $body, $lc, $context, $identity ) {
 		if ( $this->is_cancel( $lc ) ) { $this->send( $phone, $this->m( 'comm_cancelled' ) ); $this->reenter_staff( $phone ); return; }
+		if ( ! Cead_Acad_WA_Identity::can( (int) ( $identity['user_id'] ?? 0 ), 'cead_acad_publish_broadcast' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->reenter_staff( $phone );
+			return;
+		}
 		$run = $this->parse_datetime( trim( $body ) );
 		if ( $run === null ) { $this->send( $phone, $this->m( 'datetime_invalid' ) ); return; }
 		$this->store->create_scheduled( (string) ( $context['message'] ?? '' ), (string) ( $context['target'] ?? 'all' ), $run, $phone );
+		Cead_Acad_Audit::log( 'wa_broadcast_scheduled', [
+			'user_id' => (int) ( $identity['user_id'] ?? 0 ) ?: null,
+			'payload' => [ 'target' => (string) ( $context['target'] ?? 'all' ), 'run' => $run ],
+		] );
 		$this->send( $phone, $this->interp( $this->m( 'comm_scheduled_ok' ), [ 'run' => $run ] ), 'broadcast_scheduled' );
 		$this->reenter_staff( $phone );
 	}
@@ -2459,6 +2479,11 @@ class Cead_Acad_WA_Engine {
 
 	private function event_date( $phone, $body, $lc, $context, $identity ) {
 		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
+		if ( ! Cead_Acad_WA_Identity::can( (int) ( $identity['user_id'] ?? 0 ), 'cead_acad_manage_schedule' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->reenter_staff( $phone );
+			return;
+		}
 		$start = $this->parse_datetime( trim( $body ) );
 		if ( $start === null ) { $this->send( $phone, $this->m( 'event_date_invalid' ) ); return; }
 		$post_id = wp_insert_post( [
@@ -2500,6 +2525,11 @@ class Cead_Acad_WA_Engine {
 
 	private function article_body( $phone, $body, $lc, $context, $identity, $media = null ) {
 		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
+		if ( ! Cead_Acad_WA_Identity::can( (int) ( $identity['user_id'] ?? 0 ), 'cead_acad_manage_articles' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->reenter_staff( $phone );
+			return;
+		}
 		$pid = wp_insert_post( [
 			'post_type'    => 'post',
 			'post_status'  => 'publish',
@@ -2508,13 +2538,16 @@ class Cead_Acad_WA_Engine {
 			'post_author'  => (int) ( $identity['user_id'] ?: 0 ),
 		], true );
 		if ( is_wp_error( $pid ) ) { $this->send( $phone, $this->m( 'error_generic' ) ); $this->reenter_staff( $phone ); return; }
+		$image_note = '';
 		if ( $media ) {
 			$image = $this->store_image( $media );
 			if ( $image && ! empty( $image['attachment_id'] ) ) {
 				set_post_thumbnail( $pid, (int) $image['attachment_id'] );
+			} else {
+				$image_note = "\n" . $this->m( 'image_attach_failed' );
 			}
 		}
-		$this->send( $phone, $this->interp( $this->m( 'article_published' ), [ 'url' => get_permalink( $pid ) ] ), 'article_published' );
+		$this->send( $phone, $this->interp( $this->m( 'article_published' ), [ 'url' => get_permalink( $pid ) ] ) . $image_note, 'article_published' );
 		$this->reenter_staff( $phone );
 	}
 
@@ -2542,8 +2575,13 @@ class Cead_Acad_WA_Engine {
 		$this->send( $phone, $this->m( 'article_edit_body_prompt' ) );
 	}
 
-	private function article_edit_body( $phone, $body, $lc, $context ) {
+	private function article_edit_body( $phone, $body, $lc, $context, $identity ) {
 		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
+		if ( ! Cead_Acad_WA_Identity::can( (int) ( $identity['user_id'] ?? 0 ), 'cead_acad_manage_articles' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->reenter_staff( $phone );
+			return;
+		}
 		$pid = (int) ( $context['post_id'] ?? 0 );
 		$r = wp_update_post( [ 'ID' => $pid, 'post_content' => $body ], true );
 		$this->send( $phone, is_wp_error( $r ) ? $this->m( 'error_generic' ) : $this->m( 'article_updated' ), 'article_updated' );
@@ -2559,9 +2597,14 @@ class Cead_Acad_WA_Engine {
 		$this->send( $phone, $this->interp( $this->m( 'article_del_confirm' ), [ 'title' => get_the_title( $pid ) ] ) );
 	}
 
-	private function article_del_confirm( $phone, $lc, $context ) {
+	private function article_del_confirm( $phone, $lc, $context, $identity ) {
 		$pid = (int) ( $context['post_id'] ?? 0 );
 		if ( in_array( $lc, [ 'si', 'sí', 'yes' ], true ) ) {
+			if ( ! Cead_Acad_WA_Identity::can( (int) ( $identity['user_id'] ?? 0 ), 'cead_acad_manage_articles' ) ) {
+				$this->send( $phone, $this->m( 'access_denied' ) );
+				$this->reenter_staff( $phone );
+				return;
+			}
 			wp_trash_post( $pid );
 			$this->send( $phone, $this->m( 'article_deleted' ), 'article_deleted' );
 			$this->reenter_staff( $phone );
@@ -2589,12 +2632,28 @@ class Cead_Acad_WA_Engine {
 
 	private function role_choose( $phone, $lc, $context, $identity ) {
 		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
+		if ( ! Cead_Acad_WA_Identity::can( (int) ( $identity['user_id'] ?? 0 ), 'cead_acad_manage_roles' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->reenter_staff( $phone );
+			return;
+		}
 		// Whitelist: solo roles no-administrativos.
 		$map = [ '1' => 'cead_acad_teacher', '2' => 'cead_acad_delegate', '3' => 'cead_acad_student_council' ];
 		if ( ! isset( $map[ $lc ] ) ) { $this->invalid( $phone ); return; }
 		$target = (string) ( $context['target'] ?? '' );
 		$res    = $this->assign_role_to_phone( $target, $map[ $lc ] );
-		$key    = $res['created'] ? 'role_assigned_new' : 'role_assigned';
+		if ( ! empty( $res['error'] ) ) {
+			$this->send( $phone, $this->m( 'error_generic' ) );
+			$this->reenter_staff( $phone );
+			return;
+		}
+		Cead_Acad_Audit::log( 'wa_role_assigned', [
+			'user_id'     => (int) ( $identity['user_id'] ?? 0 ) ?: null,
+			'entity_type' => 'user',
+			'entity_id'   => $res['user_id'] ?? null,
+			'payload'     => [ 'phone' => $target, 'role' => $map[ $lc ], 'created' => $res['created'] ],
+		] );
+		$key = $res['created'] ? 'role_assigned_new' : 'role_assigned';
 		$this->send( $phone, $this->interp( $this->m( $key ), [ 'phone' => $target, 'role' => $res['label'] ] ), 'role_assigned' );
 		$this->reenter_staff( $phone );
 	}
@@ -2605,7 +2664,7 @@ class Cead_Acad_WA_Engine {
 		if ( $identity['user_id'] ) {
 			$u = get_user_by( 'id', $identity['user_id'] );
 			if ( $u ) { $u->add_role( $role ); }
-			return [ 'created' => false, 'label' => $labels[ $role ] ?? $role ];
+			return [ 'created' => false, 'label' => $labels[ $role ] ?? $role, 'user_id' => $identity['user_id'] ];
 		}
 		$login  = 'wa_' . $target;
 		$suffix = 1;
@@ -2616,129 +2675,13 @@ class Cead_Acad_WA_Engine {
 			'display_name' => '+' . $target,
 			'role'         => $role,
 		] );
-		if ( ! is_wp_error( $uid ) ) {
-			update_user_meta( $uid, '_cead_acad_phone', $target );
+		if ( is_wp_error( $uid ) ) {
+			return [ 'created' => false, 'error' => true, 'label' => $labels[ $role ] ?? $role ];
 		}
-		return [ 'created' => true, 'label' => $labels[ $role ] ?? $role ];
+		update_user_meta( $uid, '_cead_acad_phone', $target );
+		return [ 'created' => true, 'label' => $labels[ $role ] ?? $role, 'user_id' => $uid ];
 	}
 
-	// D5 Bandeja de reportes
-	private function reports_open( $phone, $identity ) {
-		if ( ! $this->require_cap( $phone, $identity, 'cead_acad_manage_reports' ) ) { return; }
-		$counts  = $this->store->count_reports_by_status();
-		$reports = array_merge( $this->store->reports_by_status( 'new', 15 ), $this->store->reports_by_status( 'in_review', 15 ) );
-		$header  = $this->interp( $this->m( 'reports_inbox_header' ), [ 'new' => $counts['new'], 'in_review' => $counts['in_review'], 'resolved' => $counts['resolved'] ] );
-		if ( empty( $reports ) ) { $this->send( $phone, $header . "\n\n" . $this->m( 'reports_empty' ) ); $this->reenter_staff( $phone ); return; }
-		$ids = []; $lines = [];
-		foreach ( $reports as $i => $r ) {
-			$ids[] = (int) $r->id;
-			$lines[] = ( $i + 1 ) . '. ' . $r->ref_code . ' · ' . ( $r->type === 'confidential' ? 'Confidencial' : 'Anónimo' ) . ' · ' . $this->status_label( $r->status );
-		}
-		$this->store->set_state( $phone, 'staff_reports_list', [ 'ids' => $ids ] );
-		$this->send( $phone, $header );
-		$this->send( $phone, $this->interp( $this->m( 'reports_list_prompt' ), [ 'report_list' => implode( "\n", $lines ) ] ) );
-	}
-
-	private function reports_list( $phone, $lc, $context ) {
-		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
-		$ids = $context['ids'] ?? [];
-		$idx = (int) $lc - 1;
-		if ( ! isset( $ids[ $idx ] ) ) { $this->invalid( $phone ); return; }
-		$this->show_report( $phone, (int) $ids[ $idx ] );
-	}
-
-	private function show_report( $phone, $id ) {
-		$r = $this->store->get_report( $id );
-		if ( ! $r ) { $this->send( $phone, $this->m( 'error_generic' ) ); return; }
-		$body = Cead_Acad_WA_Crypto::decrypt( (string) $r->body_enc );
-		$lines = [ '📄 *' . $r->ref_code . '*', 'Tipo: ' . ( $r->type === 'confidential' ? 'Confidencial' : 'Anónimo' ), 'Estado: ' . $this->status_label( $r->status ), 'Tema: ' . ( $r->category !== '' ? $r->category : '—' ) ];
-		if ( $r->type === 'confidential' && ! empty( $r->phone ) ) { $lines[] = 'Contacto: +' . $r->phone; }
-		$lines[] = ''; $lines[] = $body !== null ? $body : '⚠️ No se pudo descifrar (clave cambiada).';
-		if ( trim( (string) $r->note ) !== '' ) { $lines[] = ''; $lines[] = '📝 Notas:'; $lines[] = (string) $r->note; }
-		$this->store->set_state( $phone, 'staff_report_view', [ 'report_id' => $id ] );
-		$this->send( $phone, implode( "\n", $lines ) );
-		$this->send( $phone, $this->m( 'report_actions_prompt' ) );
-	}
-
-	private function report_view( $phone, $lc, $context ) {
-		$id = (int) ( $context['report_id'] ?? 0 );
-		switch ( $lc ) {
-			case '1': $this->store->update_report_status( $id, 'in_review' ); $this->send( $phone, $this->m( 'report_updated' ) ); $this->show_report( $phone, $id ); break;
-			case '2': $this->store->update_report_status( $id, 'resolved' ); $this->send( $phone, $this->m( 'report_updated' ) ); $this->reports_open_keep( $phone ); break;
-			case '3': $this->store->set_state( $phone, 'staff_report_note', [ 'report_id' => $id ] ); $this->send( $phone, $this->m( 'report_note_prompt' ) ); break;
-			case '0': case 'volver': $this->reports_open_keep( $phone ); break;
-			default: $this->invalid( $phone );
-		}
-	}
-
-	private function reports_open_keep( $phone ) {
-		// Reabrir la bandeja sin recomputar caps (ya validadas al entrar).
-		$counts  = $this->store->count_reports_by_status();
-		$reports = array_merge( $this->store->reports_by_status( 'new', 15 ), $this->store->reports_by_status( 'in_review', 15 ) );
-		$header  = $this->interp( $this->m( 'reports_inbox_header' ), [ 'new' => $counts['new'], 'in_review' => $counts['in_review'], 'resolved' => $counts['resolved'] ] );
-		if ( empty( $reports ) ) {
-			$this->send( $phone, $header . "\n\n" . $this->m( 'reports_empty' ) );
-			$this->store->set_state( $phone, 'idle' );
-			$this->send( $phone, $this->m( 'goodbye' ) );
-			return;
-		}
-		$ids = []; $lines = [];
-		foreach ( $reports as $i => $r ) {
-			$ids[] = (int) $r->id;
-			$lines[] = ( $i + 1 ) . '. ' . $r->ref_code . ' · ' . $this->status_label( $r->status );
-		}
-		$this->store->set_state( $phone, 'staff_reports_list', [ 'ids' => $ids ] );
-		$this->send( $phone, $this->interp( $this->m( 'reports_list_prompt' ), [ 'report_list' => implode( "\n", $lines ) ] ) );
-	}
-
-	private function report_note( $phone, $body, $lc, $context ) {
-		$id = (int) ( $context['report_id'] ?? 0 );
-		if ( $this->is_cancel( $lc ) ) { $this->show_report( $phone, $id ); return; }
-		$this->store->append_report_note( $id, $body );
-		$this->send( $phone, $this->m( 'report_updated' ) );
-		$this->show_report( $phone, $id );
-	}
-
-	// D6 Bandeja de sugerencias
-	private function sugg_open( $phone, $identity ) {
-		if ( ! $this->require_cap( $phone, $identity, 'cead_acad_manage_reports' ) ) { return; }
-		$items = array_merge( $this->store->suggestions_by_status( 'new', 15 ), $this->store->suggestions_by_status( 'in_review', 15 ) );
-		if ( empty( $items ) ) { $this->send( $phone, $this->m( 'sugg_empty' ) ); $this->reenter_staff( $phone ); return; }
-		$ids = []; $lines = [];
-		foreach ( $items as $i => $s ) {
-			$ids[] = (int) $s->id;
-			$lines[] = ( $i + 1 ) . '. ' . $this->status_label( $s->status ) . ' · ' . mb_substr( (string) $s->body, 0, 40 );
-		}
-		$this->store->set_state( $phone, 'staff_sugg_list', [ 'ids' => $ids ] );
-		$this->send( $phone, $this->interp( $this->m( 'sugg_list_prompt' ), [ 'sugg_list' => implode( "\n", $lines ) ] ) );
-	}
-
-	private function sugg_list( $phone, $lc, $context ) {
-		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
-		$ids = $context['ids'] ?? [];
-		$idx = (int) $lc - 1;
-		if ( ! isset( $ids[ $idx ] ) ) { $this->invalid( $phone ); return; }
-		$this->show_suggestion( $phone, (int) $ids[ $idx ] );
-	}
-
-	private function show_suggestion( $phone, $id ) {
-		$s = $this->store->get_suggestion( $id );
-		if ( ! $s ) { $this->send( $phone, $this->m( 'error_generic' ) ); return; }
-		$lines = [ '💬 *Sugerencia*', 'Estado: ' . $this->status_label( $s->status ), ! empty( $s->phone ) ? 'De: +' . $s->phone : 'De: (sin número)', '', (string) $s->body ];
-		$this->store->set_state( $phone, 'staff_sugg_view', [ 'sugg_id' => $id ] );
-		$this->send( $phone, implode( "\n", $lines ) );
-		$this->send( $phone, $this->m( 'sugg_actions_prompt' ) );
-	}
-
-	private function sugg_view( $phone, $lc, $context ) {
-		$id = (int) ( $context['sugg_id'] ?? 0 );
-		switch ( $lc ) {
-			case '1': $this->store->update_suggestion_status( $id, 'in_review' ); $this->send( $phone, $this->m( 'sugg_updated' ) ); $this->show_suggestion( $phone, $id ); break;
-			case '2': $this->store->update_suggestion_status( $id, 'resolved' ); $this->send( $phone, $this->m( 'sugg_updated' ) ); $this->store->set_state( $phone, 'idle' ); $this->send( $phone, $this->m( 'goodbye' ) ); break;
-			case '0': case 'volver': $this->store->set_state( $phone, 'idle' ); $this->send( $phone, $this->m( 'goodbye' ) ); break;
-			default: $this->invalid( $phone );
-		}
-	}
 
 	// D9 Métricas
 	private function metrics_show( $phone, $identity ) {
@@ -2852,15 +2795,6 @@ class Cead_Acad_WA_Engine {
 		if ( is_wp_error( $attachment_id ) || ! $attachment_id ) { return null; }
 		wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $upload['file'] ) );
 		return [ 'attachment_id' => (int) $attachment_id, 'path' => $upload['file'], 'mime' => $mime, 'url' => $upload['url'] ];
-	}
-
-	private function status_label( $s ) {
-		return match ( $s ) {
-			'new'       => '🆕 Nuevo',
-			'in_review' => '🔎 En revisión',
-			'resolved'  => '✅ Resuelto',
-			default     => $s,
-		};
 	}
 
 	private function human_date( $ymd ) {
@@ -3047,7 +2981,7 @@ class Cead_Acad_WA_Engine {
 	// --------------------------------------------------- filtro de lenguaje
 	/** Estados donde el usuario escribe texto libre que se guarda/reenvía. */
 	private function is_free_text_state( $state ) {
-		return in_array( $state, [ 'stu_report_body', 'stu_suggestion_body', 'stu_msg_body', 'stu_council_proposal', 'stu_settings_name', 'staff_comm_compose' ], true );
+		return in_array( $state, [ 'stu_report_body', 'stu_msg_body', 'stu_council_proposal', 'stu_settings_name', 'staff_comm_compose', 'staff_article_title', 'staff_article_body', 'staff_article_edit_body' ], true );
 	}
 
 	/** Lista de palabras prohibidas configurable (una por línea o separadas por coma). */
@@ -3224,13 +3158,12 @@ class Cead_Acad_WA_Engine {
 
 	/** Comando "volver": sube un nivel de menú según el estado actual. */
 	private function go_back( $phone, $state, $identity ) {
-		$student_sub = [ 'stu_report_type', 'stu_report_cat', 'stu_report_body', 'stu_suggestion_body', 'stu_msg_to', 'stu_msg_body', 'stu_council_menu', 'stu_council_proposal', 'stu_settings_menu', 'stu_settings_name', 'stu_settings_phone' ];
+		$student_sub = [ 'stu_report_type', 'stu_report_cat', 'stu_report_body', 'stu_msg_to', 'stu_msg_body', 'stu_council_menu', 'stu_council_proposal', 'stu_settings_menu', 'stu_settings_name', 'stu_settings_phone' ];
 		$staff_sub   = [
 			'staff_comm_compose', 'staff_comm_template', 'staff_comm_audience', 'staff_comm_when', 'staff_comm_confirm', 'staff_comm_schedule',
 			'staff_event_title', 'staff_event_date', 'staff_article_menu', 'staff_article_title', 'staff_article_body',
 			'staff_article_edit_pick', 'staff_article_edit_body', 'staff_article_del_pick', 'staff_article_del_confirm',
-			'staff_role_phone', 'staff_role_choose', 'staff_reports_list', 'staff_report_view', 'staff_report_note',
-			'staff_sugg_list', 'staff_sugg_view',
+			'staff_role_phone', 'staff_role_choose',
 		];
 		if ( in_array( $state, $student_sub, true ) ) {
 			$this->back_to_student( $phone );

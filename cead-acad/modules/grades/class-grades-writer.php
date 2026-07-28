@@ -221,6 +221,13 @@ class Cead_Acad_Grades_Writer {
 		if ( strlen( $period ) > 20 ) {
 			return new WP_Error( 'cead_grade_period', __( 'El periodo es demasiado largo.', 'cead-acad' ) );
 		}
+		// Tiene que ser uno de los periodos que la institución configuró: evita
+		// que un typo (p. ej. "11" en vez de "1") quede cargado como si fuera
+		// un periodo legítimo.
+		if ( ! in_array( $period, self::periods(), true ) ) {
+			/* translators: %s: lista de periodos configurados, separados por coma */
+			return new WP_Error( 'cead_grade_period', sprintf( __( 'Ese periodo no existe en el colegio. Periodos válidos: %s.', 'cead-acad' ), implode( ', ', self::periods() ) ) );
+		}
 
 		$score = $args['score'] ?? null;
 		if ( '' === $score ) { $score = null; }
@@ -230,7 +237,7 @@ class Cead_Acad_Grades_Writer {
 			}
 			$score = round( (float) $score, 2 );
 			$max   = self::score_max();
-			if ( $score < 0 || $score > $max ) {
+			if ( $score < 0 ) {
 				return new WP_Error(
 					'cead_grade_score',
 					sprintf(
@@ -244,6 +251,16 @@ class Cead_Acad_Grades_Writer {
 			// siempre es un porcentaje o un puntaje escrito por error como nota.
 			if ( $max <= 10 && $score > $max ) {
 				return new WP_Error( 'cead_grade_score', __( 'Esa nota parece un porcentaje, no una nota.', 'cead-acad' ) );
+			}
+			if ( $score > $max ) {
+				return new WP_Error(
+					'cead_grade_score',
+					sprintf(
+						/* translators: %s: nota máxima de la escala */
+						__( 'Esa nota está fuera de la escala del colegio (0 a %s). Si estás usando porcentaje, decímelo así lo convierto.', 'cead-acad' ),
+						self::fmt( $max )
+					)
+				);
 			}
 		}
 

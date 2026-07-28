@@ -201,13 +201,17 @@ class Cead_Acad_Broadcasts_Targeting {
 			get_bloginfo( 'name' )
 		);
 
-		// BCC para no exponer destinatarios.
-		wp_mail(
-			get_bloginfo( 'admin_email' ),
-			$subject,
-			$body,
-			[ 'Bcc: ' . implode( ',', $emails ) ]
-		);
+		// BCC para no exponer destinatarios. En tandas de 50: muchos proveedores
+		// de correo cortan (o rechazan el mensaje entero) si hay más destinatarios
+		// que eso en una sola llamada.
+		foreach ( array_chunk( $emails, 50 ) as $batch ) {
+			wp_mail(
+				get_bloginfo( 'admin_email' ),
+				$subject,
+				$body,
+				[ 'Bcc: ' . implode( ',', $batch ) ]
+			);
+		}
 		update_post_meta( $post->ID, '_cead_acad_notify_sent', current_time( 'mysql', 1 ) );
 	}
 }

@@ -295,9 +295,6 @@ class Cead_Acad_WA_Tables {
 			'report_cancelled'       => [ 'reportes', 'Reporte cancelado' ],
 			'vulgar_detected'        => [ 'reportes', 'Filtro de lenguaje: palabra prohibida detectada (usa {words})' ],
 			// Sugerencias / Consejo
-			'suggestion_prompt'       => [ 'sugerencias', 'Pedido de sugerencia' ],
-			'suggestion_saved'        => [ 'sugerencias', 'Sugerencia guardada' ],
-			'suggestion_cancelled'    => [ 'sugerencias', 'Sugerencia cancelada' ],
 			'faq_header'              => [ 'sugerencias', 'FAQ: encabezado' ],
 			'faq_none'                => [ 'sugerencias', 'FAQ: vacío' ],
 			'council_header'          => [ 'sugerencias', 'Consejo: encabezado del tablón' ],
@@ -335,22 +332,12 @@ class Cead_Acad_WA_Tables {
 			'event_date_prompt'     => [ 'staff', 'Evento: pedir fecha' ],
 			'event_date_invalid'    => [ 'staff', 'Evento: fecha inválida' ],
 			'event_saved'           => [ 'staff', 'Evento: guardado' ],
-			'reports_inbox_header'  => [ 'staff', 'Reportes: encabezado de bandeja (usa {new}/{in_review}/{resolved})' ],
-			'reports_list_prompt'   => [ 'staff', 'Reportes: lista (usa {report_list})' ],
-			'reports_empty'         => [ 'staff', 'Reportes: bandeja vacía' ],
-			'report_actions_prompt' => [ 'staff', 'Reportes: acciones' ],
-			'report_note_prompt'    => [ 'staff', 'Reportes: pedir nota' ],
-			'report_updated'        => [ 'staff', 'Reportes: actualizado' ],
-			'sugg_list_prompt'      => [ 'staff', 'Sugerencias: lista (usa {sugg_list})' ],
-			'sugg_empty'            => [ 'staff', 'Sugerencias: bandeja vacía' ],
-			'sugg_actions_prompt'   => [ 'staff', 'Sugerencias: acciones' ],
-			'sugg_updated'          => [ 'staff', 'Sugerencias: actualizada' ],
 			'metrics_header'        => [ 'staff', 'Métricas: encabezado' ],
 			'comm_when_prompt'      => [ 'staff', 'Comunicado: ¿cuándo enviar?' ],
 			'comm_schedule_prompt'  => [ 'staff', 'Comunicado: pedir fecha de programación' ],
 			'comm_scheduled_ok'     => [ 'staff', 'Comunicado: programado (usa {run})' ],
 			'comm_schedule_no_image'=> [ 'staff', 'Comunicado: aviso imagen no va en programados' ],
-			'image_attach_failed'   => [ 'staff', 'Comunicado: no se pudo adjuntar imagen' ],
+			'image_attach_failed'   => [ 'staff', 'No se pudo adjuntar una imagen (comunicado, artículo)' ],
 			'datetime_invalid'      => [ 'staff', 'Fecha/hora inválida' ],
 			'confirm_si_no'         => [ 'staff', 'Pedido de confirmación SI/NO' ],
 			'shortcut_aa_usage'     => [ 'staff', 'Atajo -AA: uso' ],
@@ -431,11 +418,6 @@ class Cead_Acad_WA_Tables {
 			'report_saved_anon'     => "✅ Reporte anónimo recibido. Gracias por confiar.\nCódigo de referencia: *{ref}*.",
 			'report_cancelled'      => 'Reporte cancelado. No se guardó nada.',
 
-			// Sugerencias (A6)
-			'suggestion_prompt'  => 'Escribí tu sugerencia o queja (0 para cancelar):',
-			'suggestion_saved'   => '✅ ¡Gracias! Tu mensaje fue registrado.',
-			'suggestion_cancelled'=> 'Cancelado.',
-
 			// FAQ / consejo (A7/A8)
 			'faq_header'         => '❓ *Preguntas frecuentes*',
 			'faq_none'           => 'Todavía no hay preguntas frecuentes cargadas.',
@@ -477,7 +459,7 @@ class Cead_Acad_WA_Tables {
 			'comm_schedule_prompt' => 'Indicá fecha y hora (AAAA-MM-DD HH:MM), ej. 2026-07-15 07:00:',
 			'comm_scheduled_ok'    => '🗓️ Comunicado programado para {run}.',
 			'comm_schedule_no_image' => '(El envío programado se hará solo con texto; la imagen no se adjunta en programados.)',
-			'image_attach_failed'  => '⚠️ No pude adjuntar la imagen; el comunicado se enviará solo con texto.',
+			'image_attach_failed'  => '⚠️ No pude adjuntar la imagen; se guardó/envió solo con el texto.',
 			'datetime_invalid'     => 'Formato inválido. Usá AAAA-MM-DD HH:MM.',
 			'confirm_si_no'        => 'Respondé *SI* o *NO*.',
 			'shortcut_aa_usage'    => 'Uso: *-AA* <texto del anuncio>',
@@ -488,20 +470,6 @@ class Cead_Acad_WA_Tables {
 			'event_date_prompt'  => 'Fecha y hora del evento (AAAA-MM-DD HH:MM), ej. 2026-07-15 07:00:',
 			'event_date_invalid' => 'Formato inválido. Usá AAAA-MM-DD HH:MM.',
 			'event_saved'        => '✅ Evento agregado al calendario.',
-
-			// Staff: bandeja reportes (D5)
-			'reports_inbox_header' => "📥 *Bandeja de reportes*\nNuevos: {new} · En revisión: {in_review} · Resueltos: {resolved}",
-			'reports_list_prompt'  => "Elegí un reporte:\n{report_list}\n0. Volver",
-			'reports_empty'        => 'No hay reportes nuevos ni en revisión.',
-			'report_actions_prompt'=> "1. Marcar en revisión\n2. Marcar resuelto\n3. Agregar nota\n0. Volver",
-			'report_note_prompt'   => 'Escribí la nota de seguimiento (0 para cancelar):',
-			'report_updated'       => '✅ Reporte actualizado.',
-
-			// Staff: bandeja sugerencias (D6)
-			'sugg_list_prompt'  => "Elegí una sugerencia:\n{sugg_list}\n0. Volver",
-			'sugg_empty'        => 'No hay sugerencias pendientes.',
-			'sugg_actions_prompt'=> "1. Marcar en revisión\n2. Marcar resuelta\n0. Volver",
-			'sugg_updated'      => '✅ Sugerencia actualizada.',
 
 			// Staff: métricas (D9)
 			'metrics_header'    => '📊 *Métricas (últimos 30 días)*',

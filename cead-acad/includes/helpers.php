@@ -11,7 +11,13 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 function cead_acad_table( $name ) {
 	global $wpdb;
 	$allowed = [ 'invitations', 'audit_log', 'roster', 'audiences', 'broadcast_reads', 'survey_questions', 'survey_responses', 'survey_answers', 'grades', 'import_jobs', 'wa_session', 'wa_registry', 'wa_state', 'wa_messages', 'wa_reports', 'wa_suggestions', 'wa_scheduled', 'wa_logs' ];
-	$name = in_array( $name, $allowed, true ) ? $name : 'invitations';
+	if ( ! in_array( $name, $allowed, true ) ) {
+		// No devolver silenciosamente otra tabla real (antes: 'invitations'):
+		// un nombre mal tipeado tiene que romper fuerte y visible, no leer o
+		// escribir en la tabla equivocada sin que nadie se entere.
+		trigger_error( 'cead_acad_table(): nombre de tabla desconocido: ' . (string) $name, E_USER_WARNING );
+		return $wpdb->prefix . 'cead_acad_invalid_table_name';
+	}
 	return $wpdb->prefix . 'cead_acad_' . $name;
 }
 
