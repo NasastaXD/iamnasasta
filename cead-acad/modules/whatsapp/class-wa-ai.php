@@ -303,21 +303,31 @@ class Cead_Acad_WA_AI {
 	 * herramientas (tool calling). Equivalente al modo herramientas pero pidiendo
 	 * la decisión en un JSON {reply, action}.
 	 */
-	protected static function routing_instructions() {
+	protected static function routing_instructions( $extra_tools = [] ) {
 		$lines = [];
 		foreach ( self::actions() as $key => $desc ) {
 			$lines[] = "- {$key}: {$desc}";
+		}
+		// Las funciones de gestión (las que el motor pasa según los permisos de la
+		// persona) también tienen que estar acá, o en el modo JSON serían invisibles.
+		foreach ( (array) $extra_tools as $t ) {
+			$name = $t['function']['name'] ?? '';
+			if ( '' === $name ) { continue; }
+			$desc   = $t['function']['description'] ?? '';
+			$params = array_keys( (array) ( $t['function']['parameters']['properties'] ?? [] ) );
+			$lines[] = "- {$name}: {$desc}" . ( $params ? ' — datos: ' . implode( ', ', $params ) : '' );
 		}
 		$actions = implode( "\n", $lines );
 		return "Conversá con naturalidad y criterio propio. Respondé con tus palabras en \"reply\".\n"
 			. "El sistema tiene funciones con datos reales o trámites guiados; SOLO cuando la persona realmente necesita una, poné su nombre en \"action\". Si no, dejá \"action\" vacío y resolvé vos en \"reply\".\n"
 			. "Funciones:\n{$actions}\n"
 			. "Usá una función solo si aporta datos que vos NO tenés (horario, comunicados, eventos, contactos) o inicia un trámite (reportar, escribir). Si usás \"action\", poné en \"reply\" una transición corta. Nunca inventes horarios ni datos personales.\n"
-			. "Respondé EXCLUSIVAMENTE un JSON válido: {\"reply\":\"...\",\"action\":\"\"}. \"action\" vacío = solo respondés vos. Nada de texto fuera del JSON.";
+			. "Si la función necesita datos (ver «datos:»), ponelos en \"args\" con esas mismas claves.\n"
+			. "Respondé EXCLUSIVAMENTE un JSON válido: {\"reply\":\"...\",\"action\":\"\",\"args\":{}}. \"action\" vacío = solo respondés vos. Nada de texto fuera del JSON.";
 	}
 
-	protected static function build_system( $faq_context = '', $mode = 'tools' ) {
-		$instr = ( $mode === 'json' ) ? self::routing_instructions() : self::tool_instructions();
+	protected static function build_system( $faq_context = '', $mode = 'tools', $user_context = '', $extra_tools = [] ) {
+		$instr = ( $mode === 'json' ) ? self::routing_instructions( $extra_tools ) : self::tool_instructions();
 		$p     = self::persona() . "\n\n" . $instr;
 		$kn    = self::knowledge();
 		if ( $kn !== '' ) {
@@ -325,6 +335,12 @@ class Cead_Acad_WA_AI {
 		}
 		if ( trim( (string) $faq_context ) !== '' ) {
 			$p .= "\n\n[FAQ]\n" . mb_substr( (string) $faq_context, 0, 4000 );
+		}
+		if ( trim( (string) $user_context ) !== '' ) {
+			$p .= "\n\n[CON QUIÉN ESTÁS HABLANDO]\n" . mb_substr( (string) $user_context, 0, 2000 )
+				. "\nUsá estos datos para responder con precisión: para resolver a qué se refiere con «mi curso», "
+				. "qué día es «mañana» o «el viernes», y para no ofrecerle cosas que su rol no puede hacer. "
+				. "Nunca expongas datos personales de terceros ni inventes datos que no estén acá o en una herramienta.";
 		}
 		return $p;
 	}
@@ -353,7 +369,7 @@ class Cead_Acad_WA_AI {
 	 * (HTTP 400), cae automáticamente al modo JSON. Devuelve un array de depuración:
 	 * [ ok, code, error, intent, reply, content ].
 	 */
-	public static function call( $message, $faq_context = '', $key = null, $endpoint = null, $model = null, $history = [], $extra_tools = [] ) {
+	public static function call( $message, $faq_context = '', $key = null, $endpoint = null, $model = null, $history = [], $extra_tools = [], $user_context = '' ) {
 		$key      = $key !== null ? $key : self::key();
 		$endpoint = $endpoint !== null && $endpoint !== '' ? $endpoint : self::endpoint();
 		$model    = $model !== null && $model !== '' ? $model : self::model();
@@ -371,8 +387,8 @@ class Cead_Acad_WA_AI {
 		}
 		$allowed = array_values( array_unique( $allowed ) );
 
-		$messages = function ( $mode ) use ( $faq_context, $history, $message ) {
-			$m = [ [ 'role' => 'system', 'content' => self::build_system( $faq_context, $mode ) ] ];
+		$messages = function ( $mode ) use ( $faq_context, $history, $message, $user_context, $extra_tools ) {
+			$m = [ [ 'role' => 'system', 'content' => self::build_system( $faq_context, $mode, $user_context, $extra_tools ) ] ];
 			foreach ( (array) $history as $h ) {
 				if ( isset( $h['role'], $h['content'] ) && in_array( $h['role'], [ 'user', 'assistant' ], true ) ) {
 					$m[] = [ 'role' => $h['role'], 'content' => (string) $h['content'] ];
@@ -402,7 +418,7 @@ class Cead_Acad_WA_AI {
 				'response_format' => [ 'type' => 'json_object' ],
 			] );
 			if ( $rj['code'] === 200 ) {
-				return self::parse_json_mode( $rj, $out );
+				return self::parse_json_mode( $rj, $out, $allowed );
 			}
 			$r = ( $rj['code'] !== 0 ) ? $rj : $r;
 		}
@@ -489,21 +505,34 @@ class Cead_Acad_WA_AI {
 		if ( in_array( $action, [ 'chat', 'menu', 'none', 'null', 'ninguna', 'ninguno', '' ], true ) ) {
 			$action = '';
 		}
-		if ( $action !== '' && ! array_key_exists( $action, self::actions() ) ) {
+		// Validar contra las acciones REALMENTE disponibles (informativas + las de
+		// gestión que el motor habilitó según permisos), no solo las informativas.
+		$allowed = is_array( $allowed ) ? $allowed : array_keys( self::actions() );
+		if ( $action !== '' && ! in_array( $action, $allowed, true ) ) {
 			$action = '';
 		}
 		if ( $reply === '' && $action === '' ) { $out['error'] = 'Respuesta vacía del modelo.'; return $out; }
 
+		$args = [];
+		if ( $action !== '' && isset( $parsed['args'] ) && is_array( $parsed['args'] ) ) {
+			$args = $parsed['args'];
+		}
+
 		$out['ok']     = true;
 		$out['intent'] = $action;
+		$out['args']   = $args;
 		$out['reply']  = $reply;
 		return $out;
 	}
 
-	/** Decisión para el motor. Devuelve [intent, reply, args] o null. Usa memoria si está activa y hay $phone. */
-	public static function route( $message, $faq_context = '', $phone = '', $extra_tools = [] ) {
+	/**
+	 * Decisión para el motor. Devuelve [intent, reply, args] o null. Usa memoria si
+	 * está activa y hay $phone. `$user_context` describe a quién atiende (nombre,
+	 * rol, cursos, fecha de hoy) para que responda con datos y no a ciegas.
+	 */
+	public static function route( $message, $faq_context = '', $phone = '', $extra_tools = [], $user_context = '' ) {
 		$history = ( $phone !== '' ) ? self::load_memory( $phone ) : [];
-		$r = self::call( $message, $faq_context, null, null, null, $history, $extra_tools );
+		$r = self::call( $message, $faq_context, null, null, null, $history, $extra_tools, $user_context );
 		if ( ! $r['ok'] ) {
 			// Fallo TÉCNICO (no «no entendí»): registrarlo para diagnóstico. El
 			// motor lo usa para caer al menú, y el admin lo muestra en CEADI · IA.

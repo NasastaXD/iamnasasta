@@ -41,8 +41,26 @@ if ( ! function_exists( 'sanitize_text_field' ) ) {
 if ( ! function_exists( 'sanitize_key' ) ) {
 	function sanitize_key( $key ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) ); }
 }
+if ( ! function_exists( 'sanitize_textarea_field' ) ) {
+	function sanitize_textarea_field( $str ) { return trim( strip_tags( (string) $str ) ); }
+}
 if ( ! function_exists( 'wp_json_encode' ) ) {
 	function wp_json_encode( $data, $options = 0, $depth = 512 ) { return json_encode( $data, $options, $depth ); }
+}
+if ( ! class_exists( 'WP_Error' ) ) {
+	class WP_Error {
+		protected $code;
+		protected $message;
+		public function __construct( $code = '', $message = '' ) {
+			$this->code    = $code;
+			$this->message = $message;
+		}
+		public function get_error_code() { return $this->code; }
+		public function get_error_message() { return $this->message; }
+	}
+}
+if ( ! function_exists( 'is_wp_error' ) ) {
+	function is_wp_error( $thing ) { return $thing instanceof WP_Error; }
 }
 
 // ---- Código bajo test ----
@@ -51,3 +69,5 @@ require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-identity.php';
 require_once dirname( __DIR__, 2 ) . '/modules/auth/class-invitations.php';
 require_once dirname( __DIR__, 2 ) . '/modules/broadcasts/class-broadcasts-audiences.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-csv-reader.php';
+require_once dirname( __DIR__, 2 ) . '/modules/grades/class-grades-writer.php';
+require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-engine.php';
