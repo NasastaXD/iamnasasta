@@ -86,6 +86,20 @@ Tiene que decir `active (running)`.
 El bridge escucha **solo en `127.0.0.1:3000`**: no está expuesto a internet.
 Falta el proxy que le pone el HTTPS y lo hace alcanzable desde WordPress.
 
+**Un solo comando** (pensado para cuando hay que tipearlo a mano, ej. desde el
+celular):
+
+```bash
+sudo bash /tmp/cead/cead-acad/bridge/deploy/setup-https.sh bot.TU-DOMINIO.com
+```
+
+Instala nginx y certbot, configura el sitio, pide el certificado y al final
+prueba que responda solo. Si no le pasás el dominio como argumento, te lo
+pregunta.
+
+<details>
+<summary>Los mismos pasos a mano (por si preferís controlar cada uno)</summary>
+
 ```bash
 sudo apt-get install -y nginx certbot python3-certbot-nginx
 
@@ -99,14 +113,11 @@ sudo nginx -t && sudo systemctl reload nginx
 sudo certbot --nginx -d bot.TU-DOMINIO.com
 ```
 
-Certbot pone el certificado y lo renueva solo. Probá que responda:
+</details>
 
-```bash
-curl https://bot.TU-DOMINIO.com/api/status
-```
-
-Tiene que devolver `{"error":"Unauthorized"}` — eso está **bien**: significa que
-llegaste al bridge y que rechaza a quien no trae el token.
+Al final tiene que responder `{"error":"Unauthorized"}` al pedirle
+`/api/status` sin token — eso está **bien**: significa que llegaste al bridge
+y que rechaza a quien no lo trae.
 
 ### Firewall
 

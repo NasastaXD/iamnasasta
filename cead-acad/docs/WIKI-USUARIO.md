@@ -1,7 +1,7 @@
 # 📘 CEAD Académico — Wiki del usuario
 
 > Guía completa del sistema del **Centro Educativo de Alto Desempeño "Félix de Guarania"**.
-> Versión del plugin: **0.42.0**.
+> Versión del plugin: **0.42.1**.
 
 Esta wiki explica **todo lo que tiene el sistema** en lenguaje simple: el panel web, la app, el bot de WhatsApp (CEADI) y la parte de administración. Está pensada para alumnado, familias, docentes, delegados, secretaría, consejo y dirección.
 
