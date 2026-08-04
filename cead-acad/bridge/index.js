@@ -7,6 +7,7 @@
 import 'dotenv/config';
 import makeWASocket, {
     useMultiFileAuthState,
+    makeCacheableSignalKeyStore,
     DisconnectReason,
     Browsers,
     fetchLatestBaileysVersion,
@@ -259,7 +260,17 @@ async function connectToWhatsApp() {
 
     sock = makeWASocket( {
         version: waVersion,
-        auth:    state,
+        auth: {
+            creds: state.creds,
+            // useMultiFileAuthState solo (sin esta caché) escribe cada clave de
+            // sesión a un archivo por separado. Si un mensaje nuevo llega antes
+            // de que esa escritura termine de sincronizarse a disco, se
+            // descifra con una clave vieja → "Bad MAC" / "Failed to decrypt
+            // message with any known session" a partir de ahí, sin forma de
+            // recuperarse salvo re-vincular. La caché en memoria evita la
+            // carrera (recomendada por los propios docs de Baileys).
+            keys: makeCacheableSignalKeyStore( state.keys, logger ),
+        },
         logger,
         browser: Browsers.ubuntu( 'Chrome' ),
         connectTimeoutMs:    60000,
