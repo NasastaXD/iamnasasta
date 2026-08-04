@@ -162,6 +162,41 @@ let reconnectAttempts = 0;     // para el backoff exponencial
 
 const logger = pino( { level: 'silent' } );
 
+// -----------------------------------------------------------------------
+// Store de mensajes enviados (para los "retry receipts")
+// -----------------------------------------------------------------------
+// Cuando el celular del otro lado no puede descifrar un mensaje nuestro (algo
+// que pasa cada tanto: se desincroniza la sesión de Signal), NO lo descarta:
+// nos manda un "retry receipt" pidiendo que se lo reenviemos. Baileys resuelve
+// ese pedido llamando a getMessage() para recuperar el contenido original y
+// volver a cifrarlo.
+//
+// Sin getMessage, ese pedido no se puede responder nunca y el mensaje queda
+// para siempre en «Esperando este mensaje» del lado del destinatario. Peor: la
+// sesión nunca se recupera sola, así que a partir de la primera desincronización
+// el bot deja de funcionar hasta revincular (y vuelve a romperse al rato).
+//
+// Se guarda acotado en memoria: es un buffer de reenvío, no un historial.
+const SENT_STORE_MAX = 500;
+const sentMessages   = new Map(); // `${jid}|${id}` → contenido del mensaje
+
+function rememberSentMessage( jid, id, message ) {
+    if ( ! jid || ! id || ! message ) return;
+    sentMessages.set( `${ jid }|${ id }`, message );
+    // Map conserva el orden de inserción: la primera clave es la más vieja.
+    while ( sentMessages.size > SENT_STORE_MAX ) {
+        sentMessages.delete( sentMessages.keys().next().value );
+    }
+}
+
+/** Guarda el resultado de un sendMessage y devuelve el mismo resultado. */
+function trackSent( result ) {
+    if ( result?.key?.id && result?.message ) {
+        rememberSentMessage( result.key.remoteJid, result.key.id, result.message );
+    }
+    return result;
+}
+
 // Log con hora local (los logs eran ilegibles sin marca de tiempo).
 function blog( ...args ) {
     const t = new Date().toLocaleTimeString( 'es-PY', { hour12: false } );
@@ -275,6 +310,12 @@ async function connectToWhatsApp() {
         browser: Browsers.ubuntu( 'Chrome' ),
         connectTimeoutMs:    60000,
         keepAliveIntervalMs: 25000,
+        // Responde los "retry receipts": sin esto, un mensaje que el
+        // destinatario no pudo descifrar queda para siempre en «Esperando este
+        // mensaje» y la sesión no se recupera nunca (ver el store más arriba).
+        getMessage: async ( key ) => {
+            return sentMessages.get( `${ key.remoteJid }|${ key.id }` ) || undefined;
+        },
     } );
 
     sock.ev.on( 'creds.update', saveCreds );
@@ -610,7 +651,7 @@ app.post( '/api/send', async ( req, res ) => {
         return res.status( 500 ).json( { sent: false, error: 'No conectado a WhatsApp' } );
     }
     try {
-        const result = await sock.sendMessage( `${ to }@s.whatsapp.net`, { text: message } );
+        const result = trackSent( await sock.sendMessage( `${ to }@s.whatsapp.net`, { text: message } ) );
         return res.json( { sent: true, id: result?.key?.id } );
     } catch ( err ) {
         console.error( '[CaagBridge] send error:', err.message );
@@ -629,10 +670,10 @@ app.post( '/api/send-image', async ( req, res ) => {
     }
     try {
         const buffer = Buffer.from( image_base64, 'base64' );
-        const result = await sock.sendMessage(
+        const result = trackSent( await sock.sendMessage(
             `${ to }@s.whatsapp.net`,
             { image: buffer, caption: caption || '' }
-        );
+        ) );
         return res.json( { sent: true, id: result?.key?.id } );
     } catch ( err ) {
         console.error( '[CaagBridge] send-image error:', err.message );
@@ -651,10 +692,10 @@ app.post( '/api/edit', async ( req, res ) => {
     }
     try {
         const jid = `${ to }@s.whatsapp.net`;
-        const result = await sock.sendMessage( jid, {
+        const result = trackSent( await sock.sendMessage( jid, {
             text: message,
             edit: { remoteJid: jid, fromMe: true, id: msg_id },
-        } );
+        } ) );
         return res.json( { edited: true, id: result?.key?.id || msg_id } );
     } catch ( err ) {
         console.error( '[CaagBridge] edit error:', err.message );
