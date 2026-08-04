@@ -179,6 +179,10 @@ sudo bash /tmp/cead/cead-acad/bridge/deploy/install-vps.sh
 Volver a correr el instalador **no** borra la sesión de WhatsApp ni el `.env`:
 copia el código nuevo, reinstala dependencias y reinicia el servicio.
 
+> Cuando una versión cambia **dependencias** (no solo `index.js`), hay que
+> correr el instalador completo — copiar el `index.js` a mano no alcanza,
+> porque no actualiza `node_modules`.
+
 > El bridge **no** se actualiza junto con el plugin de WordPress. Cuando una
 > versión toca `bridge/index.js`, hay que hacer esto a mano.
 
