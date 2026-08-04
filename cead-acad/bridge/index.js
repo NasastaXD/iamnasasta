@@ -160,7 +160,12 @@ let waVersion         = null;  // versión del protocolo WA (se obtiene una sola
 let reconnectTimer    = null;  // reconexión pendiente (solo una a la vez)
 let reconnectAttempts = 0;     // para el backoff exponencial
 
-const logger = pino( { level: 'silent' } );
+// Nivel de log de Baileys. Por defecto 'silent' (su salida en 'debug' es
+// enorme), pero configurable: sin esto no hay forma de ver por qué falla un
+// descifrado o un reenvío, y se termina adivinando. Para diagnosticar:
+//   LOG_LEVEL=warn  → errores de sesión y reintentos
+//   LOG_LEVEL=debug → todo (mucho volumen, solo para un rato)
+const logger = pino( { level: process.env.LOG_LEVEL || 'silent' } );
 
 // -----------------------------------------------------------------------
 // Store de mensajes enviados (para los "retry receipts")
@@ -177,12 +182,17 @@ const logger = pino( { level: 'silent' } );
 // el bot deja de funcionar hasta revincular (y vuelve a romperse al rato).
 //
 // Se guarda acotado en memoria: es un buffer de reenvío, no un historial.
+// Se indexa SOLO por id del mensaje, a propósito. WhatsApp migró al
+// direccionamiento LID: el mismo contacto puede aparecer como
+// «595...@s.whatsapp.net» al enviar y como «...@lid» en el retry receipt. Si
+// la clave incluyera el JID, esos dos no coincidirían y el reenvío fallaría
+// justamente cuando más se lo necesita. El id de mensaje ya es único.
 const SENT_STORE_MAX = 500;
-const sentMessages   = new Map(); // `${jid}|${id}` → contenido del mensaje
+const sentMessages   = new Map(); // id → contenido del mensaje
 
-function rememberSentMessage( jid, id, message ) {
-    if ( ! jid || ! id || ! message ) return;
-    sentMessages.set( `${ jid }|${ id }`, message );
+function rememberSentMessage( id, message ) {
+    if ( ! id || ! message ) return;
+    sentMessages.set( id, message );
     // Map conserva el orden de inserción: la primera clave es la más vieja.
     while ( sentMessages.size > SENT_STORE_MAX ) {
         sentMessages.delete( sentMessages.keys().next().value );
@@ -192,7 +202,7 @@ function rememberSentMessage( jid, id, message ) {
 /** Guarda el resultado de un sendMessage y devuelve el mismo resultado. */
 function trackSent( result ) {
     if ( result?.key?.id && result?.message ) {
-        rememberSentMessage( result.key.remoteJid, result.key.id, result.message );
+        rememberSentMessage( result.key.id, result.message );
     }
     return result;
 }
@@ -314,7 +324,13 @@ async function connectToWhatsApp() {
         // destinatario no pudo descifrar queda para siempre en «Esperando este
         // mensaje» y la sesión no se recupera nunca (ver el store más arriba).
         getMessage: async ( key ) => {
-            return sentMessages.get( `${ key.remoteJid }|${ key.id }` ) || undefined;
+            const found = sentMessages.get( key.id );
+            // Se loguea siempre (no depende de LOG_LEVEL): es la única forma de
+            // saber si los reenvíos se están resolviendo o quedando sin respuesta.
+            blog( found
+                ? `↻ Reenviando mensaje ${ key.id } (el destinatario no pudo descifrarlo).`
+                : `⚠️ Me piden reenviar el mensaje ${ key.id } pero ya no lo tengo en memoria.` );
+            return found || undefined;
         },
     } );
 
