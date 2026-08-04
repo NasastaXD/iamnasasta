@@ -97,6 +97,20 @@ const WP_WEBHOOK     = process.env.WP_WEBHOOK_URL || '';
 const TYPING_DELAY   = parseInt( process.env.TYPING_DELAY_MS || '1500', 10 );
 const AUTH_DIR       = './auth_state';
 
+// Interfaz donde escucha el bridge. En una VPS detrás de nginx conviene
+// '127.0.0.1': el puerto no queda expuesto a internet y solo entra tráfico
+// por el proxy (que además pone el HTTPS). Default '0.0.0.0' para no romper
+// las instalaciones caseras que ya andan con Cloudflare Tunnel.
+const HOST = process.env.HOST || '0.0.0.0';
+
+// Con el puerto fijo (detrás de un proxy), que se corra solo a otro puerto
+// deja al proxy apuntando a la nada. PORT_STRICT hace que falle a la vista.
+const PORT_STRICT = /^(1|true|yes|on)$/i.test( process.env.PORT_STRICT || '' );
+
+// En una VPS con dominio propio no hace falta cloudflared; sin esto intenta
+// levantarlo y reintenta cada 15s para siempre, ensuciando el log.
+const TUNNEL_ENABLED = ! /^(0|false|no|off)$/i.test( process.env.TUNNEL || '' );
+
 // Tiempo que el bridge espera a que WordPress responda antes de cancelar la
 // petición (la IA "cancela su mensaje"). En audios se extiende: la nota de voz
 // se transcribe (puede tardar) y recién después responde la IA, así que es
@@ -562,7 +576,11 @@ async function downloadDocument( msg, docMsg ) {
 // -----------------------------------------------------------------------
 
 const app = express();
-app.use( express.json() );
+
+// Las imágenes de comunicados/artículos viajan en base64 dentro del JSON, y
+// base64 infla ~33%: con el límite por defecto de Express (100 kB) cualquier
+// foto de celular se rechazaba con 413 antes de llegar al handler.
+app.use( express.json( { limit: process.env.MAX_BODY_SIZE || '25mb' } ) );
 
 app.use( ( req, res, next ) => {
     const token = req.headers[ 'x-caag-token' ];
@@ -819,18 +837,39 @@ function startTunnel( port ) {
 // -----------------------------------------------------------------------
 
 async function main() {
-    const port = await getFreePort( PREFERRED_PORT );
+    const port = PORT_STRICT ? PREFERRED_PORT : await getFreePort( PREFERRED_PORT );
 
-    app.listen( port, () => {
-        if ( PREFERRED_PORT && port !== PREFERRED_PORT ) {
+    if ( PORT_STRICT && ! port ) {
+        console.error( '[CaagBridge] PORT_STRICT está activo pero no hay PORT definido en .env.' );
+        process.exit( 1 );
+    }
+
+    const server = app.listen( port, HOST, () => {
+        if ( ! PORT_STRICT && PREFERRED_PORT && port !== PREFERRED_PORT ) {
             console.log( `[CaagBridge] Puerto ${ PREFERRED_PORT } ocupado → usando puerto ${ port }` );
         } else {
-            console.log( `[CaagBridge] Bridge corriendo en http://localhost:${ port }` );
+            console.log( `[CaagBridge] Bridge corriendo en http://${ HOST }:${ port }` );
         }
     } );
 
+    // Con puerto fijo, si está ocupado hay que decirlo y cortar: seguir a medias
+    // deja a WordPress hablándole a un puerto que no atiende nadie.
+    server.on( 'error', ( err ) => {
+        if ( err.code === 'EADDRINUSE' ) {
+            console.error( `[CaagBridge] El puerto ${ port } ya está en uso. ¿Hay otro bridge corriendo? (systemctl status cead-bridge)` );
+        } else {
+            console.error( '[CaagBridge] No se pudo abrir el puerto:', err.message );
+        }
+        process.exit( 1 );
+    } );
+
     await connectToWhatsApp();
-    startTunnel( port );
+
+    if ( TUNNEL_ENABLED ) {
+        startTunnel( port );
+    } else {
+        console.log( '[CaagBridge] Tunnel desactivado (TUNNEL=off): se asume dominio propio o proxy inverso.' );
+    }
 }
 
 main().catch( ( err ) => {

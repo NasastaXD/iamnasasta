@@ -2,7 +2,7 @@
 
 Plugin modular para el portal del **Centro Educativo de Alto Desempeño "Félix de Guarania"** (CEAD). Convive con el tema `cead-theme` (mismo repo) y gestiona toda la operación académica y administrativa de la institución: alumnado, cursos, comunicados, encuestas, horarios, recursos, calificaciones, tareas y un bot de WhatsApp integrado.
 
-- **Versión:** 0.41.0 · **DB Version:** 17
+- **Versión:** 0.42.0 · **DB Version:** 17
 - **Requiere:** WordPress 6.4+ · PHP 8.1+
 - **Rama principal:** `main`
 - **Documentación de usuario y técnica:** ver `docs/WIKI-USUARIO.md` y `docs/WIKI-TECNICA.md` (online en `/wiki`).
@@ -646,7 +646,9 @@ Endpoints que expone el bridge:
 
 Todos requieren el header `X-Caag-Token` con el token compartido.
 
-**Ver:** `bridge/INSTALACION.md` para la guía paso a paso de instalación del bridge.
+**Ver:** `bridge/INSTALACION-VPS.md` para dejarlo corriendo 24/7 en un servidor
+(recomendado, con instalador automático y systemd), o `bridge/INSTALACION.md`
+para instalarlo en una PC del colegio.
 
 ---
 
@@ -902,7 +904,12 @@ cead-acad/
 │   ├── setup-tunnel.js                   ← Configurador de Cloudflare Tunnel
 │   ├── package.json
 │   ├── .env.example                      ← Variables de entorno del bridge
-│   └── INSTALACION.md                    ← Guía de instalación paso a paso
+│   ├── INSTALACION.md                    ← Instalación en una PC del colegio
+│   ├── INSTALACION-VPS.md                ← Instalación en servidor (recomendado)
+│   └── deploy/                           ← Despliegue en VPS
+│       ├── install-vps.sh                ← Instalador automático (Ubuntu/Debian)
+│       ├── cead-bridge.service           ← Servicio systemd (arranque + reinicio)
+│       └── nginx-cead-bridge.conf        ← Proxy inverso con HTTPS
 │
 ├── assets/
 │   ├── css/cead-acad-frontend.css

@@ -1,0 +1,51 @@
+[Unit]
+Description=CEAD Académico — Bridge de WhatsApp (Baileys)
+Documentation=https://github.com/nasastaxd/iamnasasta
+# El bridge abre un WebSocket a WhatsApp apenas arranca: si sale antes de que
+# haya red, se pasa el primer minuto reintentando al pedo.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ceadbridge
+Group=ceadbridge
+
+# index.js usa rutas relativas (.env, auth_state/, bridge.lock), así que el
+# directorio de trabajo NO es opcional.
+# El .env lo lee el propio index.js (dotenv) desde este directorio: un solo
+# lector evita que systemd y dotenv interpreten distinto la misma línea.
+WorkingDirectory=/opt/cead-bridge
+ExecStart=/usr/bin/node index.js
+
+# Si se cae (red, crash, OOM), que vuelva solo. RestartSec evita el bucle
+# cerrado cuando el fallo es permanente.
+Restart=always
+RestartSec=10
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cead-bridge
+Environment=NODE_ENV=production
+
+# --- Endurecimiento ---------------------------------------------------------
+# El bridge solo necesita escribir en su propia carpeta (sesión de WhatsApp).
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/cead-bridge
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+# --- VPS chica --------------------------------------------------------------
+# Node + Baileys suele quedarse en 120–250 MB. Si tu VPS tiene 1 GB o menos y
+# querés un techo duro, descomentá y ajustá. Ojo: al tocarlo systemd mata el
+# proceso (y lo reinicia), así que ponerlo muy bajo genera un ciclo de muertes.
+# MemoryMax=400M
+
+[Install]
+WantedBy=multi-user.target
