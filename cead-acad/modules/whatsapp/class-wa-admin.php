@@ -189,7 +189,6 @@ class Cead_Acad_WA_Admin {
 				. esc_html__( 'Buscando el código…', 'cead-acad' ) . '</p>';
 			echo '</div>';
 
-			wp_enqueue_script( 'jquery' );
 			$cfg = wp_json_encode( [
 				'url'   => admin_url( 'admin-ajax.php' ),
 				'nonce' => wp_create_nonce( 'cead_acad_wa_qr' ),
@@ -202,7 +201,11 @@ class Cead_Acad_WA_Admin {
 			] );
 			?>
 			<script>
-			( function ( $ ) {
+			// Sin jQuery a propósito: wp_enqueue_script('jquery') llamado acá (en medio
+			// del render de la página) queda para el footer, después de este bloque —
+			// depender de $ acá rompía en silencio (jQuery is not defined) y el QR
+			// nunca se llegaba a pedir.
+			( function () {
 				var cfg  = <?php echo $cfg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_json_encode. ?>;
 				var img  = document.getElementById( 'cead-wa-qr-img' );
 				var msg  = document.getElementById( 'cead-wa-qr-msg' );
@@ -211,8 +214,10 @@ class Cead_Acad_WA_Admin {
 				function poll() {
 					if ( busy || document.hidden ) { return; }
 					busy = true;
-					$.post( cfg.url, { action: 'cead_acad_wa_qr', _ajax_nonce: cfg.nonce } )
-						.done( function ( res ) {
+					var body = new URLSearchParams( { action: 'cead_acad_wa_qr', _ajax_nonce: cfg.nonce } );
+					fetch( cfg.url, { method: 'POST', credentials: 'same-origin', body: body } )
+						.then( function ( r ) { return r.json(); } )
+						.then( function ( res ) {
 							if ( ! res || ! res.success ) {
 								msg.textContent = ( res && res.data && res.data.message ) || cfg.i18n.error;
 								return;
@@ -231,13 +236,13 @@ class Cead_Acad_WA_Admin {
 								msg.textContent = cfg.i18n.waiting;
 							}
 						} )
-						.fail( function () { msg.textContent = cfg.i18n.error; } )
-						.always( function () { busy = false; } );
+						.catch( function () { msg.textContent = cfg.i18n.error; } )
+						.finally( function () { busy = false; } );
 				}
 
 				var timer = setInterval( poll, 4000 );
 				poll();
-			} )( jQuery );
+			} )();
 			</script>
 			<?php
 		}
