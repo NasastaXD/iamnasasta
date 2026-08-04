@@ -320,6 +320,11 @@ async function connectToWhatsApp() {
         browser: Browsers.ubuntu( 'Chrome' ),
         connectTimeoutMs:    60000,
         keepAliveIntervalMs: 25000,
+        // Baileys 7 lo trae en true por defecto (en 6.x era false). Un bot no
+        // necesita el historial completo, y bajarlo entero es caro en RAM y
+        // tiempo justo al conectar — en una VPS chica es la diferencia entre
+        // arrancar y quedarse sin memoria.
+        syncFullHistory: false,
         // Responde los "retry receipts": sin esto, un mensaje que el
         // destinatario no pudo descifrar queda para siempre en «Esperando este
         // mensaje» y la sesión no se recupera nunca (ver el store más arriba).

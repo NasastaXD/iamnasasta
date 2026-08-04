@@ -1,7 +1,7 @@
 # 🛠️ CEAD Académico — Wiki técnica
 
 > Documentación técnica del sistema del **Centro Educativo de Alto Desempeño "Félix de Guarania"** (CEAD).
-> Plugin **v0.42.5** · DB schema **v17** · Requiere WordPress 6.4+ y PHP 8.1+.
+> Plugin **v0.43.0** · DB schema **v17** · Requiere WordPress 6.4+ y PHP 8.1+.
 
 Esta wiki está pensada para quien quiera entender **cómo está construido** el proyecto: arquitectura, módulos, modelo de datos, el bot, seguridad y despliegue. Para la guía de uso en lenguaje simple, ver **[Wiki del usuario](WIKI-USUARIO.md)**.
 
@@ -68,7 +68,7 @@ La separación tema/plugin es deliberada: el tema puede cambiar sin perder datos
 | Base de datos | MySQL/MariaDB (tablas custom `wp_cead_acad_*` + CPTs nativos de WP) |
 | Frontend panel | PHP server-rendered + CSS plano + JS vanilla (sin build step) |
 | App móvil | PWA (service worker, manifest, instalable, offline básico) |
-| Bot | Node.js + Baileys (WhatsApp Web) + Cloudflare Tunnel |
+| Bot | Node.js + Baileys 7 (WhatsApp Web) + nginx/HTTPS o Cloudflare Tunnel |
 | IA del bot | API compatible con OpenAI (DeepSeek por defecto, configurable) + tool calling nativo |
 | Voz | Transcripción de notas de voz (STT) en el bridge |
 | Autoupdate | [plugin-update-checker](https://github.com/YahnisElsts/plugin-update-checker) + GitHub Releases |

@@ -126,7 +126,8 @@ pm2 startup && pm2 save
 | `SHARED_TOKEN no configurado` | Copiaste `.env.example` pero no lo renombraste a `.env` |
 | `npm install` falla | Confirmá Node.js 18+: `node --version` |
 | Llega el mensaje pero no responde | Revisá la URL del webhook en `.env` y que el token coincida con WordPress |
-| El bot **no te reconoce** (te trata como visitante aunque tu número esté cargado) | WhatsApp pasó a direccionar por **LID**. Actualizá Baileys: `npm update @whiskeysockets/baileys` y reiniciá el bridge. El bridge ya lee el número real (`senderPn`); con una versión vieja de Baileys ese dato no llega y el bot solo funciona en modo general |
+| El bot **no te reconoce** (te trata como visitante aunque tu número esté cargado) | WhatsApp pasó a direccionar por **LID**. Corré `npm install` en la carpeta del bridge y reiniciá. El bridge ya lee el número real (`senderPn`); con una versión vieja de Baileys ese dato no llega y el bot solo funciona en modo general |
+| **«Esperando este mensaje»** en el celular, o el bot contesta una vez y después deja de andar | Faltaba soporte de LID en la librería. Se resuelve con Baileys 7 (ya fijado en `package.json`): corré `npm install` en la carpeta del bridge y reiniciá. La serie 6.7.x no tiene el módulo `lid-mapping` y no puede mantener la sesión de cifrado con WhatsApp actual |
 | **Manda mensajes dobles** | Ya resuelto: el bridge deduplica por ID de mensaje y solo procesa mensajes nuevos (`type: 'notify'`). Asegurate de tener la última versión de `index.js` y reiniciá el bridge |
 
 ---
