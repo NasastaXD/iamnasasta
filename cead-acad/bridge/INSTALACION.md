@@ -6,6 +6,11 @@ WhatsApp con el plugin de WordPress. Vive en `cead-acad/bridge/`.
 > Resumen: instalás Node.js, completás dos datos en un archivo, escaneás un QR
 > y dejás la PC prendida. Es un trabajo de **una sola vez**.
 
+> **¿Tenés un servidor o pensás alquilar una VPS?** Seguí
+> [`INSTALACION-VPS.md`](INSTALACION-VPS.md) en vez de esta guía: hay un
+> instalador que hace todo solo y deja el bot corriendo 24/7, sin depender de
+> que una PC quede prendida.
+
 ---
 
 ## Requisitos

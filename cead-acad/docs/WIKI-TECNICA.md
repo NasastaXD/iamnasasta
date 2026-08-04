@@ -1,7 +1,7 @@
 # 🛠️ CEAD Académico — Wiki técnica
 
 > Documentación técnica del sistema del **Centro Educativo de Alto Desempeño "Félix de Guarania"** (CEAD).
-> Plugin **v0.41.0** · DB schema **v17** · Requiere WordPress 6.4+ y PHP 8.1+.
+> Plugin **v0.42.0** · DB schema **v17** · Requiere WordPress 6.4+ y PHP 8.1+.
 
 Esta wiki está pensada para quien quiera entender **cómo está construido** el proyecto: arquitectura, módulos, modelo de datos, el bot, seguridad y despliegue. Para la guía de uso en lenguaje simple, ver **[Wiki del usuario](WIKI-USUARIO.md)**.
 
@@ -271,7 +271,12 @@ El workflow `.github/workflows/publish-releases.yml` se dispara en **cada push a
 
 ### El bridge
 
-Se despliega aparte (Node.js en una PC/servidor del colegio), expuesto por Cloudflare Tunnel. Ver `bridge/INSTALACION.md`.
+Se despliega aparte (Node.js). Dos escenarios soportados:
+
+- **VPS (recomendado)** — `bridge/deploy/install-vps.sh` instala Node, crea el usuario de servicio, deja el bridge como unidad de systemd (`Restart=always`) escuchando en `127.0.0.1` y detrás de nginx + certbot. Ver `bridge/INSTALACION-VPS.md`.
+- **PC del colegio** — expuesto por Cloudflare Tunnel. Ver `bridge/INSTALACION.md`.
+
+Variables relevantes: `HOST` (interfaz de escucha), `PORT_STRICT` (fallar si el puerto fijo está ocupado, en vez de correrse a otro), `TUNNEL=off` (no levantar cloudflared) y `MAX_BODY_SIZE` (tope del JSON entrante; las imágenes viajan en base64).
 
 ---
 
@@ -296,7 +301,8 @@ php cead-acad/tests/test-phone-normalization.php        # test de normalización
 | `cead-acad/README.md` | Referencia completa del plugin (módulo por módulo) |
 | `cead-acad/modules/whatsapp/README.md` | Detalle del bot |
 | `cead-acad/modules/whatsapp/EXTENDING.md` | Recetas para extender el bot |
-| `cead-acad/bridge/INSTALACION.md` | Instalación del bridge paso a paso |
+| `cead-acad/bridge/INSTALACION-VPS.md` | Instalación del bridge en una VPS (recomendado) |
+| `cead-acad/bridge/INSTALACION.md` | Instalación del bridge en una PC del colegio |
 | `cead-acad/docs/GOOGLE-CALENDAR.md` | Suscripción iCal a Google Calendar |
 | `ROADMAP.md` | Roadmap de features (las 10 implementadas) |
 

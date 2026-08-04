@@ -20,6 +20,44 @@ class Cead_Acad_WA_Admin {
 
 	public function boot() {
 		add_action( 'admin_menu', [ $this, 'register' ], 20 );
+		add_action( 'wp_ajax_cead_acad_wa_qr', [ $this, 'ajax_qr' ] );
+	}
+
+	/**
+	 * Estado del bridge para el refresco automático del QR.
+	 *
+	 * El QR de WhatsApp vence cada ~20 segundos: pedirlo con un submit de
+	 * formulario garantizaba encontrarlo vencido. Esto lo trae en vivo.
+	 */
+	public function ajax_qr() {
+		if ( ! cead_acad_user_is_staff() || ! current_user_can( 'read' ) ) {
+			wp_send_json_error( [ 'message' => __( 'Sin permisos.', 'cead-acad' ) ], 403 );
+		}
+		check_ajax_referer( 'cead_acad_wa_qr' );
+
+		$res = $this->bridge->status( 8 );
+		if ( isset( $res['error'] ) ) {
+			wp_send_json_error( [ 'message' => (string) $res['error'] ] );
+		}
+
+		$connected = ! empty( $res['connected'] );
+		$qr        = isset( $res['qr'] ) ? (string) $res['qr'] : '';
+
+		$this->store->update_session( [
+			'connection_status' => $connected ? 'connected' : 'disconnected',
+			'linked_number'     => isset( $res['number'] ) ? (string) $res['number'] : null,
+			'qr_data'           => $qr !== '' ? $qr : null,
+			'last_heartbeat'    => current_time( 'mysql' ),
+		] );
+
+		wp_send_json_success( [
+			'connected'    => $connected,
+			'number'       => isset( $res['number'] ) ? (string) $res['number'] : '',
+			// Solo devolvemos el QR si es un data URI de imagen: evita inyectar
+			// cualquier otra cosa en el src del <img>.
+			'qr'           => str_starts_with( $qr, 'data:image/' ) ? $qr : '',
+			'pairing_code' => isset( $res['pairing_code'] ) ? (string) $res['pairing_code'] : '',
+		] );
 	}
 
 	public function register() {
@@ -136,9 +174,72 @@ class Cead_Acad_WA_Admin {
 		if ( ! empty( $s->last_heartbeat ) ) {
 			echo '<p><strong>' . esc_html__( 'Último heartbeat', 'cead-acad' ) . ':</strong> ' . esc_html( $s->last_heartbeat ) . '</p>';
 		}
-		if ( ! $connected && ! empty( $s->qr_data ) && str_starts_with( (string) $s->qr_data, 'data:image' ) ) {
-			echo '<p>' . esc_html__( 'Escaneá este QR desde WhatsApp → Dispositivos vinculados:', 'cead-acad' ) . '</p>';
-			echo '<img src="' . esc_attr( $s->qr_data ) . '" alt="QR" style="width:260px;height:260px;border:1px solid #ddd" />';
+		// QR en vivo: mientras el bot esté desconectado, el navegador le pide el
+		// QR al bridge cada pocos segundos. El de WhatsApp vence a los ~20s, así
+		// que sin esto casi siempre se veía uno ya vencido.
+		if ( ! $connected ) {
+			$initial_qr = ( ! empty( $s->qr_data ) && str_starts_with( (string) $s->qr_data, 'data:image/' ) )
+				? (string) $s->qr_data
+				: '';
+			echo '<div id="cead-wa-qr-box" style="margin-top:12px">';
+			echo '<p style="margin:0 0 8px">' . esc_html__( 'Escaneá este QR desde WhatsApp → ⋮ → Dispositivos vinculados → Vincular dispositivo:', 'cead-acad' ) . '</p>';
+			echo '<img id="cead-wa-qr-img" src="' . esc_attr( $initial_qr ) . '" alt="' . esc_attr__( 'Código QR de vinculación', 'cead-acad' ) . '"';
+			echo ' style="width:260px;height:260px;border:1px solid #ddd;background:#fff;' . ( $initial_qr === '' ? 'display:none' : '' ) . '" />';
+			echo '<p id="cead-wa-qr-msg" class="description" style="margin:8px 0 0">'
+				. esc_html__( 'Buscando el código…', 'cead-acad' ) . '</p>';
+			echo '</div>';
+
+			wp_enqueue_script( 'jquery' );
+			$cfg = wp_json_encode( [
+				'url'   => admin_url( 'admin-ajax.php' ),
+				'nonce' => wp_create_nonce( 'cead_acad_wa_qr' ),
+				'i18n'  => [
+					'waiting'   => __( 'Buscando el código…', 'cead-acad' ),
+					'scan'      => __( 'Se renueva solo cada pocos segundos. Escanealo y listo.', 'cead-acad' ),
+					'connected' => __( '✅ ¡Conectado! Actualizando la página…', 'cead-acad' ),
+					'error'     => __( 'No pude hablar con el bridge. Revisá la URL y el token.', 'cead-acad' ),
+				],
+			] );
+			?>
+			<script>
+			( function ( $ ) {
+				var cfg  = <?php echo $cfg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_json_encode. ?>;
+				var img  = document.getElementById( 'cead-wa-qr-img' );
+				var msg  = document.getElementById( 'cead-wa-qr-msg' );
+				var busy = false;
+
+				function poll() {
+					if ( busy || document.hidden ) { return; }
+					busy = true;
+					$.post( cfg.url, { action: 'cead_acad_wa_qr', _ajax_nonce: cfg.nonce } )
+						.done( function ( res ) {
+							if ( ! res || ! res.success ) {
+								msg.textContent = ( res && res.data && res.data.message ) || cfg.i18n.error;
+								return;
+							}
+							if ( res.data.connected ) {
+								msg.textContent = cfg.i18n.connected;
+								clearInterval( timer );
+								setTimeout( function () { window.location.reload(); }, 1200 );
+								return;
+							}
+							if ( res.data.qr ) {
+								img.src = res.data.qr;
+								img.style.display = '';
+								msg.textContent = cfg.i18n.scan;
+							} else {
+								msg.textContent = cfg.i18n.waiting;
+							}
+						} )
+						.fail( function () { msg.textContent = cfg.i18n.error; } )
+						.always( function () { busy = false; } );
+				}
+
+				var timer = setInterval( poll, 4000 );
+				poll();
+			} )( jQuery );
+			</script>
+			<?php
 		}
 		echo '<p style="margin-top:12px">';
 		$this->inline_button( 'refresh', __( 'Refrescar estado', 'cead-acad' ) );

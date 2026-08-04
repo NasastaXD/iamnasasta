@@ -45,7 +45,12 @@ class Cead_Acad_WA_Bridge_Client {
 		return $this->request( 'POST', '/api/profile-picture', [ 'image_base64' => $image_base64 ] );
 	}
 
-	public function status()  { return $this->request( 'GET',  '/api/status' ); }
+	/**
+	 * @param int $timeout Segundos. El refresco automático del QR usa uno corto:
+	 *                     si el bridge está caído, no tiene sentido dejar la
+	 *                     pantalla colgada 15 s en cada sondeo.
+	 */
+	public function status( $timeout = 15 ) { return $this->request( 'GET', '/api/status', [], (int) $timeout ); }
 	public function restart() { return $this->request( 'POST', '/api/restart' ); }
 	public function logout()  { return $this->request( 'POST', '/api/logout' ); }
 

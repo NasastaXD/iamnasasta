@@ -14,13 +14,16 @@ cead-acad/
 │   └── EXTENDING.md         ← cómo modificar/añadir cosas (devs / IA)
 └── bridge/                ← el "bridge" Node.js que habla con WhatsApp
     ├── index.js, setup-tunnel.js, package.json, .env.example
-    └── INSTALACION.md      ← guía de instalación para no técnicos
+    ├── INSTALACION.md      ← instalación en una PC del colegio
+    ├── INSTALACION-VPS.md  ← instalación en un servidor (recomendado)
+    └── deploy/             ← install-vps.sh, systemd y nginx
 ```
 
 - **¿Cambiar un texto del bot?** wp-admin → *CEAD Académico → WhatsApp · Mensajes*
   (agrupado y con nombres claros; es solo texto).
 - **¿Cambiar o agregar una función?** ver `EXTENDING.md` (recetas paso a paso).
-- **¿Instalar el bridge?** ver `bridge/INSTALACION.md`.
+- **¿Instalar el bridge?** en un servidor, `bridge/INSTALACION-VPS.md`
+  (recomendado); en una PC del colegio, `bridge/INSTALACION.md`.
 
 ## Arquitectura
 
