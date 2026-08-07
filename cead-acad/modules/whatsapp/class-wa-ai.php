@@ -485,6 +485,16 @@ TXT;
 		if ( $kn !== '' ) {
 			$p .= "\n\n[CONOCIMIENTO DEL COLEGIO]\n" . mb_substr( $kn, 0, 8000 );
 		}
+		// Lo que le fueron dictando por chat. Va después del conocimiento fijo y
+		// antes de la FAQ a propósito: si algo cambió (un horario, un referente),
+		// lo último que le dijeron manda sobre el texto viejo de configuración.
+		if ( class_exists( 'Cead_Acad_WA_Memory' ) ) {
+			$mem = Cead_Acad_WA_Memory::context();
+			if ( $mem !== '' ) {
+				$p .= "\n\n[LO QUE TE FUERON ENSEÑANDO]\n" . mb_substr( $mem, 0, 4000 )
+					. "\n\nEsto lo cargó la dirección del colegio y pisa al conocimiento de arriba si se contradicen.";
+			}
+		}
 		if ( trim( (string) $faq_context ) !== '' ) {
 			$p .= "\n\n[FAQ]\n" . mb_substr( (string) $faq_context, 0, 4000 );
 		}

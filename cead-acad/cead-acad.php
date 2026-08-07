@@ -78,6 +78,7 @@ require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-temp-access.php';
 require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-broadcaster.php';
 require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-ai.php';
 require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-docs.php';
+require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-memory.php';
 require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-article-format.php';
 require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-engine.php';
 require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-rest.php';
