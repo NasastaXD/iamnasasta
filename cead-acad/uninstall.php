@@ -42,6 +42,8 @@ $options = [
 	'cead_acad_wa_bot_number',
 	'cead_acad_wa_bot_about',
 	'cead_acad_wa_default_mode',
+	'cead_acad_wa_director_phone',
+	'cead_acad_wa_social_category',
 	'cead_acad_wa_registered_only',
 	// IA / transcripción de voz: incluye credenciales de proveedores externos.
 	'cead_acad_wa_ai_enabled',
