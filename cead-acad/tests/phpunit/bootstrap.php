@@ -52,6 +52,9 @@ if ( ! function_exists( 'wp_strip_all_tags' ) ) {
 		return trim( $text );
 	}
 }
+if ( ! function_exists( 'number_format_i18n' ) ) {
+	function number_format_i18n( $number, $decimals = 0 ) { return number_format( (float) $number, (int) $decimals ); }
+}
 if ( ! function_exists( 'wp_tempnam' ) ) {
 	function wp_tempnam( $prefix = '' ) { return tempnam( sys_get_temp_dir(), (string) $prefix ); }
 }

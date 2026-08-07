@@ -239,7 +239,7 @@ class Cead_Acad_WA_Engine {
 			case 'menu_pending':         $this->menu_pending( $phone, $identity, $context ); break;
 			case 'role_chooser':         $this->role_chooser( $phone, $lc, $context, $identity ); break;
 			case 'ia_home':              $this->ia_home( $phone, $body, $lc, $identity, $media ); break;
-			case 'ia_staff_confirm':     $this->ia_staff_confirm( $phone, $lc, $context, $identity ); break;
+			case 'ia_staff_confirm':     $this->ia_staff_confirm( $phone, $lc, $context, $identity, $body, $media ); break;
 			// Alumnado
 			case 'student_menu':         $this->student_menu( $phone, $lc, $identity, $body, $media ); break;
 			case 'stu_report_type':      $this->report_type( $phone, $lc ); break;
@@ -638,7 +638,7 @@ class Cead_Acad_WA_Engine {
 					) . $extra,
 					'doc_unreadable'
 				);
-				$this->store->set_state( $phone, $home_state );
+				$this->leave_ia_state( $phone, $home_state );
 				return true;
 			}
 			$this->doc_ctx = "\n\n[DOCUMENTO QUE ACABA DE ENVIAR]\n"
@@ -666,13 +666,13 @@ class Cead_Acad_WA_Engine {
 			if ( $this->is_image_media( $media ) ) {
 				$this->ia_turn = true;
 				$this->send( $phone, __( '📷 Me llegó tu imagen, pero no puedo mirarla. Contame con palabras qué necesitás.', 'cead-acad' ), 'image_unsupported' );
-				$this->store->set_state( $phone, $home_state );
+				$this->leave_ia_state( $phone, $home_state );
 				return true;
 			}
 			if ( class_exists( 'Cead_Acad_WA_Docs' ) && Cead_Acad_WA_Docs::is_document( $media ) ) {
 				$this->ia_turn = true;
 				$this->send( $phone, __( '📄 Me llegó tu archivo, pero no puedo leerlo. Contame con palabras qué necesitás.', 'cead-acad' ), 'doc_unsupported' );
-				$this->store->set_state( $phone, $home_state );
+				$this->leave_ia_state( $phone, $home_state );
 				return true;
 			}
 			return false;
@@ -728,18 +728,18 @@ class Cead_Acad_WA_Engine {
 			}
 			$this->in_ia = false;
 			if ( $handled ) {
-				$this->store->set_state( $phone, $home_state );
+				$this->leave_ia_state( $phone, $home_state );
 				return true;
 			}
 			// Función inexistente: si respondió algo, lo dejamos como charla.
-			if ( $reply !== '' ) { $this->store->set_state( $phone, $home_state ); return true; }
+			if ( $reply !== '' ) { $this->leave_ia_state( $phone, $home_state ); return true; }
 			return false;
 		}
 
 		// Charla pura: la IA respondió con criterio propio.
 		if ( $reply !== '' ) {
 			$this->ia_turn = true; // mensaje nuevo, no editar el ancla
-			$this->store->set_state( $phone, $home_state );
+			$this->leave_ia_state( $phone, $home_state );
 			$this->send( $phone, $reply, 'ai_chat' );
 			return true;
 		}
@@ -1249,7 +1249,7 @@ class Cead_Acad_WA_Engine {
 					/* translators: 1: título, 2: extracto del contenido, 3: notas extra */
 					__( "📝 *Artículo* — propuesta de CEADI\n*%1\$s*\n────────\n%2\$s\n────────%3\$s\n\n*1.* ✅ Publicar\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
 					$titulo,
-					mb_substr( $contenido, 0, 600 ),
+					self::preview_text( $contenido ),
 					$extra
 				),
 				'ia_staff_propose'
@@ -1486,11 +1486,33 @@ class Cead_Acad_WA_Engine {
 	}
 
 	/** Menú de aprobación de una acción propuesta por la IA. */
-	private function ia_staff_confirm( $phone, $lc, $context, $identity ) {
+	private function ia_staff_confirm( $phone, $lc, $context, $identity, $body = '', $media = null ) {
 		$this->ia_turn = true; // resultado conversacional → mensaje nuevo
 		$kind = (string) ( $context['kind'] ?? '' );
 
-		if ( in_array( $lc, [ '1', 'aceptar', 'acepto', 'si', 'sí', 'ok', 'dale', 'confirmar' ], true ) ) {
+		list( $opcion, $resto ) = self::parse_confirm_choice( $body !== '' ? $body : $lc );
+
+		// Elegir y explicar el cambio en el mismo mensaje («2 agregale la fecha»)
+		// es lo natural, así que el texto que viene después del 2 se toma como la
+		// instrucción y se ahorra una vuelta.
+		if ( 2 === $opcion ) {
+			$this->store->set_state( $phone, 'ia_home' );
+			if ( '' !== $resto && $this->ai_try( $phone, $resto, $identity, 'ia_home', $media ) ) {
+				return;
+			}
+			$this->send( $phone, __( '✏️ Dale, decime cómo lo ajusto y te lo propongo de nuevo.', 'cead-acad' ), 'ia_edit' );
+			return;
+		}
+
+		// En cambio, publicar o descartar con texto pegado es ambiguo («1, pero
+		// cambiale el título» no es un sí). Ahí se pregunta, sin perder la
+		// propuesta, en vez de adivinar y publicar algo que no era.
+		if ( ( 1 === $opcion || 3 === $opcion ) && '' !== $resto ) {
+			$this->send( $phone, __( '🤔 No me quedó claro: si querés que lo publique tal cual mandá solo *1*; si querés cambiarle algo, mandá *2* y el cambio.', 'cead-acad' ) );
+			return;
+		}
+
+		if ( 1 === $opcion ) {
 			if ( $kind === 'comunicado' ) { $this->execute_comunicado( $phone, $context, $identity ); }
 			elseif ( $kind === 'evento' ) { $this->execute_evento( $phone, $context, $identity ); }
 			elseif ( $kind === 'invitacion' ) { $this->execute_invitacion( $phone, $context, $identity ); }
@@ -1500,17 +1522,46 @@ class Cead_Acad_WA_Engine {
 			else { $this->store->set_state( $phone, 'ia_home' ); }
 			return;
 		}
-		if ( in_array( $lc, [ '2', 'editar', 'edit', 'cambiar', 'modificar' ], true ) ) {
-			$this->store->set_state( $phone, 'ia_home' );
-			$this->send( $phone, __( '✏️ Dale, decime cómo lo ajusto y te lo propongo de nuevo.', 'cead-acad' ), 'ia_edit' );
-			return;
-		}
-		if ( in_array( $lc, [ '3', 'cancelar', 'cancel', 'no', 'denegar', 'descartar' ], true ) ) {
+		if ( 3 === $opcion ) {
 			$this->store->set_state( $phone, 'ia_home' );
 			$this->send( $phone, __( '❌ Listo, lo descarté. ¿Algo más?', 'cead-acad' ), 'ia_cancel' );
 			return;
 		}
-		$this->send( $phone, __( 'Elegí *1* (aceptar), *2* (editar) o *3* (cancelar).', 'cead-acad' ) );
+		$this->send( $phone, __( 'Elegí *1* (publicar), *2* (editar, y decime el cambio) o *3* (cancelar). La propuesta sigue esperando.', 'cead-acad' ) );
+	}
+
+	/**
+	 * Interpreta la respuesta a una propuesta.
+	 *
+	 * Devuelve [ opción, resto ]: la opción es 1, 2, 3 o 0 si no se entendió, y
+	 * el resto es lo que se escribió después. Acepta la puntuación con la que
+	 * la gente contesta de verdad («2.», «3)», «2 - agregale la foto»), que
+	 * antes se rechazaba con un «Elegí 1, 2 o 3» aunque la intención fuera obvia.
+	 */
+	public static function parse_confirm_choice( $texto ) {
+		$t = trim( (string) $texto );
+		if ( '' === $t ) { return [ 0, '' ]; }
+
+		if ( preg_match( '/^([123])\s*[\.\)\-–—:,]*\s*(.*)$/su', $t, $m ) ) {
+			return [ (int) $m[1], trim( (string) $m[2] ) ];
+		}
+
+		$lc = mb_strtolower( $t );
+		// Con palabras solo se acepta la palabra sola, salvo «editar», donde lo
+		// que sigue es justamente el cambio pedido.
+		foreach ( [ 'editar', 'edit', 'cambiar', 'modificar', 'corregir' ] as $w ) {
+			if ( $lc === $w ) { return [ 2, '' ]; }
+			if ( 0 === mb_strpos( $lc, $w . ' ' ) ) {
+				return [ 2, trim( mb_substr( $t, mb_strlen( $w ) ) ) ];
+			}
+		}
+		if ( in_array( $lc, [ 'aceptar', 'acepto', 'si', 'sí', 'ok', 'dale', 'confirmar', 'publicar', 'publicalo', 'publicá' ], true ) ) {
+			return [ 1, '' ];
+		}
+		if ( in_array( $lc, [ 'cancelar', 'cancel', 'no', 'denegar', 'descartar' ], true ) ) {
+			return [ 3, '' ];
+		}
+		return [ 0, $t ];
 	}
 
 	/** Ejecuta el comunicado aprobado (re-chequea permisos). */
@@ -3217,6 +3268,50 @@ class Cead_Acad_WA_Engine {
 			return __( '📄 Ese archivo es un Word viejo (.doc) y no puedo abrirlo. Abrilo en Word y usá *Guardar como → .docx* (o exportalo a PDF), y reenviámelo.', 'cead-acad' );
 		}
 		return __( '📄 Ese archivo es un Excel viejo (.xls) y no puedo abrirlo. Abrilo en Excel y usá *Guardar como → .xlsx*, después reenviámelo.', 'cead-acad' );
+	}
+
+	/**
+	 * Vista previa de un texto largo para la propuesta de WhatsApp.
+	 *
+	 * El artículo entero se guarda igual; esto es solo lo que se muestra. Antes
+	 * se cortaba con un mb_substr seco a 600 caracteres, así que la propuesta
+	 * terminaba a mitad de palabra y parecía que el artículo había salido
+	 * cortado. Ahora se corta en un corte natural (párrafo o espacio) y se
+	 * aclara cuánto falta, para que se entienda que está completo.
+	 */
+	public static function preview_text( $texto, $limite = 700 ) {
+		$texto = trim( (string) $texto );
+		$total = mb_strlen( $texto );
+		if ( $total <= $limite ) { return $texto; }
+
+		$corte = mb_substr( $texto, 0, $limite );
+		// Cortar en el último párrafo o espacio, para no partir una palabra.
+		$pos = max( mb_strrpos( $corte, "\n" ) ?: 0, mb_strrpos( $corte, ' ' ) ?: 0 );
+		if ( $pos > (int) ( $limite * 0.6 ) ) { $corte = mb_substr( $corte, 0, $pos ); }
+
+		return rtrim( $corte ) . "\n\n" . sprintf(
+			/* translators: %s: cantidad de caracteres que faltan */
+			__( '[…] _Vista previa cortada acá. El artículo completo tiene %s caracteres y se publica entero._', 'cead-acad' ),
+			number_format_i18n( $total )
+		);
+	}
+
+	/**
+	 * Deja el estado de espera del modo asistente, PERO sin pisar una propuesta
+	 * que quedó esperando confirmación.
+	 *
+	 * Pasa de verdad: WhatsApp manda un álbum de fotos como mensajes separados,
+	 * así que se abren dos turnos casi a la vez. Si el primero propone publicar
+	 * un artículo y el segundo termina después, el segundo dejaba el estado en
+	 * «ia_home» y borraba la propuesta: la persona contestaba *1* y no se
+	 * publicaba nada, sin ningún aviso. La confirmación pendiente manda.
+	 */
+	private function leave_ia_state( $phone, $home_state ) {
+		$now = $this->store->get_state( $phone );
+		if ( ( $now['state'] ?? '' ) === 'ia_staff_confirm' ) {
+			return;
+		}
+		$this->store->set_state( $phone, $home_state );
 	}
 
 	/** ¿Llegó un documento (PDF, Word) y la lectura está activa? */
