@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 </head>
 <body <?php body_class( 'cead-body cead-canvas' ); ?>>
 <?php wp_body_open(); ?>
-	<main class="cead-canvas-main">
+	<main id="contenido" class="cead-canvas-main">
 		<?php
 		while ( have_posts() ) :
 			the_post();

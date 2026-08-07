@@ -32,16 +32,35 @@
       </div>
 
       <?php
-      // Si hay menús asignados, los usamos; si no, columnas estáticas como fallback.
+      /**
+       * Columnas del footer.
+       *
+       * Si hay un menú asignado se usa. Si no, el respaldo se arma con destinos
+       * que EXISTEN de verdad: antes imprimía doce enlaces a `#` que no
+       * llevaban a ningún lado. Es el mismo criterio que ya usaban las redes
+       * más abajo — una columna sin ningún destino válido no se imprime.
+       */
+      $site  = cead_site_links();
+      $pick  = static function ( array $keys ) use ( $site ) {
+          $out = [];
+          foreach ( $keys as $k ) { if ( isset( $site[ $k ] ) ) { $out[] = $site[ $k ]; } }
+          return $out;
+      };
+
       $cols = [
-          ['Institucional', 'footer_1', ['Sobre CEAD', 'Honor Code', 'Historia', 'Autoridades']],
-          ['Bachilleratos', 'footer_2', ['Ciencias Básicas', 'Ciencias Sociales', 'Letras y Artes', 'Servicios Turísticos']],
-          ['Contacto',      'footer_3', ['Admisión', 'Visitas', 'Prensa', 'Trabajá con nosotros']],
+          [ 'Institucional', 'footer_1', $pick( ['sobre-cead', 'historia', 'honor-code', 'autoridades'] ) ],
+          [ 'Bachilleratos', 'footer_2', cead_division_links() ],
+          [ 'Comunidad',     'footer_3', $pick( ['admision', 'noticias', 'galeria', 'recursos'] ) ],
       ];
-      foreach ($cols as $c): ?>
+
+      foreach ($cols as $c):
+        $tiene_menu = has_nav_menu($c[1]);
+        // Sin menú y sin destinos reales, la columna no aporta nada.
+        if (!$tiene_menu && empty($c[2])) { continue; }
+        ?>
         <div class="footer-col">
           <div class="footer-col-title"><?php echo esc_html($c[0]); ?></div>
-          <?php if (has_nav_menu($c[1])): ?>
+          <?php if ($tiene_menu): ?>
             <?php wp_nav_menu([
                 'theme_location' => $c[1],
                 'container'      => false,
@@ -52,7 +71,7 @@
           <?php else: ?>
             <ul class="footer-col-list">
               <?php foreach ($c[2] as $it): ?>
-                <li><a href="#"><?php echo esc_html($it); ?></a></li>
+                <li><a href="<?php echo esc_url($it['url']); ?>"><?php echo esc_html($it['label']); ?></a></li>
               <?php endforeach; ?>
             </ul>
           <?php endif; ?>
@@ -93,7 +112,7 @@
         <input required name="nombre"  placeholder="Nombre" class="form-input">
         <input required name="email"  type="email" placeholder="Email" class="form-input">
         <textarea required name="mensaje" rows="4" placeholder="Mensaje" class="form-input form-input--full"></textarea>
-        <button type="submit" class="form-submit">Enviar mensaje →</button>
+        <button type="submit" class="cead-btn cead-btn-dark form-submit">Enviar mensaje →</button>
 
         <?php if (isset($_GET['cead_ok'])): ?>
           <div class="form-msg form-msg--ok">✓ Mensaje enviado correctamente.</div>
@@ -104,7 +123,7 @@
     </div>
 
     <div class="footer-bottom">
-      <div><span class="text-muted-italic">placeholder</span></div>
+      <div class="text-muted"><?php echo esc_html( get_theme_mod( 'cead_footer_note', 'Caaguazú, Paraguay' ) ); ?></div>
       <div class="text-muted">© <?php echo esc_html(date('Y')); ?> CEAD Félix de Guarania</div>
     </div>
   </div>

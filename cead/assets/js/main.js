@@ -23,16 +23,26 @@
       menu.classList.remove('hidden');
       requestAnimationFrame(function () { menu.classList.add('is-open'); });
       document.body.style.overflow = 'hidden';
+      openBtn.setAttribute('aria-expanded', 'true');
+      // El menú tapa toda la pantalla: el foco tiene que entrar con él, si no
+      // quien navega con teclado sigue tabulando por detrás.
+      closeBtn.focus();
     };
-    var closeMenu = function () {
+    var closeMenu = function (devolverFoco) {
       menu.classList.remove('is-open');
       document.body.style.overflow = '';
+      openBtn.setAttribute('aria-expanded', 'false');
       setTimeout(function () { menu.classList.add('hidden'); }, 700);
+      if (devolverFoco === true) { openBtn.focus(); }
     };
     openBtn.addEventListener('click', openMenu);
-    closeBtn.addEventListener('click', closeMenu);
+    closeBtn.addEventListener('click', function () { closeMenu(true); });
     menu.querySelectorAll('a').forEach(function (a) {
-      a.addEventListener('click', closeMenu);
+      a.addEventListener('click', function () { closeMenu(false); });
+    });
+    // Escape cierra, que es lo que todo el mundo intenta primero.
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && menu.classList.contains('is-open')) { closeMenu(true); }
     });
   }
 

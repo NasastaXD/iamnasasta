@@ -1,28 +1,35 @@
 <?php
 /**
- * Header / nav fijo + mega menú.
- * Si hay menú "primary" asignado, lo usa; si no, hardcodea las 5 secciones del original.
+ * Header fijo + mega menú.
+ *
+ * Si hay menús asignados en Apariencia → Menús, mandan esos. Si no, el respaldo
+ * se arma con los destinos que el sitio SÍ sirve (`cead_site_links()` en
+ * inc/pages.php), y lo que no existe no se imprime: nunca un enlace a un 404.
  */
-// Secciones con enlaces REALES: páginas (Creemos/Admisión/Comunidad/Vida) +
-// Divisiones desde el CPT. Cada item: ['label'=>..., 'url'=>...].
-$default_sections = [];
-$page_sections = function_exists( 'cead_nav_page_sections' ) ? cead_nav_page_sections() : [];
-foreach ( $page_sections as $label => $items ) {
-    $links = [];
-    foreach ( $items as $it ) {
-        $links[] = [ 'label' => $it[0], 'url' => cead_page_url( $it[1] ) ];
-    }
-    $default_sections[] = [ 'label' => $label, 'items' => $links ];
-}
-// Divisiones (CPT) → insertarlas después de "Admisión".
-$cead_divs = get_posts( [ 'post_type' => 'cead_division', 'posts_per_page' => 8, 'orderby' => 'menu_order', 'order' => 'ASC' ] );
-if ( $cead_divs ) {
-    $dlinks = [];
-    foreach ( $cead_divs as $d ) {
-        $dlinks[] = [ 'label' => get_the_title( $d ), 'url' => get_permalink( $d ) ];
-    }
-    array_splice( $default_sections, 2, 0, [ [ 'label' => 'Divisiones', 'items' => $dlinks ] ] );
-}
+if ( ! defined( 'ABSPATH' ) ) { exit; }
+
+$site  = function_exists( 'cead_site_links' ) ? cead_site_links() : [];
+$divs  = function_exists( 'cead_division_links' ) ? cead_division_links() : [];
+
+$pick = static function ( array $keys ) use ( $site ) {
+	$out = [];
+	foreach ( $keys as $k ) { if ( isset( $site[ $k ] ) ) { $out[] = $site[ $k ]; } }
+	return $out;
+};
+
+// Barra superior: pocas entradas, las que la gente busca de verdad.
+$nav_top = $pick( [ 'sobre-cead', 'bachilleratos', 'admision', 'noticias' ] );
+
+// Mega menú: agrupado, y cada grupo se saltea si quedó vacío.
+$nav_groups = array_values( array_filter( [
+	[ 'label' => __( 'Institucional', 'cead' ), 'items' => $pick( [ 'sobre-cead', 'historia', 'honor-code', 'autoridades' ] ) ],
+	[ 'label' => __( 'Bachilleratos', 'cead' ), 'items' => $divs ?: $pick( [ 'bachilleratos' ] ) ],
+	[ 'label' => __( 'Admisión', 'cead' ),      'items' => $pick( [ 'admision' ] ) ],
+	[ 'label' => __( 'Explorá', 'cead' ),       'items' => array_merge(
+		$pick( [ 'noticias', 'galeria', 'recursos' ] ),
+		[ [ 'label' => __( 'Contacto', 'cead' ), 'url' => home_url( '/#Contacto' ) ] ]
+	) ],
+], static function ( $g ) { return ! empty( $g['items'] ); } ) );
 ?>
 <header id="site-nav" class="site-nav">
   <div class="container site-nav-inner">
@@ -30,7 +37,7 @@ if ( $cead_divs ) {
       <?php get_template_part('template-parts/logo'); ?>
     </a>
 
-    <nav class="site-nav-links" aria-label="Navegación principal">
+    <nav class="site-nav-links" aria-label="<?php esc_attr_e( 'Navegación principal', 'cead' ); ?>">
       <?php if (has_nav_menu('primary')): ?>
         <?php wp_nav_menu([
             'theme_location' => 'primary',
@@ -40,10 +47,8 @@ if ( $cead_divs ) {
             'fallback_cb'    => false,
         ]); ?>
       <?php else: ?>
-        <?php foreach ($default_sections as $s):
-            $top_url = ! empty( $s['items'][0]['url'] ) ? $s['items'][0]['url'] : home_url( '/' );
-        ?>
-          <a href="<?php echo esc_url( $top_url ); ?>" class="site-nav-link underline-brand">
+        <?php foreach ($nav_top as $s): ?>
+          <a href="<?php echo esc_url( $s['url'] ); ?>" class="site-nav-link underline-brand">
             <?php echo esc_html($s['label']); ?>
           </a>
         <?php endforeach; ?>
@@ -51,27 +56,35 @@ if ( $cead_divs ) {
     </nav>
 
     <div class="site-nav-actions">
-      <button class="site-nav-iconbtn" aria-label="Buscar">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-      </button>
-      <button id="menu-open" class="site-nav-iconbtn site-nav-iconbtn--brand" aria-label="Abrir menú">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      <?php
+      /**
+       * Búsqueda. Antes era un botón sin ningún listener: parecía clicable y no
+       * hacía nada. Ahora lleva a la búsqueda real de WordPress.
+       */
+      ?>
+      <a href="<?php echo esc_url( home_url( '/?s=' ) ); ?>" class="site-nav-iconbtn" aria-label="<?php esc_attr_e( 'Buscar en el sitio', 'cead' ); ?>">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </a>
+      <button id="menu-open" class="site-nav-iconbtn site-nav-iconbtn--brand"
+              aria-label="<?php esc_attr_e( 'Abrir menú', 'cead' ); ?>"
+              aria-expanded="false" aria-controls="mega-menu">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
     </div>
   </div>
 </header>
 
-<div id="mega-menu" class="mega-menu hidden">
+<div id="mega-menu" class="mega-menu hidden" role="dialog" aria-modal="true"
+     aria-label="<?php esc_attr_e( 'Menú del sitio', 'cead' ); ?>">
   <div class="container mega-menu-top">
     <?php get_template_part('template-parts/logo', null, ['dark' => true]); ?>
-    <button id="menu-close" class="mega-menu-close" aria-label="Cerrar menú">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    <button id="menu-close" class="mega-menu-close" aria-label="<?php esc_attr_e( 'Cerrar menú', 'cead' ); ?>">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M18 6 6 18M6 6l12 12"/></svg>
     </button>
   </div>
   <div class="container mega-menu-grid">
     <?php
     if (has_nav_menu('mega')):
-        // Si el usuario asignó un menú "mega", lo respetamos como una sola columna.
         echo '<div class="mega-menu-col">';
         wp_nav_menu([
             'theme_location' => 'mega',
@@ -82,7 +95,7 @@ if ( $cead_divs ) {
         ]);
         echo '</div>';
     else:
-        foreach ($default_sections as $i => $s): ?>
+        foreach ($nav_groups as $i => $s): ?>
             <div class="mega-menu-col">
                 <div class="mega-menu-col-title">
                     <?php echo esc_html(cead_pad2($i + 1) . ' — ' . $s['label']); ?>
@@ -93,29 +106,11 @@ if ( $cead_divs ) {
                     <?php endforeach; ?>
                 </ul>
             </div>
-        <?php endforeach; ?>
-
-        <?php // Enlaces reales a las secciones públicas nuevas. ?>
-        <div class="mega-menu-col">
-            <div class="mega-menu-col-title"><?php echo esc_html( cead_pad2( count( $default_sections ) + 1 ) . ' — Explorá' ); ?></div>
-            <ul class="mega-menu-list">
-                <?php
-                $cead_explore = [
-                    [ 'Noticias', get_post_type_archive_link( 'cead_noticia' ) ],
-                    [ 'Recursos', get_post_type_archive_link( 'cead_recurso' ) ],
-                    [ 'Galería',  get_post_type_archive_link( 'cead_galeria' ) ],
-                    [ 'Contacto', home_url( '/#Contacto' ) ],
-                ];
-                foreach ( $cead_explore as $lnk ) :
-                    if ( empty( $lnk[1] ) ) { continue; } ?>
-                    <li><a href="<?php echo esc_url( $lnk[1] ); ?>"><?php echo esc_html( $lnk[0] ); ?></a></li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-    <?php endif;
+        <?php endforeach;
+    endif;
     ?>
   </div>
   <div class="mega-menu-foot">
-    Caaguazú, Paraguay · cead.caaguazú.net
+    <?php echo esc_html( get_theme_mod( 'cead_footer_note', 'Caaguazú, Paraguay' ) ); ?> · <?php echo esc_html( get_theme_mod( 'cead_footer_site_label', 'cead.caaguazú.net' ) ); ?>
   </div>
 </div>
