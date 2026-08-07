@@ -1674,3 +1674,190 @@ p { margin: 0; }
 /* Para usuarios logueados, bajar el nav fijo para no taparse con la barra de WP. */
 .admin-bar .site-nav { top: 32px; }
 @media screen and (max-width: 782px) { .admin-bar .site-nav { top: 46px; } }
+
+/* =====================================================
+   404
+   ===================================================== */
+.cead-404 { max-width: 760px; }
+.cead-404-text {
+  margin-top: 2rem;
+  color: var(--text-secondary);
+  font-size: 1.0625rem;
+  line-height: 1.7;
+}
+.cead-404-search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.cead-404-search .form-input { flex: 1 1 16rem; }
+.cead-404-links { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border-cead); }
+.cead-404-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.75rem;
+  margin-top: 1rem;
+}
+
+/* =====================================================
+   PLANTILLA: DOCUMENTO INSTITUCIONAL
+   Circulares y resoluciones. Formal y sobrio: el opuesto
+   del titular en Anton de una noticia.
+   ===================================================== */
+.cead-doc {
+  max-width: 46rem;
+  margin: 0 auto;
+  font-family: var(--font-serif);
+  color: var(--ink-soft);
+}
+.cead-doc-head { text-align: center; }
+.cead-doc-marks {
+  display: inline-grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
+  margin-bottom: 1rem;
+}
+.cead-doc-org {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 1rem;
+  color: var(--ink);
+}
+.cead-doc-place {
+  margin-top: 0.4rem;
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+}
+.cead-doc-rule {
+  height: 2px;
+  background: var(--ink);
+  margin: 1.5rem 0 2rem;
+}
+.cead-doc-meta {
+  text-align: right;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+.cead-doc-title {
+  margin-top: 1.5rem;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: clamp(1.6rem, 3.5vw, 2.25rem);
+  line-height: 1.2;
+  color: var(--ink);
+  text-align: center;
+}
+.cead-doc-content {
+  margin-top: 2.5rem;
+  font-size: 1.125rem;
+  line-height: 1.75;
+  text-align: justify;
+  hyphens: auto;
+}
+.cead-doc-content > * + * { margin-top: 1.25rem; }
+.cead-doc-content h2,
+.cead-doc-content h3 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  color: var(--ink);
+  text-align: left;
+  margin-top: 2rem;
+}
+.cead-doc-content h2 { font-size: 1.375rem; }
+.cead-doc-content h3 { font-size: 1.175rem; }
+.cead-doc-content a { color: var(--brand-deep); text-decoration: underline; }
+.cead-doc-content li { margin-bottom: 0.5rem; margin-left: 1.25rem; list-style: disc; }
+.cead-doc-content ol > li { list-style: decimal; }
+.cead-doc-content table { width: 100%; border-collapse: collapse; font-size: 0.9375rem; }
+.cead-doc-content th,
+.cead-doc-content td { padding: 0.6rem 0.75rem; border: 1px solid var(--border-cead); text-align: left; }
+.cead-doc-content blockquote {
+  margin: 1.75rem 0 1.75rem 1.5rem;
+  padding-left: 1.25rem;
+  border-left: 3px solid var(--border-cead);
+  font-style: italic;
+}
+
+.cead-doc-sign { margin-top: 5rem; text-align: center; }
+.cead-doc-sign-line {
+  width: 16rem;
+  max-width: 100%;
+  height: 1px;
+  background: var(--ink);
+  margin: 0 auto 0.75rem;
+}
+.cead-doc-sign-name { font-weight: 600; color: var(--ink); }
+.cead-doc-sign-role {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+/* Una circular termina impresa: que salga en papel como corresponde. */
+@page { margin: 2cm 2.2cm; }
+
+@media print {
+  .site-nav, .mega-menu, .cead-footer, .skip-link, .intro-overlay { display: none !important; }
+  /* Solo el aire vertical, que en papel lo da el margen de página. El padding
+     horizontal NO se toca: sin él el texto sale pegado al borde de la hoja. */
+  .cead-page { padding-top: 0 !important; padding-bottom: 0 !important; }
+  .cead-doc { max-width: none; font-size: 11pt; }
+  .cead-doc-content { font-size: 11pt; }
+  .cead-doc-content a { color: #000; text-decoration: underline; }
+  /* Que no se corte una firma ni un encabezado a mitad de página. */
+  .cead-doc-sign { break-inside: avoid; }
+  .cead-doc-content h2, .cead-doc-content h3 { break-after: avoid; }
+}
+
+/* =====================================================
+   PLANTILLA: NOTA CON PORTADA
+   Foto a sangre con el título encima.
+   ===================================================== */
+.cead-cover-hero {
+  position: relative;
+  min-height: 60vh;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  background: var(--ink);
+}
+@media (min-width: 1024px) { .cead-cover-hero { min-height: 78vh; } }
+.cead-cover-img { position: absolute; inset: 0; }
+.cead-cover-img img { width: 100%; height: 100%; object-fit: cover; }
+/* Velo: sin esto el título blanco depende de la suerte de la foto. */
+.cead-cover-veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(11,11,11,.88) 0%, rgba(11,11,11,.55) 45%, rgba(11,11,11,.15) 100%);
+}
+.cead-cover-head { position: relative; padding-bottom: 4rem; padding-top: 8rem; }
+.cead-cover-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  letter-spacing: 0.22em;
+  color: rgba(255,255,255,.85);
+}
+.cead-cover-title {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: clamp(2.25rem, 7vw, 5.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  color: #fff;
+  max-width: 20ch;
+}
+.cead-cover-body { padding-top: 4rem; padding-bottom: 2rem; }
