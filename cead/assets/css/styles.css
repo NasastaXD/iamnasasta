@@ -16,9 +16,18 @@
   --ink:         #0B0B0B;
   --ink-soft:    #1F1F1F;
   --text-secondary: #4A4A4A;
-  --text-muted:  #8E8E8E;
+  /* #6E6E6E y no #8E8E8E: el gris anterior daba 3.28 sobre blanco y 3.01 sobre
+     crema, o sea no llegaba al 4.5 que pide AA para texto normal. Este es el
+     más claro que pasa en los dos fondos (5.10 / 4.68), así que la jerarquía
+     visual se mantiene y las fechas y epígrafes se leen. */
+  --text-muted:  #6E6E6E;
   --canvas-soft: #F7F5F0;
   --border-cead: #E4E1DA;
+
+  /* Regla de uso del rojo: --brand para RELLENOS y decoración; --brand-deep
+     cuando el rojo es TEXTO sobre fondo claro. El rojo vivo sobre blanco da
+     4.07 y no alcanza para texto normal; el oscuro da 6.17. */
+  --focus-ring:  var(--brand);
 
   --page-max:    1400px;
 
@@ -65,6 +74,12 @@ p { margin: 0; }
 }
 .container--narrow { max-width: 1100px; }
 
+/* Aire de una página interna: despeja el nav fijo (5rem) y respira abajo.
+   Estaba escrito a mano en el `style=` de cinco plantillas, con dos formatos
+   distintos; acá vive una sola vez. */
+.cead-page { padding-top: 8rem; padding-bottom: 6rem; }
+@media (min-width: 1024px) { .cead-page { padding-top: 9rem; padding-bottom: 8rem; } }
+
 .text-center { text-align: center; }
 .hidden { display: none !important; }
 
@@ -74,7 +89,8 @@ p { margin: 0; }
 
 .eyebrow {
   font-family: var(--font-display);
-  color: var(--brand);
+  /* Texto chico (0.8rem) en rojo: va el oscuro para que se lea. */
+  color: var(--brand-deep);
   text-transform: uppercase;
   letter-spacing: 0.18em;
   font-size: 0.8rem;
@@ -118,9 +134,61 @@ p { margin: 0; }
 .cead-btn-outline-white  { background: transparent; color: #fff;       border-color: #fff; }
 .cead-btn-outline-white:hover { background: #fff; color: var(--ink); }
 
+/* =====================================================
+   ACCESIBILIDAD
+   ===================================================== */
+
+/* Foco de teclado. Antes había UNA sola regla de foco en toda la hoja, y era
+   un cambio de color de borde: quien navega con Tab no sabía dónde estaba
+   parado. El rojo de marca da 4.07 sobre blanco y 4.83 sobre negro, así que el
+   mismo anillo sirve en fondo claro y oscuro. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  border-radius: 1px; /* que el anillo no quede pegado en esquinas rectas */
+}
+/* Sobre fondos oscuros el rojo pierde fuerza: ahí el anillo va blanco. */
+.cead-footer--dark :where(a, button):focus-visible,
+.mega-menu :where(a, button):focus-visible,
+.section--admission :where(a, button):focus-visible {
+  outline-color: #fff;
+}
+
+/* Solo para lectores de pantalla. No existía la utilidad en el proyecto. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Saltar al contenido: primer elemento enfocable de la página. */
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -100%;
+  z-index: 100;
+  background: var(--ink);
+  color: #fff;
+  padding: 0.85rem 1.25rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.75rem;
+  transition: top .2s ease;
+}
+.skip-link:focus { top: 1rem; }
+
 /* ---------- Reveals ---------- */
-.reveal { opacity: 0; transform: translateY(30px); }
-.reveal.is-in {
+/* La animación de entrada solo se aplica si el JS está vivo (clase `js` en
+   <html>). Sin esto, `opacity: 0` dejaba 15 bloques invisibles —el título del
+   hero incluido— cuando el JS no llegaba a correr. */
+.js .reveal { opacity: 0; transform: translateY(30px); }
+.js .reveal.is-in {
   opacity: 1;
   transform: none;
   transition: opacity .8s ease, transform .8s cubic-bezier(.2,.8,.2,1);
@@ -376,6 +444,25 @@ p { margin: 0; }
   .intro-letter { animation: none; opacity: 1; transform: none; }
   .intro-line   { animation: none; opacity: 0.4; transform: scaleX(1); }
   .intro-overlay { animation: cead-overlay-out 0.3s linear 0.5s forwards; }
+
+  /* Movimiento que no paraba nunca: la cinta de valores corría 40s en bucle y
+     el zoom de las fotos 18s, sin forma de detenerlos. Quien pide menos
+     movimiento en su sistema los recibía igual. */
+  .marquee    { animation: none; transform: none; }
+  .ken-burns  { animation: none; transform: none; }
+
+  /* La entrada de bloques deja de animarse, pero el contenido queda visible. */
+  .js .reveal,
+  .js .reveal.is-in { opacity: 1; transform: none; transition: none; }
+
+  /* Red de seguridad para cualquier animación o transición que se agregue
+     después y se olvide de este bloque. */
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ---------- Intro 3D (WebGL) ----------
@@ -799,7 +886,7 @@ p { margin: 0; }
   border-top: 1px solid rgba(233, 59, 60, 0.3);
   border-bottom: 1px solid rgba(233, 59, 60, 0.3);
   padding: 1rem 0;
-  color: var(--brand);
+  color: var(--brand-deep);
   font-family: var(--font-display);
   text-transform: uppercase;
   letter-spacing: 0.2em;
@@ -1043,7 +1130,7 @@ p { margin: 0; }
   font-size: 0.9375rem;
 }
 .footer-address:hover {
-  color: var(--brand);
+  color: var(--brand-deep);
 }
 .footer-site-link {
   display: inline-flex;
@@ -1054,7 +1141,7 @@ p { margin: 0; }
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.25em;
-  color: var(--brand);
+  color: var(--brand-deep);
 }
 
 .footer-col-title {
@@ -1062,7 +1149,7 @@ p { margin: 0; }
   text-transform: uppercase;
   letter-spacing: 0.22em;
   font-size: 0.75rem;
-  color: var(--brand);
+  color: var(--brand-deep);
   margin-bottom: 1.25rem;
 }
 .footer-col-list { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -1071,7 +1158,7 @@ p { margin: 0; }
   font-size: 0.875rem;
   transition: color .3s ease;
 }
-.footer-col-list a:hover { color: var(--brand); }
+.footer-col-list a:hover { color: var(--brand-deep); }
 
 .footer-socials {
   display: flex;
@@ -1157,26 +1244,12 @@ p { margin: 0; }
 .form-input:focus { border-color: var(--ink); }
 .form-input--full { grid-column: 1 / -1; resize: vertical; }
 
+/* El botón de enviar es .cead-btn.cead-btn-dark: solo agrega su ubicación en la
+   grilla del formulario. Antes repetía las quince declaraciones del botón, así
+   que cualquier ajuste había que hacerlo en dos lados y se desincronizaban. */
 .form-submit {
   grid-column: 1 / -1;
   justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  border: 2px solid var(--ink);
-  background: var(--ink);
-  color: #fff;
-  padding: 1rem 1.5rem;
-  font-family: var(--font-display);
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
-  font-size: 0.78rem;
-  transition: all .3s ease;
-  cursor: pointer;
-}
-.form-submit:hover {
-  background: var(--brand);
-  border-color: var(--brand);
 }
 
 .form-msg {
@@ -1187,7 +1260,8 @@ p { margin: 0; }
   font-size: 0.75rem;
 }
 .form-msg--ok  { color: var(--acc-blue); }
-.form-msg--err { color: var(--brand); }
+/* Un mensaje de error es justo donde el contraste no puede fallar. */
+.form-msg--err { color: var(--brand-deep); }
 
 .footer-bottom {
   margin-top: 4rem;
@@ -1225,7 +1299,9 @@ p { margin: 0; }
 }
 .cead-article-cat {
   padding: 0.3rem 0.6rem;
-  background: var(--brand);
+  /* Texto blanco muy chico (0.6875rem): sobre el rojo vivo daba 4.07 y no
+     llegaba a AA. Sobre el oscuro da 6.17 y el chip se sigue viendo rojo. */
+  background: var(--brand-deep);
   color: #fff;
 }
 .cead-article-meta-sep { width: 1.5rem; height: 1px; background: var(--border-cead); }
@@ -1263,7 +1339,7 @@ p { margin: 0; }
   color: var(--text-secondary);
 }
 .cead-article-content > * + * { margin-top: 1.25rem; }
-.cead-article-content a { color: var(--brand); text-decoration: underline; text-underline-offset: 0.15em; }
+.cead-article-content a { color: var(--brand-deep); text-decoration: underline; text-underline-offset: 0.15em; }
 .cead-article-content strong { color: var(--ink); font-weight: 700; }
 
 /* Bajada: el primer párrafo entra más grande, como en una nota impresa. */
@@ -1272,6 +1348,10 @@ p { margin: 0; }
   font-size: clamp(1.25rem, 2.5vw, 1.5rem);
   line-height: 1.5;
   color: var(--ink-soft);
+  /* Contiene el float de la letra capital. Sin esto, cuando la bajada es corta
+     la capital sobresale del párrafo y el texto siguiente se le enrosca
+     alrededor. flow-root y no overflow:hidden, que recortaría la letra. */
+  display: flow-root;
 }
 /* Letra capital: la inicial grande en rojo. */
 .cead-article-content .cead-lead::first-letter {
@@ -1346,7 +1426,7 @@ p { margin: 0; }
   top: 0.1em;
   font-family: var(--font-display);
   font-size: 0.875rem;
-  color: var(--brand);
+  color: var(--brand-deep);
 }
 
 /* Citas: para la palabra del director o de un docente. */
@@ -1435,7 +1515,7 @@ p { margin: 0; }
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.18em;
-  color: var(--brand);
+  color: var(--brand-deep);
 }
 
 /* ===================== Compatibilidad Elementor ===================== */
@@ -1491,7 +1571,8 @@ p { margin: 0; }
 .cead-album-content img { border-radius: 4px; }
 
 /* Galería en portada: mosaico + acceso al archivo */
-.section--galeria { background: var(--canvas-soft); padding: 6rem 0; }
+/* Solo el fondo: el ritmo vertical lo pone .section, igual que las demás. */
+.section--galeria { background: var(--canvas-soft); }
 .galeria-mosaic {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1536,7 +1617,7 @@ p { margin: 0; }
 .galeria-cta { margin-top: 2.5rem; display: flex; justify-content: center; }
 
 /* Redes sociales en portada */
-.section--redes { background: #fff; padding: 6rem 0; }
+.section--redes { background: #fff; }
 .redes-grid {
   display: grid;
   grid-template-columns: 1fr;

@@ -205,6 +205,7 @@ function cead_customize_register($wp_customize) {
     cead_add_text($wp_customize, 'cead_contact_email',     'Email para formulario', 'contacto@cead.caaguazu.net', 'cead_sec_footer', 'sanitize_email');
     cead_add_text($wp_customize, 'cead_contact_from_email','Email "From" (remitente del servidor)', 'web@cead.caaguazu.net', 'cead_sec_footer', 'sanitize_email');
 
+    cead_add_text($wp_customize, 'cead_footer_note', 'Nota del pie (junto al copyright)', 'Caaguazú, Paraguay', 'cead_sec_footer');
     cead_add_text($wp_customize, 'cead_footer_address', 'Dirección', 'GXGQ+G6J, Bienvenido Gallardo Goiris, Caaguazú 3400', 'cead_sec_footer');
     cead_add_text($wp_customize, 'cead_footer_map_url', 'Dirección — enlace a Maps (vacío = búsqueda automática)', '', 'cead_sec_footer', 'esc_url_raw');
 

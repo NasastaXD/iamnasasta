@@ -19,6 +19,18 @@
 	--cead-acad-font-display: var(--font-display, 'Anton', system-ui, sans-serif);
 	--cead-acad-font-serif:   var(--font-serif,   'Cormorant Garamond', Georgia, serif);
 	--cead-acad-font-body:    var(--font-body,    'Mulish', system-ui, sans-serif);
+
+	/* Radio de las superficies. El lenguaje del CEAD es recto: botones,
+	   tarjetas, inputs y chips siempre estuvieron en 0. Los componentes que se
+	   agregaron después (accesos rápidos, calendario, notificaciones, carné)
+	   habían quedado en 10-18px por su cuenta y desentonaban. Ahora salen de
+	   acá: cambiando este valor se ajusta todo junto.
+	   Los círculos (avatar, pastillas) no usan esto: son forma, no superficie. */
+	--cead-acad-radius: 0;
+
+	/* Anillo de foco, igual que en el tema: el rojo de marca da 4.07 sobre
+	   blanco y 4.83 sobre negro, así que sirve en claro y en oscuro. */
+	--cead-acad-focus: var(--brand, #E93B3C);
 }
 
 /* ---------- Base de componentes (reusable en panel y auth) ---------- */
@@ -28,7 +40,7 @@
 	align-items: center;
 	justify-content: center;
 	gap: 0.5rem;
-	padding: 0.9rem 1.4rem;
+	padding: 1rem 1.5rem;
 	font-family: var(--cead-acad-font-display);
 	text-transform: uppercase;
 	letter-spacing: 0.22em;
@@ -184,9 +196,9 @@
 	border-radius: 0;
 }
 .cead-acad-field input:focus {
-	outline: none;
+	/* El outline lo pone la regla de :focus-visible de más abajo. Acá queda solo
+	   el refuerzo de borde, que también se ve al enfocar con el mouse. */
 	border-color: var(--cead-acad-ink);
-	box-shadow: 0 0 0 2px rgba(11,11,11,0.06);
 }
 .cead-acad-hint {
 	color: var(--cead-acad-text-muted);
@@ -979,7 +991,7 @@ body.cead-acad-panel {
 /* ===================== Dashboard del panel ===================== */
 .cead-acad-quick { display:grid; grid-template-columns:repeat(2,1fr); gap:.75rem; margin-top:1.5rem; }
 @media (min-width:640px){ .cead-acad-quick{ grid-template-columns:repeat(4,1fr); } }
-.cead-acad-quick-item { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.5rem; padding:1.25rem .5rem; background:#fff; border:1px solid var(--cead-acad-border); border-radius:14px; text-decoration:none; color:var(--cead-acad-ink); transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease; }
+.cead-acad-quick-item { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.5rem; padding:1.25rem .5rem; background:#fff; border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); text-decoration:none; color:var(--cead-acad-ink); transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease; }
 .cead-acad-quick-item:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,.08); border-color:var(--cead-acad-brand); }
 .cead-acad-quick-ico { font-size:1.7rem; line-height:1; }
 .cead-acad-quick-lbl { font-family:var(--cead-acad-font-display); text-transform:uppercase; font-size:.95rem; letter-spacing:-.01em; text-align:center; }
@@ -990,7 +1002,7 @@ body.cead-acad-panel {
 .cead-acad-today-mat { font-weight:700; color:var(--cead-acad-ink); text-decoration:none; }
 a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 .cead-acad-today-doc { color:var(--cead-acad-text-muted); font-size:.85rem; }
-.cead-acad-theme-toggle { background:transparent; border:1px solid var(--cead-acad-border); border-radius:10px; width:38px; height:38px; cursor:pointer; font-size:1.05rem; line-height:1; display:inline-flex; align-items:center; justify-content:center; color:var(--cead-acad-ink); }
+.cead-acad-theme-toggle { background:transparent; border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); width:38px; height:38px; cursor:pointer; font-size:1.05rem; line-height:1; display:inline-flex; align-items:center; justify-content:center; color:var(--cead-acad-ink); }
 .cead-acad-theme-toggle:hover { border-color:var(--cead-acad-brand); }
 
 /* ===================== Modo oscuro ===================== */
@@ -1000,6 +1012,13 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 	--cead-acad-text-muted: #9aa0a8;
 	--cead-acad-canvas:     #14161b;
 	--cead-acad-border:     #2b2f37;
+
+	/* El tinte de marca es un fondo (pastillas, mensajes de error, boletín) y
+	   se había quedado sin redefinir: en modo oscuro aparecían recuadros rosa
+	   claro en medio de una interfaz negra. Acá pasa a ser un rojo apagado, con
+	   el texto en claro encima (8.34 de contraste). */
+	--cead-acad-brand-tint: #3A1A1B;
+	--cead-acad-brand-deep: #F7A9AA;
 }
 [data-theme="dark"] body.cead-acad-panel,
 [data-theme="dark"] .cead-acad-panel-content { background:#14161b; }
@@ -1030,11 +1049,11 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 /* ===================== Calendario mensual ===================== */
 .cead-acad-cal-head { display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
 .cead-acad-cal-tools { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; }
-.cead-acad-cal-toggle { display:inline-flex; border:1px solid var(--cead-acad-border); border-radius:10px; overflow:hidden; }
+.cead-acad-cal-toggle { display:inline-flex; border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); overflow:hidden; }
 .cead-acad-cal-toggle a { padding:.42rem .9rem; text-decoration:none; color:var(--cead-acad-ink); font-family:var(--cead-acad-font-display); text-transform:uppercase; font-size:.82rem; }
 .cead-acad-cal-toggle a.is-active { background:var(--cead-acad-ink); color:#fff; }
 .cead-acad-cal-nav { display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; }
-.cead-acad-cal { border:1px solid var(--cead-acad-border); border-radius:14px; overflow:hidden; background:#fff; }
+.cead-acad-cal { border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); overflow:hidden; background:#fff; }
 .cead-acad-cal-row { display:grid; grid-template-columns:repeat(7,1fr); }
 .cead-acad-cal-row--head { background:var(--cead-acad-canvas); }
 .cead-acad-cal-wd { padding:.5rem; text-align:center; font-family:var(--cead-acad-font-display); text-transform:uppercase; font-size:.74rem; color:var(--cead-acad-text-muted); border-bottom:1px solid var(--cead-acad-border); }
@@ -1044,7 +1063,7 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 .cead-acad-cal-cell.is-today { box-shadow:inset 0 0 0 2px var(--cead-acad-brand); }
 .cead-acad-cal-day { font-weight:700; font-size:.85rem; }
 .cead-acad-cal-cell.is-out .cead-acad-cal-day { opacity:.45; }
-.cead-acad-cal-ev { display:flex; align-items:center; gap:.3rem; text-decoration:none; color:var(--cead-acad-ink); font-size:.74rem; line-height:1.15; background:var(--cead-acad-canvas); border-radius:6px; padding:.12rem .3rem; overflow:hidden; }
+.cead-acad-cal-ev { display:flex; align-items:center; gap:.3rem; text-decoration:none; color:var(--cead-acad-ink); font-size:.74rem; line-height:1.15; background:var(--cead-acad-canvas); border-radius:var(--cead-acad-radius); padding:.12rem .3rem; overflow:hidden; }
 .cead-acad-cal-ev:hover { background:var(--cead-acad-brand-tint); }
 .cead-acad-cal-dot { width:7px; height:7px; border-radius:50%; flex:0 0 auto; }
 .cead-acad-cal-ev-t { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1052,7 +1071,7 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 @media (max-width:640px){ .cead-acad-cal-cell{ min-height:62px; } .cead-acad-cal-ev-t{ display:none; } .cead-acad-cal-ev{ justify-content:center; padding:.18rem; } }
 
 /* ===================== Carné digital ===================== */
-.cead-acad-carne { max-width:560px; border-radius:18px; overflow:hidden; border:1px solid var(--cead-acad-border); background:#fff; box-shadow:0 18px 50px rgba(0,0,0,.10); margin-top:1.5rem; }
+.cead-acad-carne { max-width:560px; border-radius:var(--cead-acad-radius); overflow:hidden; border:1px solid var(--cead-acad-border); background:#fff; box-shadow:0 18px 50px rgba(0,0,0,.10); margin-top:1.5rem; }
 .cead-acad-carne-top { background:var(--cead-acad-ink); color:#fff; display:flex; align-items:center; gap:.6rem; padding:.8rem 1.25rem; }
 .cead-acad-carne-marks { display:inline-flex; gap:4px; }
 .cead-acad-carne-marks .m { width:11px; height:11px; display:block; }
@@ -1062,7 +1081,7 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 .cead-acad-carne-marks .m--orange { background:var(--cead-acad-acc-orange); border-radius:50%; }
 .cead-acad-carne-org { font-family:var(--cead-acad-font-display); letter-spacing:.3em; font-size:1.1rem; }
 .cead-acad-carne-body { display:flex; gap:1.25rem; padding:1.5rem; align-items:center; flex-wrap:wrap; }
-.cead-acad-carne-photo { width:104px; height:104px; border-radius:14px; overflow:hidden; flex:0 0 auto; background:var(--cead-acad-ink); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--cead-acad-font-display); font-size:2rem; }
+.cead-acad-carne-photo { width:104px; height:104px; border-radius:var(--cead-acad-radius); overflow:hidden; flex:0 0 auto; background:var(--cead-acad-ink); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--cead-acad-font-display); font-size:2rem; }
 .cead-acad-carne-photo img { width:100%; height:100%; object-fit:cover; }
 .cead-acad-carne-data { flex:1; min-width:160px; }
 .cead-acad-carne-role { font-family:var(--cead-acad-font-display); text-transform:uppercase; letter-spacing:.12em; font-size:.72rem; color:var(--cead-acad-brand-deep); }
@@ -1087,22 +1106,22 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 }
 
 /* ===================== Buscador en topbar ===================== */
-.cead-acad-topsearch input { border:1px solid var(--cead-acad-border); border-radius:10px; padding:.45rem .8rem; background:#fff; color:var(--cead-acad-ink); width:210px; max-width:34vw; }
+.cead-acad-topsearch input { border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); padding:.45rem .8rem; background:#fff; color:var(--cead-acad-ink); width:210px; max-width:34vw; }
 @media (max-width:720px){ .cead-acad-topsearch{ display:none; } }
 .cead-acad-search-form { display:flex; gap:.6rem; }
-.cead-acad-search-form input { flex:1; border:1px solid var(--cead-acad-border); border-radius:10px; padding:.7rem 1rem; background:#fff; color:var(--cead-acad-ink); }
+.cead-acad-search-form input { flex:1; border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); padding:.7rem 1rem; background:#fff; color:var(--cead-acad-ink); }
 
 /* ===================== Centro de notificaciones ===================== */
 .cead-acad-notif { position:relative; }
-.cead-acad-bell { position:relative; background:transparent; border:1px solid var(--cead-acad-border); border-radius:10px; width:44px; height:44px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:1rem; color:var(--cead-acad-ink); }
+.cead-acad-bell { position:relative; background:transparent; border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); width:44px; height:44px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:1rem; color:var(--cead-acad-ink); }
 .cead-acad-bell:hover { border-color:var(--cead-acad-brand); }
-.cead-acad-notif-panel { position:absolute; right:0; top:calc(100% + 8px); width:340px; max-width:86vw; background:#fff; border:1px solid var(--cead-acad-border); border-radius:14px; box-shadow:0 18px 50px rgba(0,0,0,.16); padding:.5rem; display:none; z-index:60; }
+.cead-acad-notif-panel { position:absolute; right:0; top:calc(100% + 8px); width:340px; max-width:86vw; background:#fff; border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); box-shadow:0 18px 50px rgba(0,0,0,.16); padding:.5rem; display:none; z-index:60; }
 .cead-acad-notif.is-open .cead-acad-notif-panel { display:block; }
 .cead-acad-notif-head { display:flex; justify-content:space-between; align-items:center; padding:.4rem .6rem; border-bottom:1px solid var(--cead-acad-border); margin-bottom:.3rem; }
 .cead-acad-notif-head form { margin:0; }
 .cead-acad-notif-clear { background:none; border:0; color:var(--cead-acad-brand-deep); cursor:pointer; font-size:.8rem; font-weight:700; }
 .cead-acad-notif-list { max-height:60vh; overflow:auto; }
-.cead-acad-notif-item { display:flex; gap:.6rem; padding:.55rem .6rem; border-radius:10px; text-decoration:none; color:var(--cead-acad-ink); align-items:flex-start; }
+.cead-acad-notif-item { display:flex; gap:.6rem; padding:.55rem .6rem; border-radius:var(--cead-acad-radius); text-decoration:none; color:var(--cead-acad-ink); align-items:flex-start; }
 .cead-acad-notif-item:hover { background:var(--cead-acad-canvas); }
 .cead-acad-notif-ico { font-size:1.05rem; line-height:1.3; }
 .cead-acad-notif-txt { display:flex; flex-direction:column; }
@@ -1153,7 +1172,7 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 [data-theme="dark"] .cead-acad-fav { background:#1d2027; color:var(--cead-acad-ink); }
 
 /* ===================== Menú lateral: drawer en móvil ===================== */
-.cead-acad-burger { display:inline-flex; flex-direction:column; justify-content:center; gap:4px; width:40px; height:40px; border:1px solid var(--cead-acad-border); border-radius:10px; background:transparent; cursor:pointer; padding:0 9px; flex:0 0 auto; }
+.cead-acad-burger { display:inline-flex; flex-direction:column; justify-content:center; gap:4px; width:40px; height:40px; border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); background:transparent; cursor:pointer; padding:0 9px; flex:0 0 auto; }
 .cead-acad-burger span { display:block; height:2px; width:100%; background:var(--cead-acad-ink); border-radius:2px; }
 .cead-acad-panel-topbar-l { display:flex; align-items:center; gap:.75rem; min-width:0; }
 .cead-acad-nav-backdrop { display:none; }
@@ -1352,7 +1371,19 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 	/* Que no quede el borde/realce "encendido" tras tocar (iOS mantiene :hover). */
 	.cead-acad-theme-toggle:hover, .cead-acad-bell:hover { border-color: var(--cead-acad-border); background: transparent; }
 }
-.cead-acad-theme-toggle:focus-visible, .cead-acad-bell:focus-visible, .cead-acad-burger:focus-visible { outline: 2px solid var(--cead-acad-brand); outline-offset: 2px; }
+/* Foco de teclado para TODO lo enfocable, no solo tres botones. El resto del
+   panel dependía del outline por defecto del navegador, y los inputs ni eso:
+   lo reemplazaban por un halo negro al 6%, invisible sobre blanco e inexistente
+   en modo oscuro. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+	outline: 2px solid var(--cead-acad-focus);
+	outline-offset: 3px;
+}
+/* En la barra lateral oscura el rojo se apaga: ahí el anillo va blanco. */
+.cead-acad-panel-sidebar :where(a, button):focus-visible,
+.cead-acad-auth-side :where(a, button):focus-visible {
+	outline-color: #fff;
+}
 
 /* Sin flash de selección al tocar los controles. */
 .cead-acad-burger, .cead-acad-theme-toggle, .cead-acad-bell, .cead-acad-fav,
@@ -1378,7 +1409,7 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 .cead-acad-buzon-reply textarea {
 	width: 100%; min-height: 96px; resize: vertical;
 	font-size: 16px; line-height: 1.5; padding: .7rem .9rem;
-	border: 1px solid var(--cead-acad-border); border-radius: 10px;
+	border: 1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius);
 	background: #fff; color: var(--cead-acad-ink); font-family: inherit;
 }
 .cead-acad-buzon-actions { display: flex; gap: .5rem; flex-wrap: wrap; }

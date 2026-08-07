@@ -9,7 +9,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 get_header(); ?>
 
-<main class="cead-fullwidth">
+<main id="contenido" class="cead-fullwidth">
 	<?php while ( have_posts() ) : the_post(); ?>
 		<?php the_content(); ?>
 	<?php endwhile; ?>

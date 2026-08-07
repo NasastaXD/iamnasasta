@@ -5,7 +5,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 get_header(); ?>
 
-<main class="container cead-single" style="padding-top:8rem;padding-bottom:6rem">
+<main id="contenido" class="container cead-single cead-page">
 	<?php while ( have_posts() ) : the_post(); ?>
 		<article <?php post_class( 'cead-article' ); ?>>
 			<div class="eyebrow">— <?php esc_html_e( 'Galería', 'cead' ); ?></div>

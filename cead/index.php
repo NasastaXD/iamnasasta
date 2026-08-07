@@ -10,7 +10,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 get_header(); ?>
 
-<main class="container cead-archive">
+<main id="contenido" class="container cead-archive">
 	<header class="section-head">
 		<div class="eyebrow">— <?php echo esc_html( cead_listing_eyebrow() ); ?></div>
 		<h1 class="display-h2 display-h2--narrow"><?php echo esc_html( cead_listing_title() ); ?></h1>
