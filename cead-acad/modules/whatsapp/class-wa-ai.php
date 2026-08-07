@@ -495,6 +495,17 @@ TXT;
 					. "\n\nEsto lo cargó la dirección del colegio y pisa al conocimiento de arriba si se contradicen.";
 			}
 		}
+		// Lo publicado hace poco. Va en el prompt para que conteste sin buscar
+		// cuando la respuesta es de esta semana; para lo viejo está la
+		// herramienta de búsqueda.
+		if ( class_exists( 'Cead_Acad_WA_News' ) ) {
+			$news = Cead_Acad_WA_News::digest();
+			if ( $news !== '' ) {
+				$p .= "\n\n[PUBLICADO EN EL SITIO ÚLTIMAMENTE]\n" . mb_substr( $news, 0, 4000 )
+					. "\n\nSon las notas del sitio, con su fecha. Si te preguntan por algo que no está acá, "
+					. "puede ser más viejo: usá buscar_noticias antes de decir que no sabés.";
+			}
+		}
 		if ( trim( (string) $faq_context ) !== '' ) {
 			$p .= "\n\n[FAQ]\n" . mb_substr( (string) $faq_context, 0, 4000 );
 		}

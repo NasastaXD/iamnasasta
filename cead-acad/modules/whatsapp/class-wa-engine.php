@@ -724,6 +724,22 @@ class Cead_Acad_WA_Engine {
 			return $this->propose_staff_action( $phone, $action, $args, $reply, $identity, $media );
 		}
 
+		// Buscar tampoco cambia nada: se busca y se le devuelve el resultado al
+		// modelo para que redacte, en vez de pegar la lista cruda.
+		if ( 'buscar_noticias' === $action ) {
+			$this->ia_turn = true;
+			$hits = Cead_Acad_WA_News::search( (string) ( $args['texto'] ?? '' ) );
+			if ( '' === $hits ) {
+				if ( $reply !== '' ) { $this->send( $phone, $reply ); }
+				$this->send( $phone, __( 'No encontré ninguna nota publicada sobre eso.', 'cead-acad' ), 'news_none' );
+				$this->leave_ia_state( $phone, $home_state );
+				return true;
+			}
+			$this->send( $phone, $hits, 'news_found' );
+			$this->leave_ia_state( $phone, $home_state );
+			return true;
+		}
+
 		// Ver la memoria no cambia nada, así que se contesta al toque.
 		if ( 'memorias' === $action ) {
 			$this->ia_turn = true;
@@ -1043,9 +1059,33 @@ class Cead_Acad_WA_Engine {
 	}
 
 	private function ai_staff_tools( $identity, $phone = '' ) {
-		$uid = (int) ( $identity['user_id'] ?? 0 );
-		if ( ! $uid ) { return []; }
+		$uid   = (int) ( $identity['user_id'] ?? 0 );
 		$tools = [];
+
+		// Buscar noticias no depende del rol: es contenido público del sitio,
+		// así que también lo puede usar quien todavía no se identificó. Por eso
+		// va antes del corte por usuario.
+		$tools[] = [
+			'type'     => 'function',
+			'function' => [
+				'name'        => 'buscar_noticias',
+				'description' => 'Buscar entre las notas publicadas en el sitio, sin límite de fecha. '
+					. 'Usalo cuando te pregunten por algo que no figura en lo publicado últimamente, o cuando pidan una nota vieja. '
+					. 'No lo uses para comunicados ni para datos del alumno: eso tiene sus propias funciones.',
+				'parameters'  => [
+					'type'       => 'object',
+					'properties' => [
+						'texto' => [
+							'type'        => 'string',
+							'description' => 'Qué buscar. Palabras clave del tema, no la pregunta entera. Ej.: «torneo intercolegial».',
+						],
+					],
+					'required'   => [ 'texto' ],
+				],
+			],
+		];
+
+		if ( ! $uid ) { return $tools; }
 		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast' ) ) {
 			$aud = Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast_all' )
 				? 'students=alumnado, staff=personal, all=todos'

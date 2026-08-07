@@ -123,5 +123,6 @@ require_once dirname( __DIR__, 2 ) . '/modules/grades/class-grades-sheet.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-ai.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-docs.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-memory.php';
+require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-news.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-article-format.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-engine.php';
