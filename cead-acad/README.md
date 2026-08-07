@@ -2,7 +2,7 @@
 
 Plugin modular para el portal del **Centro Educativo de Alto Desempeño "Félix de Guarania"** (CEAD). Convive con el tema `cead-theme` (mismo repo) y gestiona toda la operación académica y administrativa de la institución: alumnado, cursos, comunicados, encuestas, horarios, recursos, calificaciones, tareas y un bot de WhatsApp integrado.
 
-- **Versión:** 0.44.0 · **DB Version:** 17
+- **Versión:** 0.44.1 · **DB Version:** 17
 - **Requiere:** WordPress 6.4+ · PHP 8.1+
 - **Rama principal:** `main`
 - **Documentación de usuario y técnica:** ver `docs/WIKI-USUARIO.md` y `docs/WIKI-TECNICA.md` (online en `/wiki`).
