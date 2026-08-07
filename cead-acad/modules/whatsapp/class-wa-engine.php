@@ -1571,6 +1571,26 @@ class Cead_Acad_WA_Engine {
 
 		list( $opcion, $resto ) = self::parse_confirm_choice( $body !== '' ? $body : $lc );
 
+		// Mandan una foto suelta con la propuesta esperando: eso es «agregale
+		// esta imagen», no una respuesta inválida. Pasa siempre que WhatsApp
+		// manda un álbum, porque la segunda foto viaja sin epígrafe.
+		if ( 0 === $opcion && '' === $resto && $this->is_image_media( $media )
+			&& in_array( $kind, [ 'articulo', 'comunicado' ], true ) ) {
+			$img = $this->store_image( $media );
+			if ( ! $img ) {
+				$this->send( $phone, $this->m( 'image_attach_failed' ) );
+				return;
+			}
+			$context['image'] = $img;
+			$this->store->set_state( $phone, 'ia_staff_confirm', $context );
+			$this->send(
+				$phone,
+				__( "📎 Listo, le adjunté la imagen. La propuesta sigue igual:\n\n*1.* ✅ Publicar\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
+				'ia_image_attached'
+			);
+			return;
+		}
+
 		// Elegir y explicar el cambio en el mismo mensaje («2 agregale la fecha»)
 		// es lo natural, así que el texto que viene después del 2 se toma como la
 		// instrucción y se ahorra una vuelta.
