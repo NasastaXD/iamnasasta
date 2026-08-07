@@ -74,6 +74,24 @@ class Cead_Acad_WA_Store {
 		return $this->upsert_number( $phone, [ 'last_seen' => current_time( 'mysql' ) ] );
 	}
 
+	/**
+	 * Suma uno al contador de mensajes recibidos de ese número. Sirve para saber
+	 * si alguien recién arranca (y necesita que se le explique cómo funciona) o
+	 * ya lo viene usando. Se incrementa en SQL para que dos mensajes casi
+	 * simultáneos no se pisen el contador.
+	 */
+	public function bump_msg_count( $phone ) {
+		global $wpdb;
+		$t = cead_acad_table( 'wa_registry' );
+		if ( ! $this->get_number( $phone ) ) {
+			return $this->upsert_number( $phone, [ 'msg_count' => 1, 'last_seen' => current_time( 'mysql' ) ] );
+		}
+		return (bool) $wpdb->query( $wpdb->prepare(
+			"UPDATE {$t} SET msg_count = msg_count + 1 WHERE phone = %s",
+			$phone
+		) );
+	}
+
 	public function set_event_reminders( $phone, $on ) {
 		return $this->upsert_number( $phone, [ 'event_reminders' => $on ? 1 : 0 ] );
 	}
