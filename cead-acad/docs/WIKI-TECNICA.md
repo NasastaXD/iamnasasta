@@ -253,7 +253,7 @@ El plugin se actualiza **desde GitHub Releases** con `plugin-update-checker` (`m
 
 Detalles importantes:
 - El owner se escribe **`NasastaXD`** con el casing exacto (el checker compara la URL del asset de forma sensible a mayúsculas; con minúsculas la descarga da 404).
-- Se exige el asset **`cead-acad.zip`** (`REQUIRE_RELEASE_ASSETS`): así los Releases del **tema** (`cead-theme.zip`, marcados como *prerelease*) no confunden al checker del plugin.
+- Se exige el asset **`cead-acad.zip`** (`REQUIRE_RELEASE_ASSETS`): así los Releases del **tema** (`cead-theme.zip`) no confunden al checker del plugin, aunque compartan el mismo repo.
 - Hay un botón **"Probar conexión con GitHub"** que diagnostica token/permisos/HTTP.
 
 ### Cómo se publica un Release (CI)
@@ -262,7 +262,7 @@ El workflow `.github/workflows/publish-releases.yml` se dispara en **cada push a
 1. Lee la versión del plugin (`cead-acad/cead-acad.php`) y del tema (`cead/style.css`).
 2. Si **no** existe ya un Release con ese tag, lo crea con su zip:
    - Plugin → tag `0.x.y`, Release normal, asset `cead-acad.zip`.
-   - Tema → tag `1.x.y`, Release **prerelease**, asset `cead-theme.zip`.
+   - Tema → tag `1.x.y`, Release normal, asset `cead-theme.zip`.
 3. Es **idempotente**: si la versión no cambió, no hace nada.
 
 > Por eso, para publicar una actualización basta con **subir el número de versión** en `cead-acad.php` y mergear a `main`: el Release se crea solo y los WordPress instalados lo ven en *Plugins → Actualizaciones*.

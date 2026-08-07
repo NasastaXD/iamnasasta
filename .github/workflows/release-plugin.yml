@@ -2,7 +2,7 @@ name: Empaquetar plugin y tema
 
 # Manual: arma cead-acad.zip (plugin) y cead-theme.zip (tema) como artefactos
 # descargables. Los Releases se crean aparte, adjuntando el zip que corresponda
-# (plugin → cead-acad.zip; tema → cead-theme.zip, marcado como prerelease).
+# (plugin → cead-acad.zip; tema → cead-theme.zip).
 #
 # Nota: NO se dispara en "release: published" a propósito, porque en este
 # monorepo conviven plugin y tema; adjuntar el asset equivocado rompería el
