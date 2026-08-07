@@ -24,7 +24,7 @@ class Cead_Acad_Schedule_CPT {
 		echo '<div class="notice notice-info"><p>';
 		printf(
 			/* translators: %s URL del importador */
-			esc_html__( 'Los eventos del calendario se crean masivamente vía %s. El horario semanal de clases se carga en cada Curso.', 'cead-acad' ),
+			esc_html__( 'Podés cargar un evento suelto con «Añadir evento», o varios de una vez desde %s. El horario semanal de clases se carga en cada Curso, no acá.', 'cead-acad' ),
 			'<a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-importers' ) ) . '"><strong>' . esc_html__( 'Importadores', 'cead-acad' ) . '</strong></a>'
 		);
 		echo '</p></div>';
@@ -36,6 +36,11 @@ class Cead_Acad_Schedule_CPT {
 				'name'          => __( 'Eventos', 'cead-acad' ),
 				'singular_name' => __( 'Evento', 'cead-acad' ),
 				'edit_item'     => __( 'Editar evento', 'cead-acad' ),
+				'add_new'       => __( 'Añadir evento', 'cead-acad' ),
+				'add_new_item'  => __( 'Añadir evento', 'cead-acad' ),
+				'new_item'      => __( 'Nuevo evento', 'cead-acad' ),
+				'view_item'     => __( 'Ver evento', 'cead-acad' ),
+				'search_items'  => __( 'Buscar eventos', 'cead-acad' ),
 				'menu_name'     => __( 'Eventos', 'cead-acad' ),
 				'not_found'     => __( 'Sin eventos.', 'cead-acad' ),
 			],
@@ -48,8 +53,9 @@ class Cead_Acad_Schedule_CPT {
 			'has_archive'         => false,
 			'capability_type'     => 'post',
 			'map_meta_cap'        => true,
-			// Crear eventos solo desde Importadores → Horarios CSV.
-			'capabilities'        => [ 'create_posts' => 'do_not_allow' ],
+			// Se pueden crear a mano (uno suelto: un acto, una reunión) además de
+			// importarlos en lote. Antes estaba en 'do_not_allow', lo que obligaba
+			// a armar un CSV incluso para cargar un único evento.
 		] );
 
 		foreach ( [
