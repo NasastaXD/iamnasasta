@@ -1208,18 +1208,235 @@ p { margin: 0; }
    ARTÍCULOS (single / page / archive fallback)
    ===================================================== */
 .cead-article { max-width: 760px; margin: 0 auto; }
+
+/* --- Cabecera --- */
+.cead-article-head { margin-bottom: 2.5rem; }
+.cead-article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  letter-spacing: 0.22em;
+  color: var(--text-muted);
+}
+.cead-article-cat {
+  padding: 0.3rem 0.6rem;
+  background: var(--brand);
+  color: #fff;
+}
+.cead-article-meta-sep { width: 1.5rem; height: 1px; background: var(--border-cead); }
+
 .cead-article-title {
   font-family: var(--font-display);
   text-transform: uppercase;
-  font-size: clamp(2rem, 5vw, 4rem);
-  line-height: 1.05;
+  font-size: clamp(2.25rem, 6vw, 4.25rem);
+  line-height: 0.98;
   letter-spacing: -0.01em;
-  margin-bottom: 2rem;
+  color: var(--ink);
 }
-.cead-article-thumb { margin-bottom: 2rem; }
-.cead-article-content { font-size: 1.0625rem; line-height: 1.7; color: var(--text-secondary); }
-.cead-article-content p { margin-bottom: 1rem; }
-.cead-article-content a { color: var(--brand); text-decoration: underline; }
+/* Regla de color bajo el título: ancla la nota y separa de la foto. */
+.cead-article-rule {
+  width: 5rem;
+  height: 5px;
+  margin-top: 1.5rem;
+  background: var(--brand);
+}
+
+/* --- Foto principal --- */
+.cead-article-thumb { margin: 0 0 2.5rem; }
+.cead-article-thumb img { width: 100%; }
+.cead-article-thumb figcaption {
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* --- Cuerpo --- */
+.cead-article-content {
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: var(--text-secondary);
+}
+.cead-article-content > * + * { margin-top: 1.25rem; }
+.cead-article-content a { color: var(--brand); text-decoration: underline; text-underline-offset: 0.15em; }
+.cead-article-content strong { color: var(--ink); font-weight: 700; }
+
+/* Bajada: el primer párrafo entra más grande, como en una nota impresa. */
+.cead-article-content .cead-lead {
+  font-family: var(--font-serif);
+  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+/* Letra capital: la inicial grande en rojo. */
+.cead-article-content .cead-lead::first-letter {
+  float: left;
+  margin: 0.08em 0.12em 0 0;
+  font-family: var(--font-display);
+  font-size: 3.6em;
+  line-height: 0.78;
+  color: var(--brand);
+}
+
+/* Subtítulos, con su marquita arriba. */
+.cead-article-content h2,
+.cead-article-content h3 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+  line-height: 1.1;
+}
+.cead-article-content h2 {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-cead);
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+}
+.cead-article-content h3 {
+  margin-top: 2.25rem;
+  font-size: clamp(1.125rem, 2.5vw, 1.375rem);
+  color: var(--brand-deep);
+}
+
+/* Separador con el sello de la casa, en vez de una línea pelada. */
+.cead-article-content .cead-sep,
+.cead-article-content hr {
+  border: 0;
+  margin: 3rem auto;
+  width: 100%;
+  height: 8px;
+  background:
+    linear-gradient(var(--brand), var(--brand)) left / 25% 100% no-repeat,
+    linear-gradient(var(--acc-blue), var(--acc-blue)) 33.3% / 25% 100% no-repeat,
+    linear-gradient(var(--acc-yellow), var(--acc-yellow)) 66.6% / 25% 100% no-repeat,
+    linear-gradient(var(--acc-orange), var(--acc-orange)) right / 25% 100% no-repeat;
+  max-width: 12rem;
+}
+
+/* Listas: la viñeta va en rojo y el texto respira. */
+.cead-article-content ul,
+.cead-article-content ol { padding-left: 0; margin-left: 0; }
+.cead-article-content li {
+  position: relative;
+  padding-left: 1.75rem;
+  margin-bottom: 0.6rem;
+  list-style: none;
+}
+.cead-article-content ul > li::before {
+  content: "";
+  position: absolute;
+  left: 0.25rem;
+  top: 0.72em;
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--brand);
+}
+.cead-article-content ol { counter-reset: cead-ol; }
+.cead-article-content ol > li { counter-increment: cead-ol; }
+.cead-article-content ol > li::before {
+  content: counter(cead-ol);
+  position: absolute;
+  left: 0;
+  top: 0.1em;
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  color: var(--brand);
+}
+
+/* Citas: para la palabra del director o de un docente. */
+.cead-article-content blockquote {
+  margin: 2.5rem 0;
+  padding: 0.25rem 0 0.25rem 1.5rem;
+  border-left: 5px solid var(--brand);
+  font-family: var(--font-serif);
+  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.cead-article-content blockquote p { margin: 0; }
+
+/* Tablas: fixtures, horarios, listados. En celular scrollean solas. */
+.cead-article-content .cead-table,
+.cead-article-content .wp-block-table,
+.cead-article-content table { margin: 2rem 0; }
+.cead-article-content .cead-table,
+.cead-article-content .wp-block-table {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Sombritas en los bordes: en el celular la tabla del fixture no entra y hay
+     que deslizarla, pero sin esto se corta seca y parece que faltan columnas.
+     Aparecen y desaparecen solas según cuánto se corrió (background-attachment
+     local), sin una línea de JavaScript. */
+  background:
+    linear-gradient(to right, #fff 30%, rgba(255,255,255,0)) left center / 3rem 100% no-repeat local,
+    linear-gradient(to left,  #fff 30%, rgba(255,255,255,0)) right center / 3rem 100% no-repeat local,
+    linear-gradient(to right, rgba(11,11,11,.16), rgba(11,11,11,0)) left center / 1rem 100% no-repeat scroll,
+    linear-gradient(to left,  rgba(11,11,11,.16), rgba(11,11,11,0)) right center / 1rem 100% no-repeat scroll;
+}
+.cead-article-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+.cead-article-content thead th {
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  font-weight: 400;
+  text-align: left;
+  padding: 0.7rem 0.85rem;
+  white-space: nowrap;
+}
+.cead-article-content tbody td {
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--border-cead);
+  vertical-align: top;
+}
+.cead-article-content tbody tr:nth-child(odd) { background: var(--canvas-soft); }
+.cead-article-content tbody tr:hover { background: var(--brand-tint); }
+
+.cead-article-content img { margin: 2rem 0; }
+.cead-article-content figcaption {
+  margin-top: 0.6rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.cead-article-content code {
+  background: var(--canvas-soft);
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+
+/* --- Pie de la nota --- */
+.cead-article-foot {
+  margin-top: 3.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-cead);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+.cead-article-back {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  color: var(--brand);
+}
 
 /* ===================== Compatibilidad Elementor ===================== */
 /* Template "Ancho completo": despeja el nav fijo (5rem) sin limitar el ancho. */
