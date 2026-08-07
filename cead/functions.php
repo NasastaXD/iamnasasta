@@ -6,7 +6,12 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('CEAD_VERSION', '1.5.0');
+/* La versión de los assets sale del header de style.css, no de un número escrito
+   a mano acá: estuvo clavada en 1.5.0 mientras el tema ya iba por 1.10.0, así que
+   el CSS se servía como styles.css?ver=1.5.0 — la misma URL durante cinco
+   releases — y el navegador seguía usando la copia cacheada. Leyéndola del tema
+   no se puede volver a desincronizar. */
+define('CEAD_VERSION', wp_get_theme(get_template())->get('Version') ?: '1.0.0');
 define('CEAD_DIR', get_template_directory());
 define('CEAD_URI', get_template_directory_uri());
 
