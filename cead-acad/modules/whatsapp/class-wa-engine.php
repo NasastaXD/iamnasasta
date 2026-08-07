@@ -1056,11 +1056,26 @@ class Cead_Acad_WA_Engine {
 		// que exista el parámetro, así que no puede proponerlo.
 		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_articles' ) ) {
 			$es_dir = $this->is_director_phone( $phone );
+			$cats   = $this->article_categories();
 			$props  = [
-				'titulo'    => [ 'type' => 'string', 'description' => 'Título del artículo.' ],
-				'contenido' => [ 'type' => 'string', 'description' => 'Cuerpo del artículo, ya redactado.' ],
+				'titulo'    => [
+					'type'        => 'string',
+					'description' => 'Título del artículo, en una línea y sin markdown.',
+				],
+				'contenido' => [
+					'type'        => 'string',
+					'description' => 'Cuerpo del artículo, ya redactado y en MARKDOWN, que se maqueta solo al publicar. '
+						. 'Escribilo como una nota de un diario escolar. El PRIMER párrafo es la bajada: se muestra más grande, '
+						. 'así que tiene que resumir lo importante solo. '
+						. 'Usá ## para los subtítulos, listas con - o 1., **negrita** para destacar, --- para separar bloques, '
+						. 'y tablas con | cuando haya datos que se leen mejor en columnas (partidos, horarios, cursos). '
+						. 'No repitas el título adentro del cuerpo. No inventes fechas, horarios ni lugares que no te hayan dado: '
+						. 'si un dato falta, escribí que está a confirmar.'
+						. ( class_exists( 'Cead_Acad_Article_Format' )
+							? Cead_Acad_Article_Format::templates_hint( array_values( $cats ) )
+							: '' ),
+				],
 			];
-			$cats = $this->article_categories();
 			if ( $cats ) {
 				$props['categoria'] = [
 					'type'        => 'string',
@@ -1710,11 +1725,17 @@ class Cead_Acad_WA_Engine {
 		// pudo cambiar la configuración de quién es el director/a.
 		$redes = ! empty( $context['redes'] ) && $this->is_director_phone( $phone );
 
+		// La IA redacta en Markdown; WordPress no lo entiende y publicaba los
+		// asteriscos y las barritas de las tablas tal cual. Se maqueta acá.
+		$html = class_exists( 'Cead_Acad_Article_Format' )
+			? Cead_Acad_Article_Format::to_html( $contenido )
+			: $contenido;
+
 		$pid = wp_insert_post( [
 			'post_type'    => 'post',
 			'post_status'  => 'publish',
 			'post_title'   => $titulo,
-			'post_content' => $contenido,
+			'post_content' => $html,
 			'post_author'  => $uid ?: 0,
 		], true );
 		if ( is_wp_error( $pid ) ) {

@@ -207,4 +207,19 @@ add_action( 'pre_get_posts', function ( $q ) {
 			'terms'    => sanitize_title( wp_unslash( $_GET['rc'] ) ),
 		] ] );
 	}
+
+	/* ============================================================
+	 * 5) /noticias muestra también las entradas del blog
+	 * ============================================================
+	 * Conviven dos formas de cargar una noticia: el CPT «Noticias» (a mano,
+	 * desde el menú lateral) y las entradas normales, que es lo que publica
+	 * CEADI desde WhatsApp — y tienen que seguir siendo entradas porque el
+	 * plugin de redes sociales trabaja sobre entradas y categorías.
+	 *
+	 * Sin esto, lo publicado desde el bot no aparecía en /noticias y el
+	 * listado se veía vacío aunque la nota estuviera publicada.
+	 */
+	if ( $q->is_post_type_archive( 'cead_noticia' ) ) {
+		$q->set( 'post_type', [ 'cead_noticia', 'post' ] );
+	}
 } );

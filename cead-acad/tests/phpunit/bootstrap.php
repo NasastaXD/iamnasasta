@@ -50,6 +50,20 @@ if ( ! function_exists( 'sanitize_key' ) ) {
 if ( ! function_exists( 'sanitize_textarea_field' ) ) {
 	function sanitize_textarea_field( $str ) { return trim( strip_tags( (string) $str ) ); }
 }
+if ( ! function_exists( 'sanitize_title' ) ) {
+	function sanitize_title( $title ) {
+		$t = strtolower( trim( (string) $title ) );
+		$t = strtr( $t, [ 'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ñ'=>'n','ü'=>'u' ] );
+		$t = preg_replace( '/[^a-z0-9]+/', '-', $t );
+		return trim( $t, '-' );
+	}
+}
+if ( ! function_exists( 'esc_html' ) ) {
+	function esc_html( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' ); }
+}
+if ( ! function_exists( 'esc_url' ) ) {
+	function esc_url( $url ) { return filter_var( (string) $url, FILTER_SANITIZE_URL ); }
+}
 if ( ! function_exists( 'wp_strip_all_tags' ) ) {
 	function wp_strip_all_tags( $text, $remove_breaks = false ) {
 		$text = preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', (string) $text );
@@ -93,4 +107,5 @@ require_once dirname( __DIR__, 2 ) . '/modules/grades/class-grades-writer.php';
 require_once dirname( __DIR__, 2 ) . '/modules/grades/class-grades-sheet.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-ai.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-docs.php';
+require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-article-format.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-engine.php';
