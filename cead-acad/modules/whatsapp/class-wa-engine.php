@@ -603,7 +603,7 @@ class Cead_Acad_WA_Engine {
 			$text,
 			$this->faq_context(),
 			$phone,
-			$this->ai_staff_tools( $identity ),
+			$this->ai_staff_tools( $identity, $phone ),
 			$this->ai_context_with_sheet( $identity, $phone )
 		);
 		if ( ! is_array( $res ) ) {
@@ -614,7 +614,7 @@ class Cead_Acad_WA_Engine {
 		$args   = isset( $res['args'] ) && is_array( $res['args'] ) ? $res['args'] : [];
 
 		// Acciones de gestión del staff: NO se ejecutan; se proponen y el menú aprueba.
-		if ( in_array( $action, [ 'enviar_comunicado', 'crear_evento', 'crear_invitacion', 'cargar_nota' ], true ) ) {
+		if ( in_array( $action, [ 'enviar_comunicado', 'crear_evento', 'crear_invitacion', 'cargar_nota', 'crear_articulo' ], true ) ) {
 			return $this->propose_staff_action( $phone, $action, $args, $reply, $identity, $media );
 		}
 
@@ -779,7 +779,33 @@ class Cead_Acad_WA_Engine {
 	 * Herramientas de gestión que la IA puede PROPONER, según los permisos reales
 	 * del usuario. Si no tiene permiso, ni siquiera se le ofrecen al modelo.
 	 */
-	private function ai_staff_tools( $identity ) {
+	/**
+	 * ¿Este número es el del director/a?
+	 *
+	 * La publicación en redes sociales del colegio se restringe por NÚMERO, no
+	 * por rol: es una cuenta institucional pública y quien la usa responde por
+	 * ella. Que alguien tenga permisos de artículos en el sistema no lo habilita
+	 * a publicar en las redes del colegio.
+	 */
+	private function is_director_phone( $phone ) {
+		$conf = (string) get_option( 'cead_acad_wa_director_phone', '' );
+		if ( trim( $conf ) === '' ) { return false; }
+		$a = Cead_Acad_WA_Identity::normalize_phone( $phone );
+		$b = Cead_Acad_WA_Identity::normalize_phone( $conf );
+		return $a !== '' && $a === $b;
+	}
+
+	/** Categoría que Bit Social vigila para auto-publicar en redes. */
+	private function social_category_id() {
+		$slug = (string) get_option( 'cead_acad_wa_social_category', 'redes-sociales' );
+		$slug = sanitize_title( $slug ) ?: 'redes-sociales';
+		$term = get_term_by( 'slug', $slug, 'category' );
+		if ( $term && ! is_wp_error( $term ) ) { return (int) $term->term_id; }
+		$new = wp_insert_term( 'Redes sociales', 'category', [ 'slug' => $slug ] );
+		return is_wp_error( $new ) ? 0 : (int) $new['term_id'];
+	}
+
+	private function ai_staff_tools( $identity, $phone = '' ) {
 		$uid = (int) ( $identity['user_id'] ?? 0 );
 		if ( ! $uid ) { return []; }
 		$tools = [];
@@ -799,6 +825,36 @@ class Cead_Acad_WA_Engine {
 							'audiencia' => [ 'type' => 'string', 'description' => "A quién enviarlo ($aud)." ],
 						],
 						'required'   => [ 'mensaje', 'audiencia' ],
+					],
+				],
+			];
+		}
+		// Artículos del sitio. La opción de replicar en redes sociales solo se le
+		// ofrece al número del director/a: si no es él, el modelo ni siquiera ve
+		// que exista el parámetro, así que no puede proponerlo.
+		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_articles' ) ) {
+			$es_dir = $this->is_director_phone( $phone );
+			$props  = [
+				'titulo'    => [ 'type' => 'string', 'description' => 'Título del artículo.' ],
+				'contenido' => [ 'type' => 'string', 'description' => 'Cuerpo del artículo, ya redactado.' ],
+			];
+			if ( $es_dir ) {
+				$props['redes'] = [
+					'type'        => 'boolean',
+					'description' => 'true solo si la persona pidió explícitamente publicarlo también en las redes sociales del colegio.',
+				];
+			}
+			$tools[] = [
+				'type'     => 'function',
+				'function' => [
+					'name'        => 'crear_articulo',
+					'description' => 'Proponer la publicación de un artículo en el sitio web. NO se publica hasta que la persona lo apruebe.'
+						. ( $es_dir ? ' Esta persona además puede pedir que se replique en las redes sociales del colegio.' : '' )
+						. ' Si el mensaje vino con una foto, se adjunta sola: no hace falta pasarla como argumento.',
+					'parameters'  => [
+						'type'       => 'object',
+						'properties' => $props,
+						'required'   => [ 'titulo', 'contenido' ],
 					],
 				],
 			];
@@ -976,6 +1032,52 @@ class Cead_Acad_WA_Engine {
 					$count,
 					$mensaje,
 					$image_note
+				),
+				'ia_staff_propose'
+			);
+			return true;
+		}
+
+		if ( $action === 'crear_articulo' ) {
+			if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_articles' ) ) {
+				$this->send( $phone, $this->m( 'access_denied' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			$titulo    = trim( (string) ( $args['titulo'] ?? '' ) );
+			$contenido = trim( (string) ( $args['contenido'] ?? '' ) );
+			if ( $titulo === '' || $contenido === '' ) {
+				$this->send( $phone, __( '¿Qué título y qué contenido querés para el artículo?', 'cead-acad' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			// El pedido de redes solo vale si viene del número del director/a.
+			// Se revalida acá aunque la herramienta no se le haya ofrecido: el
+			// modelo podría inventar el argumento igual.
+			$redes = ! empty( $args['redes'] ) && $this->is_director_phone( $phone );
+			$image = $media ? $this->store_image( $media ) : null;
+
+			if ( $reply !== '' ) { $this->send( $phone, $reply ); }
+			$this->store->set_state( $phone, 'ia_staff_confirm', [
+				'kind'      => 'articulo',
+				'titulo'    => $titulo,
+				'contenido' => $contenido,
+				'redes'     => $redes,
+				'image'     => $image,
+			] );
+			$extra = $redes
+				? "\n📣 " . __( 'Además se va a publicar en las redes del colegio.', 'cead-acad' )
+				: '';
+			if ( $image )                    { $extra .= "\n📎 " . __( 'Con imagen destacada.', 'cead-acad' ); }
+			elseif ( $media && ! $image )    { $extra .= "\n" . $this->m( 'image_attach_failed' ); }
+			$this->send(
+				$phone,
+				sprintf(
+					/* translators: 1: título, 2: extracto del contenido, 3: notas extra */
+					__( "📝 *Artículo* — propuesta de CEADI\n*%1\$s*\n────────\n%2\$s\n────────%3\$s\n\n*1.* ✅ Publicar\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
+					$titulo,
+					mb_substr( $contenido, 0, 600 ),
+					$extra
 				),
 				'ia_staff_propose'
 			);
@@ -1221,6 +1323,7 @@ class Cead_Acad_WA_Engine {
 			elseif ( $kind === 'invitacion' ) { $this->execute_invitacion( $phone, $context, $identity ); }
 			elseif ( $kind === 'nota' ) { $this->execute_nota( $phone, $context, $identity ); }
 			elseif ( $kind === 'planilla' ) { $this->execute_planilla( $phone, $context, $identity ); }
+			elseif ( $kind === 'articulo' ) { $this->execute_articulo( $phone, $context, $identity ); }
 			else { $this->store->set_state( $phone, 'ia_home' ); }
 			return;
 		}
@@ -1296,6 +1399,66 @@ class Cead_Acad_WA_Engine {
 	}
 
 	/** Ejecuta la invitación aprobada (re-chequea permisos y restringe el rol). */
+	/**
+	 * Publica el artículo aprobado (re-chequea permisos y el número).
+	 *
+	 * Integración con Bit Social: no se llama a su API — se le asigna al post la
+	 * categoría que el plugin tiene configurada para auto-publicar. Así la
+	 * integración sigue funcionando aunque actualicen el plugin, y si algún día
+	 * lo desinstalan el artículo se publica igual en la web, solo que sin
+	 * replicarse en redes.
+	 */
+	private function execute_articulo( $phone, $context, $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_articles' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		$titulo    = (string) ( $context['titulo'] ?? 'Artículo' );
+		$contenido = (string) ( $context['contenido'] ?? '' );
+		$image     = $context['image'] ?? null;
+		// Se vuelve a validar el número: entre la propuesta y la aprobación
+		// pudo cambiar la configuración de quién es el director/a.
+		$redes = ! empty( $context['redes'] ) && $this->is_director_phone( $phone );
+
+		$pid = wp_insert_post( [
+			'post_type'    => 'post',
+			'post_status'  => 'publish',
+			'post_title'   => $titulo,
+			'post_content' => $contenido,
+			'post_author'  => $uid ?: 0,
+		], true );
+		if ( is_wp_error( $pid ) ) {
+			$this->send( $phone, $this->m( 'error_generic' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		if ( $image && ! empty( $image['attachment_id'] ) ) {
+			set_post_thumbnail( $pid, (int) $image['attachment_id'] );
+		}
+		if ( $redes ) {
+			$cat = $this->social_category_id();
+			if ( $cat ) {
+				// append = true: no pisa la categoría por defecto del sitio.
+				wp_set_post_categories( $pid, [ $cat ], true );
+			}
+		}
+		Cead_Acad_Audit::log( 'wa_article_published', [
+			'user_id'     => $uid ?: null,
+			'entity_type' => 'post',
+			'entity_id'   => $pid,
+			'payload'     => [ 'redes' => $redes, 'con_imagen' => (bool) $image, 'via' => 'ia' ],
+		] );
+		$this->send(
+			$phone,
+			$this->interp( $this->m( 'article_published' ), [ 'url' => get_permalink( $pid ) ] )
+				. ( $redes ? "\n📣 " . __( 'Enviado también a las redes del colegio.', 'cead-acad' ) : '' ),
+			'article_published'
+		);
+		$this->store->set_state( $phone, 'ia_home' );
+	}
+
 	private function execute_invitacion( $phone, $context, $identity ) {
 		$uid = (int) ( $identity['user_id'] ?? 0 );
 		if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_invitations' ) ) {

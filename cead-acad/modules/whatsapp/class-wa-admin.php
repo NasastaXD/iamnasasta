@@ -101,6 +101,8 @@ class Cead_Acad_WA_Admin {
 				update_option( 'cead_acad_wa_reminder_days', max( 1, (int) ( $_POST['reminder_days'] ?? 1 ) ), false );
 				update_option( 'cead_acad_wa_country_code', preg_replace( '/[^0-9]/', '', (string) ( $_POST['country_code'] ?? '595' ) ) ?: '595', false );
 				update_option( 'cead_acad_wa_bot_number', preg_replace( '/[^0-9]/', '', (string) ( $_POST['bot_number'] ?? '' ) ), false );
+				update_option( 'cead_acad_wa_director_phone', preg_replace( '/[^0-9]/', '', (string) ( $_POST['director_phone'] ?? '' ) ), false );
+				update_option( 'cead_acad_wa_social_category', sanitize_title( wp_unslash( $_POST['social_category'] ?? '' ) ) ?: 'redes-sociales', false );
 				update_option( 'cead_acad_wa_registered_only', ! empty( $_POST['registered_only'] ) ? 1 : 0, false );
 				update_option( 'cead_acad_panel_intro', sanitize_textarea_field( wp_unslash( $_POST['panel_intro'] ?? '' ) ), false );
 				update_option( 'cead_acad_ceadi_intro', sanitize_textarea_field( wp_unslash( $_POST['ceadi_intro'] ?? '' ) ), false );
@@ -333,6 +335,18 @@ class Cead_Acad_WA_Admin {
 		$this->field( 'reminder_days', __( 'Días de anticipación de recordatorios', 'cead-acad' ), get_option( 'cead_acad_wa_reminder_days', 1 ), '', 'number' );
 		$this->field( 'country_code', __( 'Código de país (para reconocer alumnos)', 'cead-acad' ), get_option( 'cead_acad_wa_country_code', '595' ), '595' );
 			$this->field( 'bot_number', __( 'Número de CEADI (botón «Agregar a CEADI»)', 'cead-acad' ), get_option( 'cead_acad_wa_bot_number', '' ), '595991123456' );
+
+			// Publicación en redes sociales: gateada por número, no por rol.
+			echo '<tr><th scope="row">' . esc_html__( 'Publicar en redes', 'cead-acad' ) . '</th><td>';
+			echo '<p><label>' . esc_html__( 'Número autorizado (Dirección)', 'cead-acad' ) . '<br>';
+			echo '<input type="text" name="director_phone" class="regular-text" inputmode="numeric" placeholder="595981123456" value="'
+				. esc_attr( (string) get_option( 'cead_acad_wa_director_phone', '' ) ) . '"></label></p>';
+			echo '<p class="description">' . esc_html__( 'Solo este número puede pedirle a CEADI que un artículo se replique en las redes sociales del colegio. Dejalo vacío para desactivar la función por completo. Tener permisos de artículos NO alcanza: se chequea el número.', 'cead-acad' ) . '</p>';
+			echo '<p><label>' . esc_html__( 'Categoría que replica a redes', 'cead-acad' ) . '<br>';
+			echo '<input type="text" name="social_category" class="regular-text" placeholder="redes-sociales" value="'
+				. esc_attr( (string) get_option( 'cead_acad_wa_social_category', 'redes-sociales' ) ) . '"></label></p>';
+			echo '<p class="description">' . esc_html__( 'Slug de la categoría que el plugin Bit Social tiene configurada para auto-publicar. Al aprobar un artículo «con redes», se le asigna esta categoría y Bit Social se encarga del resto. Si la categoría no existe, se crea sola.', 'cead-acad' ) . '</p>';
+			echo '</td></tr>';
 
 			// Acceso: a quién atiende CEADI.
 			echo '<tr><th scope="row">' . esc_html__( 'Acceso', 'cead-acad' ) . '</th><td>';
