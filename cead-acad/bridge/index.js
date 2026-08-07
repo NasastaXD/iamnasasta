@@ -116,7 +116,8 @@ const TUNNEL_ENABLED = ! /^(0|false|no|off)$/i.test( process.env.TUNNEL || '' );
 // petición (la IA "cancela su mensaje"). En audios se extiende: la nota de voz
 // se transcribe (puede tardar) y recién después responde la IA, así que es
 // natural que tarde más. Ambos configurables por .env.
-const WP_TIMEOUT_MS       = parseInt( process.env.WP_TIMEOUT_MS || '45000', 10 );
+// 60s y no 45: escribir un artículo largo lleva más que responder una consulta.
+const WP_TIMEOUT_MS       = parseInt( process.env.WP_TIMEOUT_MS || '60000', 10 );
 const WP_TIMEOUT_AUDIO_MS = parseInt( process.env.WP_TIMEOUT_AUDIO_MS || '120000', 10 );
 const WP_TIMEOUT_IMAGE_MS = parseInt( process.env.WP_TIMEOUT_IMAGE_MS || '90000', 10 );
 

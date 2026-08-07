@@ -71,6 +71,22 @@ class Cead_Acad_WA_AI {
 	public static function max_tokens() {
 		return max( 50, (int) ( get_option( 'cead_acad_wa_ai_maxtokens', 0 ) ?: 800 ) );
 	}
+
+	/**
+	 * Techo al que se baja si el proveedor rechaza el max_tokens configurado.
+	 * 8192 es el máximo de salida de los modelos que se usan acá (DeepSeek,
+	 * entre otros) y alcanza de sobra para un artículo largo.
+	 */
+	const MAX_TOKENS_SAFE = 8192;
+
+	/** ¿El 400 del proveedor se queja justamente del max_tokens? */
+	protected static function rejects_max_tokens( $r ) {
+		$msg = strtolower( (string) ( $r['bodyraw'] ?? '' ) );
+		if ( '' === $msg ) { return false; }
+		return false !== strpos( $msg, 'max_tokens' )
+			|| false !== strpos( $msg, 'max tokens' )
+			|| false !== strpos( $msg, 'max_completion_tokens' );
+	}
 	public static function knowledge() {
 		return trim( (string) get_option( 'cead_acad_wa_ai_knowledge', '' ) );
 	}
@@ -555,31 +571,47 @@ TXT;
 			return $m;
 		};
 
-		// Con imagen se da más tiempo y NO se reintenta: mirar una foto tarda más
-		// que un texto, y un segundo intento de 35s no entra en lo que el bridge
-		// espera antes de cortar.
-		$timeout = $img_block ? 35 : 18;
-		$retry   = ! $img_block;
+		$max_tokens = self::max_tokens();
+
+		// Con imagen, o pidiendo una respuesta larga (un artículo), se da más
+		// tiempo y NO se reintenta: generar tarda más, y un segundo intento de
+		// 35s no entra en lo que el bridge espera antes de cortar.
+		$pesado = $img_block || $max_tokens > 2000;
+		$timeout = $pesado ? 35 : 18;
+		$retry   = ! $pesado;
+
+		$payload = static function ( $mode, $tokens ) use ( $model, $messages, $tools ) {
+			$p = [
+				'model'       => $model,
+				'temperature' => self::temperature(),
+				'max_tokens'  => $tokens,
+				'messages'    => $messages( $mode ),
+			];
+			if ( 'tools' === $mode ) {
+				$p['tools']       = $tools;
+				$p['tool_choice'] = 'auto';
+			} else {
+				$p['response_format'] = [ 'type' => 'json_object' ];
+			}
+			return $p;
+		};
 
 		// 1) Tool calling — el modelo habla con libertad y llama función si quiere.
-		$r = self::http( $endpoint, $key, [
-			'model'       => $model,
-			'temperature' => self::temperature(),
-			'max_tokens'  => self::max_tokens(),
-			'messages'    => $messages( 'tools' ),
-			'tools'       => $tools,
-			'tool_choice' => 'auto',
-		], $timeout, $retry );
+		$r = self::http( $endpoint, $key, $payload( 'tools', $max_tokens ), $timeout, $retry );
 
-		// 2) Fallback: si el proveedor rechaza las herramientas (400), modo JSON.
+		// 2) Si el proveedor rechaza el max_tokens pedido (cada modelo tiene su
+		// techo; DeepSeek corta en 8192), se reintenta con un valor prudente.
+		// Antes, subir «máx. tokens de respuesta» para poder escribir artículos
+		// largos rompía TODOS los mensajes con un HTTP 400 imposible de leer.
+		if ( 400 === $r['code'] && $max_tokens > self::MAX_TOKENS_SAFE && self::rejects_max_tokens( $r ) ) {
+			error_log( '[CeadAcadWA][AI] max_tokens=' . $max_tokens . ' rechazado por el proveedor; reintento con ' . self::MAX_TOKENS_SAFE . '.' );
+			$max_tokens = self::MAX_TOKENS_SAFE;
+			$r          = self::http( $endpoint, $key, $payload( 'tools', $max_tokens ), $timeout, $retry );
+		}
+
+		// 3) Fallback: si el proveedor rechaza las herramientas (400), modo JSON.
 		if ( $r['code'] === 400 ) {
-			$rj = self::http( $endpoint, $key, [
-				'model'           => $model,
-				'temperature'     => self::temperature(),
-				'max_tokens'      => self::max_tokens(),
-				'messages'        => $messages( 'json' ),
-				'response_format' => [ 'type' => 'json_object' ],
-			], $timeout, $retry );
+			$rj = self::http( $endpoint, $key, $payload( 'json', $max_tokens ), $timeout, $retry );
 			if ( $rj['code'] === 200 ) {
 				return self::parse_json_mode( $rj, $out, $allowed );
 			}
