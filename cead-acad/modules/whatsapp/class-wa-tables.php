@@ -42,6 +42,7 @@ class Cead_Acad_WA_Tables {
 			event_reminders TINYINT(1) NOT NULL DEFAULT 0,
 			registered_at   DATETIME NOT NULL,
 			last_seen       DATETIME NULL,
+			msg_count       INT UNSIGNED NOT NULL DEFAULT 0,
 			PRIMARY KEY (id),
 			UNIQUE KEY phone (phone),
 			KEY user_id (user_id),

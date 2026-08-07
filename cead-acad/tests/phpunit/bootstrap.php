@@ -9,6 +9,12 @@
 
 define( 'ABSPATH', sys_get_temp_dir() . '/' );
 
+// Constantes de tiempo de WordPress: algunas clases las usan al definirse.
+defined( 'MINUTE_IN_SECONDS' ) || define( 'MINUTE_IN_SECONDS', 60 );
+defined( 'HOUR_IN_SECONDS' )   || define( 'HOUR_IN_SECONDS', 3600 );
+defined( 'DAY_IN_SECONDS' )    || define( 'DAY_IN_SECONDS', 86400 );
+defined( 'WEEK_IN_SECONDS' )   || define( 'WEEK_IN_SECONDS', 604800 );
+
 // ---- Store de opciones controlable desde los tests ----
 $GLOBALS['cead_test_options'] = [];
 

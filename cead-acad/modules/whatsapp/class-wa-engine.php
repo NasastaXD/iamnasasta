@@ -51,12 +51,17 @@ class Cead_Acad_WA_Engine {
 		$identity = $this->resolve_identity( $phone );
 
 		$existing = $this->store->get_number( $phone );
+		// Se guardan ANTES de tocar la fila: son los datos de la conversación
+		// anterior, y con eso se decide si hace falta explicar cómo funciona.
+		$this->prev_msg_count = $existing ? (int) ( $existing->msg_count ?? 0 ) : 0;
+		$this->prev_seen      = $existing ? (string) ( $existing->last_seen ?? '' ) : '';
 		if ( ! $existing ) {
 			$this->store->upsert_number( $phone, [ 'name' => $name, 'user_id' => $identity['user_id'] ] );
 		} elseif ( $identity['user_id'] && empty( $existing->user_id ) ) {
 			$this->store->upsert_number( $phone, [ 'user_id' => $identity['user_id'] ] );
 		}
 		$this->store->update_last_seen( $phone );
+		$this->store->bump_msg_count( $phone );
 
 		$st      = $this->store->get_state( $phone );
 		$state   = $st['state'];
@@ -327,15 +332,35 @@ class Cead_Acad_WA_Engine {
 			$this->store->set_state( $phone, 'ia_home' );
 			// Una foto o un documento solos (sin texto) también son una consulta:
 			// no pasan por looks_like_query() porque ahí no hay nada que medir.
-			if ( ( $this->looks_like_query( $body ) || $this->has_ai_image( $media ) || $this->has_ai_doc( $media ) )
-				&& $this->ai_try( $phone, $body, $identity, 'ia_home', $media ) ) {
+			$trae_pedido = $this->looks_like_query( $body )
+				|| $this->has_ai_image( $media )
+				|| $this->has_ai_doc( $media );
+			if ( $trae_pedido && $this->ai_try( $phone, $body, $identity, 'ia_home', $media ) ) {
+				return;
+			}
+			// Traía un pedido concreto y la IA no pudo con él. Contestar acá el
+			// saludo de bienvenida hacía que el pedido se perdiera sin más: la
+			// persona tenía que volver a escribirlo y a adjuntar el archivo.
+			if ( $trae_pedido ) {
+				$this->ia_turn = true;
+				$this->send(
+					$phone,
+					__( '⚠️ No pude procesar tu mensaje en este momento. Reenviámelo en un ratito, o mandá *menú* para ver las opciones.', 'cead-acad' ),
+					'ai_error'
+				);
 				return;
 			}
 			$greeting = $is_staff
 				? $this->interp( $this->m( 'greeting_staff' ),   [ 'name' => $name ?: 'Profe' ] )
 				: $this->interp( $this->m( 'greeting_student' ), [ 'name' => $name ?: 'che' ] );
+			// La explicación de cómo funciona solo las primeras veces, o cuando
+			// pasó tanto que conviene recordarla. Repetirla en cada saludo a
+			// quien ya lo usa todos los días es puro ruido.
+			if ( $this->should_show_intro() ) {
+				$greeting .= "\n\n" . __( '💬 Escribime lo que necesites y te ayudo. Mandá *menú* si preferís las opciones.', 'cead-acad' );
+			}
 			$this->ia_turn = true;
-			$this->send( $phone, $greeting . "\n\n" . __( '💬 Escribime lo que necesites y te ayudo. Mandá *menú* si preferís las opciones.', 'cead-acad' ), 'ia_home' );
+			$this->send( $phone, $greeting, 'ia_home' );
 			return;
 		}
 
@@ -750,6 +775,45 @@ class Cead_Acad_WA_Engine {
 
 	/** Cache por request de la ficha de contexto (una petición = un mensaje). */
 	private $ai_ctx_cache = [];
+
+	/** Mensajes que ya había mandado este número ANTES del actual. */
+	private $prev_msg_count = 0;
+	/** Cuándo se lo vio por última vez ANTES de este mensaje ('' si es nuevo). */
+	private $prev_seen = '';
+
+	/**
+	 * Cuántos mensajes se acompañan con la explicación de cómo hablarle al bot.
+	 * Con tres alcanza para agarrarle la mano.
+	 */
+	const INTRO_MESSAGES = 3;
+
+	/** Silencio a partir del cual conviene recordar cómo funciona. */
+	const INTRO_AGAIN_AFTER = 2 * DAY_IN_SECONDS;
+
+	/**
+	 * ¿Corresponde explicar cómo funciona el bot en este saludo?
+	 *
+	 * Sí las primeras veces, y también cuando la persona estuvo un par de días
+	 * sin escribir (ahí ya no se acuerda). El resto del tiempo el saludo va
+	 * solo: quien lo usa a diario no necesita que le repitan las instrucciones.
+	 */
+	private function should_show_intro() {
+		return self::needs_intro( $this->prev_msg_count, $this->prev_seen, (int) current_time( 'timestamp' ) );
+	}
+
+	/**
+	 * La decisión sola, sin tocar la base: cuántos mensajes mandó antes, cuándo
+	 * fue el último y qué hora es ahora (todo en hora local del sitio, que es
+	 * como se guarda last_seen).
+	 */
+	public static function needs_intro( $msg_count, $last_seen, $now_ts ) {
+		if ( (int) $msg_count < self::INTRO_MESSAGES ) { return true; }
+		$last_seen = trim( (string) $last_seen );
+		if ( '' === $last_seen || '0000-00-00 00:00:00' === $last_seen ) { return true; }
+		$ts = strtotime( $last_seen );
+		if ( ! $ts ) { return true; }
+		return ( (int) $now_ts - $ts ) >= self::INTRO_AGAIN_AFTER;
+	}
 
 	/** El mensaje de este turno llegó como nota de voz y fue transcripto. */
 	private $from_voice = false;
