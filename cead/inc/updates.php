@@ -4,10 +4,9 @@
  *
  * El tema vive en un subdirectorio del monorepo, así que se actualiza desde el
  * ZIP adjunto al Release (asset "cead-theme.zip"). Para no chocar con los
- * Releases del plugin (mismo repo), el checker del tema:
- *   - solo considera Releases que tengan el asset "cead-theme.zip", y
- *   - acepta prereleases (los Releases del tema se publican como "prerelease"
- *     para que queden fuera de /releases/latest y no confundan al plugin).
+ * Releases del plugin (mismo repo), el checker del tema solo considera
+ * Releases que tengan el asset "cead-theme.zip" (RELEASE_FILTER_ALL: incluye
+ * también algún prerelease viejo que haya quedado publicado así).
  *
  * Token: se reutiliza el del plugin (constante CEAD_ACAD_GITHUB_TOKEN en
  * wp-config.php o la opción guardada en CEAD Académico → Actualizaciones). Si no
