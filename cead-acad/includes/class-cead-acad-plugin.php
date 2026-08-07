@@ -103,7 +103,28 @@ final class Cead_Acad_Plugin {
 		}
 		Cead_Acad_Broadcasts_CPT::seed_terms();
 		Cead_Acad_Resources_CPT::seed_terms();
+		self::seed_post_categories();
 		update_option( 'cead_acad_terms_seeded', CEAD_ACAD_VERSION );
+	}
+
+	/**
+	 * Categorías base para las entradas del blog, para que al publicar desde
+	 * CEADI haya de dónde elegir. Solo se crean si faltan: si alguien las
+	 * renombra o borra, no se vuelven a insertar (se corre una sola vez por
+	 * versión y se comprueba por slug).
+	 */
+	private static function seed_post_categories() {
+		$base = [
+			'noticias'  => __( 'Noticias', 'cead-acad' ),
+			'avisos'    => __( 'Avisos', 'cead-acad' ),
+			'academico' => __( 'Académico', 'cead-acad' ),
+			'deportes'  => __( 'Deportes', 'cead-acad' ),
+			'recursos'  => __( 'Recursos', 'cead-acad' ),
+		];
+		foreach ( $base as $slug => $name ) {
+			if ( get_term_by( 'slug', $slug, 'category' ) ) { continue; }
+			wp_insert_term( $name, 'category', [ 'slug' => $slug ] );
+		}
 	}
 
 	public function disable_block_editor_for_admin_cpts( $use_block_editor, $post_type ) {
@@ -114,6 +135,13 @@ final class Cead_Acad_Plugin {
 			'cead_acad_task',
 		];
 		if ( in_array( $post_type, $classic, true ) ) {
+			return false;
+		}
+		// Entradas del blog: por defecto también en editor clásico (cajas). Es
+		// lo que el personal sabe usar; el editor de bloques los frena. Se
+		// puede volver a bloques con:
+		//   update_option( 'cead_acad_classic_editor_posts', 0 );
+		if ( 'post' === $post_type && (int) get_option( 'cead_acad_classic_editor_posts', 1 ) === 1 ) {
 			return false;
 		}
 		return $use_block_editor;

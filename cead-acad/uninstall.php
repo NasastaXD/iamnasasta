@@ -24,6 +24,7 @@ $options = [
 	'cead_acad_block_wp_login',
 	'cead_acad_caps_version',
 	'cead_acad_terms_seeded',
+	'cead_acad_classic_editor_posts',
 	'cead_acad_banned_words',
 	'cead_acad_panel_intro',
 	'cead_acad_ceadi_intro',

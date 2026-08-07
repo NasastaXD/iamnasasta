@@ -118,6 +118,54 @@ function cead_customize_register($wp_customize) {
     cead_add_text($wp_customize, 'cead_life_eyebrow', 'Eyebrow', '— Vida estudiantil', 'cead_sec_life');
     cead_add_textarea($wp_customize, 'cead_life_title', 'Título', 'Lo que pasa fuera del aula define al estudiante.', 'cead_sec_life');
 
+    /* ---------- SECCIÓN: Galería (portada) ---------- */
+    $wp_customize->add_section('cead_sec_galeria', [
+        'title'       => 'Galería (portada)',
+        'panel'       => 'cead_panel_content',
+        'description' => 'Vistazos previos en la portada. Los álbumes se cargan en <em>Galería</em> en el menú lateral; acá podés además fijar hasta dos fotos destacadas (por ejemplo, las aéreas del campus) que van primeras en el mosaico.',
+    ]);
+    cead_add_text($wp_customize, 'cead_galeria_eyebrow', 'Eyebrow', '— Galería', 'cead_sec_galeria');
+    cead_add_textarea($wp_customize, 'cead_galeria_home_title', 'Título (HTML)', 'El campus, desde adentro<br>y desde el aire.', 'cead_sec_galeria');
+    cead_add_textarea($wp_customize, 'cead_galeria_intro', 'Intro', 'Actos, competencias, aulas y proyectos. Un vistazo a lo que se vive todos los días en el CEAD.', 'cead_sec_galeria');
+    cead_add_text($wp_customize, 'cead_galeria_btn_text', 'Botón — texto', '→ Ver la galería completa', 'cead_sec_galeria');
+
+    for ($n = 1; $n <= 2; $n++) {
+        $wp_customize->add_setting("cead_galeria_foto_{$n}", ['default' => '', 'sanitize_callback' => 'esc_url_raw']);
+        $wp_customize->add_control(new WP_Customize_Image_Control($wp_customize, "cead_galeria_foto_{$n}", [
+            'label'   => "Foto destacada $n",
+            'section' => 'cead_sec_galeria',
+        ]));
+        cead_add_text($wp_customize, "cead_galeria_foto_{$n}_caption", "Foto destacada $n — Título", '', 'cead_sec_galeria');
+        cead_add_text($wp_customize, "cead_galeria_foto_{$n}_tag",     "Foto destacada $n — Etiqueta", '', 'cead_sec_galeria');
+    }
+
+    /* ---------- SECCIÓN: Redes sociales (portada) ---------- */
+    $wp_customize->add_section('cead_sec_redes', [
+        'title'       => 'Redes sociales (portada)',
+        'panel'       => 'cead_panel_content',
+        'description' => 'Tarjetas que redirigen a los perfiles. Si dejás la URL vacía se usa la que ya está cargada en <em>Footer / Contacto</em>. Las tarjetas sin URL no se muestran.',
+    ]);
+    cead_add_text($wp_customize, 'cead_redes_eyebrow', 'Eyebrow', '— Redes', 'cead_sec_redes');
+    cead_add_textarea($wp_customize, 'cead_redes_title', 'Título (HTML)', 'Seguinos.', 'cead_sec_redes');
+    cead_add_textarea($wp_customize, 'cead_redes_intro', 'Intro', 'Publicamos actos, resultados y avisos en nuestras redes. Ahí también se anuncian los cambios de calendario.', 'cead_sec_redes');
+
+    $redes_default = [
+        1 => ['Instagram', '@cead.caaguazu',         '#E1306C'],
+        2 => ['Facebook',  'CEAD Félix de Guarania', '#1877F2'],
+        3 => ['YouTube',   'CEAD Caaguazú',          '#FF0000'],
+        4 => ['WhatsApp',  'Consultas',              '#25D366'],
+    ];
+    foreach ($redes_default as $n => $d) {
+        cead_add_text($wp_customize, "cead_redes_{$n}_name",   "Red $n — Nombre",  $d[0], 'cead_sec_redes');
+        cead_add_text($wp_customize, "cead_redes_{$n}_handle", "Red $n — Usuario", $d[1], 'cead_sec_redes');
+        cead_add_text($wp_customize, "cead_redes_{$n}_url",    "Red $n — URL",     '',    'cead_sec_redes', 'esc_url_raw');
+        $wp_customize->add_setting("cead_redes_{$n}_color", ['default' => $d[2], 'sanitize_callback' => 'cead_sanitize_hex']);
+        $wp_customize->add_control(new WP_Customize_Color_Control($wp_customize, "cead_redes_{$n}_color", [
+            'label'   => "Red $n — Color",
+            'section' => 'cead_sec_redes',
+        ]));
+    }
+
     /* ---------- SECCIÓN: Admisión ---------- */
     $wp_customize->add_section('cead_sec_admission', [
         'title' => 'Admisión',

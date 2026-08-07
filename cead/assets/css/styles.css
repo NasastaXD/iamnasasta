@@ -1260,6 +1260,88 @@ p { margin: 0; }
 .cead-album-title { position: absolute; left: 1.1rem; bottom: 1rem; right: 1.1rem; color: #fff; font-family: var(--font-display); text-transform: uppercase; font-size: 1.3rem; line-height: 1.05; z-index: 1; }
 .cead-album-content img { border-radius: 4px; }
 
+/* Galería en portada: mosaico + acceso al archivo */
+.section--galeria { background: var(--canvas-soft); padding: 6rem 0; }
+.galeria-mosaic {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: .75rem;
+}
+@media (min-width: 900px) {
+  .galeria-mosaic { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 1fr; gap: 1rem; }
+  .galeria-tile--lead { grid-column: span 2; grid-row: span 2; }
+}
+.galeria-tile {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 4/3;
+  background: var(--ink);
+}
+.galeria-tile--lead { grid-column: span 2; aspect-ratio: 16/10; }
+@media (min-width: 900px) { .galeria-tile--lead { aspect-ratio: auto; } }
+.galeria-tile img { width: 100%; height: 100%; object-fit: cover; transition: transform .55s ease; }
+.galeria-tile:hover img { transform: scale(1.06); }
+.galeria-tile-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 45%, rgba(0,0,0,.72));
+  opacity: .85;
+  transition: opacity .3s ease;
+}
+.galeria-tile:hover .galeria-tile-overlay { opacity: 1; }
+.galeria-tile-body {
+  position: absolute; left: 1rem; right: 1rem; bottom: .9rem;
+  display: flex; flex-direction: column; gap: .25rem;
+  color: #fff; z-index: 1;
+}
+.galeria-tile-meta {
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .14em;
+  color: rgba(255,255,255,.72);
+}
+.galeria-tile-title {
+  font-family: var(--font-display); text-transform: uppercase;
+  font-size: 1.05rem; line-height: 1.05;
+}
+.galeria-tile--lead .galeria-tile-title { font-size: 1.7rem; }
+.galeria-cta { margin-top: 2.5rem; display: flex; justify-content: center; }
+
+/* Redes sociales en portada */
+.section--redes { background: #fff; padding: 6rem 0; }
+.redes-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .75rem;
+}
+@media (min-width: 640px) { .redes-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; } }
+@media (min-width: 1024px) { .redes-grid { grid-template-columns: repeat(4, 1fr); } }
+.redes-card {
+  position: relative;
+  display: flex; flex-direction: column; gap: .3rem;
+  padding: 1.6rem 1.4rem 1.5rem;
+  border: 1px solid var(--border-cead);
+  border-top: 4px solid var(--redes-color, var(--brand));
+  background: #fff;
+  transition: background .3s ease, transform .3s ease, border-color .3s ease;
+}
+.redes-card:hover { background: var(--canvas-soft); transform: translateY(-3px); }
+.redes-card-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--redes-color, var(--brand));
+  margin-bottom: .5rem;
+}
+.redes-card-name {
+  font-family: var(--font-display); text-transform: uppercase;
+  font-size: 1.35rem; line-height: 1.05; letter-spacing: -.01em;
+}
+.redes-card-handle { color: var(--text-secondary); font-size: .92rem; }
+.redes-card-arrow {
+  margin-top: .9rem;
+  font-size: 1.1rem;
+  color: var(--redes-color, var(--brand));
+  transition: transform .3s ease;
+}
+.redes-card:hover .redes-card-arrow { transform: translateX(5px); }
+
 /* Eventos públicos */
 .section--eventos .container { max-width: 920px; }
 .cead-events-list { display: flex; flex-direction: column; gap: .75rem; margin-top: 1.5rem; }
