@@ -25,10 +25,14 @@ foreach ( $defaults as $n => $d ) {
 	}
 	if ( '' === $url || '#' === $url ) { continue; }
 
+	// cead_sanitize_hex() devuelve '' si el valor no valida; un custom property
+	// vacío no dispara el fallback de var(), así que se repone acá.
+	$color = trim( (string) get_theme_mod( "cead_redes_{$n}_color", $d[3] ) );
+
 	$cards[] = [
 		'name'   => get_theme_mod( "cead_redes_{$n}_name",   $d[0] ),
 		'handle' => get_theme_mod( "cead_redes_{$n}_handle", $d[1] ),
-		'color'  => get_theme_mod( "cead_redes_{$n}_color",  $d[3] ),
+		'color'  => '' !== $color ? $color : $d[3],
 		'url'    => $url,
 	];
 }

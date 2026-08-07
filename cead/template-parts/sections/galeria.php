@@ -55,6 +55,10 @@ if ( $gal_q->have_posts() ) {
 if ( ! $tiles ) { return; }
 
 $tiles = array_slice( $tiles, 0, 5 );
+
+// El cuadro grande solo tiene sentido si hay con qué rodearlo: con una o dos
+// fotos deja media grilla vacía, así que ahí van todas del mismo tamaño.
+$lead = count( $tiles ) >= 3;
 ?>
 <section id="galeria" class="section section--galeria">
   <div class="container">
@@ -68,7 +72,7 @@ $tiles = array_slice( $tiles, 0, 5 );
 
     <div class="galeria-mosaic">
       <?php foreach ( $tiles as $idx => $t ) : ?>
-        <a class="reveal galeria-tile<?php echo 0 === $idx ? ' galeria-tile--lead' : ''; ?>" href="<?php echo esc_url( $t['link'] ); ?>">
+        <a class="reveal galeria-tile<?php echo ( $lead && 0 === $idx ) ? ' galeria-tile--lead' : ''; ?>" href="<?php echo esc_url( $t['link'] ); ?>">
           <img src="<?php echo esc_url( $t['img'] ); ?>" alt="<?php echo esc_attr( $t['title'] ?: __( 'Galería CEAD', 'cead' ) ); ?>" loading="lazy">
           <span class="galeria-tile-overlay"></span>
           <?php if ( $t['title'] || $t['meta'] ) : ?>
