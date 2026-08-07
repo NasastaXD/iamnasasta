@@ -104,6 +104,7 @@ final class Cead_Acad_Plugin {
 		Cead_Acad_Broadcasts_CPT::seed_terms();
 		Cead_Acad_Resources_CPT::seed_terms();
 		self::seed_post_categories();
+		self::seed_fixture_intercead_2026();
 		update_option( 'cead_acad_terms_seeded', CEAD_ACAD_VERSION );
 	}
 
@@ -125,6 +126,84 @@ final class Cead_Acad_Plugin {
 			if ( get_term_by( 'slug', $slug, 'category' ) ) { continue; }
 			wp_insert_term( $name, 'category', [ 'slug' => $slug ] );
 		}
+	}
+
+	/**
+	 * Post fijo pedido para la presentación: el fixture del Inter CEAD 2026.
+	 * Se crea una sola vez (por slug); si el staff lo edita o lo borra después,
+	 * no se vuelve a tocar.
+	 */
+	private static function seed_fixture_intercead_2026() {
+		if ( get_option( 'cead_acad_fixture_intercead2026_seeded' ) ) {
+			return;
+		}
+		if ( get_page_by_path( 'fixture-intercead-2026', OBJECT, 'post' ) ) {
+			update_option( 'cead_acad_fixture_intercead2026_seeded', 1 );
+			return;
+		}
+
+		$admins = get_users( [ 'role' => 'administrator', 'number' => 1, 'orderby' => 'ID', 'order' => 'ASC', 'fields' => 'ID' ] );
+		$author = $admins ? (int) $admins[0] : 1;
+
+		$content = <<<'HTML'
+<p>Este es el fixture completo del <strong>Inter CEAD 2026 &mdash; Champions League</strong>, con la reprogramaci&oacute;n de las finales. Los partidos marcados como <em>&laquo;Ganador P#&raquo;</em> se definen con el resultado del partido correspondiente.</p>
+
+<h2>Turno ma&ntilde;ana</h2>
+<figure class="wp-block-table is-style-stripes"><table>
+<thead><tr><th style="width:8%">#</th><th>Equipo</th><th></th><th>Equipo</th><th>Modalidad</th></tr></thead>
+<tbody>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">1</td><td>JUVENTUS</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>BVB 05</td><td style="color:#5A6169">V&oacute;ley masculino</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">2</td><td>ARSENAL</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>B. LEVERKUSEN</td><td style="color:#5A6169">V&oacute;ley masculino</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">3</td><td>ARSENAL</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>BAYERN MUNICH</td><td style="color:#5A6169">Handbol femenino</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">4</td><td>JUVENTUS</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>CELTICS</td><td style="color:#5A6169">Futsal masculino</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">5</td><td>CHELSEA</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>A. MADRID</td><td style="color:#5A6169">Futsal femenino</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">6</td><td>ARSENAL</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>BVB 05</td><td style="color:#5A6169">Futsal masculino</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">7</td><td>ARSENAL</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>BAYERN LEVERK.</td><td style="color:#5A6169">Futsal femenino</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">8</td><td>M. UNITED</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>BARCELONA</td><td style="color:#5A6169">Futsal masculino</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">9</td><td>BARCELONA</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>AJAX</td><td style="color:#5A6169">Futsal femenino &mdash; Semifinal</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">10</td><td>ROMA</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>AJAX</td><td style="color:#5A6169">Futsal masculino</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">11</td><td>Ganador P4</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>Ganador P6</td><td style="color:#5A6169">Futsal masculino &mdash; Semifinal</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">12</td><td>Ganador P5</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>Ganador P7</td><td style="color:#5A6169">Futsal femenino &mdash; Semifinal</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">13</td><td>Ganador P8</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>Ganador P10</td><td style="color:#5A6169">Futsal masculino &mdash; Semifinal</td></tr>
+</tbody>
+</table></figure>
+
+<h2>Turno tarde &mdash; Finales</h2>
+<figure class="wp-block-table is-style-stripes"><table>
+<thead><tr><th style="width:8%">#</th><th>Equipo</th><th></th><th>Equipo</th><th>Modalidad</th></tr></thead>
+<tbody>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">1</td><td>Ganador P1</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>Ganador P2</td><td style="color:#5A6169">FINAL &mdash; V&oacute;ley masculino</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">2</td><td>REAL MADRID</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>ARSENAL</td><td style="color:#5A6169">FINAL &mdash; V&oacute;ley femenino</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">3</td><td>BARCELONA</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>Ganador P3</td><td style="color:#5A6169">FINAL &mdash; Handbol femenino</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">4</td><td>JUVENTUS</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>BARCELONA</td><td style="color:#5A6169">FINAL &mdash; Handbol masculino</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">5</td><td>Ganador P9</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>Ganador P12</td><td style="color:#5A6169">FINAL &mdash; Futsal femenino</td></tr>
+<tr><td style="text-align:center;font-weight:700;color:#E93B3C">6</td><td>Ganador P11</td><td style="text-align:center;color:#8A9099;font-size:.85em">vs</td><td>Ganador P13</td><td style="color:#5A6169">FINAL &mdash; Futsal masculino</td></tr>
+</tbody>
+</table></figure>
+
+<p><em>El cronograma puede sufrir ajustes. Los horarios definitivos de cada partido se publican en el calendario del panel.</em></p>
+HTML;
+
+		$pid = wp_insert_post( [
+			'post_type'    => 'post',
+			'post_status'  => 'publish',
+			'post_name'    => 'fixture-intercead-2026',
+			'post_title'   => 'Fixture Inter CEAD 2026 — Champions League',
+			'post_content' => $content,
+			'post_author'  => $author,
+		], true );
+
+		if ( is_wp_error( $pid ) ) {
+			// No se marca como sembrado: se reintenta en el próximo request.
+			return;
+		}
+
+		$cat = get_term_by( 'slug', 'deportes', 'category' );
+		if ( $cat && ! is_wp_error( $cat ) ) {
+			wp_set_post_categories( $pid, [ (int) $cat->term_id ], true );
+		}
+
+		update_option( 'cead_acad_fixture_intercead2026_seeded', 1 );
 	}
 
 	public function disable_block_editor_for_admin_cpts( $use_block_editor, $post_type ) {
