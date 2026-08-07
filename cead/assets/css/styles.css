@@ -1032,6 +1032,19 @@ p { margin: 0; }
   max-width: 24rem;
   line-height: 1.65;
 }
+.footer-address {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  max-width: 24rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-size: 0.9375rem;
+}
+.footer-address:hover {
+  color: var(--brand);
+}
 .footer-site-link {
   display: inline-flex;
   align-items: center;

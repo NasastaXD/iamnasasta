@@ -150,10 +150,8 @@ function cead_customize_register($wp_customize) {
     cead_add_textarea($wp_customize, 'cead_redes_intro', 'Intro', 'Publicamos actos, resultados y avisos en nuestras redes. Ahí también se anuncian los cambios de calendario.', 'cead_sec_redes');
 
     $redes_default = [
-        1 => ['Instagram', '@cead.caaguazu',         '#E1306C'],
-        2 => ['Facebook',  'CEAD Félix de Guarania', '#1877F2'],
-        3 => ['YouTube',   'CEAD Caaguazú',          '#FF0000'],
-        4 => ['WhatsApp',  'Consultas',              '#25D366'],
+        1 => ['Instagram', '@cead_felix_de_guarania', '#E1306C'],
+        2 => ['Facebook',  'CEAD Félix de Guarania',  '#1877F2'],
     ];
     foreach ($redes_default as $n => $d) {
         cead_add_text($wp_customize, "cead_redes_{$n}_name",   "Red $n — Nombre",  $d[0], 'cead_sec_redes');
@@ -207,8 +205,15 @@ function cead_customize_register($wp_customize) {
     cead_add_text($wp_customize, 'cead_contact_email',     'Email para formulario', 'contacto@cead.caaguazu.net', 'cead_sec_footer', 'sanitize_email');
     cead_add_text($wp_customize, 'cead_contact_from_email','Email "From" (remitente del servidor)', 'web@cead.caaguazu.net', 'cead_sec_footer', 'sanitize_email');
 
-    // Redes sociales (4)
-    foreach (['yt' => ['YT', '#'], 'in' => ['IN', '#'], 'fb' => ['FB', '#'], 'ig' => ['IG', '#']] as $key => $vals) {
+    cead_add_text($wp_customize, 'cead_footer_address', 'Dirección', 'GXGQ+G6J, Bienvenido Gallardo Goiris, Caaguazú 3400', 'cead_sec_footer');
+    cead_add_text($wp_customize, 'cead_footer_map_url', 'Dirección — enlace a Maps (vacío = búsqueda automática)', '', 'cead_sec_footer', 'esc_url_raw');
+
+    // Redes sociales: el CEAD solo tiene Instagram y Facebook.
+    $cead_socials = [
+        'ig' => ['IG', 'https://www.instagram.com/cead_felix_de_guarania'],
+        'fb' => ['FB', 'https://www.facebook.com/100010029333535/'],
+    ];
+    foreach ($cead_socials as $key => $vals) {
         cead_add_text($wp_customize, "cead_social_{$key}_label", "Red social $key — etiqueta", $vals[0], 'cead_sec_footer');
         cead_add_text($wp_customize, "cead_social_{$key}_url",   "Red social $key — URL",      $vals[1], 'cead_sec_footer', 'esc_url_raw');
     }

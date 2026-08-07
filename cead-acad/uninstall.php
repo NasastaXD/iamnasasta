@@ -61,6 +61,9 @@ $options = [
 	'cead_acad_wa_stt_endpoint',
 	'cead_acad_wa_stt_key',
 	'cead_acad_wa_stt_model',
+	'cead_acad_wa_vision_enabled',
+	'cead_acad_wa_vision_model',
+	'cead_acad_wa_docs_enabled',
 	// Acceso temporal por clave.
 	'cead_acad_wa_temp_hash',
 	'cead_acad_wa_temp_until',

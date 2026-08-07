@@ -102,7 +102,7 @@ class Cead_Acad_WA_Engine {
 		}
 
 		// Log redactado para reportes sensibles.
-		$this->log_inbound( $phone, $state, $context, $body !== '' ? $body : '[imagen]' );
+		$this->log_inbound( $phone, $state, $context, $body !== '' ? $body : ( $this->is_image_media( $media ) ? '[imagen]' : '[archivo]' ) );
 
 		// Todas las respuestas de este turno se acumulan y se entregan juntas.
 		$this->outbox = [];
@@ -145,6 +145,15 @@ class Cead_Acad_WA_Engine {
 				$this->send( $phone, '👋 Este número no está registrado en el panel del CEAD, así que CEADI todavía no puede atenderte por acá. Pedile a la dirección o secretaría que registre tu número.', 'not_registered' );
 				$this->flush_outbox( $phone );
 			}
+			return;
+		}
+
+		// Formatos viejos que no se pueden abrir (.xls, .doc). El bridge los marca
+		// y no manda el contenido; acá se explica cómo seguir, que si no el
+		// mensaje se queda sin respuesta.
+		if ( $media && ! empty( $media['unsupported'] ) ) {
+			$this->send( $phone, $this->unsupported_file_message( (string) $media['unsupported'] ), 'file_unsupported' );
+			$this->flush_outbox( $phone );
 			return;
 		}
 
@@ -316,7 +325,10 @@ class Cead_Acad_WA_Engine {
 		// lo maneja la IA; el menú (lo que corresponda al rol) queda a un «menú».
 		if ( $mode === 'ia' && $this->ai_enabled() ) {
 			$this->store->set_state( $phone, 'ia_home' );
-			if ( $this->looks_like_query( $body ) && $this->ai_try( $phone, $body, $identity, 'ia_home', $media ) ) {
+			// Una foto o un documento solos (sin texto) también son una consulta:
+			// no pasan por looks_like_query() porque ahí no hay nada que medir.
+			if ( ( $this->looks_like_query( $body ) || $this->has_ai_image( $media ) || $this->has_ai_doc( $media ) )
+				&& $this->ai_try( $phone, $body, $identity, 'ia_home', $media ) ) {
 				return;
 			}
 			$greeting = $is_staff
@@ -600,12 +612,78 @@ class Cead_Acad_WA_Engine {
 		if ( ! $this->ai_enabled() ) {
 			return false;
 		}
+		// Imagen: si la lectura de imágenes está activa, se la damos al modelo
+		// para que la mire. Sigue disponible aparte como adjunto (comunicado,
+		// artículo): mirarla no consume el archivo.
+		$ai_image = $this->has_ai_image( $media ) ? $media : null;
+		// Se marca antes de armar el contexto: ai_channel_note() lo lee de ahí.
+		$this->from_image = (bool) $ai_image;
+
+		// Documento (PDF, Word): se le saca el texto y va como contexto. Si no
+		// se pudo leer, se dice por qué en vez de contestar cualquier cosa.
+		$this->doc_ctx = '';
+		if ( $this->has_ai_doc( $media ) ) {
+			$doc = Cead_Acad_WA_Docs::extract( $media );
+			if ( empty( $doc['ok'] ) ) {
+				$this->ia_turn = true;
+				$extra = ( 'pdf' === ( $doc['kind'] ?? '' ) )
+					? ' ' . __( 'Si es un escaneo, sacale una foto a la hoja y mandámela como imagen.', 'cead-acad' )
+					: '';
+				$this->send(
+					$phone,
+					'📄 ' . sprintf(
+						/* translators: %s: motivo por el que no se pudo leer */
+						__( 'Recibí el archivo pero no pude leerlo. %s', 'cead-acad' ),
+						(string) ( $doc['reason'] ?? '' )
+					) . $extra,
+					'doc_unreadable'
+				);
+				$this->store->set_state( $phone, $home_state );
+				return true;
+			}
+			$this->doc_ctx = "\n\n[DOCUMENTO QUE ACABA DE ENVIAR]\n"
+				. 'Tipo: ' . Cead_Acad_WA_Docs::kind_label( $doc['kind'] )
+				. ( ! empty( $doc['filename'] ) ? ' · Archivo: ' . $doc['filename'] : '' ) . "\n"
+				. "--- texto del documento ---\n"
+				. $doc['text'] . "\n"
+				. "--- fin del documento ---\n"
+				. 'Respondé sobre este documento: resumilo, buscá un dato, explicá lo que pidan. '
+				. 'Es un archivo de trabajo: no queda guardado en el sistema.';
+			if ( $text === '' ) {
+				$text = __( '(Te mandé este documento sin texto. Decime de qué se trata, en breve.)', 'cead-acad' );
+			}
+		}
+
+		if ( $text === '' && $ai_image ) {
+			// Foto sola, sin epígrafe: hay que decirle algo al modelo, si no la
+			// llamada se rechaza por mensaje vacío.
+			$text = __( '(Te mandé esta imagen sin texto. Miralá y decime qué es o ayudame con lo que muestra.)', 'cead-acad' );
+		} elseif ( $text === '' ) {
+			// Sin texto y sin imagen que mirar. Llamar a la IA con el mensaje
+			// vacío da un error técnico y termina mostrando «no puedo procesar
+			// tu mensaje», que confunde: acá el problema es que no hay nada que
+			// leer. Se contesta según el caso y no se gasta una llamada.
+			if ( $this->is_image_media( $media ) ) {
+				$this->ia_turn = true;
+				$this->send( $phone, __( '📷 Me llegó tu imagen, pero no puedo mirarla. Contame con palabras qué necesitás.', 'cead-acad' ), 'image_unsupported' );
+				$this->store->set_state( $phone, $home_state );
+				return true;
+			}
+			if ( class_exists( 'Cead_Acad_WA_Docs' ) && Cead_Acad_WA_Docs::is_document( $media ) ) {
+				$this->ia_turn = true;
+				$this->send( $phone, __( '📄 Me llegó tu archivo, pero no puedo leerlo. Contame con palabras qué necesitás.', 'cead-acad' ), 'doc_unsupported' );
+				$this->store->set_state( $phone, $home_state );
+				return true;
+			}
+			return false;
+		}
 		$res = Cead_Acad_WA_AI::route(
 			$text,
 			$this->faq_context(),
 			$phone,
 			$this->ai_staff_tools( $identity, $phone ),
-			$this->ai_context_with_sheet( $identity, $phone )
+			$this->ai_context_with_sheet( $identity, $phone ),
+			$ai_image
 		);
 		if ( ! is_array( $res ) ) {
 			return false;
@@ -675,6 +753,9 @@ class Cead_Acad_WA_Engine {
 
 	/** El mensaje de este turno llegó como nota de voz y fue transcripto. */
 	private $from_voice = false;
+	private $from_image = false;
+	/** Texto del documento adjunto de este turno ('' si no hay). */
+	private $doc_ctx = '';
 
 	/**
 	 * Cursos que la persona puede gestionar: null = todos (dirección/secretaría),
@@ -754,15 +835,32 @@ class Cead_Acad_WA_Engine {
 
 	/** Marca de este turno: si el mensaje llegó hablado, la IA tiene que saberlo. */
 	private function ai_channel_note() {
-		if ( ! $this->from_voice ) { return ''; }
-		return "\n\nEste mensaje llegó como NOTA DE VOZ y el sistema lo transcribió: lo que leés es la transcripción. "
-			. "Si te preguntan si escuchás audios, la respuesta es sí. "
-			. "La transcripción puede traer errores de palabras: si algo no cierra, pedí que lo aclaren.";
+		$note = '';
+		if ( $this->from_voice ) {
+			$note .= "\n\nEste mensaje llegó como NOTA DE VOZ y el sistema lo transcribió: lo que leés es la transcripción. "
+				. "Si te preguntan si escuchás audios, la respuesta es sí. "
+				. "La transcripción puede traer errores de palabras: si algo no cierra, pedí que lo aclaren.";
+		}
+		if ( '' !== $this->doc_ctx ) {
+			$note .= "\n\nEn este mensaje viene un DOCUMENTO adjunto y su texto está más arriba, en el contexto. "
+				. "Si te preguntan si leés PDF o Word, la respuesta es sí. "
+				. "Trabajá con lo que dice el documento y no inventes lo que no está; si le falta una parte "
+				. "(porque era muy largo y se cortó), decilo. "
+				. "Un documento leído por acá NO queda cargado en el sistema: si hay que registrar algo, aclaralo.";
+		}
+		if ( $this->from_image ) {
+			$note .= "\n\nEn este mensaje viene una IMAGEN adjunta y la estás viendo: describila o usala para responder, "
+				. "según lo que te pidan. Si te preguntan si ves fotos, la respuesta es sí. "
+				. "Si la foto está borrosa o no se entiende, decilo y pedí que la manden de nuevo, en vez de inventar. "
+				. "Si es una foto de un documento (planilla, circular, boletín), leé lo que dice y trabajá con eso, "
+				. "pero recordá que una foto NO reemplaza cargar los datos en el sistema.";
+		}
+		return $note;
 	}
 
 	/** Ficha del usuario + la planilla que mandó recién, si sigue en memoria. */
 	private function ai_context_with_sheet( $identity, $phone ) {
-		$ctx   = $this->ai_user_context( $identity );
+		$ctx   = $this->ai_user_context( $identity ) . $this->doc_ctx;
 		$sheet = Cead_Acad_Grades_Sheet::recall( $phone );
 		if ( ! $sheet || empty( $sheet['rows'] ) ) { return $ctx . $this->ai_channel_note(); }
 
@@ -1608,12 +1706,7 @@ class Cead_Acad_WA_Engine {
 			$this->send( $phone, __( 'Recibí la planilla, pero no tenés permiso para cargar notas.', 'cead-acad' ), 'sheet_denied' );
 			return;
 		}
-		// El .xls viejo no se puede abrir: el bridge lo marca y avisamos cómo seguir.
-		if ( ! empty( $media['unsupported'] ) ) {
-			$this->send( $phone, __( '📄 Ese archivo es un Excel viejo (.xls) y no puedo abrirlo. Abrilo en Excel y usá *Guardar como → .xlsx*, después reenviámelo.', 'cead-acad' ), 'sheet_xls' );
-			return;
-		}
-
+		// Los formatos viejos (.xls) se atajan antes, en process_message().
 		$read = Cead_Acad_Grades_Sheet::read( $media );
 		if ( is_wp_error( $read ) ) {
 			$this->send( $phone, '📄 ' . $read->get_error_message(), 'sheet_error' );
@@ -3103,6 +3196,34 @@ class Cead_Acad_WA_Engine {
 		if ( ! is_array( $media ) ) { return false; }
 		$mime = strtolower( (string) ( $media['mime'] ?? '' ) );
 		return $mime !== '' && strpos( $mime, 'audio' ) === 0;
+	}
+
+	private function is_image_media( $media ) {
+		if ( ! is_array( $media ) ) { return false; }
+		$mime = strtolower( (string) ( $media['mime'] ?? '' ) );
+		return $mime !== '' && strpos( $mime, 'image/' ) === 0;
+	}
+
+	/** ¿Hay una imagen que la IA pueda mirar en este turno? */
+	private function has_ai_image( $media ) {
+		return $this->is_image_media( $media )
+			&& class_exists( 'Cead_Acad_WA_AI' )
+			&& Cead_Acad_WA_AI::vision_enabled();
+	}
+
+	/** Explicación de cómo convertir un formato viejo que no se puede abrir. */
+	private function unsupported_file_message( $kind ) {
+		if ( 'doc' === $kind ) {
+			return __( '📄 Ese archivo es un Word viejo (.doc) y no puedo abrirlo. Abrilo en Word y usá *Guardar como → .docx* (o exportalo a PDF), y reenviámelo.', 'cead-acad' );
+		}
+		return __( '📄 Ese archivo es un Excel viejo (.xls) y no puedo abrirlo. Abrilo en Excel y usá *Guardar como → .xlsx*, después reenviámelo.', 'cead-acad' );
+	}
+
+	/** ¿Llegó un documento (PDF, Word) y la lectura está activa? */
+	private function has_ai_doc( $media ) {
+		return class_exists( 'Cead_Acad_WA_Docs' )
+			&& Cead_Acad_WA_Docs::enabled()
+			&& Cead_Acad_WA_Docs::is_document( $media );
 	}
 
 	private function store_image( $media ) {

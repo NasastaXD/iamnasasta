@@ -118,6 +118,7 @@ const TUNNEL_ENABLED = ! /^(0|false|no|off)$/i.test( process.env.TUNNEL || '' );
 // natural que tarde más. Ambos configurables por .env.
 const WP_TIMEOUT_MS       = parseInt( process.env.WP_TIMEOUT_MS || '45000', 10 );
 const WP_TIMEOUT_AUDIO_MS = parseInt( process.env.WP_TIMEOUT_AUDIO_MS || '120000', 10 );
+const WP_TIMEOUT_IMAGE_MS = parseInt( process.env.WP_TIMEOUT_IMAGE_MS || '90000', 10 );
 
 if ( ! WP_WEBHOOK ) {
     console.warn( '[CaagBridge] ⚠️  WP_WEBHOOK_URL no configurado — los mensajes no se enviarán a WordPress.' );
@@ -445,6 +446,14 @@ async function connectToWhatsApp() {
             }
             // En audio damos más tiempo: transcripción + IA tardan más que un texto.
             const isAudio = !! ( media && typeof media.mime === 'string' && media.mime.startsWith( 'audio' ) );
+            // En imagen también: el modelo con visión tiene que "mirarla" antes de responder.
+            const isImage = !! ( media && typeof media.mime === 'string' && media.mime.startsWith( 'image/' ) );
+            // Y en documentos: WordPress les extrae el texto antes de llamar a la IA.
+            const isDoc = !! ( media && typeof media.mime === 'string' && (
+                media.mime === 'application/pdf'
+                || media.mime.includes( 'wordprocessingml' )
+                || media.mime.includes( 'opendocument.text' )
+            ) );
 
             if ( ! body.trim() && ! media ) continue;
 
@@ -474,7 +483,7 @@ async function connectToWhatsApp() {
                         timestamp: msg.messageTimestamp || Math.floor( Date.now() / 1000 ),
                         media:     media,
                         id:        msg.key.id || '',
-                    }, { timeout: isAudio ? WP_TIMEOUT_AUDIO_MS : WP_TIMEOUT_MS } );
+                    }, { timeout: isAudio ? WP_TIMEOUT_AUDIO_MS : ( ( isImage || isDoc ) ? WP_TIMEOUT_IMAGE_MS : WP_TIMEOUT_MS ) } );
                 }
             } finally {
                 clearInterval( typing );
@@ -604,10 +613,17 @@ async function downloadDocument( msg, docMsg ) {
         'text/plain',
         'text/comma-separated-values',
         'application/csv',
+        // Documentos de lectura: circulares, resoluciones, notas. WordPress les
+        // saca el texto y se lo pasa a la IA.
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+        'application/msword',                                                      // .doc viejo
+        'application/vnd.oasis.opendocument.text',                                 // .odt
+        'text/markdown',
     ];
     const baseMime = ( docMsg.mimetype || '' ).split( ';' )[ 0 ].trim().toLowerCase();
     const name     = ( docMsg.fileName || '' ).toLowerCase();
-    const extOk    = name.endsWith( '.xlsx' ) || name.endsWith( '.csv' );
+    const extOk    = [ '.xlsx', '.csv', '.pdf', '.docx', '.odt', '.txt', '.md' ].some( e => name.endsWith( e ) );
 
     // Vale por extensión o por mime: WhatsApp etiqueta los adjuntos de forma
     // muy despareja según el celular que los mande.
@@ -619,6 +635,12 @@ async function downloadDocument( msg, docMsg ) {
         console.warn( '[CaagBridge] .xls antiguo: hay que guardarlo como .xlsx.' );
         return { unsupported: 'xls', filename: docMsg.fileName || 'planilla.xls' };
     }
+    // .doc binario de Word 97-2003: no se le puede sacar el texto de forma
+    // confiable. Se avisa para que lo guarden como .docx o PDF.
+    if ( name.endsWith( '.doc' ) || baseMime === 'application/msword' ) {
+        console.warn( '[CaagBridge] .doc antiguo: hay que guardarlo como .docx o PDF.' );
+        return { unsupported: 'doc', filename: docMsg.fileName || 'documento.doc' };
+    }
 
     try {
         const buffer = await downloadMediaMessage(
@@ -629,17 +651,32 @@ async function downloadDocument( msg, docMsg ) {
         );
 
         if ( ! buffer || buffer.length > 8 * 1024 * 1024 ) {
-            console.warn( '[CaagBridge] Planilla omitida (vacía o mayor a 8 MB).' );
+            console.warn( '[CaagBridge] Documento omitido (vacío o mayor a 8 MB).' );
             return null;
         }
 
+        // Si WhatsApp no mandó mime, se deduce por la extensión: etiquetar todo
+        // como .xlsx (lo que se hacía antes) haría que un PDF entre por el
+        // camino de planillas.
+        const byExt = {
+            '.pdf':  'application/pdf',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.odt':  'application/vnd.oasis.opendocument.text',
+            '.csv':  'text/csv',
+            '.txt':  'text/plain',
+            '.md':   'text/markdown',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        };
+        const ext      = Object.keys( byExt ).find( e => name.endsWith( e ) );
+        const finalMime = baseMime || byExt[ ext ] || 'application/octet-stream';
+
         return {
-            mime:        baseMime || ( name.endsWith( '.csv' ) ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ),
+            mime:        finalMime,
             data_base64: buffer.toString( 'base64' ),
-            filename:    docMsg.fileName || `planilla-${ Date.now() }.xlsx`,
+            filename:    docMsg.fileName || `documento-${ Date.now() }${ ext || '' }`,
         };
     } catch ( err ) {
-        console.error( '[CaagBridge] Error descargando planilla:', err.message );
+        console.error( '[CaagBridge] Error descargando documento:', err.message );
         return null;
     }
 }

@@ -71,6 +71,8 @@ La separación tema/plugin es deliberada: el tema puede cambiar sin perder datos
 | Bot | Node.js + Baileys 7 (WhatsApp Web) + nginx/HTTPS o Cloudflare Tunnel |
 | IA del bot | API compatible con OpenAI (DeepSeek por defecto, configurable) + tool calling nativo |
 | Voz | Transcripción de notas de voz (STT) en el bridge |
+| Imágenes | Lectura por modelo con visión (opcional, formato multimodal OpenAI) |
+| Documentos | Extracción de texto de PDF / `.docx` / `.odt` en el servidor (opcional) |
 | Autoupdate | [plugin-update-checker](https://github.com/YahnisElsts/plugin-update-checker) + GitHub Releases |
 | CI | GitHub Actions (PHPUnit + empaquetado y publicación de releases) |
 
@@ -180,6 +182,8 @@ Bridge (Node/Baileys) ──POST /caag-bot/v1/incoming──► WA_REST
 - **`WA_Engine`** es una **máquina de estados** por número (estado actual + contexto JSON en `wa_state`). Maneja menús, flujos multi-paso y atajos (`-AA`, `-AE`).
 - **`WA_AI`** (opcional) interpreta lenguaje natural con **tool calling nativo**: la IA decide qué función del sistema disparar (horarios, comunicados, reportes…) o responde con la base de conocimiento/FAQ. Proveedor libre compatible con OpenAI. Las acciones de staff requieren **aprobación humana** antes de ejecutarse.
 - **Notas de voz**: el bridge descarga el audio y lo **transcribe** (STT) antes de pasarlo al engine; por eso el timeout en audios es mayor.
+- **Imágenes** (opcional, *CEADI · IA → Imágenes*): la foto viaja en base64 hasta el modelo como bloque `image_url` (formato multimodal de OpenAI). Requiere un modelo que acepte imágenes; se puede configurar uno distinto del de texto. Tope 4 MB, sin reintento (una llamada con imagen no entra dos veces en lo que el bridge espera). Adjuntar la foto a un comunicado o artículo es un camino aparte y no depende de esto.
+- **Documentos** (opcional, *CEADI · IA → Documentos*): `WA_Docs` extrae el texto **en el servidor** (no se manda el archivo a la IA) y lo inyecta como contexto. `.docx`/`.odt` son ZIP con XML adentro; el PDF se lee juntando los operadores `Tj`/`TJ` de sus streams. Un **PDF escaneado no tiene texto** (haría falta OCR): se avisa y se pide la foto. `.doc`/`.xls` binarios se rechazan en el bridge con instrucciones para convertirlos.
 - **Sincronía con el panel**: todo comunicado enviado desde el bot crea también un `cead_acad_broadcast` con la audiencia equivalente, así aparece en `/panel/comunicados`.
 
 ### El bridge (Node.js)

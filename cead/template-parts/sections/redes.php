@@ -11,10 +11,8 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 $defaults = [
-	1 => [ 'Instagram', '@cead.caaguazu', 'cead_social_ig_url', '#E1306C' ],
-	2 => [ 'Facebook',  'CEAD Félix de Guarania', 'cead_social_fb_url', '#1877F2' ],
-	3 => [ 'YouTube',   'CEAD Caaguazú', 'cead_social_yt_url', '#FF0000' ],
-	4 => [ 'WhatsApp',  'Consultas', 'cead_social_in_url', '#25D366' ],
+	1 => [ 'Instagram', '@cead_felix_de_guarania', 'cead_social_ig_url', '#E1306C' ],
+	2 => [ 'Facebook',  'CEAD Félix de Guarania',  'cead_social_fb_url', '#1877F2' ],
 ];
 
 $cards = [];
