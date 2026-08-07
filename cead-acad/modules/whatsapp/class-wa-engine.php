@@ -256,6 +256,7 @@ class Cead_Acad_WA_Engine {
 			case 'staff_article_menu':   $this->article_menu( $phone, $lc, $identity ); break;
 			case 'staff_article_title':  $this->article_title( $phone, $body, $lc ); break;
 			case 'staff_article_body':   $this->article_body( $phone, $body, $lc, $context, $identity, $media ); break;
+			case 'staff_article_cat':    $this->article_cat( $phone, $lc, $context, $identity ); break;
 			case 'staff_article_edit_pick': $this->article_edit_pick( $phone, $lc, $context ); break;
 			case 'staff_article_edit_body': $this->article_edit_body( $phone, $body, $lc, $context, $identity ); break;
 			case 'staff_article_del_pick':  $this->article_del_pick( $phone, $lc, $context ); break;
@@ -805,6 +806,65 @@ class Cead_Acad_WA_Engine {
 		return is_wp_error( $new ) ? 0 : (int) $new['term_id'];
 	}
 
+	/**
+	 * Categorías que se pueden asignar a un artículo desde el bot.
+	 *
+	 * Son las categorías reales de WordPress, así que se administran donde
+	 * corresponde (Entradas → Categorías) y no en una lista aparte. Se excluye
+	 * la de redes sociales: esa no es un tema, es el disparador de Bit Social, y
+	 * se asigna sola cuando el director/a pide replicar.
+	 *
+	 * @return array term_id => nombre
+	 */
+	private function article_categories() {
+		$social = (string) get_option( 'cead_acad_wa_social_category', 'redes-sociales' );
+		$social = sanitize_title( $social ) ?: 'redes-sociales';
+
+		$terms = get_terms( [
+			'taxonomy'   => 'category',
+			'hide_empty' => false,
+			'number'     => 30,
+			'orderby'    => 'name',
+		] );
+		if ( is_wp_error( $terms ) ) { return []; }
+
+		$out = [];
+		foreach ( $terms as $t ) {
+			if ( $t->slug === $social || $t->slug === 'uncategorized' || $t->slug === 'sin-categoria' ) { continue; }
+			$out[ (int) $t->term_id ] = $t->name;
+		}
+		return $out;
+	}
+
+	/**
+	 * Resuelve un nombre de categoría escrito por la IA (o por la persona) al
+	 * term_id real. Compara sin acentos ni mayúsculas y acepta coincidencia
+	 * parcial ("deporte" → "Deportes"). Nunca crea categorías nuevas: si no
+	 * existe, el artículo se publica sin categoría en vez de ensuciar la
+	 * taxonomía con lo que se le haya ocurrido al modelo.
+	 */
+	private function resolve_category( $name ) {
+		$name = trim( (string) $name );
+		if ( '' === $name ) { return 0; }
+
+		$norm = static function ( $s ) {
+			$s = function_exists( 'remove_accents' ) ? remove_accents( $s ) : $s;
+			return trim( strtolower( $s ) );
+		};
+		$needle = $norm( $name );
+		if ( '' === $needle ) { return 0; }
+
+		$cats = $this->article_categories();
+		foreach ( $cats as $id => $label ) {
+			if ( $norm( $label ) === $needle ) { return (int) $id; }
+		}
+		foreach ( $cats as $id => $label ) {
+			$hay = $norm( $label );
+			if ( str_contains( $hay, $needle ) || str_contains( $needle, $hay ) ) { return (int) $id; }
+		}
+		return 0;
+	}
+
 	private function ai_staff_tools( $identity, $phone = '' ) {
 		$uid = (int) ( $identity['user_id'] ?? 0 );
 		if ( ! $uid ) { return []; }
@@ -838,6 +898,15 @@ class Cead_Acad_WA_Engine {
 				'titulo'    => [ 'type' => 'string', 'description' => 'Título del artículo.' ],
 				'contenido' => [ 'type' => 'string', 'description' => 'Cuerpo del artículo, ya redactado.' ],
 			];
+			$cats = $this->article_categories();
+			if ( $cats ) {
+				$props['categoria'] = [
+					'type'        => 'string',
+					'enum'        => array_values( $cats ),
+					'description' => 'Categoría del artículo. Elegí la que mejor corresponda al tema entre: '
+						. implode( ', ', $cats ) . '. Si ninguna encaja, omitilo.',
+				];
+			}
 			if ( $es_dir ) {
 				$props['redes'] = [
 					'type'        => 'boolean',
@@ -1056,6 +1125,7 @@ class Cead_Acad_WA_Engine {
 			// modelo podría inventar el argumento igual.
 			$redes = ! empty( $args['redes'] ) && $this->is_director_phone( $phone );
 			$image = $media ? $this->store_image( $media ) : null;
+			$cat   = $this->resolve_category( $args['categoria'] ?? '' );
 
 			if ( $reply !== '' ) { $this->send( $phone, $reply ); }
 			$this->store->set_state( $phone, 'ia_staff_confirm', [
@@ -1064,10 +1134,15 @@ class Cead_Acad_WA_Engine {
 				'contenido' => $contenido,
 				'redes'     => $redes,
 				'image'     => $image,
+				'categoria' => $cat,
 			] );
 			$extra = $redes
 				? "\n📣 " . __( 'Además se va a publicar en las redes del colegio.', 'cead-acad' )
 				: '';
+			if ( $cat ) {
+				$cats   = $this->article_categories();
+				$extra .= "\n🏷️ " . sprintf( __( 'Categoría: %s', 'cead-acad' ), $cats[ $cat ] ?? '' );
+			}
 			if ( $image )                    { $extra .= "\n📎 " . __( 'Con imagen destacada.', 'cead-acad' ); }
 			elseif ( $media && ! $image )    { $extra .= "\n" . $this->m( 'image_attach_failed' ); }
 			$this->send(
@@ -1437,6 +1512,13 @@ class Cead_Acad_WA_Engine {
 		if ( $image && ! empty( $image['attachment_id'] ) ) {
 			set_post_thumbnail( $pid, (int) $image['attachment_id'] );
 		}
+		// La categoría temática se revalida contra las que existen ahora: entre
+		// la propuesta y la aprobación pudieron borrarla.
+		$tema = (int) ( $context['categoria'] ?? 0 );
+		if ( $tema && ! isset( $this->article_categories()[ $tema ] ) ) { $tema = 0; }
+		if ( $tema ) {
+			wp_set_post_categories( $pid, [ $tema ], true );
+		}
 		if ( $redes ) {
 			$cat = $this->social_category_id();
 			if ( $cat ) {
@@ -1448,7 +1530,7 @@ class Cead_Acad_WA_Engine {
 			'user_id'     => $uid ?: null,
 			'entity_type' => 'post',
 			'entity_id'   => $pid,
-			'payload'     => [ 'redes' => $redes, 'con_imagen' => (bool) $image, 'via' => 'ia' ],
+			'payload'     => [ 'redes' => $redes, 'categoria' => $tema ?: null, 'con_imagen' => (bool) $image, 'via' => 'ia' ],
 		] );
 		$this->send(
 			$phone,
@@ -2686,6 +2768,11 @@ class Cead_Acad_WA_Engine {
 		$this->send( $phone, $this->m( 'article_body_prompt' ) );
 	}
 
+	/**
+	 * Recibe el cuerpo del artículo y, si el sitio tiene categorías cargadas,
+	 * ofrece elegir una antes de publicar. Sin categorías configuradas se
+	 * publica directo, como antes.
+	 */
 	private function article_body( $phone, $body, $lc, $context, $identity, $media = null ) {
 		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
 		if ( ! Cead_Acad_WA_Identity::can( (int) ( $identity['user_id'] ?? 0 ), 'cead_acad_manage_articles' ) ) {
@@ -2693,23 +2780,101 @@ class Cead_Acad_WA_Engine {
 			$this->reenter_staff( $phone );
 			return;
 		}
-		$pid = wp_insert_post( [
-			'post_type'    => 'post',
-			'post_status'  => 'publish',
-			'post_title'   => (string) ( $context['title'] ?? 'Artículo' ),
-			'post_content' => $body,
-			'post_author'  => (int) ( $identity['user_id'] ?: 0 ),
-		], true );
-		if ( is_wp_error( $pid ) ) { $this->send( $phone, $this->m( 'error_generic' ) ); $this->reenter_staff( $phone ); return; }
+
+		// La imagen se sube ahora: el mensaje con la foto es este, no el que
+		// traiga la elección de categoría.
+		$image_id   = 0;
 		$image_note = '';
 		if ( $media ) {
 			$image = $this->store_image( $media );
 			if ( $image && ! empty( $image['attachment_id'] ) ) {
-				set_post_thumbnail( $pid, (int) $image['attachment_id'] );
+				$image_id = (int) $image['attachment_id'];
 			} else {
 				$image_note = "\n" . $this->m( 'image_attach_failed' );
 			}
 		}
+
+		$cats = $this->article_categories();
+		if ( ! $cats ) {
+			$this->article_publish( $phone, (string) ( $context['title'] ?? 'Artículo' ), $body, 0, $image_id, $image_note, $identity );
+			return;
+		}
+
+		$ids   = array_keys( $cats );
+		$lines = [];
+		foreach ( array_values( $cats ) as $i => $label ) {
+			$lines[] = ( $i + 1 ) . '. ' . $label;
+		}
+		// "Sin categoría" va después de la última, no en el 0: el 0 es
+		// "cancelar" en todo el bot y cambiarlo acá publicaría sin querer.
+		$lines[] = ( count( $ids ) + 1 ) . '. ' . __( 'Sin categoría', 'cead-acad' );
+		$lines[] = '0. ' . __( 'Cancelar', 'cead-acad' );
+
+		$this->store->set_state( $phone, 'staff_article_cat', [
+			'title'      => (string) ( $context['title'] ?? 'Artículo' ),
+			'body'       => $body,
+			'cat_ids'    => $ids,
+			'image_id'   => $image_id,
+			'image_note' => $image_note,
+		] );
+		$this->send( $phone, $this->m( 'article_cat_prompt' ) . "\n" . implode( "\n", $lines ) );
+	}
+
+	private function article_cat( $phone, $lc, $context, $identity ) {
+		if ( $this->is_cancel( $lc ) ) { $this->reenter_staff( $phone ); return; }
+		if ( ! preg_match( '/^\d+$/', $lc ) ) { $this->invalid( $phone ); return; }
+
+		$ids = array_values( (array) ( $context['cat_ids'] ?? [] ) );
+		$pos = (int) $lc;
+		if ( $pos === count( $ids ) + 1 ) {
+			$cat = 0; // "Sin categoría".
+		} elseif ( isset( $ids[ $pos - 1 ] ) ) {
+			$cat = (int) $ids[ $pos - 1 ];
+		} else {
+			$this->invalid( $phone );
+			return;
+		}
+
+		$this->article_publish(
+			$phone,
+			(string) ( $context['title'] ?? 'Artículo' ),
+			(string) ( $context['body'] ?? '' ),
+			$cat,
+			(int) ( $context['image_id'] ?? 0 ),
+			(string) ( $context['image_note'] ?? '' ),
+			$identity
+		);
+	}
+
+	/** Inserta el artículo y cierra el flujo. Compartido por el paso con y sin categoría. */
+	private function article_publish( $phone, $title, $body, $cat_id, $image_id, $image_note, $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_articles' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->reenter_staff( $phone );
+			return;
+		}
+		$pid = wp_insert_post( [
+			'post_type'    => 'post',
+			'post_status'  => 'publish',
+			'post_title'   => $title,
+			'post_content' => $body,
+			'post_author'  => $uid ?: 0,
+		], true );
+		if ( is_wp_error( $pid ) ) { $this->send( $phone, $this->m( 'error_generic' ) ); $this->reenter_staff( $phone ); return; }
+
+		if ( $image_id ) {
+			set_post_thumbnail( $pid, $image_id );
+		}
+		if ( $cat_id && isset( $this->article_categories()[ $cat_id ] ) ) {
+			wp_set_post_categories( $pid, [ $cat_id ], true );
+		}
+		Cead_Acad_Audit::log( 'wa_article_published', [
+			'user_id'     => $uid ?: null,
+			'entity_type' => 'post',
+			'entity_id'   => $pid,
+			'payload'     => [ 'categoria' => $cat_id ?: null, 'con_imagen' => (bool) $image_id, 'via' => 'menu' ],
+		] );
 		$this->send( $phone, $this->interp( $this->m( 'article_published' ), [ 'url' => get_permalink( $pid ) ] ) . $image_note, 'article_published' );
 		$this->reenter_staff( $phone );
 	}
@@ -3324,7 +3489,7 @@ class Cead_Acad_WA_Engine {
 		$student_sub = [ 'stu_report_type', 'stu_report_cat', 'stu_report_body', 'stu_msg_to', 'stu_msg_body', 'stu_council_menu', 'stu_council_proposal', 'stu_settings_menu', 'stu_settings_name', 'stu_settings_phone' ];
 		$staff_sub   = [
 			'staff_comm_compose', 'staff_comm_template', 'staff_comm_audience', 'staff_comm_when', 'staff_comm_confirm', 'staff_comm_schedule',
-			'staff_event_title', 'staff_event_date', 'staff_article_menu', 'staff_article_title', 'staff_article_body',
+			'staff_event_title', 'staff_event_date', 'staff_article_menu', 'staff_article_title', 'staff_article_body', 'staff_article_cat',
 			'staff_article_edit_pick', 'staff_article_edit_body', 'staff_article_del_pick', 'staff_article_del_confirm',
 			'staff_role_phone', 'staff_role_choose',
 		];
