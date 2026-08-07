@@ -13,18 +13,12 @@ get_header(); ?>
 
 	<?php if ( have_posts() ) : ?>
 		<div class="cead-news-grid">
-			<?php while ( have_posts() ) : the_post(); ?>
-				<a class="reveal cead-news-card" href="<?php the_permalink(); ?>">
-					<div class="cead-news-thumb">
-						<?php if ( has_post_thumbnail() ) : the_post_thumbnail( 'large' ); endif; ?>
-					</div>
-					<div class="cead-news-body">
-						<div class="eyebrow"><?php echo esc_html( get_the_date() ); ?></div>
-						<h3 class="cead-news-title"><?php the_title(); ?></h3>
-						<p class="cead-news-text"><?php echo esc_html( wp_trim_words( wp_strip_all_tags( get_the_excerpt() ?: get_the_content() ), 24 ) ); ?></p>
-					</div>
-				</a>
-			<?php endwhile; ?>
+			<?php
+			while ( have_posts() ) :
+				the_post();
+				get_template_part( 'template-parts/news-card' );
+			endwhile;
+			?>
 		</div>
 		<?php the_posts_pagination( [ 'mid_size' => 1 ] ); ?>
 	<?php else : ?>

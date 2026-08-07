@@ -83,6 +83,38 @@ add_action( 'init', function () {
 	] );
 }, 11 );
 
+/* ============================================================
+ * 1.b) El CPT «Noticias» quedó de más
+ * ============================================================
+ * Las noticias se manejan como ENTRADAS con su categoría: es lo que publica
+ * CEADI desde WhatsApp, y tiene que seguir así porque el plugin de redes
+ * sociales trabaja sobre entradas y categorías. Tener además un menú «Noticias»
+ * aparte confunde: se cargaba ahí y no aparecía en ningún lado.
+ *
+ * El CPT NO se elimina —eso dejaría huérfano lo que ya esté cargado— pero se
+ * saca del menú cuando está vacío, que es el caso normal. Si tiene contenido,
+ * el menú sigue y se avisa que conviene pasarlo a Entradas.
+ */
+add_action( 'admin_menu', function () {
+	$tiene = (int) wp_count_posts( 'cead_noticia' )->publish
+		+ (int) wp_count_posts( 'cead_noticia' )->draft;
+	if ( 0 === $tiene ) {
+		remove_menu_page( 'edit.php?post_type=cead_noticia' );
+	}
+}, 99 );
+
+add_action( 'admin_notices', function () {
+	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+	if ( ! $screen || 'cead_noticia' !== $screen->post_type ) { return; }
+	echo '<div class="notice notice-warning"><p>';
+	printf(
+		/* translators: %s: enlace a Entradas */
+		esc_html__( 'Las noticias del CEAD se publican como %s con su categoría (es lo que usa CEADI y lo que ven las redes sociales). Este listado quedó de antes: lo que esté acá conviene volver a cargarlo como entrada.', 'cead' ),
+		'<a href="' . esc_url( admin_url( 'edit.php' ) ) . '"><strong>' . esc_html__( 'Entradas', 'cead' ) . '</strong></a>'
+	);
+	echo '</p></div>';
+} );
+
 // Refrescar permalinks una vez al activar el tema (para los archives nuevos).
 add_action( 'after_switch_theme', function () { update_option( 'cead_flush_public', 1 ); } );
 add_action( 'init', function () {

@@ -45,3 +45,31 @@ function cead_sanitize_hex($color) {
     $color = is_string($color) ? trim($color) : '';
     return preg_match('/^#([A-Fa-f0-9]{3}){1,2}$/', $color) ? $color : '';
 }
+
+/**
+ * Título del listado genérico (index.php), según qué se esté mirando.
+ * WordPress trae get_the_archive_title(), pero le antepone «Categoría:»,
+ * «Búsqueda:» y demás, que acá no queremos.
+ */
+function cead_listing_title() {
+    if (is_search())   { return sprintf(__('Resultados para «%s»', 'cead'), get_search_query()); }
+    if (is_category()) { return single_cat_title('', false); }
+    if (is_tag())      { return single_tag_title('', false); }
+    if (is_author())   { return get_the_author(); }
+    if (is_year())     { return get_the_date('Y'); }
+    if (is_month())    { return get_the_date('F Y'); }
+    if (is_day())      { return get_the_date(); }
+    return __('Publicaciones del CEAD', 'cead');
+}
+
+/**
+ * Etiqueta chica que va sobre el título del listado.
+ */
+function cead_listing_eyebrow() {
+    if (is_search())   { return __('Búsqueda', 'cead'); }
+    if (is_category()) { return __('Categoría', 'cead'); }
+    if (is_tag())      { return __('Etiqueta', 'cead'); }
+    if (is_author())   { return __('Autor', 'cead'); }
+    if (is_date())     { return __('Archivo', 'cead'); }
+    return __('Novedades', 'cead');
+}

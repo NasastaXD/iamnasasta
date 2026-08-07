@@ -88,11 +88,7 @@ function cead_division_meta_cb($post) {
         <label><strong>Color de acento</strong></label><br>
         <input type="color" name="cead_div_color" value="<?php echo esc_attr($color); ?>">
     </p>
-    <p>
-        <label><strong>URL de imagen</strong> (usar si no se sube como destacada)</label><br>
-        <input type="url" name="cead_div_image_url" value="<?php echo esc_attr($img); ?>" style="width:100%" placeholder="https://...">
-        <small>Si configurás una imagen destacada, esa toma prioridad.</small>
-    </p>
+    <?php cead_image_field('cead_div_image_url', $img); ?>
     <?php
 }
 
@@ -105,11 +101,7 @@ function cead_vida_meta_cb($post) {
         <label><strong>Etiqueta</strong> (ej: <em>Cultural</em>, <em>Deporte</em>)</label><br>
         <input type="text" name="cead_vida_tag" value="<?php echo esc_attr($tag); ?>" style="width:100%">
     </p>
-    <p>
-        <label><strong>URL de imagen</strong></label><br>
-        <input type="url" name="cead_vida_image_url" value="<?php echo esc_attr($img); ?>" style="width:100%" placeholder="https://...">
-        <small>Si configurás una imagen destacada, esa toma prioridad.</small>
-    </p>
+    <?php cead_image_field('cead_vida_image_url', $img); ?>
     <?php
 }
 
@@ -182,3 +174,67 @@ function cead_seed_life() {
         }
     }
 }
+
+/**
+ * Campo de imagen con botón para subir desde la Biblioteca de medios.
+ *
+ * Antes acá había un <input type="url"> pelado: había que subir la foto por
+ * otro lado, copiar la URL y pegarla a mano. Ahora se elige o se sube desde el
+ * mismo cuadro, y el campo de texto queda igual por si alguien prefiere pegar
+ * un enlace externo.
+ */
+function cead_image_field($name, $value) {
+    $id = esc_attr($name);
+    ?>
+    <p class="cead-imgfield">
+        <label><strong>Imagen</strong></label><br>
+        <span class="cead-imgfield-preview" style="display:<?php echo $value ? 'block' : 'none'; ?>;margin:.5rem 0">
+            <img src="<?php echo esc_url($value); ?>" alt="" style="max-width:100%;height:auto;border:1px solid #dcdcde">
+        </span>
+        <input type="url" class="cead-imgfield-url" name="<?php echo $id; ?>" id="<?php echo $id; ?>"
+               value="<?php echo esc_attr($value); ?>" style="width:100%" placeholder="https://...">
+        <button type="button" class="button cead-imgfield-pick" style="margin-top:.4rem">Elegir o subir imagen</button>
+        <button type="button" class="button-link cead-imgfield-clear" style="margin-left:.6rem;color:#b32d2e">Quitar</button>
+        <br><small>También podés usar la <em>Imagen destacada</em>: si hay una, esa tiene prioridad.</small>
+    </p>
+    <?php
+}
+
+/**
+ * Carga el selector de medios en las pantallas de edición de los CPT del tema.
+ */
+add_action('admin_enqueue_scripts', function ($hook) {
+    if (!in_array($hook, ['post.php', 'post-new.php'], true)) { return; }
+    $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+    if (!$screen || !in_array($screen->post_type, ['cead_division', 'cead_vida'], true)) { return; }
+
+    wp_enqueue_media();
+    wp_add_inline_script('media-editor', <<<'JS'
+jQuery(function ($) {
+    $(document).on('click', '.cead-imgfield-pick', function (e) {
+        e.preventDefault();
+        var $wrap = $(this).closest('.cead-imgfield');
+        var frame = wp.media({
+            title: 'Elegir imagen',
+            button: { text: 'Usar esta imagen' },
+            library: { type: 'image' },
+            multiple: false
+        });
+        frame.on('select', function () {
+            var img = frame.state().get('selection').first().toJSON();
+            var url = (img.sizes && img.sizes.large) ? img.sizes.large.url : img.url;
+            $wrap.find('.cead-imgfield-url').val(url);
+            $wrap.find('.cead-imgfield-preview').show().find('img').attr('src', url);
+        });
+        frame.open();
+    });
+    $(document).on('click', '.cead-imgfield-clear', function (e) {
+        e.preventDefault();
+        var $wrap = $(this).closest('.cead-imgfield');
+        $wrap.find('.cead-imgfield-url').val('');
+        $wrap.find('.cead-imgfield-preview').hide();
+    });
+});
+JS
+    );
+});

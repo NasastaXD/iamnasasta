@@ -1,27 +1,40 @@
 <?php
 /**
- * Fallback. WordPress requiere index.php.
- * En este tema, front-page.php se usa para la portada;
- * este archivo cubre cualquier otra vista (archive, search, etc.)
- * con un layout mínimo.
+ * Listado genérico: índice del blog, archivos por categoría y fecha, búsqueda.
+ * (La portada usa front-page.php.)
+ *
+ * Muestra las notas como tarjetas, igual que /noticias. Antes imprimía el
+ * extracto suelto: las tablas salían aplanadas en un párrafo corrido y la foto
+ * no aparecía por ningún lado.
  */
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 get_header(); ?>
 
-<main class="container" style="padding-top: 8rem; padding-bottom: 6rem;">
-    <?php if (have_posts()): ?>
-        <?php while (have_posts()): the_post(); ?>
-            <article <?php post_class('cead-article'); ?>>
-                <h1 class="cead-article-title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h1>
-                <div class="cead-article-content">
-                    <?php the_excerpt(); ?>
-                </div>
-            </article>
-        <?php endwhile; ?>
+<main class="container cead-archive">
+	<header class="section-head">
+		<div class="eyebrow">— <?php echo esc_html( cead_listing_eyebrow() ); ?></div>
+		<h1 class="display-h2 display-h2--narrow"><?php echo esc_html( cead_listing_title() ); ?></h1>
+	</header>
 
-        <?php the_posts_pagination(); ?>
-    <?php else: ?>
-        <h1 class="cead-article-title">No hay contenido</h1>
-    <?php endif; ?>
+	<?php if ( have_posts() ) : ?>
+		<div class="cead-news-grid">
+			<?php
+			while ( have_posts() ) :
+				the_post();
+				get_template_part( 'template-parts/news-card' );
+			endwhile;
+			?>
+		</div>
+		<?php the_posts_pagination( [ 'mid_size' => 1 ] ); ?>
+	<?php else : ?>
+		<p class="cead-archive-empty">
+			<?php
+			echo is_search()
+				? esc_html__( 'No encontramos nada con esa búsqueda.', 'cead' )
+				: esc_html__( 'Todavía no hay publicaciones.', 'cead' );
+			?>
+		</p>
+	<?php endif; ?>
 </main>
 
 <?php get_footer();
