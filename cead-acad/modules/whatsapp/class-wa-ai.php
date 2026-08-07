@@ -273,6 +273,50 @@ class Cead_Acad_WA_AI {
 		return 'ogg'; // nota de voz de WhatsApp = ogg/opus
 	}
 
+	/* ---------------- Lectura de imágenes (visión) ---------------- */
+
+	/**
+	 * Tope de imagen que se manda al modelo, en bytes reales. WhatsApp ya
+	 * comprime bastante, pero una foto de documento puede venir grande: pasado
+	 * este tamaño no se manda (mejor que CEADI diga que no la pudo ver a que el
+	 * turno entero se caiga por timeout o por límite del proveedor).
+	 */
+	const VISION_MAX_BYTES = 4194304; // 4 MB
+
+	/** ¿La lectura de imágenes está activa y hay con qué llamar al modelo? */
+	public static function vision_enabled() {
+		return (bool) get_option( 'cead_acad_wa_vision_enabled', 0 ) && self::key() !== '';
+	}
+
+	/**
+	 * Modelo con visión. Vacío = el mismo de la IA (sirve si ya es multimodal,
+	 * como gpt-4o). Se separa porque hay proveedores donde el modelo de texto
+	 * barato no mira imágenes y conviene usar otro solo para esto.
+	 */
+	public static function vision_model() {
+		$m = trim( (string) get_option( 'cead_acad_wa_vision_model', '' ) );
+		return $m !== '' ? $m : self::model();
+	}
+
+	/**
+	 * Arma el bloque `image_url` que espera un endpoint compatible OpenAI a
+	 * partir del media del bridge. Devuelve null si no hay imagen usable
+	 * (no es imagen, viene vacía o pasa el tope de tamaño).
+	 */
+	public static function image_block( $media ) {
+		if ( ! is_array( $media ) || empty( $media['data_base64'] ) ) { return null; }
+		$mime = strtolower( trim( (string) ( $media['mime'] ?? '' ) ) );
+		if ( strpos( $mime, 'image/' ) !== 0 ) { return null; }
+		$b64 = (string) $media['data_base64'];
+		// El base64 ocupa ~4/3 de los bytes reales: comparamos sin decodificar,
+		// para no cargar en memoria una imagen que igual vamos a descartar.
+		if ( strlen( $b64 ) > (int) ceil( self::VISION_MAX_BYTES * 4 / 3 ) ) { return null; }
+		return [
+			'type'      => 'image_url',
+			'image_url' => [ 'url' => 'data:' . $mime . ';base64,' . $b64 ],
+		];
+	}
+
 	/* ---------------- Prompts ---------------- */
 
 	/** Persona/instrucciones editables (default si está vacío). */
@@ -463,15 +507,24 @@ TXT;
 	 * (HTTP 400), cae automáticamente al modo JSON. Devuelve un array de depuración:
 	 * [ ok, code, error, intent, reply, content ].
 	 */
-	public static function call( $message, $faq_context = '', $key = null, $endpoint = null, $model = null, $history = [], $extra_tools = [], $user_context = '' ) {
+	public static function call( $message, $faq_context = '', $key = null, $endpoint = null, $model = null, $history = [], $extra_tools = [], $user_context = '', $image = null ) {
 		$key      = $key !== null ? $key : self::key();
 		$endpoint = $endpoint !== null && $endpoint !== '' ? $endpoint : self::endpoint();
-		$model    = $model !== null && $model !== '' ? $model : self::model();
+		$forced_model = ( $model !== null && $model !== '' );
+		$model    = $forced_model ? $model : self::model();
 		$message  = trim( (string) $message );
+
+		// Imagen adjunta: solo se manda si la lectura de imágenes está activa.
+		$img_block = ( null !== $image && self::vision_enabled() ) ? self::image_block( $image ) : null;
+		if ( $img_block && ! $forced_model ) {
+			$model = self::vision_model();
+		}
 
 		$out = [ 'ok' => false, 'code' => 0, 'error' => '', 'intent' => '', 'reply' => '', 'content' => '', 'args' => [] ];
 		if ( $key === '' ) { $out['error'] = 'Falta la API key.'; return $out; }
-		if ( $message === '' ) { $out['error'] = 'Mensaje vacío.'; return $out; }
+		// Una imagen sola (sin texto) es un mensaje válido: ahí lo que se manda
+		// a mirar es la foto.
+		if ( $message === '' && ! $img_block ) { $out['error'] = 'Mensaje vacío.'; return $out; }
 
 		// Herramientas: base (informativas) + las de staff que pase el motor (con permiso).
 		$tools   = array_merge( self::tools_spec(), is_array( $extra_tools ) ? $extra_tools : [] );
@@ -481,16 +534,32 @@ TXT;
 		}
 		$allowed = array_values( array_unique( $allowed ) );
 
-		$messages = function ( $mode ) use ( $faq_context, $history, $message, $user_context, $extra_tools ) {
+		$messages = function ( $mode ) use ( $faq_context, $history, $message, $user_context, $extra_tools, $img_block ) {
 			$m = [ [ 'role' => 'system', 'content' => self::build_system( $faq_context, $mode, $user_context, $extra_tools ) ] ];
 			foreach ( (array) $history as $h ) {
 				if ( isset( $h['role'], $h['content'] ) && in_array( $h['role'], [ 'user', 'assistant' ], true ) ) {
 					$m[] = [ 'role' => $h['role'], 'content' => (string) $h['content'] ];
 				}
 			}
-			$m[] = [ 'role' => 'user', 'content' => mb_substr( $message, 0, 2000 ) ];
+			$text = mb_substr( $message, 0, 2000 );
+			if ( $img_block ) {
+				// Formato multimodal: el texto (si lo hay) y la imagen van como
+				// bloques dentro del mismo mensaje del usuario.
+				$content = [];
+				if ( '' !== $text ) { $content[] = [ 'type' => 'text', 'text' => $text ]; }
+				$content[] = $img_block;
+				$m[] = [ 'role' => 'user', 'content' => $content ];
+			} else {
+				$m[] = [ 'role' => 'user', 'content' => $text ];
+			}
 			return $m;
 		};
+
+		// Con imagen se da más tiempo y NO se reintenta: mirar una foto tarda más
+		// que un texto, y un segundo intento de 35s no entra en lo que el bridge
+		// espera antes de cortar.
+		$timeout = $img_block ? 35 : 18;
+		$retry   = ! $img_block;
 
 		// 1) Tool calling — el modelo habla con libertad y llama función si quiere.
 		$r = self::http( $endpoint, $key, [
@@ -500,7 +569,7 @@ TXT;
 			'messages'    => $messages( 'tools' ),
 			'tools'       => $tools,
 			'tool_choice' => 'auto',
-		] );
+		], $timeout, $retry );
 
 		// 2) Fallback: si el proveedor rechaza las herramientas (400), modo JSON.
 		if ( $r['code'] === 400 ) {
@@ -510,7 +579,7 @@ TXT;
 				'max_tokens'      => self::max_tokens(),
 				'messages'        => $messages( 'json' ),
 				'response_format' => [ 'type' => 'json_object' ],
-			] );
+			], $timeout, $retry );
 			if ( $rj['code'] === 200 ) {
 				return self::parse_json_mode( $rj, $out, $allowed );
 			}
@@ -538,10 +607,10 @@ TXT;
 	 * 18 + 0.6 + 18 ≈ 36.6s el peor caso del reintento entra holgado ahí adentro;
 	 * con 30s por intento, dos intentos solos ya superarían esos 45s.
 	 */
-	protected static function http( $endpoint, $key, array $payload ) {
-		$attempt = static function () use ( $endpoint, $key, $payload ) {
+	protected static function http( $endpoint, $key, array $payload, $timeout = 18, $allow_retry = true ) {
+		$attempt = static function () use ( $endpoint, $key, $payload, $timeout ) {
 			$res = wp_remote_post( $endpoint, [
-				'timeout' => 18,
+				'timeout' => $timeout,
 				'headers' => [
 					'Authorization' => 'Bearer ' . $key,
 					'Content-Type'  => 'application/json',
@@ -561,7 +630,7 @@ TXT;
 		};
 
 		$r = $attempt();
-		$retriable = ( 0 === $r['code'] ) || 429 === $r['code'] || $r['code'] >= 500;
+		$retriable = $allow_retry && ( ( 0 === $r['code'] ) || 429 === $r['code'] || $r['code'] >= 500 );
 		if ( $retriable ) {
 			usleep( 600000 ); // 0.6s: alcanza para un hipo de red sin duplicar el timeout del turno.
 			$r2 = $attempt();
@@ -653,9 +722,9 @@ TXT;
 	 * está activa y hay $phone. `$user_context` describe a quién atiende (nombre,
 	 * rol, cursos, fecha de hoy) para que responda con datos y no a ciegas.
 	 */
-	public static function route( $message, $faq_context = '', $phone = '', $extra_tools = [], $user_context = '' ) {
+	public static function route( $message, $faq_context = '', $phone = '', $extra_tools = [], $user_context = '', $image = null ) {
 		$history = ( $phone !== '' ) ? self::load_memory( $phone ) : [];
-		$r = self::call( $message, $faq_context, null, null, null, $history, $extra_tools, $user_context );
+		$r = self::call( $message, $faq_context, null, null, null, $history, $extra_tools, $user_context, $image );
 		if ( ! $r['ok'] ) {
 			// Fallo TÉCNICO (no «no entendí»): registrarlo para diagnóstico. El
 			// motor lo usa para caer al menú, y el admin lo muestra en CEADI · IA.
@@ -671,7 +740,13 @@ TXT;
 		self::$last_error = '';
 		delete_transient( 'cead_acad_wa_ai_last_error' );
 		if ( $phone !== '' && self::memory_turns() > 0 ) {
-			self::save_memory( $phone, $message, $r['content'] );
+			// La imagen no se guarda en la memoria (solo texto), pero sí queda la
+			// marca de que hubo una: si no, en el turno siguiente el modelo no
+			// entiende de qué le están hablando.
+			$mem_msg = ( null !== $image && self::vision_enabled() )
+				? trim( $message . "\n[Adjuntó una imagen, que miraste en ese momento.]" )
+				: $message;
+			self::save_memory( $phone, $mem_msg, $r['content'] );
 		}
 		return [ 'intent' => $r['intent'], 'reply' => $r['reply'], 'args' => $r['args'] ?? [] ];
 	}

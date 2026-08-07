@@ -13,6 +13,19 @@
         <p class="footer-about">
           <?php echo wp_kses_post(get_theme_mod('cead_footer_about', 'Centro Educativo de Alto Desempeño “Félix de Guarania”. Bachillerato público fundado en 2009 en Caaguazú, Paraguay.')); ?>
         </p>
+        <?php
+        $cead_addr = trim((string) get_theme_mod('cead_footer_address', 'GXGQ+G6J, Bienvenido Gallardo Goiris, Caaguazú 3400'));
+        if ($cead_addr !== ''):
+          $cead_map = trim((string) get_theme_mod('cead_footer_map_url', ''));
+          // Sin URL propia, se arma la búsqueda en Maps con la dirección misma.
+          if ($cead_map === '') {
+            $cead_map = 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($cead_addr);
+          }
+          ?>
+          <a class="footer-address" href="<?php echo esc_url($cead_map); ?>" target="_blank" rel="noopener noreferrer">
+            <span aria-hidden="true">📍</span> <?php echo esc_html($cead_addr); ?>
+          </a>
+        <?php endif; ?>
         <a href="<?php echo esc_url(get_theme_mod('cead_footer_site_url', 'https://cead.caaguazu.net')); ?>" class="footer-site-link underline-brand">
           <?php echo esc_html(get_theme_mod('cead_footer_site_label', 'cead.caaguazú.net →')); ?>
         </a>
@@ -48,14 +61,17 @@
 
       <div class="footer-socials">
         <?php
+        // El CEAD solo tiene Instagram y Facebook. Si alguna queda sin URL, esa
+        // pastilla no se imprime (mejor nada que un enlace que no lleva a ningún lado).
         $socials = [
-            ['cead_social_yt_label', 'cead_social_yt_url', 'YT'],
-            ['cead_social_in_label', 'cead_social_in_url', 'IN'],
-            ['cead_social_fb_label', 'cead_social_fb_url', 'FB'],
             ['cead_social_ig_label', 'cead_social_ig_url', 'IG'],
+            ['cead_social_fb_label', 'cead_social_fb_url', 'FB'],
         ];
-        foreach ($socials as $s): ?>
-          <a href="<?php echo esc_url(get_theme_mod($s[1], '#')); ?>" class="footer-social-pill" aria-label="<?php echo esc_attr(get_theme_mod($s[0], $s[2])); ?>">
+        foreach ($socials as $s):
+          $s_url = trim((string) get_theme_mod($s[1], ''));
+          if ($s_url === '' || $s_url === '#') { continue; }
+          ?>
+          <a href="<?php echo esc_url($s_url); ?>" class="footer-social-pill" target="_blank" rel="noopener noreferrer" aria-label="<?php echo esc_attr(get_theme_mod($s[0], $s[2])); ?>">
             <?php echo esc_html(get_theme_mod($s[0], $s[2])); ?>
           </a>
         <?php endforeach; ?>

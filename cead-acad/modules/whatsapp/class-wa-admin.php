@@ -399,6 +399,15 @@ class Cead_Acad_WA_Admin {
 			update_option( 'cead_acad_wa_stt_model', sanitize_text_field( wp_unslash( $_POST['stt_model'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_stt_key', sanitize_text_field( wp_unslash( $_POST['stt_key'] ?? '' ) ), false );
 
+			// Lectura de imágenes (visión): usa la misma key y endpoint de la IA;
+			// solo puede necesitar otro modelo si el de texto no mira imágenes.
+			update_option( 'cead_acad_wa_vision_enabled', ! empty( $_POST['vision_enabled'] ) ? 1 : 0, false );
+			update_option( 'cead_acad_wa_vision_model', sanitize_text_field( wp_unslash( $_POST['vision_model'] ?? '' ) ), false );
+
+			// Lectura de documentos: el texto se extrae en WordPress, así que no
+			// necesita ni key ni modelo aparte.
+			update_option( 'cead_acad_wa_docs_enabled', ! empty( $_POST['docs_enabled'] ) ? 1 : 0, false );
+
 			if ( $action === 'ai_test' ) {
 				$msg = sanitize_text_field( wp_unslash( $_POST['ai_test_message'] ?? '' ) ) ?: '¿qué clases tengo hoy?';
 				$t   = Cead_Acad_WA_AI::test( $msg );
@@ -519,6 +528,48 @@ class Cead_Acad_WA_Admin {
 		echo '<tr><th scope="row">' . esc_html__( 'Probar STT', 'cead-acad' ) . '</th><td>';
 		echo '<button type="submit" class="button" name="cead_acad_wa_ai_action" value="stt_test">' . esc_html__( 'Guardar y probar transcripción', 'cead-acad' ) . '</button>';
 		echo '<p class="description">' . esc_html__( 'Guarda la configuración y prueba si la API key y el endpoint de transcripción responden correctamente (sin necesitar una nota de voz real).', 'cead-acad' ) . '</p></td></tr>';
+
+		// --- Lectura de imágenes (visión) ---
+		$vis_on  = (bool) get_option( 'cead_acad_wa_vision_enabled', 0 );
+		$vis_key = Cead_Acad_WA_AI::key() !== '';
+		echo '<tr><th scope="row" colspan="2"><hr><h2 style="margin:0">' . esc_html__( '🖼️ Imágenes (lectura)', 'cead-acad' ) . '</h2></th></tr>';
+		echo '<tr><td colspan="2">';
+		if ( $vis_on && $vis_key ) {
+			echo '<div class="notice notice-success inline"><p>🟢 ' . esc_html__( 'Lectura de imágenes activa: si mandan una foto, CEADI la mira y responde sobre lo que ve.', 'cead-acad' ) . '</p></div>';
+		} elseif ( $vis_on && ! $vis_key ) {
+			echo '<div class="notice notice-warning inline"><p>⚠️ ' . esc_html__( 'Lectura de imágenes activada pero falta la API key de la IA (cargala más arriba).', 'cead-acad' ) . '</p></div>';
+		} else {
+			echo '<div class="notice notice-info inline"><p>🔴 ' . esc_html__( 'Lectura de imágenes desactivada: las fotos solo sirven como adjunto (comunicado, artículo); CEADI no las mira.', 'cead-acad' ) . '</p></div>';
+		}
+		echo '</td></tr>';
+		echo '<tr><th scope="row">' . esc_html__( 'Activar', 'cead-acad' ) . '</th><td>';
+		echo '<label><input type="checkbox" name="vision_enabled" value="1" ' . checked( $vis_on, true, false ) . '> ' . esc_html__( 'Que CEADI pueda mirar las fotos que le manden y responder sobre ellas', 'cead-acad' ) . '</label>';
+		echo '<p class="description">' . esc_html__( 'Usa la misma API key y el mismo endpoint de la IA. El modelo tiene que aceptar imágenes (por ejemplo gpt-4o); si el de texto no las acepta, poné uno que sí abajo. Las fotos de más de 4 MB no se mandan.', 'cead-acad' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Adjuntar la foto a un comunicado o artículo sigue funcionando igual, esté esto encendido o apagado.', 'cead-acad' ) . '</p>';
+		echo '</td></tr>';
+		$this->field( 'vision_model', __( 'Modelo con visión', 'cead-acad' ), get_option( 'cead_acad_wa_vision_model', '' ), __( 'vacío = usar el mismo modelo de la IA', 'cead-acad' ) );
+		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Solo hace falta si el modelo de la IA no mira imágenes. Ej.: gpt-4o, gpt-4o-mini.', 'cead-acad' ) . '</p></td></tr>';
+
+		// --- Lectura de documentos (PDF, Word) ---
+		$docs_on  = (bool) get_option( 'cead_acad_wa_docs_enabled', 0 );
+		$docs_zip = class_exists( 'ZipArchive' );
+		echo '<tr><th scope="row" colspan="2"><hr><h2 style="margin:0">' . esc_html__( '📄 Documentos (lectura)', 'cead-acad' ) . '</h2></th></tr>';
+		echo '<tr><td colspan="2">';
+		if ( $docs_on ) {
+			echo '<div class="notice notice-success inline"><p>🟢 ' . esc_html__( 'Lectura de documentos activa: si mandan un PDF o un Word, CEADI lee el texto y responde sobre el contenido.', 'cead-acad' ) . '</p></div>';
+			if ( ! $docs_zip ) {
+				echo '<div class="notice notice-warning inline"><p>⚠️ ' . esc_html__( 'Falta la extensión ZipArchive de PHP: los PDF se leen igual, pero los .docx y .odt no. Pedile al hosting que active php-zip.', 'cead-acad' ) . '</p></div>';
+			}
+		} else {
+			echo '<div class="notice notice-info inline"><p>🔴 ' . esc_html__( 'Lectura de documentos desactivada: los PDF y Word que manden se ignoran.', 'cead-acad' ) . '</p></div>';
+		}
+		echo '</td></tr>';
+		echo '<tr><th scope="row">' . esc_html__( 'Activar', 'cead-acad' ) . '</th><td>';
+		echo '<label><input type="checkbox" name="docs_enabled" value="1" ' . checked( $docs_on, true, false ) . '> ' . esc_html__( 'Que CEADI lea los PDF y Word que le manden (circulares, resoluciones, notas)', 'cead-acad' ) . '</label>';
+		echo '<p class="description">' . esc_html__( 'El texto se extrae acá, en el servidor: no se manda el archivo a la IA ni queda guardado. No consume API key aparte.', 'cead-acad' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Formatos: PDF, .docx, .odt, .txt. Un PDF ESCANEADO (una foto adentro de un PDF) no tiene texto que leer: CEADI avisa y pide que manden la foto directo, que sí puede mirar si la lectura de imágenes está activa.', 'cead-acad' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Las planillas de notas (.xlsx) tienen su propio camino y no dependen de esta opción.', 'cead-acad' ) . '</p>';
+		echo '</td></tr>';
 
 		echo '<tr><th scope="row">' . esc_html__( 'Probar IA', 'cead-acad' ) . '</th><td>';
 		echo '<input type="text" name="ai_test_message" class="regular-text" placeholder="' . esc_attr__( '¿qué clases tengo hoy?', 'cead-acad' ) . '">';
