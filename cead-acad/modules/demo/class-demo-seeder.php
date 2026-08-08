@@ -47,13 +47,104 @@ class Cead_Acad_Demo_Seeder {
 		$out['encuestas']   = self::seed_survey( $people['alumnos'] );
 		$out['notas']       = self::seed_grades( $course_id, $people['alumnos'] );
 
+		self::enroll_current_user( $course_id );
+
+		return $out;
+	}
+
+	/**
+	 * Mete a quien está sembrando dentro del curso de demo.
+	 *
+	 * Sin esto, quien carga los datos entra a /panel con SU cuenta y ve las
+	 * tarjetas vacías —«Sin clases cargadas», sin boletín, sin tareas— porque
+	 * todo eso cuelga del roster y su usuario no está en ningún curso. Parece
+	 * que el seeder no hizo nada cuando en realidad cargó todo.
+	 *
+	 * A esta cuenta NO se le pone la marca de demo, a propósito: `purge()`
+	 * borra usuarios por esa marca, y marcar al administrador que está usando
+	 * el sistema significaría borrarle la cuenta al vaciar la demo. Se anota
+	 * aparte, en una option, para poder deshacer la inscripción sin tocar al
+	 * usuario.
+	 */
+	protected static function enroll_current_user( $course_id ) {
+		$uid = get_current_user_id();
+		if ( ! $uid || ! $course_id ) { return; }
+		if ( ! class_exists( 'Cead_Acad_Courses_Roster' ) ) { return; }
+
+		Cead_Acad_Courses_Roster::add( $uid, $course_id, 'student' );
+		update_user_meta( $uid, '_cead_acad_current_course_id', $course_id );
+		update_option( 'cead_acad_demo_enrolled', $uid, false );
+	}
+
+	/** Deshace la inscripción del punto anterior, sin borrar la cuenta. */
+	protected static function unenroll_current_user() {
+		$uid = (int) get_option( 'cead_acad_demo_enrolled', 0 );
+		if ( ! $uid ) { return; }
+		delete_user_meta( $uid, '_cead_acad_current_course_id' );
+		delete_option( 'cead_acad_demo_enrolled' );
+		// La fila del roster se va sola: su curso es un post de demo y se borra
+		// más abajo. Pero por si el curso ya no existiera, se limpia igual.
+		if ( class_exists( 'Cead_Acad_Courses_Roster' ) ) {
+			foreach ( Cead_Acad_Courses_Roster::courses_for_user( $uid ) as $cid ) {
+				if ( get_post_meta( $cid, self::FLAG, true ) ) {
+					Cead_Acad_Courses_Roster::remove( $uid, $cid );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Tipos que crea el seeder. Se listan explícitamente y NO se usa
+	 * `post_type => 'any'`: todos estos CPTs se registran con `public => false`,
+	 * y eso hace que WordPress les ponga `exclude_from_search = true` por
+	 * defecto — que es justo lo que `'any'` deja afuera. Con `'any'` las
+	 * consultas devolvían cero aunque los datos estuvieran creados, así que la
+	 * pantalla nunca mostraba el botón de borrar y el purgado no borraba nada.
+	 */
+	protected static function post_types() {
+		return [
+			'cead_acad_course',
+			'cead_acad_broadcast',
+			'cead_acad_event',
+			'cead_acad_task',
+			'cead_acad_resource',
+			'cead_acad_survey',
+		];
+	}
+
+	/**
+	 * Cuántos objetos de demo existen ahora mismo, por tipo. Se cuenta contra
+	 * la base, no contra lo que dijo el sembrado: es la única forma de que la
+	 * pantalla muestre lo que realmente hay y no lo que se esperaba que hubiera.
+	 */
+	public static function counts() {
+		$etiquetas = [
+			'cead_acad_course'    => __( 'Cursos', 'cead-acad' ),
+			'cead_acad_broadcast' => __( 'Comunicados', 'cead-acad' ),
+			'cead_acad_event'     => __( 'Eventos', 'cead-acad' ),
+			'cead_acad_task'      => __( 'Tareas', 'cead-acad' ),
+			'cead_acad_resource'  => __( 'Recursos', 'cead-acad' ),
+			'cead_acad_survey'    => __( 'Encuestas', 'cead-acad' ),
+		];
+		$out = [];
+		foreach ( $etiquetas as $tipo => $label ) {
+			$ids = get_posts( [
+				'post_type'   => $tipo,
+				'post_status' => 'any',
+				'numberposts' => -1,
+				'fields'      => 'ids',
+				'meta_key'    => self::FLAG,
+			] );
+			$out[ $label ] = count( $ids );
+		}
+		$out[ __( 'Usuarios', 'cead-acad' ) ] = count( get_users( [ 'meta_key' => self::FLAG, 'fields' => 'ID' ] ) );
 		return $out;
 	}
 
 	/** ¿Hay datos de demo cargados? */
 	public static function has_data() {
 		$posts = get_posts( [
-			'post_type'   => 'any',
+			'post_type'   => self::post_types(),
 			'post_status' => 'any',
 			'numberposts' => 1,
 			'fields'      => 'ids',
@@ -71,9 +162,13 @@ class Cead_Acad_Demo_Seeder {
 	public static function purge() {
 		global $wpdb;
 
+		// Primero se saca del curso a quien sembró, mientras el curso todavía
+		// existe y se lo puede identificar como de demo.
+		self::unenroll_current_user();
+
 		$user_ids = get_users( [ 'meta_key' => self::FLAG, 'fields' => 'ID' ] );
 		$post_ids = get_posts( [
-			'post_type'   => 'any',
+			'post_type'   => self::post_types(),
 			'post_status' => 'any',
 			'numberposts' => -1,
 			'fields'      => 'ids',
