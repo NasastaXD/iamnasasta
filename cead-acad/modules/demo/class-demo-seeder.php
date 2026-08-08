@@ -237,17 +237,17 @@ class Cead_Acad_Demo_Seeder {
 		];
 
 		/*
-		 * Lunes a viernes. La hora cátedra dura 40 minutos y una materia ocupa
-		 * normalmente DOS seguidas, así que cada bloque del horario va de 80
-		 * minutos y se muestra como una sola clase — que es como lo vive el
-		 * alumnado, no como seis casilleros sueltos.
+		 * Horario real del colegio. La hora cátedra dura 40 minutos y una materia
+		 * ocupa normalmente DOS seguidas, así que cada bloque va de 80 minutos y
+		 * se muestra como una sola clase — que es como lo vive el alumnado, no
+		 * como seis casilleros sueltos.
 		 *
-		 * 07:10 ─ 08:30  (2 horas cátedra)
-		 * 08:30 ─ 09:50  (2 horas cátedra)
-		 *   recreo
-		 * 10:10 ─ 11:30  (2 horas cátedra)
+		 * 07:00 ─ 08:20   (2 horas cátedra)
+		 *   receso 08:20 ─ 08:40
+		 * 08:40 ─ 10:00   (2 horas cátedra: 08:40, 09:20)
+		 * 10:00 ─ 11:20   (2 horas cátedra: 10:00, 10:40)
 		 */
-		$bloques = [ [ '07:10', '08:30' ], [ '08:30', '09:50' ], [ '10:10', '11:30' ] ];
+		$bloques = [ [ '07:00', '08:20' ], [ '08:40', '10:00' ], [ '10:00', '11:20' ] ];
 		$slots   = [];
 		$i       = 0;
 		for ( $dia = 1; $dia <= 5; $dia++ ) {
@@ -318,7 +318,7 @@ class Cead_Acad_Demo_Seeder {
 	protected static function seed_broadcasts( $alumnos ) {
 		$items = [
 			[ '¡LA WEB DEL CEAD YA ESTÁ ACÁ!', 'Ya está en línea la web del colegio, con el panel para el alumnado: horario, boletín, comunicados, calendario y carné digital, todo desde el celular. Entrá a cead.caaguazu.net e instalala como app en tu pantalla de inicio. La presentamos esta semana en el SUM.', 'eventos', 1 ],
-			[ 'Inicio de la Segunda Etapa', 'La Segunda Etapa arranca el lunes. Las clases mantienen el horario habitual de 7:10 a 11:30.', 'academico', 2 ],
+			[ 'Inicio de la Segunda Etapa', 'La Segunda Etapa arranca el lunes. Las clases mantienen el horario habitual de 7:00 a 11:20.', 'academico', 2 ],
 			[ 'Reunión de padres — 2.º A CB', 'Convocamos a madres, padres y encargados a la reunión del jueves a las 18:00 en el salón de actos. Se entregarán los informes del primer periodo.', 'administrativo', 5 ],
 			[ 'Inter CEAD 2026 — inscripciones abiertas', 'Ya se pueden anotar los equipos para el torneo interno. Fútbol, vóley y ajedrez. Hablen con su delegado/a de curso antes del viernes.', 'eventos', 9 ],
 			[ 'Cambio de aula: Ciencias Básicas pasa al laboratorio', 'A partir de esta semana, las clases de Ciencias Básicas se dictan en el laboratorio y no en el aula 12.', 'academico', 14 ],
