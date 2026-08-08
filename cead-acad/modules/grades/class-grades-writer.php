@@ -59,10 +59,17 @@ class Cead_Acad_Grades_Writer {
 		return ( $m > 0 && $m <= 999.99 ) ? $m : 5.0;
 	}
 
-	/** Nota mínima que se considera aprobada (default 2 en la escala de 5). */
+	/**
+	 * Nota mínima que se considera aprobada. Default 3: en Paraguay la
+	 * educación básica aprueba con 60 % (nota 2), pero educación media —el
+	 * nivel del CEAD, un bachillerato— exige 70 % (nota 3). El mapeo de
+	 * porcentaje a nota es el mismo en todo el país (ver `scale_bands()`); lo
+	 * que cambia por nivel es cuál de esas notas alcanza para aprobar, y por
+	 * eso es un valor aparte y configurable.
+	 */
 	public static function score_pass() {
-		$p = (float) get_option( 'cead_acad_grades_score_pass', 2 );
-		return ( $p > 0 && $p <= self::score_max() ) ? $p : 2.0;
+		$p = (float) get_option( 'cead_acad_grades_score_pass', 3 );
+		return ( $p > 0 && $p <= self::score_max() ) ? $p : 3.0;
 	}
 
 	/**

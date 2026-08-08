@@ -91,10 +91,14 @@ class GradesWriterTest extends TestCase {
 		$this->assertSame( '2', $v['period'] );
 	}
 
-	/** En Paraguay la educación media califica del 1 al 5. */
+	/**
+	 * En Paraguay la educación media califica del 1 al 5 y aprueba con 70 %
+	 * (nota 3) — a diferencia de la educación básica, que aprueba con 60 %
+	 * (nota 2). El CEAD es bachillerato, así que corresponde el umbral de media.
+	 */
 	public function test_la_escala_por_defecto_es_la_paraguaya() {
 		$this->assertSame( 5.0, Cead_Acad_Grades_Writer::score_max() );
-		$this->assertSame( 2.0, Cead_Acad_Grades_Writer::score_pass() );
+		$this->assertSame( 3.0, Cead_Acad_Grades_Writer::score_pass() );
 	}
 
 	/**
