@@ -18,11 +18,36 @@ class Cead_Acad_Grades_Writer {
 
 	/* ---------------------------------------------------------- configuración */
 
-	/** Periodos aceptados por la institución. */
+	/**
+	 * Periodos aceptados por la institución. El CEAD no usa periodos numerados
+	 * sino ETAPAS: Primera y Segunda, más la nota final. Sigue siendo
+	 * configurable para instituciones que dividan el año de otra forma.
+	 */
 	public static function periods() {
 		$p = get_option( 'cead_acad_grades_periods', '' );
 		if ( is_array( $p ) && $p ) { return array_map( 'strval', $p ); }
-		return [ '1', '2', '3', '4', 'Final' ];
+		return [ 'Primera Etapa', 'Segunda Etapa', 'Final' ];
+	}
+
+	/**
+	 * Nombre de cada nota de la escala. Son los del sistema paraguayo: una nota
+	 * suelta dice poco, y «3» al lado de «Bueno» se entiende sin explicación.
+	 */
+	public static function score_labels() {
+		return [
+			5 => __( 'Sobresaliente', 'cead-acad' ),
+			4 => __( 'Distinguido', 'cead-acad' ),
+			3 => __( 'Bueno', 'cead-acad' ),
+			2 => __( 'Regular', 'cead-acad' ),
+			1 => __( 'Insuficiente', 'cead-acad' ),
+		];
+	}
+
+	/** Etiqueta de una nota, o '' si no cae en la escala. */
+	public static function score_label( $score ) {
+		$labels = self::score_labels();
+		$n      = (int) round( (float) $score );
+		return $labels[ $n ] ?? '';
 	}
 
 	/**

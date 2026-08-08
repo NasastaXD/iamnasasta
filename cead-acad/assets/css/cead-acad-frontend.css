@@ -507,7 +507,12 @@ body.cead-acad-panel {
 	align-items: center;
 	justify-content: space-between;
 	gap: 1rem;
-	padding: 1.25rem 2rem;
+	/* El padding superior suma el área segura: con la app instalada en un
+	   iPhone con muesca, sin esto la barra queda debajo del reloj. En cualquier
+	   otro lado env() vale 0 y el padding es el de siempre. */
+	padding: calc(1.25rem + env(safe-area-inset-top)) 2rem 1.25rem;
+	padding-left: max(2rem, env(safe-area-inset-left));
+	padding-right: max(2rem, env(safe-area-inset-right));
 	background: #fff;
 	border-bottom: 1px solid var(--cead-acad-border);
 }
@@ -734,18 +739,35 @@ body.cead-acad-panel {
 	flex-direction: column;
 	gap: 1.5rem;
 }
+/* En celular el día va arriba, en una fila propia: la columna fija de 100px
+   más su gap se comían 124px de un ancho de 390, y al nombre de la materia le
+   quedaban ~108px — «Comunicación y Lengua Castellana» se partía en tres
+   líneas. Desde 640px vuelve el diseño de dos columnas. */
 .cead-acad-agenda-day {
 	display: grid;
-	grid-template-columns: 100px 1fr;
-	gap: 1.5rem;
+	grid-template-columns: 1fr;
+	gap: 0.75rem;
 	border-top: 1px solid var(--cead-acad-border);
 	padding-top: 1.5rem;
 }
 .cead-acad-agenda-daykey {
 	display: flex;
-	flex-direction: column;
-	gap: 0.1rem;
-	text-align: center;
+	flex-direction: row;
+	align-items: baseline;
+	gap: 0.5rem;
+	text-align: left;
+}
+@media (min-width: 640px) {
+	.cead-acad-agenda-day {
+		grid-template-columns: 100px 1fr;
+		gap: 1.5rem;
+	}
+	.cead-acad-agenda-daykey {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.1rem;
+		text-align: center;
+	}
 }
 .cead-acad-agenda-num {
 	font-family: var(--cead-acad-font-display);
@@ -774,15 +796,24 @@ body.cead-acad-panel {
 }
 .cead-acad-agenda-item {
 	display: grid;
-	grid-template-columns: 110px 1fr;
-	gap: 1rem;
-	padding: 1rem 1.25rem;
+	grid-template-columns: 1fr;
+	gap: 0.35rem;
+	padding: 0.9rem 1rem;
 	background: #fff;
 	border: 1px solid var(--cead-acad-border);
 	border-left: 4px solid var(--cead-acad-brand);
 	text-decoration: none;
 	color: inherit;
 	transition: background .2s ease;
+}
+/* Ídem: la columna fija de la hora dejaba el título en un canal angosto. En
+   celular la hora va arriba, en una línea, y el título usa todo el ancho. */
+@media (min-width: 640px) {
+	.cead-acad-agenda-item {
+		grid-template-columns: 110px 1fr;
+		gap: 1rem;
+		padding: 1rem 1.25rem;
+	}
 }
 .cead-acad-agenda-item:hover { background: var(--cead-acad-canvas); }
 .cead-acad-agenda-item--clase   { border-left-color: var(--cead-acad-acc-blue); }

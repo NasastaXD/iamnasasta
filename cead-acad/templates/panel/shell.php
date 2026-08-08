@@ -11,7 +11,12 @@ $page_title = $page_title ?? __( 'Panel', 'cead-acad' );
 <html <?php language_attributes(); ?>>
 <head>
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<?php /* viewport-fit=cover deja que el contenido use el ancho completo en
+	         pantallas con muesca; el CSS después respeta el área segura con
+	         env(safe-area-inset-*) para que nada quede bajo el reloj ni bajo la
+	         barra de gestos. Sin esto, en iPhone el encabezado se metía debajo
+	         de la hora al hacer scroll. */ ?>
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 	<title><?php echo esc_html( $page_title ); ?> · <?php bloginfo( 'name' ); ?></title>
 	<script>try{if(localStorage.getItem('cead_theme')==='dark'){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}</script>
 	<script>try{if(sessionStorage.getItem('cead_splash')){document.documentElement.classList.add('cead-splash-done');}else{sessionStorage.setItem('cead_splash','1');}}catch(e){document.documentElement.classList.add('cead-splash-done');}</script>

@@ -19,6 +19,17 @@ class GradesWriterTest extends TestCase {
 		];
 	}
 
+	/**
+	 * Los periodos se fijan acá en vez de heredar el default del plugin: lo que
+	 * se prueba es que el validador respete lo CONFIGURADO, no cómo divide el
+	 * año una institución en particular. Antes estos tests se rompían solos al
+	 * cambiar el default de periodos numerados a etapas.
+	 */
+	protected function setUp(): void {
+		cead_test_reset_options();
+		cead_test_set_option( 'cead_acad_grades_periods', [ '1', '2', '3', '4', 'Final' ] );
+	}
+
 	/** Nota 4 sobre la escala paraguaya de 1 a 5. */
 	private function base() {
 		return [
