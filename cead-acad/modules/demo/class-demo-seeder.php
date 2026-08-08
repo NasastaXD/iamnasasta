@@ -127,14 +127,14 @@ class Cead_Acad_Demo_Seeder {
 	protected static function seed_course() {
 		$id = self::insert( [
 			'post_type'    => 'cead_acad_course',
-			'post_title'   => '3.º Curso — Bachillerato Técnico en Informática',
+			'post_title'   => '2.º A — Ciclo Básico',
 			'post_content' => 'Turno mañana. Sala 12, pabellón nuevo.',
 			'post_status'  => 'publish',
 		] );
 
 		$materias = [
-			'Programación', 'Base de Datos', 'Matemática', 'Lengua Castellana',
-			'Historia y Geografía', 'Redes', 'Física', 'Guaraní',
+			'Matemática', 'Comunicación y Lengua Castellana', 'Guaraní Ñe\'ẽ', 'Ciencias Básicas',
+			'Ciencias Sociales', 'Formación Ética y Ciudadana', 'Educación Física', 'Artes',
 		];
 		$docentes = [
 			'Prof. Rodríguez', 'Prof. Benítez', 'Prof. Cáceres', 'Prof. Villalba',
@@ -213,9 +213,9 @@ class Cead_Acad_Demo_Seeder {
 	protected static function seed_broadcasts( $alumnos ) {
 		$items = [
 			[ 'Inicio del segundo periodo', 'El segundo periodo arranca el lunes. Las clases mantienen el horario habitual de 7:10 a 11:00. Recuerden traer el material de Programación.', 'academico', 2 ],
-			[ 'Reunión de padres — 3.º BTI', 'Convocamos a madres, padres y encargados a la reunión del jueves a las 18:00 en el salón de actos. Se entregarán los informes del primer periodo.', 'administrativo', 5 ],
+			[ 'Reunión de padres — 2.º A CB', 'Convocamos a madres, padres y encargados a la reunión del jueves a las 18:00 en el salón de actos. Se entregarán los informes del primer periodo.', 'administrativo', 5 ],
 			[ 'Inter CEAD 2026 — inscripciones abiertas', 'Ya se pueden anotar los equipos para el torneo interno. Fútbol, vóley y ajedrez. Hablen con su delegado/a de curso antes del viernes.', 'eventos', 9 ],
-			[ 'Cambio de aula: Redes pasa al laboratorio', 'A partir de esta semana, las clases de Redes se dictan en el laboratorio de informática y no en el aula 12.', 'academico', 14 ],
+			[ 'Cambio de aula: Ciencias Básicas pasa al laboratorio', 'A partir de esta semana, las clases de Ciencias Básicas se dictan en el laboratorio y no en el aula 12.', 'academico', 14 ],
 			[ 'Suspensión de clases por asamblea docente', 'El viernes no habrá actividad académica por asamblea. Las clases se retoman el lunes con normalidad.', 'urgente', 20 ],
 		];
 
@@ -300,11 +300,11 @@ class Cead_Acad_Demo_Seeder {
 
 	protected static function seed_resources() {
 		$items = [
-			[ 'Guía de ejercicios — Programación unidad 3', 'Programación', 'Ejercicios resueltos de estructuras de control y funciones.' ],
-			[ 'Modelo de examen — Base de Datos', 'Base de Datos', 'Examen del periodo anterior, para practicar.' ],
+			[ 'Guía de ejercicios — Matemática unidad 3', 'Matemática', 'Ejercicios resueltos de ecuaciones y sistemas.' ],
+			[ 'Modelo de examen — Comunicación', 'Comunicación y Lengua Castellana', 'Examen del periodo anterior, para practicar.' ],
 			[ 'Reglamento interno del CEAD', 'Institucional', 'Normas de convivencia, asistencia y evaluación.' ],
 			[ 'Calendario académico 2026', 'Institucional', 'Fechas de periodos, exámenes y recesos.' ],
-			[ 'Apunte de Redes — direccionamiento IP', 'Redes', 'Teoría y ejercicios de subneteo.' ],
+			[ 'Apunte de Ciencias Básicas — el ciclo del agua', 'Ciencias Básicas', 'Teoría y esquema para el cuaderno.' ],
 		];
 		$n = 0;
 		foreach ( $items as $it ) {
@@ -340,7 +340,7 @@ class Cead_Acad_Demo_Seeder {
 		$tq = cead_acad_table( 'survey_questions' );
 		$preguntas = [
 			[ 'single', '¿Cómo sentís el ritmo de las clases?', '{"options":["Muy lento","Bien","Muy rápido"]}' ],
-			[ 'single', '¿Qué materia te está costando más?', '{"options":["Programación","Base de Datos","Matemática","Física"]}' ],
+			[ 'single', '¿Qué materia te está costando más?', '{"options":["Matemática","Comunicación","Ciencias Básicas","Ciencias Sociales"]}' ],
 			[ 'text', '¿Algo que quieras contarle a dirección?', null ],
 		];
 		$qids = [];
@@ -361,7 +361,7 @@ class Cead_Acad_Demo_Seeder {
 		$tr  = cead_acad_table( 'survey_responses' );
 		$ta  = cead_acad_table( 'survey_answers' );
 		$r1  = [ 'Bien', 'Bien', 'Muy rápido', 'Bien', 'Muy rápido', 'Muy lento' ];
-		$r2  = [ 'Programación', 'Matemática', 'Programación', 'Física', 'Base de Datos', 'Matemática' ];
+		$r2  = [ 'Matemática', 'Ciencias Sociales', 'Matemática', 'Ciencias Básicas', 'Comunicación', 'Matemática' ];
 		$r3  = [
 			'Estaría bueno tener más ejercicios resueltos.',
 			'Todo bien por ahora.',
@@ -392,7 +392,7 @@ class Cead_Acad_Demo_Seeder {
 		global $wpdb;
 		$tabla = cead_acad_table( 'grades' );
 
-		$materias = [ 'Programación', 'Base de Datos', 'Matemática', 'Lengua Castellana', 'Redes' ];
+		$materias = [ 'Matemática', 'Comunicación y Lengua Castellana', 'Ciencias Básicas', 'Ciencias Sociales', 'Guaraní Ñe\'ẽ' ];
 		$terms    = [];
 		foreach ( $materias as $m ) {
 			$t = get_term_by( 'name', $m, 'cead_acad_subject' );
