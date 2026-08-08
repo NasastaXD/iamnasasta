@@ -19,6 +19,17 @@ class GradesWriterTest extends TestCase {
 		];
 	}
 
+	/**
+	 * Los periodos se fijan acá en vez de heredar el default del plugin: lo que
+	 * se prueba es que el validador respete lo CONFIGURADO, no cómo divide el
+	 * año una institución en particular. Antes estos tests se rompían solos al
+	 * cambiar el default de periodos numerados a etapas.
+	 */
+	protected function setUp(): void {
+		cead_test_reset_options();
+		cead_test_set_option( 'cead_acad_grades_periods', [ '1', '2', '3', '4', 'Final' ] );
+	}
+
 	/** Nota 4 sobre la escala paraguaya de 1 a 5. */
 	private function base() {
 		return [
@@ -80,7 +91,11 @@ class GradesWriterTest extends TestCase {
 		$this->assertSame( '2', $v['period'] );
 	}
 
-	/** En Paraguay la educación media califica del 1 al 5. */
+	/**
+	 * Escala real del CEAD, del 1 al 5. El 70 % —piso de aprobación de
+	 * educación media en Paraguay— cae directo en nota 2, así que esa es la
+	 * nota mínima para aprobar: no hace falta un umbral aparte más alto.
+	 */
 	public function test_la_escala_por_defecto_es_la_paraguaya() {
 		$this->assertSame( 5.0, Cead_Acad_Grades_Writer::score_max() );
 		$this->assertSame( 2.0, Cead_Acad_Grades_Writer::score_pass() );
@@ -95,8 +110,15 @@ class GradesWriterTest extends TestCase {
 		$this->assertTrue( is_wp_error( Cead_Acad_Grades_Writer::validate( array_merge( $this->base(), [ 'score' => 6 ] ) ) ) );
 	}
 
+	/** Escala real del CEAD: 70→2, 78→3, 84→4, 94→5 (no bandas parejas de 10). */
 	public function test_convierte_porcentaje_a_nota() {
-		$casos = [ 100 => 5.0, 95 => 5.0, 90 => 5.0, 89 => 4.0, 80 => 4.0, 75 => 3.0, 70 => 3.0, 65 => 2.0, 60 => 2.0, 59 => 1.0, 0 => 1.0 ];
+		$casos = [
+			100 => 5.0, 96 => 5.0, 94 => 5.0,
+			93 => 4.0, 90 => 4.0, 84 => 4.0,
+			83 => 3.0, 80 => 3.0, 78 => 3.0,
+			77 => 2.0, 72 => 2.0, 70 => 2.0,
+			69 => 1.0, 0 => 1.0,
+		];
 		foreach ( $casos as $pct => $esperado ) {
 			$this->assertSame( $esperado, Cead_Acad_Grades_Writer::percent_to_score( $pct ), "falló con {$pct}%" );
 		}
@@ -121,9 +143,10 @@ class GradesWriterTest extends TestCase {
 		$this->assertNull( Cead_Acad_Grades_Writer::points_to_percent( 45, 0 ) );
 	}
 
-	/** El circuito completo: «45 de 60» tiene que terminar en un 3. */
+	/** El circuito completo: «39 de 50» (78 %) tiene que terminar en un 3. */
 	public function test_de_puntaje_a_nota_de_punta_a_punta() {
-		$pct = Cead_Acad_Grades_Writer::points_to_percent( 45, 60 );
+		$pct = Cead_Acad_Grades_Writer::points_to_percent( 39, 50 );
+		$this->assertSame( 78.0, $pct );
 		$this->assertSame( 3.0, Cead_Acad_Grades_Writer::percent_to_score( $pct ) );
 	}
 

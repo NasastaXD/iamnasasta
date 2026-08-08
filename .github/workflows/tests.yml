@@ -23,6 +23,12 @@ jobs:
             | xargs -0 -n1 -P4 php -l > /dev/null
           echo "Lint OK"
 
+      # Fallos silenciosos: un class_exists() sobre un nombre mal escrito no
+      # rompe nada, solo saltea el bloque — y la función queda «hecha» pero sin
+      # efecto. Ya nos pasó con Cead_Acad_Broadcasts_Audiences.
+      - name: Coherencia de símbolos y versión
+        run: php bin/check-symbols.php
+
   phpunit:
     name: PHPUnit (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest

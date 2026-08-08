@@ -18,11 +18,36 @@ class Cead_Acad_Grades_Writer {
 
 	/* ---------------------------------------------------------- configuración */
 
-	/** Periodos aceptados por la institución. */
+	/**
+	 * Periodos aceptados por la institución. El CEAD no usa periodos numerados
+	 * sino ETAPAS: Primera y Segunda, más la nota final. Sigue siendo
+	 * configurable para instituciones que dividan el año de otra forma.
+	 */
 	public static function periods() {
 		$p = get_option( 'cead_acad_grades_periods', '' );
 		if ( is_array( $p ) && $p ) { return array_map( 'strval', $p ); }
-		return [ '1', '2', '3', '4', 'Final' ];
+		return [ 'Primera Etapa', 'Segunda Etapa', 'Final' ];
+	}
+
+	/**
+	 * Nombre de cada nota de la escala. Son los del sistema paraguayo: una nota
+	 * suelta dice poco, y «3» al lado de «Bueno» se entiende sin explicación.
+	 */
+	public static function score_labels() {
+		return [
+			5 => __( 'Sobresaliente', 'cead-acad' ),
+			4 => __( 'Distinguido', 'cead-acad' ),
+			3 => __( 'Bueno', 'cead-acad' ),
+			2 => __( 'Regular', 'cead-acad' ),
+			1 => __( 'Insuficiente', 'cead-acad' ),
+		];
+	}
+
+	/** Etiqueta de una nota, o '' si no cae en la escala. */
+	public static function score_label( $score ) {
+		$labels = self::score_labels();
+		$n      = (int) round( (float) $score );
+		return $labels[ $n ] ?? '';
 	}
 
 	/**
@@ -34,7 +59,13 @@ class Cead_Acad_Grades_Writer {
 		return ( $m > 0 && $m <= 999.99 ) ? $m : 5.0;
 	}
 
-	/** Nota mínima que se considera aprobada (default 2 en la escala de 5). */
+	/**
+	 * Nota mínima que se considera aprobada. Default 2: en la escala real del
+	 * CEAD (ver `scale_bands()`), 70 % de logro —el piso de aprobación de
+	 * educación media en Paraguay— cae directo en la nota 2. No hace falta
+	 * pedir una nota más alta: el propio corte de la banda ya está puesto en
+	 * el umbral de aprobar.
+	 */
 	public static function score_pass() {
 		$p = (float) get_option( 'cead_acad_grades_score_pass', 2 );
 		return ( $p > 0 && $p <= self::score_max() ) ? $p : 2.0;
@@ -42,8 +73,10 @@ class Cead_Acad_Grades_Writer {
 
 	/**
 	 * Bandas de porcentaje de logro → nota, de mayor a menor.
-	 * El default sigue la práctica habitual en Paraguay (60 % para aprobar);
-	 * cada institución puede ajustarlo con la opción `cead_acad_grades_scale_bands`.
+	 * El default es la escala real del CEAD, pasada por la institución: 70 %
+	 * es el piso de educación media en Paraguay y acá cae directo en nota 2
+	 * (no bandas de 10 puntos parejas como en educación básica). Cada
+	 * institución puede ajustarlo con la opción `cead_acad_grades_scale_bands`.
 	 *
 	 * @return array<int,array{0:float,1:float}> [ [mínimo %, nota], ... ]
 	 */
@@ -60,7 +93,7 @@ class Cead_Acad_Grades_Writer {
 				return $bands;
 			}
 		}
-		return [ [ 90.0, 5.0 ], [ 80.0, 4.0 ], [ 70.0, 3.0 ], [ 60.0, 2.0 ], [ 0.0, 1.0 ] ];
+		return [ [ 94.0, 5.0 ], [ 84.0, 4.0 ], [ 78.0, 3.0 ], [ 70.0, 2.0 ], [ 0.0, 1.0 ] ];
 	}
 
 	/** Porcentaje de logro → nota de la escala. null si el dato no sirve. */

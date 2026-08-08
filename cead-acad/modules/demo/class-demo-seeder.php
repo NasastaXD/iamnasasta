@@ -236,12 +236,22 @@ class Cead_Acad_Demo_Seeder {
 			'Prof. Duarte', 'Prof. Ojeda', 'Prof. Martínez', 'Prof. Giménez',
 		];
 
-		// Lunes a viernes, cuatro horas cátedra por día desde las 7:10.
-		$horas = [ [ '07:10', '08:00' ], [ '08:05', '08:55' ], [ '09:15', '10:05' ], [ '10:10', '11:00' ] ];
-		$slots = [];
-		$i = 0;
+		/*
+		 * Horario real del colegio. La hora cátedra dura 40 minutos y una materia
+		 * ocupa normalmente DOS seguidas, así que cada bloque va de 80 minutos y
+		 * se muestra como una sola clase — que es como lo vive el alumnado, no
+		 * como seis casilleros sueltos.
+		 *
+		 * 07:00 ─ 08:20   (2 horas cátedra)
+		 *   receso 08:20 ─ 08:40
+		 * 08:40 ─ 10:00   (2 horas cátedra: 08:40, 09:20)
+		 * 10:00 ─ 11:20   (2 horas cátedra: 10:00, 10:40)
+		 */
+		$bloques = [ [ '07:00', '08:20' ], [ '08:40', '10:00' ], [ '10:00', '11:20' ] ];
+		$slots   = [];
+		$i       = 0;
 		for ( $dia = 1; $dia <= 5; $dia++ ) {
-			foreach ( $horas as $h ) {
+			foreach ( $bloques as $h ) {
 				$slots[] = [
 					'dia'     => $dia,
 					'inicio'  => $h[0],
@@ -307,7 +317,8 @@ class Cead_Acad_Demo_Seeder {
 	/** Comunicados: algunos leídos y otros no, para que se vea el badge. */
 	protected static function seed_broadcasts( $alumnos ) {
 		$items = [
-			[ 'Inicio del segundo periodo', 'El segundo periodo arranca el lunes. Las clases mantienen el horario habitual de 7:10 a 11:00. Recuerden traer el material de Programación.', 'academico', 2 ],
+			[ '¡LA WEB DEL CEAD YA ESTÁ ACÁ!', 'Ya está en línea la web del colegio, con el panel para el alumnado: horario, boletín, comunicados, calendario y carné digital, todo desde el celular. Entrá a cead.caaguazu.net e instalala como app en tu pantalla de inicio. La presentamos esta semana en el SUM.', 'eventos', 1 ],
+			[ 'Inicio de la Segunda Etapa', 'La Segunda Etapa arranca el lunes. Las clases mantienen el horario habitual de 7:00 a 11:20.', 'academico', 2 ],
 			[ 'Reunión de padres — 2.º A CB', 'Convocamos a madres, padres y encargados a la reunión del jueves a las 18:00 en el salón de actos. Se entregarán los informes del primer periodo.', 'administrativo', 5 ],
 			[ 'Inter CEAD 2026 — inscripciones abiertas', 'Ya se pueden anotar los equipos para el torneo interno. Fútbol, vóley y ajedrez. Hablen con su delegado/a de curso antes del viernes.', 'eventos', 9 ],
 			[ 'Cambio de aula: Ciencias Básicas pasa al laboratorio', 'A partir de esta semana, las clases de Ciencias Básicas se dictan en el laboratorio y no en el aula 12.', 'academico', 14 ],
@@ -326,9 +337,11 @@ class Cead_Acad_Demo_Seeder {
 			] );
 			wp_set_object_terms( $id, $it[2], 'cead_acad_broadcast_category' );
 
-			if ( class_exists( 'Cead_Acad_Broadcasts_Audiences' ) ) {
-				Cead_Acad_Broadcasts_Audiences::set( 'broadcast', $id, [ [ 'type' => 'all', 'value' => '' ] ] );
-			}
+			// Sin audiencia el comunicado no le llega a nadie: el feed del panel
+			// arranca por Audiences y devuelve vacío. Se llama sin envolver en
+			// class_exists a propósito — la primera versión tenía mal el nombre
+			// de la clase y el guard convirtió el error en silencio.
+			Cead_Acad_Audiences::set( 'broadcast', $id, [ [ 'type' => 'all', 'value' => '' ] ] );
 
 			// Los dos más nuevos quedan sin leer para todos: así el panel muestra
 			// «2 sin leer» y las tarjetas con el pill de «Nuevo».
@@ -343,12 +356,12 @@ class Cead_Acad_Demo_Seeder {
 	/** Eventos próximos, que es lo que llena el calendario y la home. */
 	protected static function seed_events() {
 		$items = [
-			[ 'Entrega de informes del primer periodo', 2, '18:00', 'Salón de actos' ],
-			[ 'Examen de Programación — unidad 3', 4, '07:10', 'Aula 12' ],
-			[ 'Inter CEAD 2026 — fecha 1', 7, '08:00', 'Cancha del colegio' ],
-			[ 'Charla: universidades y becas', 12, '10:00', 'Salón de actos' ],
-			[ 'Feria de ciencias — montaje', 18, '14:00', 'Patio central' ],
-			[ 'Feria de ciencias — apertura', 19, '09:00', 'Patio central' ],
+			[ 'Formación', 1, '07:00', 'Patio central' ],
+			[ 'Reunión de delegados', 3, '10:10', 'Sala de reuniones' ],
+			[ 'Presentación de la web del CEAD', 5, '10:00', 'SUM' ],
+			[ 'InterCEAD Fixture 2026', 7, '08:00', 'Cancha del colegio' ],
+			[ 'Exposición en el SUM', 12, '09:00', 'SUM' ],
+			[ 'Entrega de informes — Primera Etapa', 15, '18:00', 'Salón de actos' ],
 		];
 		$n = 0;
 		foreach ( $items as $it ) {
@@ -432,6 +445,11 @@ class Cead_Acad_Demo_Seeder {
 		update_post_meta( $id, '_cead_acad_survey_closes_at', gmdate( 'Y-m-d H:i:s', strtotime( '+8 days' ) ) );
 		update_post_meta( $id, '_cead_acad_survey_anonymous', 0 );
 
+		// Sin audiencia la encuesta no le corresponde a nadie: la vista del panel
+		// arranca por Audiences::subjects_for_user() y devuelve vacío, así que la
+		// encuesta existía pero no se veía en ningún lado.
+		Cead_Acad_Audiences::set( 'survey', $id, [ [ 'type' => 'all', 'value' => '' ] ] );
+
 		$tq = cead_acad_table( 'survey_questions' );
 		$preguntas = [
 			[ 'single', '¿Cómo sentís el ritmo de las clases?', '{"options":["Muy lento","Bien","Muy rápido"]}' ],
@@ -503,10 +521,12 @@ class Cead_Acad_Demo_Seeder {
 		$n = 0;
 		foreach ( $alumnos as $i => $uid ) {
 			foreach ( $terms as $tid ) {
-				foreach ( [ '1', '2' ] as $periodo ) {
+				// El colegio divide el año en etapas, no en periodos numerados.
+				foreach ( [ 'Primera Etapa', 'Segunda Etapa' ] as $e => $periodo ) {
 					// Notas variadas pero mayormente aprobadas: un boletín real,
-					// no todo cinco ni todo aplazo.
-					$score = [ 5, 4, 4, 3, 5, 4, 3, 4 ][ ( $i + $tid + (int) $periodo ) % 8 ];
+					// no todo cinco ni todo aplazo. Enteras del 1 al 5, sin
+					// decimales, que es como califica el sistema paraguayo.
+					$score = [ 5, 4, 4, 3, 5, 4, 3, 4 ][ ( $i + $tid + $e ) % 8 ];
 					$wpdb->replace( $tabla, [
 						'student_user_id' => $uid,
 						'course_id'       => $course_id,
