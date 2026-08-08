@@ -28,6 +28,17 @@ final class Cead_Acad_Plugin {
 		// queda en Gutenberg porque es contenido rico.
 		add_filter( 'use_block_editor_for_post_type', [ $this, 'disable_block_editor_for_admin_cpts' ], 10, 2 );
 
+		// La barra de WordPress no va en el frontend: pisa el diseño del panel y
+		// del sitio, y al alumnado no le sirve de nada. Quien administra sigue
+		// entrando a /wp-admin normalmente.
+		add_filter( 'show_admin_bar', '__return_false' );
+
+		// Duración de la sesión con «recordarme». El default de WordPress son 14
+		// días, corto para un panel que el alumnado abre desde el celular todos
+		// los días: los obliga a re-loguearse cada dos semanas. 90 días es un
+		// plazo razonable para un panel escolar, y sigue venciendo.
+		add_filter( 'auth_cookie_expiration', [ $this, 'auth_cookie_expiration' ], 10, 3 );
+
 		// Seeding de términos: una vez por versión, después de registrar taxonomías
 		// (init prioridad 20). Guard por opción autoloaded = check barato por request.
 		add_action( 'init', [ $this, 'maybe_seed_terms' ], 20 );
@@ -92,6 +103,24 @@ final class Cead_Acad_Plugin {
 			update_option( 'cead_acad_flush_rewrites', 1 );
 			update_option( 'cead_acad_rewrites_version', CEAD_ACAD_VERSION );
 		}
+	}
+
+	/**
+	 * Cuánto dura la sesión. Solo se estira cuando la persona marcó
+	 * «recordarme»: sin eso se respeta el default corto de WordPress, que es lo
+	 * correcto en una computadora compartida —el laboratorio del colegio, por
+	 * ejemplo— donde nadie quiere dejar la sesión abierta.
+	 *
+	 * Nota: en iPhone la app instalada guarda sus cookies aparte de Safari, así
+	 * que iniciar sesión en el navegador no deja iniciada la de la app. Eso es
+	 * del sistema operativo y no se arregla desde acá.
+	 *
+	 * @param int  $length   Duración en segundos que propone WordPress.
+	 * @param int  $user_id  Usuario.
+	 * @param bool $remember Si marcó «recordarme».
+	 */
+	public function auth_cookie_expiration( $length, $user_id, $remember ) {
+		return $remember ? 90 * DAY_IN_SECONDS : $length;
 	}
 
 	/**
