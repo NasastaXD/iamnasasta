@@ -60,22 +60,23 @@ class Cead_Acad_Grades_Writer {
 	}
 
 	/**
-	 * Nota mínima que se considera aprobada. Default 3: en Paraguay la
-	 * educación básica aprueba con 60 % (nota 2), pero educación media —el
-	 * nivel del CEAD, un bachillerato— exige 70 % (nota 3). El mapeo de
-	 * porcentaje a nota es el mismo en todo el país (ver `scale_bands()`); lo
-	 * que cambia por nivel es cuál de esas notas alcanza para aprobar, y por
-	 * eso es un valor aparte y configurable.
+	 * Nota mínima que se considera aprobada. Default 2: en la escala real del
+	 * CEAD (ver `scale_bands()`), 70 % de logro —el piso de aprobación de
+	 * educación media en Paraguay— cae directo en la nota 2. No hace falta
+	 * pedir una nota más alta: el propio corte de la banda ya está puesto en
+	 * el umbral de aprobar.
 	 */
 	public static function score_pass() {
-		$p = (float) get_option( 'cead_acad_grades_score_pass', 3 );
-		return ( $p > 0 && $p <= self::score_max() ) ? $p : 3.0;
+		$p = (float) get_option( 'cead_acad_grades_score_pass', 2 );
+		return ( $p > 0 && $p <= self::score_max() ) ? $p : 2.0;
 	}
 
 	/**
 	 * Bandas de porcentaje de logro → nota, de mayor a menor.
-	 * El default sigue la práctica habitual en Paraguay (60 % para aprobar);
-	 * cada institución puede ajustarlo con la opción `cead_acad_grades_scale_bands`.
+	 * El default es la escala real del CEAD, pasada por la institución: 70 %
+	 * es el piso de educación media en Paraguay y acá cae directo en nota 2
+	 * (no bandas de 10 puntos parejas como en educación básica). Cada
+	 * institución puede ajustarlo con la opción `cead_acad_grades_scale_bands`.
 	 *
 	 * @return array<int,array{0:float,1:float}> [ [mínimo %, nota], ... ]
 	 */
@@ -92,7 +93,7 @@ class Cead_Acad_Grades_Writer {
 				return $bands;
 			}
 		}
-		return [ [ 90.0, 5.0 ], [ 80.0, 4.0 ], [ 70.0, 3.0 ], [ 60.0, 2.0 ], [ 0.0, 1.0 ] ];
+		return [ [ 94.0, 5.0 ], [ 84.0, 4.0 ], [ 78.0, 3.0 ], [ 70.0, 2.0 ], [ 0.0, 1.0 ] ];
 	}
 
 	/** Porcentaje de logro → nota de la escala. null si el dato no sirve. */

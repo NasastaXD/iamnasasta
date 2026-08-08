@@ -31,11 +31,12 @@ class GradesSheetTest extends TestCase {
 		$this->assertNull( Cead_Acad_Grades_Sheet::value_to_score( '-1' ) );
 	}
 
+	/** Escala real del CEAD: 70→2, 78→3, 84→4, 94→5. */
 	public function test_celda_con_puntaje_o_porcentaje() {
-		$this->assertSame( 3.0, Cead_Acad_Grades_Sheet::value_to_score( '45/60' ) );
-		$this->assertSame( 3.0, Cead_Acad_Grades_Sheet::value_to_score( '75%' ) );
-		$this->assertSame( 5.0, Cead_Acad_Grades_Sheet::value_to_score( '90', 'porcentaje' ) );
-		$this->assertSame( 3.0, Cead_Acad_Grades_Sheet::value_to_score( '45', 'puntaje', 60 ) );
+		$this->assertSame( 2.0, Cead_Acad_Grades_Sheet::value_to_score( '45/60' ) ); // 75 % → 2
+		$this->assertSame( 2.0, Cead_Acad_Grades_Sheet::value_to_score( '75%' ) );
+		$this->assertSame( 4.0, Cead_Acad_Grades_Sheet::value_to_score( '90', 'porcentaje' ) ); // 90 % → 4 (el 5 recién arranca en 94)
+		$this->assertSame( 2.0, Cead_Acad_Grades_Sheet::value_to_score( '45', 'puntaje', 60 ) );
 	}
 
 	public function test_celdas_que_no_son_notas() {
