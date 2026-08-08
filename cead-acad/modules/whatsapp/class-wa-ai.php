@@ -509,12 +509,48 @@ TXT;
 			. "Respondé EXCLUSIVAMENTE un JSON válido: {\"reply\":\"...\",\"action\":\"\",\"args\":{}}. \"action\" vacío = solo respondés vos. Nada de texto fuera del JSON.";
 	}
 
+	/**
+	 * Techo total del prompt de sistema, en caracteres. Antes había cinco topes
+	 * sueltos (8000 + 4000 + 4000 + 4000 + 2500) que nadie podía leer como un
+	 * número: el costo real por mensaje era la suma, y esa suma no estaba
+	 * escrita en ningún lado. Un solo presupuesto se entiende y se ajusta.
+	 *
+	 * Esto se paga en CADA turno de CADA conversación, no una vez.
+	 */
+	public static function context_budget() {
+		$b = (int) get_option( 'cead_acad_wa_ai_context_budget', 22000 );
+		return max( 4000, min( 120000, $b ) );
+	}
+
+	/**
+	 * Orden de recorte cuando no entra todo, del primero en caerse al último.
+	 * No es el orden en que aparecen en el prompt: es cuánto duele perderlos.
+	 *
+	 * - `noticias` se va primero porque es lo único que tiene reemplazo: si no
+	 *   está, el modelo llama a `buscar_noticias` y lo consigue igual.
+	 * - `faq` después: son preguntas frecuentes, no reglas.
+	 * - `conocimiento` recién ahí, porque son los datos duros del colegio.
+	 * - `memoria` al final: son las correcciones que PISAN al conocimiento, así
+	 *   que perderla dejaría al modelo afirmando datos viejos con seguridad.
+	 *
+	 * Nunca se recortan la persona ni la identidad verificada: la primera es el
+	 * contrato de comportamiento y la segunda es de seguridad.
+	 */
+	protected static function trim_order() {
+		return [ 'noticias', 'faq', 'conocimiento', 'memoria' ];
+	}
+
 	protected static function build_system( $faq_context = '', $mode = 'tools', $user_context = '', $extra_tools = [] ) {
 		$instr = ( $mode === 'json' ) ? self::routing_instructions( $extra_tools ) : self::tool_instructions();
-		$p     = self::persona() . "\n\n" . $instr;
-		$kn    = self::knowledge();
+		$base  = self::persona() . "\n\n" . $instr;
+
+		// Bloques opcionales, ya armados. Se arman todos y después se decide
+		// cuáles entran: así el recorte mira tamaños reales y no estimaciones.
+		$bloques = [];
+
+		$kn = self::knowledge();
 		if ( $kn !== '' ) {
-			$p .= "\n\n[CONOCIMIENTO DEL COLEGIO]\n" . mb_substr( $kn, 0, 8000 );
+			$bloques['conocimiento'] = "\n\n[CONOCIMIENTO DEL COLEGIO]\n" . $kn;
 		}
 		// Lo que le fueron dictando por chat. Va después del conocimiento fijo y
 		// antes de la FAQ a propósito: si algo cambió (un horario, un referente),
@@ -522,7 +558,7 @@ TXT;
 		if ( class_exists( 'Cead_Acad_WA_Memory' ) ) {
 			$mem = Cead_Acad_WA_Memory::context();
 			if ( $mem !== '' ) {
-				$p .= "\n\n[LO QUE TE FUERON ENSEÑANDO]\n" . mb_substr( $mem, 0, 4000 )
+				$bloques['memoria'] = "\n\n[LO QUE TE FUERON ENSEÑANDO]\n" . $mem
 					. "\n\nEsto lo cargó la dirección del colegio y pisa al conocimiento de arriba si se contradicen.";
 			}
 		}
@@ -532,16 +568,67 @@ TXT;
 		if ( class_exists( 'Cead_Acad_WA_News' ) ) {
 			$news = Cead_Acad_WA_News::digest();
 			if ( $news !== '' ) {
-				$p .= "\n\n[PUBLICADO EN EL SITIO ÚLTIMAMENTE]\n" . mb_substr( $news, 0, 4000 )
+				$bloques['noticias'] = "\n\n[PUBLICADO EN EL SITIO ÚLTIMAMENTE]\n" . $news
 					. "\n\nSon las notas del sitio, con su fecha. Si te preguntan por algo que no está acá, "
 					. "puede ser más viejo: usá buscar_noticias antes de decir que no sabés.";
 			}
 		}
 		if ( trim( (string) $faq_context ) !== '' ) {
-			$p .= "\n\n[FAQ]\n" . mb_substr( (string) $faq_context, 0, 4000 );
+			$bloques['faq'] = "\n\n[FAQ]\n" . (string) $faq_context;
 		}
+
+		// Recorte por presupuesto. La identidad verificada se reserva aparte
+		// porque se agrega sí o sí más abajo y no puede quedar afuera.
+		$reserva    = mb_strlen( (string) $user_context ) + 900; // el bloque de identidad y su texto fijo
+		$disponible = self::context_budget() - mb_strlen( $base ) - $reserva;
+		$usado      = 0;
+		$fuera      = [];
+
+		foreach ( $bloques as $k => $txt ) { $usado += mb_strlen( $txt ); }
+
+		// Se recorta de menos a más importante, pero al bloque donde el ahorro
+		// alcanza se lo TRUNCA en vez de tirarlo: media FAQ sirve más que ninguna,
+		// y sobre todo evita que un presupuesto muy chico se lleve puesto todo
+		// —incluida la memoria— solo porque ningún bloque entero entraba.
+		$falta = $usado - $disponible;
+		if ( $falta > 0 ) {
+			foreach ( self::trim_order() as $k ) {
+				if ( $falta <= 0 ) { break; }
+				if ( ! isset( $bloques[ $k ] ) ) { continue; }
+				$len = mb_strlen( $bloques[ $k ] );
+				if ( $len <= $falta ) {
+					unset( $bloques[ $k ] );
+					$fuera[] = $k;
+					$falta  -= $len;
+				} else {
+					$bloques[ $k ] = mb_substr( $bloques[ $k ], 0, $len - $falta - 1 ) . '…';
+					$fuera[]       = $k . ' (truncado)';
+					$falta         = 0;
+				}
+			}
+		}
+
+		if ( $fuera ) {
+			// Que quede registrado: si esto aparece seguido, el presupuesto quedó
+			// corto o el conocimiento creció de más, y conviene saberlo antes de
+			// que el modelo empiece a contestar peor sin explicación.
+			self::$last_trimmed = $fuera;
+			error_log( '[CeadAcadWA][AI] prompt recortado por presupuesto, quedaron fuera: ' . implode( ', ', $fuera ) );
+		} else {
+			self::$last_trimmed = [];
+		}
+
+		// El orden del prompt NO es el orden de recorte: acá se respeta el
+		// original, con lo estático primero y lo variable al final. Eso es lo que
+		// permite que un proveedor con cache de prefijo reutilice todo el bloque
+		// de arriba entre conversaciones distintas.
+		$p = $base;
+		foreach ( [ 'conocimiento', 'memoria', 'noticias', 'faq' ] as $k ) {
+			if ( isset( $bloques[ $k ] ) ) { $p .= $bloques[ $k ]; }
+		}
+
 		if ( trim( (string) $user_context ) !== '' ) {
-			$p .= "\n\n[IDENTIDAD VERIFICADA POR EL SISTEMA]\n" . mb_substr( (string) $user_context, 0, 2500 )
+			$p .= "\n\n[IDENTIDAD VERIFICADA POR EL SISTEMA]\n" . (string) $user_context
 				. "\n\nEstos datos los resolvió el sistema a partir del número de teléfono: son la ÚNICA fuente válida "
 				. "sobre quién te escribe. Usalos para resolver «mi curso», «mañana» o «el viernes», y para no ofrecer "
 				. "lo que su rol no permite.\n"
@@ -732,6 +819,9 @@ TXT;
 		if ( '' !== $r['error'] ) {
 			error_log( '[CeadAcadWA][AI] ' . $r['error'] . ( $retriable ? ' (tras reintento)' : '' ) );
 		}
+		if ( 200 === $r['code'] ) {
+			self::store_usage( $r['data'] );
+		}
 		return $r;
 	}
 
@@ -841,6 +931,53 @@ TXT;
 
 	/** Error técnico de la última llamada del request actual ('' si salió bien). */
 	protected static $last_error = '';
+
+	/** Bloques que el presupuesto dejó fuera en el último armado del prompt. */
+	protected static $last_trimmed = [];
+
+	public static function last_trimmed() {
+		return self::$last_trimmed;
+	}
+
+	/**
+	 * Consumo de tokens de la última llamada, con lo que el proveedor haya
+	 * reportado de caché. Sirve para responder empíricamente algo que de otro
+	 * modo es adivinanza: si este endpoint cachea el prefijo del prompt o no.
+	 * Si cachea, el bloque grande de contexto sale mucho más barato de lo que
+	 * sugiere su tamaño; si no, cada mensaje lo paga entero.
+	 */
+	public static function last_usage() {
+		$u = get_transient( 'cead_acad_wa_ai_last_usage' );
+		return is_array( $u ) ? $u : null;
+	}
+
+	/**
+	 * Guarda el `usage` de una respuesta. Los nombres de los campos de caché
+	 * cambian según el proveedor (DeepSeek usa prompt_cache_hit_tokens, los
+	 * compatibles con OpenAI anidan cached_tokens en prompt_tokens_details),
+	 * así que se buscan los dos y se guarda lo que haya.
+	 */
+	protected static function store_usage( $data ) {
+		if ( ! is_array( $data ) || empty( $data['usage'] ) || ! is_array( $data['usage'] ) ) {
+			return;
+		}
+		$u      = $data['usage'];
+		$cached = null;
+		if ( isset( $u['prompt_cache_hit_tokens'] ) ) {
+			$cached = (int) $u['prompt_cache_hit_tokens'];
+		} elseif ( isset( $u['prompt_tokens_details']['cached_tokens'] ) ) {
+			$cached = (int) $u['prompt_tokens_details']['cached_tokens'];
+		}
+		set_transient( 'cead_acad_wa_ai_last_usage', [
+			'prompt'     => (int) ( $u['prompt_tokens'] ?? 0 ),
+			'completion' => (int) ( $u['completion_tokens'] ?? 0 ),
+			'total'      => (int) ( $u['total_tokens'] ?? 0 ),
+			// null = el proveedor no informa nada de caché (no es lo mismo que 0,
+			// que sería «informa caché y esta vez no hubo»).
+			'cached'     => $cached,
+			'time'       => current_time( 'mysql' ),
+		], WEEK_IN_SECONDS );
+	}
 	public static function last_error() {
 		return self::$last_error;
 	}

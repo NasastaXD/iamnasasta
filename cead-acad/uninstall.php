@@ -58,6 +58,7 @@ $options = [
 	'cead_acad_wa_ai_prompt',
 	'cead_acad_wa_ai_knowledge',
 	'cead_acad_wa_ai_memory',
+	'cead_acad_wa_ai_context_budget',
 	'cead_acad_wa_ai_memories',
 	'cead_acad_wa_stt_enabled',
 	'cead_acad_wa_stt_endpoint',

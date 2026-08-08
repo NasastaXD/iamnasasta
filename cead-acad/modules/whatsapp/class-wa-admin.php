@@ -392,6 +392,7 @@ class Cead_Acad_WA_Admin {
 			update_option( 'cead_acad_wa_ai_prompt', sanitize_textarea_field( wp_unslash( $_POST['ai_prompt'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai_knowledge', sanitize_textarea_field( wp_unslash( $_POST['ai_knowledge'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai_memory', max( 0, min( 20, (int) ( $_POST['ai_memory'] ?? 4 ) ) ), false );
+			update_option( 'cead_acad_wa_ai_context_budget', max( 4000, min( 120000, (int) ( $_POST['ai_context_budget'] ?? 22000 ) ) ), false );
 			$dm = sanitize_key( wp_unslash( $_POST['ai_default_mode'] ?? 'auto' ) );
 			update_option( 'cead_acad_wa_default_mode', in_array( $dm, [ 'auto', 'ia', 'menu' ], true ) ? $dm : 'auto', false );
 
@@ -453,6 +454,36 @@ class Cead_Acad_WA_Admin {
 			$this->notice( '🔴 ' . __( 'IA desactivada: CEADI usa solo el menú numérico. Activala abajo y cargá una API key para que entienda lenguaje natural.', 'cead-acad' ), 'info' );
 		}
 
+		// Consumo real de la última llamada. Es la única forma de saber si este
+		// proveedor cachea el prefijo del prompt: con caché, el bloque grande de
+		// contexto sale mucho más barato de lo que sugiere su tamaño.
+		$usage = Cead_Acad_WA_AI::last_usage();
+		if ( $usage ) {
+			echo '<div class="card" style="max-width:760px"><h2>' . esc_html__( '📊 Última llamada', 'cead-acad' ) . '</h2>';
+			echo '<p>' . sprintf(
+				/* translators: 1: tokens de entrada, 2: tokens de salida, 3: fecha y hora */
+				esc_html__( 'Entrada: %1$s tokens · Salida: %2$s tokens · %3$s', 'cead-acad' ),
+				'<strong>' . esc_html( number_format_i18n( $usage['prompt'] ) ) . '</strong>',
+				'<strong>' . esc_html( number_format_i18n( $usage['completion'] ) ) . '</strong>',
+				esc_html( $usage['time'] )
+			) . '</p>';
+
+			if ( null === $usage['cached'] ) {
+				echo '<p>⚪ ' . esc_html__( 'Este proveedor no informa nada sobre caché de contexto. Puede que no la tenga, o que no la reporte: en cualquier caso, conviene asumir que cada mensaje paga el contexto entero y mantener el presupuesto ajustado.', 'cead-acad' ) . '</p>';
+			} elseif ( $usage['cached'] > 0 ) {
+				$pct = $usage['prompt'] > 0 ? round( $usage['cached'] * 100 / $usage['prompt'] ) : 0;
+				echo '<p>🟢 ' . sprintf(
+					/* translators: 1: tokens desde caché, 2: porcentaje */
+					esc_html__( 'Caché activa: %1$s tokens (%2$d%%) de la entrada vinieron cacheados y se cobran mucho más barato. Podés permitirte un presupuesto de contexto más alto.', 'cead-acad' ),
+					'<strong>' . esc_html( number_format_i18n( $usage['cached'] ) ) . '</strong>',
+					(int) $pct
+				) . '</p>';
+			} else {
+				echo '<p>🟡 ' . esc_html__( 'El proveedor informa caché, pero esta llamada no aprovechó nada. Es normal en la primera de una tanda: el prefijo recién queda cacheado. Si se mantiene en cero después de varios mensajes seguidos, no está funcionando y conviene bajar el presupuesto.', 'cead-acad' ) . '</p>';
+			}
+			echo '</div>';
+		}
+
 		echo '<div class="card" style="max-width:760px"><form method="post">';
 		wp_nonce_field( 'cead_acad_wa_ai' );
 		echo '<input type="hidden" name="cead_acad_wa_ai_action" value="save_ai" />';
@@ -496,6 +527,8 @@ class Cead_Acad_WA_Admin {
 		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Definí el tono y rol de CEADI. El formato de salida (ruteo en JSON) se agrega automáticamente, no hace falta escribirlo.', 'cead-acad' ) . '</p></td></tr>';
 		$this->field_textarea( 'ai_knowledge', __( 'Conocimiento (base de datos para responder)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_knowledge', '' ), 8 );
 		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Texto libre con info del colegio (horarios generales, reglas, contactos, fechas, etc.). La IA lo usa para responder dudas. Las FAQ del panel se suman a esto.', 'cead-acad' ) . '</p></td></tr>';
+		$this->field( 'ai_context_budget', __( 'Presupuesto de contexto (caracteres)', 'cead-acad' ), Cead_Acad_WA_AI::context_budget(), '22000', 'number' );
+		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Techo de todo el prompt de sistema (personalidad + conocimiento + memoria + noticias + FAQ + identidad). Se paga en CADA mensaje, no una vez. Si no entra todo, se recorta por orden de importancia: primero las noticias (el modelo las puede buscar igual), después la FAQ, después el conocimiento; la memoria y la identidad no se recortan nunca. Cada recorte queda en el log de errores.', 'cead-acad' ) . '</p></td></tr>';
 		$this->field( 'ai_memory', __( 'Memoria (turnos a recordar)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_memory', 4 ), '4', 'number' );
 		echo '<tr><th></th><td><p class="description">' . esc_html__( '0 = sin memoria (cada mensaje es independiente). 4 (recomendado) = recuerda los últimos 4 intercambios de esa persona, por 30 minutos, para que las charlas fluyan. Más memoria usa más tokens.', 'cead-acad' ) . '</p></td></tr>';
 

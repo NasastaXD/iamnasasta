@@ -23,7 +23,8 @@ function cead_test_set_option( $key, $value ) {
 }
 
 function cead_test_reset_options() {
-	$GLOBALS['cead_test_options'] = [];
+	$GLOBALS['cead_test_options']    = [];
+	$GLOBALS['cead_test_transients'] = [];
 }
 
 // ---- Stubs de WordPress ----
@@ -41,6 +42,25 @@ if ( ! function_exists( 'update_option' ) ) {
 if ( ! function_exists( 'delete_option' ) ) {
 	function delete_option( $key ) {
 		unset( $GLOBALS['cead_test_options'][ $key ] );
+		return true;
+	}
+}
+// Transients: mismo store que las opciones, sin vencimiento. Alcanza para la
+// lógica pura; nada de lo que se testea depende de que expiren.
+if ( ! function_exists( 'get_transient' ) ) {
+	function get_transient( $key ) {
+		return $GLOBALS['cead_test_transients'][ $key ] ?? false;
+	}
+}
+if ( ! function_exists( 'set_transient' ) ) {
+	function set_transient( $key, $value, $ttl = 0 ) {
+		$GLOBALS['cead_test_transients'][ $key ] = $value;
+		return true;
+	}
+}
+if ( ! function_exists( 'delete_transient' ) ) {
+	function delete_transient( $key ) {
+		unset( $GLOBALS['cead_test_transients'][ $key ] );
 		return true;
 	}
 }
