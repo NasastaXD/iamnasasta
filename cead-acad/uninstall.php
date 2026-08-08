@@ -50,6 +50,7 @@ $options = [
 	// IA / transcripción de voz: incluye credenciales de proveedores externos.
 	'cead_acad_wa_ai_enabled',
 	'cead_acad_wa_ai_endpoint',
+	'cead_acad_wa_ai_endpoint_is_base',
 	'cead_acad_wa_ai_key',
 	'cead_acad_wa_ai_model',
 	'cead_acad_wa_ai_temp',
