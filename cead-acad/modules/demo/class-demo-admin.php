@@ -107,6 +107,18 @@ class Cead_Acad_Demo_Admin {
 
 		$hay = Cead_Acad_Demo_Seeder::has_data();
 
+		// Qué hay realmente en la base. Sin esto, si algo falla en silencio la
+		// pantalla se ve igual que si hubiera funcionado.
+		if ( $hay ) {
+			echo '<div class="card" style="max-width:760px;margin-top:1.5rem"><h2>' . esc_html__( 'Cargado ahora mismo', 'cead-acad' ) . '</h2><p>';
+			$partes = [];
+			foreach ( Cead_Acad_Demo_Seeder::counts() as $label => $n ) {
+				$partes[] = '<strong>' . (int) $n . '</strong> ' . esc_html( mb_strtolower( $label ) );
+			}
+			echo implode( ' · ', $partes );
+			echo '</p><p class="description">' . esc_html__( 'Tu usuario quedó inscripto en el curso de demo, así que el panel se te ve con datos sin necesidad de entrar como otra persona.', 'cead-acad' ) . '</p></div>';
+		}
+
 		echo '<p class="description" style="max-width:760px;margin-top:1.5rem">'
 			. esc_html__( 'Llena el panel con un curso completo y su gente, para grabar o presentar el sistema sin que las pantallas se vean vacías. Todo lo que se crea queda marcado, y el botón de borrar elimina exactamente eso: no toca el contenido real del colegio.', 'cead-acad' )
 			. '</p>';
