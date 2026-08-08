@@ -485,6 +485,27 @@ TXT;
 		if ( $kn !== '' ) {
 			$p .= "\n\n[CONOCIMIENTO DEL COLEGIO]\n" . mb_substr( $kn, 0, 8000 );
 		}
+		// Lo que le fueron dictando por chat. Va después del conocimiento fijo y
+		// antes de la FAQ a propósito: si algo cambió (un horario, un referente),
+		// lo último que le dijeron manda sobre el texto viejo de configuración.
+		if ( class_exists( 'Cead_Acad_WA_Memory' ) ) {
+			$mem = Cead_Acad_WA_Memory::context();
+			if ( $mem !== '' ) {
+				$p .= "\n\n[LO QUE TE FUERON ENSEÑANDO]\n" . mb_substr( $mem, 0, 4000 )
+					. "\n\nEsto lo cargó la dirección del colegio y pisa al conocimiento de arriba si se contradicen.";
+			}
+		}
+		// Lo publicado hace poco. Va en el prompt para que conteste sin buscar
+		// cuando la respuesta es de esta semana; para lo viejo está la
+		// herramienta de búsqueda.
+		if ( class_exists( 'Cead_Acad_WA_News' ) ) {
+			$news = Cead_Acad_WA_News::digest();
+			if ( $news !== '' ) {
+				$p .= "\n\n[PUBLICADO EN EL SITIO ÚLTIMAMENTE]\n" . mb_substr( $news, 0, 4000 )
+					. "\n\nSon las notas del sitio, con su fecha. Si te preguntan por algo que no está acá, "
+					. "puede ser más viejo: usá buscar_noticias antes de decir que no sabés.";
+			}
+		}
 		if ( trim( (string) $faq_context ) !== '' ) {
 			$p .= "\n\n[FAQ]\n" . mb_substr( (string) $faq_context, 0, 4000 );
 		}

@@ -32,6 +32,18 @@ if ( ! function_exists( 'get_option' ) ) {
 		return $GLOBALS['cead_test_options'][ $key ] ?? $default;
 	}
 }
+if ( ! function_exists( 'update_option' ) ) {
+	function update_option( $key, $value, $autoload = null ) {
+		$GLOBALS['cead_test_options'][ $key ] = $value;
+		return true;
+	}
+}
+if ( ! function_exists( 'delete_option' ) ) {
+	function delete_option( $key ) {
+		unset( $GLOBALS['cead_test_options'][ $key ] );
+		return true;
+	}
+}
 if ( ! function_exists( '__' ) ) {
 	function __( $text, $domain = 'default' ) { return $text; }
 }
@@ -85,12 +97,15 @@ if ( ! class_exists( 'WP_Error' ) ) {
 	class WP_Error {
 		protected $code;
 		protected $message;
-		public function __construct( $code = '', $message = '' ) {
+		protected $data;
+		public function __construct( $code = '', $message = '', $data = '' ) {
 			$this->code    = $code;
 			$this->message = $message;
+			$this->data    = $data;
 		}
 		public function get_error_code() { return $this->code; }
 		public function get_error_message() { return $this->message; }
+		public function get_error_data() { return $this->data; }
 	}
 }
 if ( ! function_exists( 'is_wp_error' ) ) {
@@ -107,5 +122,7 @@ require_once dirname( __DIR__, 2 ) . '/modules/grades/class-grades-writer.php';
 require_once dirname( __DIR__, 2 ) . '/modules/grades/class-grades-sheet.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-ai.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-docs.php';
+require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-memory.php';
+require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-news.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-article-format.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-engine.php';

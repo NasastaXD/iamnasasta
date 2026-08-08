@@ -62,6 +62,7 @@ final class Cead_Acad_Plugin {
 		( new Cead_Acad_Importer_Admin() )->boot();
 		( new Cead_Acad_Tasks_CPT() )->boot();
 		( new Cead_Acad_WA_Module() )->boot();
+		Cead_Acad_WA_News::hooks(); // invalida el resumen de noticias al publicar
 		( new Cead_Acad_Account() )->boot();
 		( new Cead_Acad_Tasks_Frontend() )->boot();
 		( new Cead_Acad_Notifications() )->boot();

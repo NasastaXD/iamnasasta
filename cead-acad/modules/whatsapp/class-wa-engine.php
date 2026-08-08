@@ -718,8 +718,39 @@ class Cead_Acad_WA_Engine {
 		$args   = isset( $res['args'] ) && is_array( $res['args'] ) ? $res['args'] : [];
 
 		// Acciones de gestión del staff: NO se ejecutan; se proponen y el menú aprueba.
-		if ( in_array( $action, [ 'enviar_comunicado', 'crear_evento', 'crear_invitacion', 'cargar_nota', 'crear_articulo' ], true ) ) {
+		// `recordar` y `olvidar` entran acá por lo mismo: tocan la memoria que
+		// condiciona todas las respuestas, así que se confirman antes.
+		if ( in_array( $action, [ 'enviar_comunicado', 'crear_evento', 'crear_invitacion', 'cargar_nota', 'crear_articulo', 'recordar', 'olvidar' ], true ) ) {
 			return $this->propose_staff_action( $phone, $action, $args, $reply, $identity, $media );
+		}
+
+		// Buscar tampoco cambia nada: se busca y se le devuelve el resultado al
+		// modelo para que redacte, en vez de pegar la lista cruda.
+		if ( 'buscar_noticias' === $action ) {
+			$this->ia_turn = true;
+			$hits = Cead_Acad_WA_News::search( (string) ( $args['texto'] ?? '' ) );
+			if ( '' === $hits ) {
+				if ( $reply !== '' ) { $this->send( $phone, $reply ); }
+				$this->send( $phone, __( 'No encontré ninguna nota publicada sobre eso.', 'cead-acad' ), 'news_none' );
+				$this->leave_ia_state( $phone, $home_state );
+				return true;
+			}
+			$this->send( $phone, $hits, 'news_found' );
+			$this->leave_ia_state( $phone, $home_state );
+			return true;
+		}
+
+		// Ver la memoria no cambia nada, así que se contesta al toque.
+		if ( 'memorias' === $action ) {
+			$this->ia_turn = true;
+			if ( ! user_can( (int) ( $identity['user_id'] ?? 0 ), 'manage_options' ) ) {
+				$this->send( $phone, $this->m( 'access_denied' ) );
+			} else {
+				if ( $reply !== '' ) { $this->send( $phone, $reply ); }
+				$this->send( $phone, Cead_Acad_WA_Memory::render_list() );
+			}
+			$this->leave_ia_state( $phone, $home_state );
+			return true;
 		}
 
 		// La IA decidió disparar una función: su "reply" es la transición y va primero.
@@ -1028,9 +1059,33 @@ class Cead_Acad_WA_Engine {
 	}
 
 	private function ai_staff_tools( $identity, $phone = '' ) {
-		$uid = (int) ( $identity['user_id'] ?? 0 );
-		if ( ! $uid ) { return []; }
+		$uid   = (int) ( $identity['user_id'] ?? 0 );
 		$tools = [];
+
+		// Buscar noticias no depende del rol: es contenido público del sitio,
+		// así que también lo puede usar quien todavía no se identificó. Por eso
+		// va antes del corte por usuario.
+		$tools[] = [
+			'type'     => 'function',
+			'function' => [
+				'name'        => 'buscar_noticias',
+				'description' => 'Buscar entre las notas publicadas en el sitio, sin límite de fecha. '
+					. 'Usalo cuando te pregunten por algo que no figura en lo publicado últimamente, o cuando pidan una nota vieja. '
+					. 'No lo uses para comunicados ni para datos del alumno: eso tiene sus propias funciones.',
+				'parameters'  => [
+					'type'       => 'object',
+					'properties' => [
+						'texto' => [
+							'type'        => 'string',
+							'description' => 'Qué buscar. Palabras clave del tema, no la pregunta entera. Ej.: «torneo intercolegial».',
+						],
+					],
+					'required'   => [ 'texto' ],
+				],
+			],
+		];
+
+		if ( ! $uid ) { return $tools; }
 		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast' ) ) {
 			$aud = Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast_all' )
 				? 'students=alumnado, staff=personal, all=todos'
@@ -1193,6 +1248,59 @@ class Cead_Acad_WA_Engine {
 				],
 			];
 		}
+
+		// Memoria de CEADI. Lo que se guarda acá le cambia las respuestas a
+		// todo el mundo, no solo a quien lo dicta, así que se ofrece únicamente
+		// a administradores de verdad: si no lo es, el modelo ni siquiera ve
+		// que estas herramientas existan y no puede proponerlas.
+		if ( user_can( $uid, 'manage_options' ) ) {
+			$tools[] = [
+				'type'     => 'function',
+				'function' => [
+					'name'        => 'recordar',
+					'description' => 'Proponer guardar un dato en tu memoria permanente, para tenerlo en cuenta en todas las conversaciones de ahí en más. NO se guarda hasta que la persona lo apruebe. '
+						. 'Usalo SOLO cuando el asunto ya terminó y quedó un dato estable que conviene recordar (un horario que cambió, un nombre de referente, una regla del colegio). '
+						. 'No lo uses en el medio de un trámite, ni para cosas de un solo día, ni para lo que la persona te acaba de preguntar. '
+						. 'Ante la duda, no guardes: preguntá si le sirve que lo recuerdes.',
+					'parameters'  => [
+						'type'       => 'object',
+						'properties' => [
+							'dato' => [
+								'type'        => 'string',
+								'description' => 'El dato a recordar, redactado como una frase corta, completa y entendible sin el contexto de esta charla. Ej.: «Las clases del turno mañana empiezan 7:10».',
+							],
+						],
+						'required'   => [ 'dato' ],
+					],
+				],
+			];
+			$tools[] = [
+				'type'     => 'function',
+				'function' => [
+					'name'        => 'olvidar',
+					'description' => 'Proponer borrar algo de tu memoria permanente. NO se borra hasta que la persona lo apruebe. Pasale el texto de lo que hay que olvidar, o el número que tiene en el listado de memorias.',
+					'parameters'  => [
+						'type'       => 'object',
+						'properties' => [
+							'dato' => [
+								'type'        => 'string',
+								'description' => 'Qué olvidar: parte del texto de la memoria, o su número en el listado.',
+							],
+						],
+						'required'   => [ 'dato' ],
+					],
+				],
+			];
+			$tools[] = [
+				'type'     => 'function',
+				'function' => [
+					'name'        => 'memorias',
+					'description' => 'Mostrar el listado de todo lo que tenés guardado en tu memoria permanente. Es solo lectura: se muestra al toque, sin pedir aprobación.',
+					'parameters'  => [ 'type' => 'object', 'properties' => (object) [] ],
+				],
+			];
+		}
+
 		return $tools;
 	}
 
@@ -1241,6 +1349,75 @@ class Cead_Acad_WA_Engine {
 	private function propose_staff_action( $phone, $action, $args, $reply, $identity, $media = null ) {
 		$this->ia_turn = true; // propuesta conversacional → mensaje nuevo
 		$uid = (int) ( $identity['user_id'] ?? 0 );
+
+		if ( 'recordar' === $action || 'olvidar' === $action ) {
+			// Se revalida el permiso acá y no solo al ofrecer la herramienta:
+			// entre que se armó el prompt y llegó la respuesta el rol pudo
+			// cambiar, y esto escribe algo que ven todos.
+			if ( ! user_can( $uid, 'manage_options' ) ) {
+				$this->send( $phone, $this->m( 'access_denied' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			$dato = trim( (string) ( $args['dato'] ?? '' ) );
+			if ( $reply !== '' ) { $this->send( $phone, $reply ); }
+			if ( '' === $dato ) {
+				$this->send( $phone, 'recordar' === $action
+					? __( '¿Qué querés que recuerde?', 'cead-acad' )
+					: __( '¿Qué querés que olvide?', 'cead-acad' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+
+			if ( 'recordar' === $action ) {
+				$this->store->set_state( $phone, 'ia_staff_confirm', [ 'kind' => 'memoria', 'dato' => $dato ] );
+				$this->send(
+					$phone,
+					sprintf(
+						/* translators: %s: el dato que CEADI propone recordar */
+						__( "🧠 *Guardar en mi memoria*\n────────\n%s\n────────\nLo voy a tener en cuenta en todas las charlas hasta que me digas que lo olvide.\n\n*1.* ✅ Guardar\n*2.* ✏️ Cambiar (decime cómo)\n*3.* ❌ No guardar", 'cead-acad' ),
+						$dato
+					),
+					'ia_memoria_confirm'
+				);
+				return true;
+			}
+
+			// Olvidar: se resuelve contra la memoria ANTES de preguntar, así la
+			// confirmación muestra el texto real que se va a borrar y no lo que
+			// la persona escribió de memoria.
+			if ( ctype_digit( $dato ) ) {
+				$hit = Cead_Acad_WA_Memory::text_at( $dato );
+				if ( '' === $hit ) {
+					$this->send( $phone, __( 'No tengo ninguna memoria con ese número.', 'cead-acad' ) );
+					$this->send( $phone, Cead_Acad_WA_Memory::render_list() );
+					$this->store->set_state( $phone, 'ia_home' );
+					return true;
+				}
+				$dato = $hit;
+			}
+			$probe = Cead_Acad_WA_Memory::remove_preview( $dato );
+			if ( is_wp_error( $probe ) ) {
+				$this->send( $phone, $probe->get_error_message() );
+				if ( 'ambiguous' === $probe->get_error_code() ) {
+					$opts = (array) $probe->get_error_data();
+					$this->send( $phone, "• " . implode( "\n• ", $opts ) . "\n\n" . __( 'Decime cuál con más precisión.', 'cead-acad' ) );
+				}
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			$this->store->set_state( $phone, 'ia_staff_confirm', [ 'kind' => 'olvido', 'dato' => $probe ] );
+			$this->send(
+				$phone,
+				sprintf(
+					/* translators: %s: el texto de la memoria que se va a borrar */
+					__( "🧠 *Borrar de mi memoria*\n────────\n%s\n────────\n\n*1.* ✅ Borrar\n*2.* ✏️ Cambiar (decime cuál)\n*3.* ❌ Dejarlo", 'cead-acad' ),
+					$probe
+				),
+				'ia_olvido_confirm'
+			);
+			return true;
+		}
 
 		if ( $action === 'enviar_comunicado' ) {
 			if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast' ) ) {
@@ -1618,6 +1795,8 @@ class Cead_Acad_WA_Engine {
 			elseif ( $kind === 'nota' ) { $this->execute_nota( $phone, $context, $identity ); }
 			elseif ( $kind === 'planilla' ) { $this->execute_planilla( $phone, $context, $identity ); }
 			elseif ( $kind === 'articulo' ) { $this->execute_articulo( $phone, $context, $identity ); }
+			elseif ( $kind === 'memoria' ) { $this->execute_memoria( $phone, $context, $identity ); }
+			elseif ( $kind === 'olvido' ) { $this->execute_olvido( $phone, $context, $identity ); }
 			else { $this->store->set_state( $phone, 'ia_home' ); }
 			return;
 		}
@@ -1690,6 +1869,52 @@ class Cead_Acad_WA_Engine {
 		} else {
 			$this->send( $phone, $this->interp( $this->m( 'comm_queued' ), [ 'total' => (int) ( $res['total'] ?? 0 ) ] ), 'broadcast_enqueued' );
 		}
+		$this->store->set_state( $phone, 'ia_home' );
+	}
+
+	/** Guarda la memoria aprobada (re-chequea permisos). */
+	private function execute_memoria( $phone, $context, $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! user_can( $uid, 'manage_options' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		$dato = (string) ( $context['dato'] ?? '' );
+		$res  = Cead_Acad_WA_Memory::add( $dato, $uid );
+		if ( is_wp_error( $res ) ) {
+			$this->send( $phone, $res->get_error_message() );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		Cead_Acad_Audit::log( 'wa_ai_memory_added', [
+			'user_id' => $uid ?: null,
+			'payload' => [ 'texto' => $dato, 'via' => 'ia' ],
+		] );
+		$this->send( $phone, __( '🧠 Listo, lo voy a recordar.', 'cead-acad' ), 'ia_memoria_saved' );
+		$this->store->set_state( $phone, 'ia_home' );
+	}
+
+	/** Borra la memoria aprobada (re-chequea permisos). */
+	private function execute_olvido( $phone, $context, $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! user_can( $uid, 'manage_options' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		$dato = (string) ( $context['dato'] ?? '' );
+		$res  = Cead_Acad_WA_Memory::remove( $dato );
+		if ( is_wp_error( $res ) ) {
+			$this->send( $phone, $res->get_error_message() );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		Cead_Acad_Audit::log( 'wa_ai_memory_removed', [
+			'user_id' => $uid ?: null,
+			'payload' => [ 'texto' => $res, 'via' => 'ia' ],
+		] );
+		$this->send( $phone, __( '🧠 Listo, me lo olvido.', 'cead-acad' ), 'ia_olvido_done' );
 		$this->store->set_state( $phone, 'ia_home' );
 	}
 
