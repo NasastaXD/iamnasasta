@@ -2848,6 +2848,15 @@ class Cead_Acad_WA_Engine {
 				$out[] = $defs[ $r ]['label'];
 			}
 		}
+		// El administrador de WordPress no es un rol del plugin, así que no está
+		// en ninguna de las listas de arriba. Sin esto la línea salía vacía, el
+		// modelo se quedaba sin el dato y adivinaba: a un admin le contestaba
+		// «sos alumno» y encima se inventaba el motivo. Como por el filtro
+		// `grant_plugin_caps_to_admins` un admin tiene TODAS las capacidades del
+		// plugin, corresponde decirlo explícitamente.
+		if ( in_array( 'administrator', (array) $user->roles, true ) ) {
+			array_unshift( $out, 'Administrador del sistema (tiene todos los permisos del plugin)' );
+		}
 		return implode( ', ', $out );
 	}
 

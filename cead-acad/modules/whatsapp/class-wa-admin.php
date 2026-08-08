@@ -386,6 +386,7 @@ class Cead_Acad_WA_Admin {
 			update_option( 'cead_acad_wa_ai_key', sanitize_text_field( wp_unslash( $_POST['ai_key'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai_model', sanitize_text_field( wp_unslash( $_POST['ai_model'] ?? '' ) ) ?: 'deepseek-chat', false );
 			update_option( 'cead_acad_wa_ai_endpoint', esc_url_raw( wp_unslash( $_POST['ai_endpoint'] ?? '' ) ), false );
+			update_option( 'cead_acad_wa_ai_endpoint_is_base', ! empty( $_POST['ai_endpoint_is_base'] ) ? 1 : 0, false );
 			update_option( 'cead_acad_wa_ai_temp', is_numeric( $_POST['ai_temp'] ?? '' ) ? (float) $_POST['ai_temp'] : 0.2, false );
 			update_option( 'cead_acad_wa_ai_maxtokens', max( 50, (int) ( $_POST['ai_maxtokens'] ?? 500 ) ), false );
 			update_option( 'cead_acad_wa_ai_prompt', sanitize_textarea_field( wp_unslash( $_POST['ai_prompt'] ?? '' ) ), false );
@@ -478,7 +479,10 @@ class Cead_Acad_WA_Admin {
 		echo '</td></tr>';
 
 		$this->field( 'ai_endpoint', __( 'Endpoint (API compatible OpenAI)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_endpoint', '' ), Cead_Acad_WA_AI::ENDPOINT_DEFAULT, 'url' );
-		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Ej.: DeepSeek https://api.deepseek.com/chat/completions · OpenRouter https://openrouter.ai/api/v1/chat/completions · tokenlb https://tokenlb.net/v1/chat/completions · OpenAI https://api.openai.com/v1/chat/completions', 'cead-acad' ) . '</p></td></tr>';
+		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Ej.: DeepSeek https://api.deepseek.com/chat/completions · OpenRouter https://openrouter.ai/api/v1/chat/completions · tokenlb https://tokenlb.net/v1/chat/completions · OpenAI https://api.openai.com/v1/chat/completions', 'cead-acad' ) . '</p>';
+		echo '<label><input type="checkbox" name="ai_endpoint_is_base" value="1" ' . checked( Cead_Acad_WA_AI::endpoint_is_base(), true, false ) . '> '
+			. esc_html__( 'Lo de arriba es una base, no el endpoint completo', 'cead-acad' ) . '</label>';
+		echo '<p class="description">' . esc_html__( 'Algunos proveedores no aceptan que se les pegue directo a /chat/completions y devuelven 405 si se manda la ruta completa: quieren solo la base (ej.: https://mi-servicio.com o https://mi-servicio.com/v1). Activá esto y cargá arriba la base sola — CEADI le agrega /chat/completions antes de cada pedido.', 'cead-acad' ) . '</p></td></tr>';
 		$this->field( 'ai_model', __( 'Modelo', 'cead-acad' ), get_option( 'cead_acad_wa_ai_model', 'deepseek-chat' ), 'deepseek-chat' );
 		$this->field( 'ai_key', __( 'API key', 'cead-acad' ), get_option( 'cead_acad_wa_ai_key', '' ), 'sk-... (o definir CEAD_ACAD_AI_KEY en wp-config)', 'password' );
 		if ( Cead_Acad_WA_AI::key() !== '' && defined( 'CEAD_ACAD_AI_KEY' ) && CEAD_ACAD_AI_KEY ) {
