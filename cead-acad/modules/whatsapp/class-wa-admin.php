@@ -71,6 +71,7 @@ class Cead_Acad_WA_Admin {
 		add_submenu_page( 'cead-acad', __( 'WA · Métricas', 'cead-acad' ), __( 'WA · Métricas', 'cead-acad' ), 'cead_acad_view_metrics', 'cead-acad-wa-metrics', [ $this, 'page_metrics' ] );
 		add_submenu_page( 'cead-acad', __( 'WA · Mensaje directo', 'cead-acad' ), __( 'WA · Mensaje directo', 'cead-acad' ), 'cead_acad_publish_broadcast', 'cead-acad-wa-direct', [ $this, 'page_direct' ] );
 		add_submenu_page( 'cead-acad', __( 'CEADI · IA', 'cead-acad' ), __( 'CEADI · IA', 'cead-acad' ), 'manage_options', 'cead-acad-wa-ai', [ $this, 'page_ai' ] );
+		add_submenu_page( 'cead-acad', __( 'CEADI · Memoria', 'cead-acad' ), __( 'CEADI · Memoria', 'cead-acad' ), 'manage_options', 'cead-acad-wa-memory', [ $this, 'page_memory' ] );
 		add_submenu_page( 'cead-acad', __( 'CEADI · Perfil', 'cead-acad' ), __( 'CEADI · Perfil', 'cead-acad' ), 'manage_options', 'cead-acad-wa-profile', [ $this, 'page_profile' ] );
 	}
 
@@ -885,5 +886,152 @@ class Cead_Acad_WA_Admin {
 	private function mask_phone( $phone ) {
 		$p = (string) $phone;
 		return strlen( $p ) > 5 ? substr( $p, 0, 4 ) . '****' . substr( $p, -2 ) : $p;
+	}
+
+	// -------------------------------------------------- CEADI · Memoria
+	/**
+	 * Lo que CEADI aprendió por chat, acá para verlo de una y corregirlo sin
+	 * tener que pedírselo por WhatsApp. Es la misma memoria: se guarda en la
+	 * misma option y se audita igual que cuando la dicta la dirección.
+	 */
+	public function page_memory() {
+		$this->guard( 'manage_options' );
+		$notice = null;
+
+		if ( isset( $_POST['cead_acad_wa_mem_action'] ) && check_admin_referer( 'cead_acad_wa_mem' ) ) {
+			$action = sanitize_key( wp_unslash( $_POST['cead_acad_wa_mem_action'] ) );
+			$uid    = get_current_user_id();
+
+			if ( 'add' === $action ) {
+				$texto = sanitize_textarea_field( wp_unslash( $_POST['mem_text'] ?? '' ) );
+				$r     = Cead_Acad_WA_Memory::add( $texto, $uid );
+				if ( is_wp_error( $r ) ) {
+					$notice = [ 'error', $r->get_error_message() ];
+				} else {
+					Cead_Acad_Audit::log( 'wa_ai_memory_added', [
+						'user_id' => $uid ?: null,
+						'payload' => [ 'texto' => $texto, 'via' => 'admin' ],
+					] );
+					$notice = [ 'success', __( 'Memoria agregada.', 'cead-acad' ) ];
+				}
+			} elseif ( 'edit' === $action ) {
+				$id    = sanitize_text_field( wp_unslash( $_POST['mem_id'] ?? '' ) );
+				$texto = sanitize_textarea_field( wp_unslash( $_POST['mem_text'] ?? '' ) );
+				$r     = Cead_Acad_WA_Memory::update( $id, $texto );
+				if ( is_wp_error( $r ) ) {
+					$notice = [ 'error', $r->get_error_message() ];
+				} else {
+					Cead_Acad_Audit::log( 'wa_ai_memory_edited', [
+						'user_id' => $uid ?: null,
+						'payload' => [ 'texto' => $r, 'via' => 'admin' ],
+					] );
+					$notice = [ 'success', __( 'Memoria actualizada.', 'cead-acad' ) ];
+				}
+			} elseif ( 'delete' === $action ) {
+				$id = sanitize_text_field( wp_unslash( $_POST['mem_id'] ?? '' ) );
+				$r  = Cead_Acad_WA_Memory::remove( $id );
+				if ( is_wp_error( $r ) ) {
+					$notice = [ 'error', $r->get_error_message() ];
+				} else {
+					Cead_Acad_Audit::log( 'wa_ai_memory_removed', [
+						'user_id' => $uid ?: null,
+						'payload' => [ 'texto' => $r, 'via' => 'admin' ],
+					] );
+					$notice = [ 'success', __( 'Memoria borrada.', 'cead-acad' ) ];
+				}
+			} elseif ( 'clear' === $action ) {
+				$n = Cead_Acad_WA_Memory::clear();
+				Cead_Acad_Audit::log( 'wa_ai_memory_cleared', [
+					'user_id' => $uid ?: null,
+					'payload' => [ 'total' => $n, 'via' => 'admin' ],
+				] );
+				/* translators: %d: cuántas memorias se borraron */
+				$notice = [ 'success', sprintf( __( 'Se borraron %d memorias.', 'cead-acad' ), $n ) ];
+			}
+		}
+
+		$list = Cead_Acad_WA_Memory::all();
+		$edit = isset( $_GET['edit'] ) ? sanitize_text_field( wp_unslash( $_GET['edit'] ) ) : '';
+
+		echo '<div class="wrap"><h1>' . esc_html__( 'CEADI — Memoria', 'cead-acad' ) . '</h1>';
+		if ( $notice ) {
+			$this->notice( $notice[1], $notice[0] );
+		}
+
+		echo '<p class="description" style="max-width:720px">'
+			. esc_html__( 'Datos que CEADI tiene en cuenta en todas las conversaciones. Se los podés dictar por WhatsApp o cargarlos acá: es la misma memoria. Pisan al texto de «Conocimiento del colegio» si se contradicen, así que sirven para corregir algo que cambió.', 'cead-acad' )
+			. '</p>';
+
+		echo '<div class="card" style="max-width:720px"><h2>'
+			. ( $edit ? esc_html__( 'Editar memoria', 'cead-acad' ) : esc_html__( 'Agregar memoria', 'cead-acad' ) )
+			. '</h2>';
+		echo '<form method="post">';
+		wp_nonce_field( 'cead_acad_wa_mem' );
+		$edit_text = '';
+		if ( $edit ) {
+			foreach ( $list as $m ) {
+				if ( $m['id'] === $edit ) { $edit_text = $m['text']; break; }
+			}
+			echo '<input type="hidden" name="mem_id" value="' . esc_attr( $edit ) . '">';
+		}
+		echo '<textarea name="mem_text" rows="3" class="large-text" maxlength="' . (int) Cead_Acad_WA_Memory::MAX_LEN . '" required '
+			. 'placeholder="' . esc_attr__( 'Ej.: Las clases del turno mañana empiezan 7:10', 'cead-acad' ) . '">'
+			. esc_textarea( $edit_text ) . '</textarea>';
+		echo '<p class="description">' . sprintf(
+			/* translators: %d: máximo de caracteres */
+			esc_html__( 'Escribilo como una frase corta y entendible sin contexto. Máximo %d caracteres.', 'cead-acad' ),
+			(int) Cead_Acad_WA_Memory::MAX_LEN
+		) . '</p>';
+		echo '<p><button class="button button-primary" name="cead_acad_wa_mem_action" value="' . ( $edit ? 'edit' : 'add' ) . '">'
+			. ( $edit ? esc_html__( 'Guardar cambios', 'cead-acad' ) : esc_html__( 'Agregar', 'cead-acad' ) ) . '</button>';
+		if ( $edit ) {
+			echo ' <a class="button" href="' . esc_url( admin_url( 'admin.php?page=cead-acad-wa-memory' ) ) . '">' . esc_html__( 'Cancelar', 'cead-acad' ) . '</a>';
+		}
+		echo '</p></form></div>';
+
+		echo '<h2>' . sprintf(
+			/* translators: 1: cuántas memorias hay, 2: techo de memorias */
+			esc_html__( 'Guardadas (%1$d de %2$d)', 'cead-acad' ),
+			count( $list ),
+			(int) Cead_Acad_WA_Memory::MAX
+		) . '</h2>';
+
+		if ( ! $list ) {
+			echo '<p>' . esc_html__( 'Todavía no hay nada guardado.', 'cead-acad' ) . '</p></div>';
+			return;
+		}
+
+		echo '<table class="widefat striped"><thead><tr>'
+			. '<th>' . esc_html__( 'Dato', 'cead-acad' ) . '</th>'
+			. '<th style="width:140px">' . esc_html__( 'Cargada', 'cead-acad' ) . '</th>'
+			. '<th style="width:160px">' . esc_html__( 'Por', 'cead-acad' ) . '</th>'
+			. '<th style="width:150px"></th>'
+			. '</tr></thead><tbody>';
+		foreach ( $list as $m ) {
+			$autor = $m['author'] ? get_userdata( $m['author'] ) : null;
+			echo '<tr><td>' . esc_html( $m['text'] ) . '</td>';
+			echo '<td>' . esc_html( $m['created'] ? wp_date( 'j/n/Y H:i', $m['created'] ) : '—' ) . '</td>';
+			echo '<td>' . esc_html( $autor ? $autor->display_name : __( 'CEADI (por chat)', 'cead-acad' ) ) . '</td>';
+			echo '<td><a class="button button-small" href="'
+				. esc_url( admin_url( 'admin.php?page=cead-acad-wa-memory&edit=' . rawurlencode( $m['id'] ) ) ) . '">'
+				. esc_html__( 'Editar', 'cead-acad' ) . '</a> ';
+			echo '<form method="post" style="display:inline">';
+			wp_nonce_field( 'cead_acad_wa_mem' );
+			echo '<input type="hidden" name="mem_id" value="' . esc_attr( $m['id'] ) . '">';
+			echo '<button class="button button-small" name="cead_acad_wa_mem_action" value="delete" '
+				. 'onclick="return confirm(' . esc_attr( wp_json_encode( __( '¿Borrar esta memoria?', 'cead-acad' ) ) ) . ')">'
+				. esc_html__( 'Borrar', 'cead-acad' ) . '</button>';
+			echo '</form></td></tr>';
+		}
+		echo '</tbody></table>';
+
+		echo '<form method="post" style="margin-top:1.5rem">';
+		wp_nonce_field( 'cead_acad_wa_mem' );
+		echo '<button class="button" name="cead_acad_wa_mem_action" value="clear" '
+			. 'onclick="return confirm(' . esc_attr( wp_json_encode( __( 'Esto borra TODA la memoria de CEADI. ¿Seguir?', 'cead-acad' ) ) ) . ')">'
+			. esc_html__( 'Vaciar la memoria entera', 'cead-acad' ) . '</button>';
+		echo '</form>';
+
+		echo '</div>';
 	}
 }

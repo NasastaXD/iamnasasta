@@ -131,6 +131,33 @@ class Cead_Acad_WA_Memory {
 		return [ 'index' => $i, 'text' => $hits[ $i ] ];
 	}
 
+	/**
+	 * Reescribe una memoria existente, por id. Devuelve el texto nuevo o
+	 * WP_Error. Conserva la fecha de creación: sirve para corregir la redacción
+	 * de algo que ya se sabía, no para convertirlo en un dato nuevo.
+	 */
+	public static function update( $id, $text ) {
+		$id   = (string) $id;
+		$text = self::clean( $text );
+		if ( '' === $text ) {
+			return new WP_Error( 'empty', __( 'La memoria está vacía.', 'cead-acad' ) );
+		}
+		$list  = self::all();
+		$found = null;
+		foreach ( $list as $i => $m ) {
+			if ( $m['id'] === $id ) { $found = $i; continue; }
+			if ( 0 === strcasecmp( $m['text'], $text ) ) {
+				return new WP_Error( 'duplicate', __( 'Ya hay otra memoria que dice exactamente eso.', 'cead-acad' ) );
+			}
+		}
+		if ( null === $found ) {
+			return new WP_Error( 'not_found', __( 'Esa memoria ya no existe.', 'cead-acad' ) );
+		}
+		$list[ $found ]['text'] = $text;
+		self::save( $list );
+		return $text;
+	}
+
 	/** Vacía la memoria entera. Devuelve cuántas se borraron. */
 	public static function clear() {
 		$n = count( self::all() );

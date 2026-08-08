@@ -130,6 +130,43 @@ class MemoryTest extends TestCase {
 		$this->assertSame( '- un dato', Cead_Acad_WA_Memory::context() );
 	}
 
+	public function test_update_reescribe_conservando_la_fecha() {
+		$id    = Cead_Acad_WA_Memory::add( 'El recreo es 9:30' );
+		$antes = Cead_Acad_WA_Memory::all()[0]['created'];
+
+		$r = Cead_Acad_WA_Memory::update( $id, 'El recreo es 9:45' );
+		$this->assertSame( 'El recreo es 9:45', $r );
+
+		$m = Cead_Acad_WA_Memory::all()[0];
+		$this->assertSame( 'El recreo es 9:45', $m['text'] );
+		$this->assertSame( $antes, $m['created'], 'corregir la redacción no la vuelve un dato nuevo' );
+		$this->assertCount( 1, Cead_Acad_WA_Memory::all() );
+	}
+
+	public function test_update_rechaza_vacio_y_id_inexistente() {
+		$id = Cead_Acad_WA_Memory::add( 'algo' );
+
+		$this->assertSame( 'empty', Cead_Acad_WA_Memory::update( $id, '  ' )->get_error_code() );
+		$this->assertSame( 'not_found', Cead_Acad_WA_Memory::update( 'noexiste', 'texto' )->get_error_code() );
+		$this->assertSame( 'algo', Cead_Acad_WA_Memory::all()[0]['text'], 'no tiene que tocar nada' );
+	}
+
+	/** Editar una para dejarla igual a otra crearía el duplicado por la ventana. */
+	public function test_update_no_permite_chocar_con_otra() {
+		Cead_Acad_WA_Memory::add( 'primera' );
+		$id = Cead_Acad_WA_Memory::add( 'segunda' );
+
+		$r = Cead_Acad_WA_Memory::update( $id, 'PRIMERA' );
+		$this->assertSame( 'duplicate', $r->get_error_code() );
+		$this->assertSame( 'segunda', Cead_Acad_WA_Memory::all()[0]['text'] );
+	}
+
+	/** Reescribirla con su mismo texto no es un choque consigo misma. */
+	public function test_update_con_el_mismo_texto_no_es_duplicado() {
+		$id = Cead_Acad_WA_Memory::add( 'sin cambios' );
+		$this->assertSame( 'sin cambios', Cead_Acad_WA_Memory::update( $id, 'sin cambios' ) );
+	}
+
 	public function test_clear_vacia_todo() {
 		Cead_Acad_WA_Memory::add( 'a' );
 		Cead_Acad_WA_Memory::add( 'b' );
