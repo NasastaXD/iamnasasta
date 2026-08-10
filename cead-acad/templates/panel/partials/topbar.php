@@ -68,19 +68,35 @@ $title  = isset( $page_title ) ? $page_title : __( 'Panel', 'cead-acad' );
 			</div>
 		</div>
 
-		<a class="cead-acad-user-chip" href="<?php echo esc_url( cead_acad_url( 'panel/perfil' ) ); ?>">
-			<?php
-			$tb_avatar = class_exists( 'Cead_Acad_Account' ) ? Cead_Acad_Account::avatar_url( $user->ID, 'thumbnail' ) : '';
-			if ( $tb_avatar ) : ?>
-				<img class="cead-acad-avatar cead-acad-avatar--sm" src="<?php echo esc_url( $tb_avatar ); ?>" alt="">
-			<?php else : ?>
-				<span class="cead-acad-avatar cead-acad-avatar--sm cead-acad-avatar--initials"><?php echo esc_html( class_exists( 'Cead_Acad_Account' ) ? Cead_Acad_Account::initials( $user->display_name ) : '' ); ?></span>
-			<?php endif; ?>
-			<span class="cead-acad-user-chip-txt">
-				<span class="cead-acad-user-chip-name"><?php echo esc_html( $user->display_name ); ?></span>
-				<span class="cead-acad-user-chip-role"><?php echo esc_html( $rdisp ); ?></span>
-			</span>
-		</a>
+		<?php
+		/*
+		 * El chip es un menú, no un enlace suelto. Antes iba directo al perfil y
+		 * «Cerrar sesión» vivía solo en el sidebar — que en celular es un drawer
+		 * cerrado, así que en la práctica no había forma de salir sin buscarla.
+		 *
+		 * Se usa <details> para que abra y cierre sin JavaScript.
+		 */
+		?>
+		<details class="cead-acad-user-menu">
+			<summary class="cead-acad-user-chip">
+				<?php
+				$tb_avatar = class_exists( 'Cead_Acad_Account' ) ? Cead_Acad_Account::avatar_url( $user->ID, 'thumbnail' ) : '';
+				if ( $tb_avatar ) : ?>
+					<img class="cead-acad-avatar cead-acad-avatar--sm" src="<?php echo esc_url( $tb_avatar ); ?>" alt="">
+				<?php else : ?>
+					<span class="cead-acad-avatar cead-acad-avatar--sm cead-acad-avatar--initials"><?php echo esc_html( class_exists( 'Cead_Acad_Account' ) ? Cead_Acad_Account::initials( $user->display_name ) : '' ); ?></span>
+				<?php endif; ?>
+				<span class="cead-acad-user-chip-txt">
+					<span class="cead-acad-user-chip-name"><?php echo esc_html( $user->display_name ); ?></span>
+					<span class="cead-acad-user-chip-role"><?php echo esc_html( $rdisp ); ?></span>
+				</span>
+			</summary>
+			<div class="cead-acad-user-menu-panel">
+				<a href="<?php echo esc_url( cead_acad_url( 'panel/perfil' ) ); ?>"><?php esc_html_e( 'Mi perfil', 'cead-acad' ); ?></a>
+				<a href="<?php echo esc_url( cead_acad_url( 'panel/carne' ) ); ?>"><?php esc_html_e( 'Mi carné', 'cead-acad' ); ?></a>
+				<a class="cead-acad-user-menu-out" href="<?php echo esc_url( cead_acad_url( 'salir' ) ); ?>"><?php esc_html_e( 'Cerrar sesión', 'cead-acad' ); ?></a>
+			</div>
+		</details>
 	</div>
 </header>
 <?php

@@ -1072,6 +1072,40 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 .cead-acad-user-chip { flex-direction:row; align-items:center; gap:.6rem; text-decoration:none; color:inherit; }
 .cead-acad-user-chip-txt { display:flex; flex-direction:column; text-align:right; line-height:1.1; }
 
+/* Menú de usuario: <details> para que funcione sin JavaScript. «Cerrar sesión»
+   vivía solo en el sidebar, que en celular es un drawer cerrado — en la
+   práctica no había forma de salir sin ir a buscarla. */
+.cead-acad-user-menu { position:relative; }
+.cead-acad-user-menu > summary {
+	cursor:pointer;
+	list-style:none;
+	display:flex;
+}
+.cead-acad-user-menu > summary::-webkit-details-marker { display:none; }
+.cead-acad-user-menu-panel {
+	position:absolute;
+	right:0;
+	top:calc(100% + .5rem);
+	z-index:30;
+	min-width:190px;
+	display:flex;
+	flex-direction:column;
+	background:#fff;
+	border:1px solid var(--cead-acad-border);
+	box-shadow:0 18px 50px rgba(0,0,0,.12);
+}
+.cead-acad-user-menu-panel a {
+	padding:.75rem 1rem;
+	text-decoration:none;
+	color:var(--cead-acad-ink);
+	font-size:.92rem;
+	border-bottom:1px solid var(--cead-acad-border);
+}
+.cead-acad-user-menu-panel a:last-child { border-bottom:0; }
+.cead-acad-user-menu-panel a:hover { background:var(--cead-acad-canvas); }
+.cead-acad-user-menu-out { color:var(--cead-acad-brand-deep); font-weight:600; }
+[data-theme="dark"] .cead-acad-user-menu-panel { background:#20242b; }
+
 /* ===================== Perfil ===================== */
 .cead-acad-profile { gap:1.1rem; }
 .cead-acad-profile-avatar { display:flex; align-items:center; gap:1.25rem; flex-wrap:wrap; }
@@ -1338,6 +1372,29 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 /* Respeto por usuarios que prefieren menos movimiento */
 @media (prefers-reduced-motion: reduce) {
 	*, *::before, *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
+}
+
+/* ===================== Transición del cambio de tema =====================
+   El toggle cambiaba de claro a oscuro de golpe, en un salto seco. Se anima
+   solo lo que efectivamente cambia de color —fondos, texto y bordes— y no
+   `all`, para no arrastrar transformaciones ni tamaños en cada repintado.
+
+   Va acotado a la superficie del panel en vez de a `*`: aplicar una
+   transición a cada elemento del documento encarece el repintado en celulares
+   modestos, que es justo donde se usa esto.
+
+   El bloque de prefers-reduced-motion de arriba ya las neutraliza. */
+body,
+.cead-acad-panel-topbar,
+.cead-acad-panel-side,
+.cead-acad-card,
+.cead-acad-agenda-item,
+.cead-acad-user-menu-panel,
+.cead-acad-input,
+.cead-acad-bulletin,
+.cead-acad-bulletin th,
+.cead-acad-bulletin td {
+	transition: background-color .28s ease, color .28s ease, border-color .28s ease;
 }
 
 /* ===================== Fix overlap topbar (móvil) ===================== */

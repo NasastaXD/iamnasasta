@@ -57,7 +57,37 @@ class Cead_Acad_WA_REST {
 			$body = $request->get_params();
 		}
 		$from = (string) ( $body['from'] ?? '' );
-		// El JID de WhatsApp llega como 5959xxxx@s.whatsapp.net.
+
+		/*
+		 * Solo se atienden chats individuales.
+		 *
+		 * WhatsApp entrega por el mismo canal cosas que NO son un mensaje para
+		 * el bot, y se distinguen por el dominio del JID:
+		 *
+		 *   5959xxxx@s.whatsapp.net  chat individual   → sí
+		 *   5959xxxx@c.us            ídem (whatsapp-web.js)
+		 *   status@broadcast         un ESTADO publicado
+		 *   xxxxx@g.us               un grupo
+		 *   xxxxx@newsletter         un canal
+		 *
+		 * Antes se hacía explode('@') y se tomaban los dígitos sin mirar el
+		 * dominio. Con eso, publicar un estado terminaba con CEADI saludando de
+		 * la nada: el bridge reporta al autor del estado y el motor lo tomaba
+		 * como si esa persona le hubiera escrito. Lo mismo habría pasado en un
+		 * grupo donde estuviera el número del bot.
+		 */
+		$dominios_ok = [ 's.whatsapp.net', 'c.us' ];
+		if ( false !== strpos( $from, '@' ) ) {
+			$dominio = strtolower( trim( substr( $from, strpos( $from, '@' ) + 1 ) ) );
+			if ( ! in_array( $dominio, $dominios_ok, true ) ) {
+				return new WP_REST_Response( [ 'ok' => true, 'ignored' => $dominio ], 200 );
+			}
+		}
+		// Algunos bridges marcan el estado aparte en vez de en el JID.
+		if ( ! empty( $body['isStatus'] ) || ! empty( $body['broadcast'] ) ) {
+			return new WP_REST_Response( [ 'ok' => true, 'ignored' => 'status' ], 200 );
+		}
+
 		$phone = preg_replace( '/[^0-9]/', '', explode( '@', $from )[0] );
 		$media = ( isset( $body['media'] ) && is_array( $body['media'] ) ) ? $body['media'] : null;
 		$message = [
@@ -70,15 +100,35 @@ class Cead_Acad_WA_REST {
 		if ( $phone === '' || ( trim( $message['body'] ) === '' && ! $media ) ) {
 			return new WP_REST_Response( [ 'ok' => true, 'skipped' => true ], 200 );
 		}
+		// Mensajes viejos: al reconectarse, el bridge puede reentregar lo que
+		// quedó sin confirmar hace horas. Procesarlo es peor que perderlo — el
+		// bot contesta de la nada a algo que la persona escribió a la tarde, y
+		// como la sesión ya venció lo trata como charla nueva y saluda solo.
+		// Solo aplica si el bridge manda la marca de tiempo; si no, queda la
+		// dedup por ID de abajo como red.
+		$ts_raw = $body['timestamp'] ?? ( $body['t'] ?? ( $body['messageTimestamp'] ?? null ) );
+		if ( is_numeric( $ts_raw ) ) {
+			$ts = (float) $ts_raw;
+			if ( $ts > 1e11 ) { $ts /= 1000; } // vino en milisegundos
+			$edad = time() - (int) $ts;
+			$max  = (int) apply_filters( 'cead_acad_wa_max_message_age', 10 * MINUTE_IN_SECONDS );
+			if ( $edad > $max ) {
+				return new WP_REST_Response( [ 'ok' => true, 'stale' => true, 'age' => $edad ], 200 );
+			}
+		}
+
 		// Dedup defensiva por ID de mensaje: si el bridge reenvía el mismo mensaje
-		// (reintento de red), no lo procesamos dos veces.
+		// (reintento de red o reentrega al reconectar), no lo procesamos dos
+		// veces. La ventana era de 2 minutos, que cubría el reintento inmediato
+		// pero no una reentrega horas después: el candado ya había vencido y el
+		// mensaje entraba como nuevo.
 		$msg_id = isset( $body['id'] ) ? sanitize_text_field( (string) $body['id'] ) : '';
 		if ( $msg_id !== '' ) {
 			$lock = 'cead_acad_wa_seen_' . md5( $msg_id );
 			if ( get_transient( $lock ) ) {
 				return new WP_REST_Response( [ 'ok' => true, 'duplicate' => true ], 200 );
 			}
-			set_transient( $lock, 1, 2 * MINUTE_IN_SECONDS );
+			set_transient( $lock, 1, DAY_IN_SECONDS );
 		}
 		// Dedup por CONTENIDO (red de seguridad para bridges que no mandan 'id'):
 		// si el mismo número manda el mismo texto dentro de una ventana corta, es
