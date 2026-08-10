@@ -57,7 +57,37 @@ class Cead_Acad_WA_REST {
 			$body = $request->get_params();
 		}
 		$from = (string) ( $body['from'] ?? '' );
-		// El JID de WhatsApp llega como 5959xxxx@s.whatsapp.net.
+
+		/*
+		 * Solo se atienden chats individuales.
+		 *
+		 * WhatsApp entrega por el mismo canal cosas que NO son un mensaje para
+		 * el bot, y se distinguen por el dominio del JID:
+		 *
+		 *   5959xxxx@s.whatsapp.net  chat individual   → sí
+		 *   5959xxxx@c.us            ídem (whatsapp-web.js)
+		 *   status@broadcast         un ESTADO publicado
+		 *   xxxxx@g.us               un grupo
+		 *   xxxxx@newsletter         un canal
+		 *
+		 * Antes se hacía explode('@') y se tomaban los dígitos sin mirar el
+		 * dominio. Con eso, publicar un estado terminaba con CEADI saludando de
+		 * la nada: el bridge reporta al autor del estado y el motor lo tomaba
+		 * como si esa persona le hubiera escrito. Lo mismo habría pasado en un
+		 * grupo donde estuviera el número del bot.
+		 */
+		$dominios_ok = [ 's.whatsapp.net', 'c.us' ];
+		if ( false !== strpos( $from, '@' ) ) {
+			$dominio = strtolower( trim( substr( $from, strpos( $from, '@' ) + 1 ) ) );
+			if ( ! in_array( $dominio, $dominios_ok, true ) ) {
+				return new WP_REST_Response( [ 'ok' => true, 'ignored' => $dominio ], 200 );
+			}
+		}
+		// Algunos bridges marcan el estado aparte en vez de en el JID.
+		if ( ! empty( $body['isStatus'] ) || ! empty( $body['broadcast'] ) ) {
+			return new WP_REST_Response( [ 'ok' => true, 'ignored' => 'status' ], 200 );
+		}
+
 		$phone = preg_replace( '/[^0-9]/', '', explode( '@', $from )[0] );
 		$media = ( isset( $body['media'] ) && is_array( $body['media'] ) ) ? $body['media'] : null;
 		$message = [
