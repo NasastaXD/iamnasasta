@@ -68,6 +68,62 @@ final class PaginasVaciasTest extends TestCase {
 		$this->assertFalse( $this->esta_vacia( $despues ) );
 	}
 
+	/**
+	 * Toda página institucional tiene que tener a dónde ir mientras esté vacía.
+	 *
+	 * Sin esto, una página sin ancla de respaldo desaparece del menú — y si es
+	 * la única de su grupo, se lleva puesto el grupo entero. Ya pasó: el bloque
+	 * Institucional se borró completo del mega menú porque sus cuatro páginas
+	 * seguían con el texto de relleno y ninguna tenía respaldo.
+	 *
+	 * Se lee el código porque estas funciones viven en el tema y necesitan
+	 * WordPress; el mapa en sí es lo que hay que no romper.
+	 */
+	public function test_toda_pagina_institucional_tiene_ancla_de_respaldo(): void {
+		$src = (string) file_get_contents( dirname( __DIR__, 3 ) . '/cead/inc/pages.php' );
+
+		preg_match( '/function cead_institutional_pages\(\).*?\n}/s', $src, $mp );
+		preg_match_all( "/'([a-z0-9\-]+)'\s*=>\s*__\(/", $mp[0] ?? '', $ms );
+		$paginas = $ms[1] ?? [];
+
+		preg_match( '/function cead_page_fallback_anchor\(.*?\n}/s', $src, $mf );
+		preg_match_all( "/'([a-z0-9\-]+)'\s*=>\s*'#/", $mf[0] ?? '', $ma );
+		$con_ancla = $ma[1] ?? [];
+
+		$this->assertNotEmpty( $paginas, 'No pude leer la lista de páginas institucionales.' );
+
+		$sin_respaldo = array_values( array_diff( $paginas, $con_ancla ) );
+		$this->assertSame(
+			[],
+			$sin_respaldo,
+			"Estas páginas desaparecerían del menú mientras estén vacías:\n  - " . implode( "\n  - ", $sin_respaldo )
+		);
+	}
+
+	/** Y el ancla tiene que apuntar a una sección que exista de verdad. */
+	public function test_las_anclas_de_respaldo_apuntan_a_secciones_reales(): void {
+		$tema = dirname( __DIR__, 3 ) . '/cead';
+
+		preg_match( '/function cead_page_fallback_anchor\(.*?\n}/s', (string) file_get_contents( $tema . '/inc/pages.php' ), $mf );
+		preg_match_all( "/'([a-z0-9\-]+)'\s*=>\s*'#([a-zA-Z0-9_\-]+)'/", $mf[0] ?? '', $ma, PREG_SET_ORDER );
+
+		$ids = [];
+		foreach ( glob( $tema . '/template-parts/sections/*.php' ) as $s ) {
+			if ( preg_match_all( '/\bid=["\']([A-Za-z][A-Za-z0-9_\-]*)["\']/', (string) file_get_contents( $s ), $mi ) ) {
+				foreach ( $mi[1] as $id ) { $ids[ $id ] = true; }
+			}
+		}
+
+		$this->assertNotEmpty( $ma, 'No pude leer el mapa de anclas.' );
+		foreach ( $ma as [ , $slug, $ancla ] ) {
+			$this->assertArrayHasKey(
+				$ancla,
+				$ids,
+				"«{$slug}» cae a #{$ancla}, pero ninguna sección de la portada tiene ese id."
+			);
+		}
+	}
+
 	/** Una página que solo tiene una imagen tiene contenido, aunque no tenga texto. */
 	public function test_una_pagina_con_solo_una_imagen_no_esta_vacia(): void {
 		// Sin texto tras quitar etiquetas, este caso cae del lado de «vacía».

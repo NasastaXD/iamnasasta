@@ -1,4 +1,10 @@
-<section class="section section--quote">
+<?php
+/*
+ * Esta sección ES el Código de Honor: lleva su `id` para que el menú pueda
+ * apuntarle mientras la página institucional siga sin escribirse.
+ */
+?>
+<section id="honor-code" class="section section--quote">
   <div class="container container--narrow reveal text-center">
     <div class="eyebrow eyebrow--centered"><?php echo esc_html(get_theme_mod('cead_quote_eyebrow', '— Honor Code')); ?></div>
     <blockquote class="quote-text">
