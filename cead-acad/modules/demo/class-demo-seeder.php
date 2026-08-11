@@ -124,6 +124,38 @@ class Cead_Acad_Demo_Seeder {
 	}
 
 	/**
+	 * Término de materia para un recurso o una nota, creándolo si hace falta.
+	 *
+	 * `wp_set_object_terms()` a secas crea el término solo si no existe, pero
+	 * lo hace calladito: no hay forma de saber después cuáles term_id salieron
+	 * de la demo y cuáles ya estaban. Ese es justo el agujero por el que
+	 * quedaba basura después de purgar — «Institucional» ni siquiera es una
+	 * materia real, es una etiqueta que la demo se inventó para categorizar
+	 * el reglamento y el calendario, y se quedaba para siempre en el filtro de
+	 * Materias de Recursos.
+	 *
+	 * Acá se resuelve igual que un post: si el término no existía, se marca
+	 * con `self::FLAG` en su term meta, y `purge()` lo borra — pero SOLO si
+	 * para entonces nadie más lo está usando. Si dirección cargó un recurso
+	 * real con la misma materia mientras la demo estaba activa, ese recurso
+	 * reusó este mismo término en vez de crear uno repetido, y borrarlo a
+	 * ciegas le sacaría la categoría a algo real.
+	 */
+	protected static function ensure_subject_term( $nombre ) {
+		$existente = get_term_by( 'name', $nombre, 'cead_acad_subject' );
+		if ( $existente ) {
+			return (int) $existente->term_id;
+		}
+		$r = wp_insert_term( $nombre, 'cead_acad_subject' );
+		if ( is_wp_error( $r ) ) {
+			return 0;
+		}
+		$term_id = (int) $r['term_id'];
+		update_term_meta( $term_id, self::FLAG, 1 );
+		return $term_id;
+	}
+
+	/**
 	 * Tipos que crea el seeder. Se listan explícitamente y NO se usa
 	 * `post_type => 'any'`: todos estos CPTs se registran con `public => false`,
 	 * y eso hace que WordPress les ponga `exclude_from_search = true` por
@@ -168,6 +200,15 @@ class Cead_Acad_Demo_Seeder {
 			$out[ $label ] = count( $ids );
 		}
 		$out[ __( 'Usuarios', 'cead-acad' ) ] = count( get_users( [ 'meta_key' => self::FLAG, 'fields' => 'ID' ] ) );
+		// Materias que la demo creó. Normalmente en 0 después de purgar; si
+		// queda alguna es porque contenido real la sigue usando, y por eso
+		// purge() la respeta en vez de borrarla.
+		$out[ __( 'Materias', 'cead-acad' ) ] = count( get_terms( [
+			'taxonomy'   => 'cead_acad_subject',
+			'hide_empty' => false,
+			'fields'     => 'ids',
+			'meta_key'   => self::FLAG,
+		] ) );
 		return $out;
 	}
 
@@ -235,6 +276,27 @@ class Cead_Acad_Demo_Seeder {
 		}
 
 		foreach ( $post_ids as $pid ) { wp_delete_post( $pid, true ); }
+
+		/*
+		 * Términos de materia que la demo creó (ver ensure_subject_term()). Van
+		 * DESPUÉS de borrar los posts, a propósito: `wp_delete_post()` actualiza
+		 * el conteo de cada término al sacarle sus relaciones, así que recién acá
+		 * ese conteo refleja si a alguien real, no de demo, le sigue haciendo
+		 * falta. Uno en uso no se toca — es la diferencia entre "lo creó la
+		 * demo" y "lo sigue usando la demo".
+		 */
+		$term_ids = get_terms( [
+			'taxonomy'   => 'cead_acad_subject',
+			'hide_empty' => false,
+			'fields'     => 'ids',
+			'meta_key'   => self::FLAG,
+		] );
+		foreach ( $term_ids as $tid ) {
+			$term = get_term( $tid, 'cead_acad_subject' );
+			if ( $term && ! is_wp_error( $term ) && 0 === (int) $term->count ) {
+				wp_delete_term( $tid, 'cead_acad_subject' );
+			}
+		}
 
 		if ( $user_ids ) {
 			require_once ABSPATH . 'wp-admin/includes/user.php';
@@ -451,7 +513,10 @@ class Cead_Acad_Demo_Seeder {
 				'post_content' => $it[2],
 				'post_status'  => 'publish',
 			] );
-			wp_set_object_terms( $id, $it[1], 'cead_acad_subject' );
+			$term_id = self::ensure_subject_term( $it[1] );
+			if ( $term_id ) {
+				wp_set_object_terms( $id, [ $term_id ], 'cead_acad_subject' );
+			}
 			$n++;
 		}
 		return $n;
@@ -538,14 +603,8 @@ class Cead_Acad_Demo_Seeder {
 		$materias = [ 'Matemática', 'Comunicación y Lengua Castellana', 'Ciencias Básicas', 'Ciencias Sociales', 'Guaraní Ñe\'ẽ' ];
 		$terms    = [];
 		foreach ( $materias as $m ) {
-			$t = get_term_by( 'name', $m, 'cead_acad_subject' );
-			if ( ! $t ) {
-				$r = wp_insert_term( $m, 'cead_acad_subject' );
-				if ( is_wp_error( $r ) ) { continue; }
-				$terms[ $m ] = (int) $r['term_id'];
-			} else {
-				$terms[ $m ] = (int) $t->term_id;
-			}
+			$term_id = self::ensure_subject_term( $m );
+			if ( $term_id ) { $terms[ $m ] = $term_id; }
 		}
 
 		$n = 0;

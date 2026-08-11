@@ -249,6 +249,116 @@ class Cead_Test_WPDB {
 	}
 }
 
+/*
+ * Store de términos de taxonomía, en memoria. Alcanza para probar
+ * ensure_subject_term() y la limpieza de purge(): crear, buscar por nombre,
+ * marcar con meta, contar y borrar — sin necesitar WordPress real.
+ */
+$GLOBALS['cead_test_terms']        = []; // term_id => [ 'name', 'taxonomy', 'count' ]
+$GLOBALS['cead_test_term_meta']    = []; // term_id => [ key => value ]
+$GLOBALS['cead_test_next_term_id'] = 1;
+
+function cead_test_reset_terms() {
+	$GLOBALS['cead_test_terms']        = [];
+	$GLOBALS['cead_test_term_meta']    = [];
+	$GLOBALS['cead_test_next_term_id'] = 1;
+}
+
+/** Para simular contenido real que sigue usando un término (fuera de la demo). */
+function cead_test_set_term_count( $term_id, $count ) {
+	if ( isset( $GLOBALS['cead_test_terms'][ $term_id ] ) ) {
+		$GLOBALS['cead_test_terms'][ $term_id ]['count'] = (int) $count;
+	}
+}
+
+if ( ! function_exists( 'get_term_by' ) ) {
+	function get_term_by( $field, $value, $taxonomy = '' ) {
+		foreach ( $GLOBALS['cead_test_terms'] as $term_id => $term ) {
+			if ( $taxonomy && $term['taxonomy'] !== $taxonomy ) { continue; }
+			if ( 'name' === $field && $term['name'] === $value ) {
+				return (object) [ 'term_id' => $term_id, 'name' => $term['name'], 'taxonomy' => $term['taxonomy'], 'count' => $term['count'] ];
+			}
+		}
+		return false;
+	}
+}
+
+if ( ! function_exists( 'wp_insert_term' ) ) {
+	function wp_insert_term( $name, $taxonomy, $args = [] ) {
+		foreach ( $GLOBALS['cead_test_terms'] as $term ) {
+			if ( $term['taxonomy'] === $taxonomy && $term['name'] === $name ) {
+				return new WP_Error( 'term_exists', 'El término ya existe' );
+			}
+		}
+		$term_id = $GLOBALS['cead_test_next_term_id']++;
+		$GLOBALS['cead_test_terms'][ $term_id ] = [
+			'name'     => $name,
+			'taxonomy' => $taxonomy,
+			'count'    => 0,
+		];
+		return [ 'term_id' => $term_id, 'term_taxonomy_id' => $term_id ];
+	}
+}
+
+if ( ! function_exists( 'update_term_meta' ) ) {
+	function update_term_meta( $term_id, $key, $value ) {
+		$GLOBALS['cead_test_term_meta'][ $term_id ][ $key ] = $value;
+		return true;
+	}
+}
+
+if ( ! function_exists( 'get_term_meta' ) ) {
+	function get_term_meta( $term_id, $key = '', $single = false ) {
+		if ( '' === $key ) {
+			return $GLOBALS['cead_test_term_meta'][ $term_id ] ?? [];
+		}
+		$value = $GLOBALS['cead_test_term_meta'][ $term_id ][ $key ] ?? '';
+		return $single ? $value : [ $value ];
+	}
+}
+
+if ( ! function_exists( 'get_term' ) ) {
+	function get_term( $term_id, $taxonomy = '' ) {
+		if ( ! isset( $GLOBALS['cead_test_terms'][ $term_id ] ) ) { return null; }
+		$term = $GLOBALS['cead_test_terms'][ $term_id ];
+		return (object) [ 'term_id' => $term_id, 'name' => $term['name'], 'taxonomy' => $term['taxonomy'], 'count' => $term['count'] ];
+	}
+}
+
+if ( ! function_exists( 'get_terms' ) ) {
+	function get_terms( $args = [] ) {
+		$taxonomy = $args['taxonomy'] ?? '';
+		$meta_key = $args['meta_key'] ?? '';
+		$fields   = $args['fields'] ?? 'all';
+		$out      = [];
+		foreach ( $GLOBALS['cead_test_terms'] as $term_id => $term ) {
+			if ( $taxonomy && $term['taxonomy'] !== $taxonomy ) { continue; }
+			if ( $meta_key && empty( $GLOBALS['cead_test_term_meta'][ $term_id ][ $meta_key ] ) ) { continue; }
+			$out[] = 'ids' === $fields ? $term_id : (object) [ 'term_id' => $term_id, 'name' => $term['name'], 'taxonomy' => $term['taxonomy'], 'count' => $term['count'] ];
+		}
+		return $out;
+	}
+}
+
+if ( ! function_exists( 'wp_delete_term' ) ) {
+	function wp_delete_term( $term_id, $taxonomy = '' ) {
+		unset( $GLOBALS['cead_test_terms'][ $term_id ] );
+		unset( $GLOBALS['cead_test_term_meta'][ $term_id ] );
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_set_object_terms' ) ) {
+	function wp_set_object_terms( $object_id, $terms, $taxonomy, $append = false ) {
+		foreach ( (array) $terms as $t ) {
+			if ( isset( $GLOBALS['cead_test_terms'][ $t ] ) ) {
+				$GLOBALS['cead_test_terms'][ $t ]['count']++;
+			}
+		}
+		return (array) $terms;
+	}
+}
+
 // ---- Código bajo test ----
 require_once dirname( __DIR__, 2 ) . '/includes/helpers.php';
 require_once dirname( __DIR__, 2 ) . '/modules/courses/class-courses-roster.php';
