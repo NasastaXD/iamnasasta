@@ -246,7 +246,7 @@ Acceso para dirección/secretaría desde `wp-admin`. El **Escritorio** tiene est
 | **Eventos** | Reuniones, exámenes, actos del calendario. |
 | **Recursos** | Subir materiales pedagógicos. |
 | **Tareas (delegado)** | Tareas asignadas a cursos. |
-| **Importadores** | Cargar por archivo CSV/Excel: **Alumnado, Calificaciones, Cursos, Horario de clases, Horarios/eventos**. El "Horario de clases" carga la grilla semanal de todos los cursos de una vez — pensado para una planilla real de secretaría, no para tipear fila por fila. ⚠️ **Solo desde computadora** (en celular está bloqueado por ser poco fiable). |
+| **Importadores** | Cargar por archivo CSV/Excel: **Alumnado, Calificaciones, Cursos, Horario de clases, Horarios/eventos**. El "Horario de clases" carga la grilla semanal de todos los cursos de una vez — pensado para una planilla real de secretaría, no para tipear fila por fila. Funciona desde cualquier dispositivo; en pantalla chica, la tabla de mapeo se desplaza de costado. |
 | **WhatsApp** | Estado del bridge, comunicados por WA, reportes, métricas, mensaje directo y **perfil de CEADI**. |
 | **Actualizaciones** | Ver/actualizar la versión del plugin (ver §9). |
 

@@ -113,10 +113,16 @@ class Cead_Acad_Importer_Admin {
 		}
 		check_admin_referer( 'cead_acad_import_upload' );
 
-		// La importación solo se permite desde computadora (en móvil es poco fiable).
-		if ( wp_is_mobile() ) {
-			wp_die( esc_html__( 'La importación solo está disponible desde una computadora. Abrí esta página desde una PC.', 'cead-acad' ) );
-		}
+		/*
+		 * Antes acá se rechazaba la subida desde el teléfono. Era una suposición
+		 * sobre el dispositivo, no una limitación real: el archivo se sube igual
+		 * y el mapeo funciona igual. Y `wp_is_mobile()` se decide por el
+		 * user-agent, así que una tablet o un navegador de escritorio en modo
+		 * responsive quedaban bloqueados sin motivo.
+		 *
+		 * Si la pantalla chica hace incómodo el paso de mapeo, eso se resuelve
+		 * con CSS, no prohibiéndole a alguien usar su propia herramienta.
+		 */
 
 		$type = sanitize_key( $_POST['import_type'] ?? '' );
 		$importer = $this->importer_for( $type );

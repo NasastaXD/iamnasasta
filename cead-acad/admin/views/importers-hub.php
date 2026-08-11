@@ -13,12 +13,19 @@ $jobs      = Cead_Acad_Importer_Job::recent( 20 );
 	<p class="description"><?php esc_html_e( 'Subí un archivo CSV o Excel (.xlsx) y, guiado paso a paso, lo mapeás, validás e importás. Descargá una plantilla para ver el formato esperado.', 'cead-acad' ); ?></p>
 
 	<h2 class="title"><?php esc_html_e( 'Nuevo trabajo', 'cead-acad' ); ?></h2>
-	<?php if ( wp_is_mobile() ) : ?>
-		<div class="notice notice-warning" style="margin:0 0 1rem;padding:12px 16px">
-			<p style="margin:0 0 .4rem"><strong>💻 <?php esc_html_e( 'La importación solo está disponible desde una computadora.', 'cead-acad' ); ?></strong></p>
-			<p style="margin:0"><?php esc_html_e( 'La carga y el mapeo de archivos requieren pantalla grande y son poco fiables en el teléfono. Abrí esta página desde una PC o notebook para importar.', 'cead-acad' ); ?></p>
-		</div>
-	<?php else : ?>
+	<?php
+	/*
+	 * Acá había un bloqueo por `wp_is_mobile()`: desde el teléfono no se
+	 * mostraba el formulario y solo se veía un cartel diciendo que usaras una
+	 * PC. Era una suposición sobre el dispositivo, no una limitación real — y
+	 * `wp_is_mobile()` decide por user-agent, así que también dejaba afuera
+	 * tablets y navegadores de escritorio en modo responsive.
+	 *
+	 * El formulario se muestra siempre. Lo que sí hacía falta era que la tabla
+	 * de mapeo se pueda usar en pantalla chica, y eso se resuelve con scroll
+	 * horizontal (ver `importer-mapping.php`), no prohibiendo el acceso.
+	 */
+	?>
 	<form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<?php wp_nonce_field( 'cead_acad_import_upload' ); ?>
 		<input type="hidden" name="action" value="cead_acad_import_upload">
@@ -57,7 +64,6 @@ $jobs      = Cead_Acad_Importer_Job::recent( 20 );
 		</table>
 		<?php submit_button( __( 'Subir y continuar', 'cead-acad' ) ); ?>
 	</form>
-	<?php endif; ?>
 
 	<h2 class="title"><?php esc_html_e( 'Importaciones recientes', 'cead-acad' ); ?></h2>
 	<table class="wp-list-table widefat fixed striped">

@@ -18,7 +18,19 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 		<input type="hidden" name="action" value="cead_acad_import_map">
 		<input type="hidden" name="job_id" value="<?php echo (int) $job['id']; ?>">
 
-		<table class="wp-list-table widefat fixed striped">
+		<?php
+		/*
+		 * La tabla scrollea sola en horizontal cuando no entra. Es lo que hacía
+		 * falta para poder mapear desde el teléfono — antes la pantalla estaba
+		 * directamente bloqueada en móvil, que era una forma bastante brusca de
+		 * resolver un problema de ancho.
+		 *
+		 * `fixed` se saca a propósito: con anchos fijos las columnas se
+		 * aplastan en vez de dejar scrollear.
+		 */
+		?>
+		<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+		<table class="wp-list-table widefat striped" style="min-width:640px">
 			<thead>
 				<tr>
 					<th style="width:35%"><?php esc_html_e( 'Columna del archivo', 'cead-acad' ); ?></th>
@@ -56,6 +68,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 				<?php endforeach; ?>
 			</tbody>
 		</table>
+		</div>
 
 		<?php submit_button( __( 'Continuar a validación', 'cead-acad' ) ); ?>
 	</form>
