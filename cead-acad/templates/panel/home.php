@@ -88,6 +88,7 @@ $body = function () use ( $user, $rdisp, $quick, $today_classes, $events, $unrea
 								<span class="cead-acad-today-time"><?php echo esc_html( $hi !== '' ? $hi : '—' ); ?><?php echo $hf !== '' ? ' – ' . esc_html( $hf ) : ''; ?></span>
 								<span class="cead-acad-today-mat"><?php echo esc_html( (string) ( $c['materia'] ?? '' ) ); ?></span>
 								<?php if ( ! empty( $c['docente'] ) ) : ?><span class="cead-acad-today-doc">👤 <?php echo esc_html( (string) $c['docente'] ); ?></span><?php endif; ?>
+								<?php if ( ! empty( $c['aula'] ) ) : ?><span class="cead-acad-today-doc">📍 <?php echo esc_html( (string) $c['aula'] ); ?></span><?php endif; ?>
 							</li>
 						<?php endforeach; ?>
 					</ul>

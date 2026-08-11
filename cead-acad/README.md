@@ -465,6 +465,21 @@ Crea términos de materia automáticamente. Idempotente por UNIQUE key.
 
 Campos: `titulo` (req), `cohorte` (req), `grado`, `turno`, `division`, `descripcion`.
 
+### Importador de Horario de clases
+
+No confundir con el "Importador de Eventos" (calendario institucional). Este
+carga la grilla semanal fija de un curso — qué materia, con qué docente, a qué
+hora y en qué aula — al mismo meta que llena el cuadro manual "Horario de
+materias" del admin del curso.
+
+Campos: `curso` (req, título exacto — el curso tiene que existir de antes),
+`dia` (req, lunes a domingo), `inicio` (req, `HH:MM` 24h), `fin` (req, `HH:MM`
+24h, posterior a `inicio`), `materia` (req), `docente`, `aula`.
+
+Idempotente por (curso, día, hora de inicio): reimportar la misma planilla
+actualiza cada clase en vez de duplicarla — corregir un aula o un docente a
+mitad de año es volver a subir el archivo.
+
 ### Importador de Eventos
 
 Campos: `titulo` (req), `inicio` (req, `YYYY-MM-DD HH:MM`), `fin`, `tipo`, `lugar`, `todo_el_dia`, `curso`, `descripcion`.

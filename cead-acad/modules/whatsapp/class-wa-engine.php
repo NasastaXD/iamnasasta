@@ -2536,6 +2536,8 @@ class Cead_Acad_WA_Engine {
 				$line = trim( $time . ' ' . (string) ( $it['materia'] ?? '' ) );
 				$doc  = (string) ( $it['docente'] ?? '' );
 				if ( $doc !== '' ) { $line .= ' · ' . $doc; }
+				$aula = (string) ( $it['aula'] ?? '' );
+				if ( $aula !== '' ) { $line .= ' · 📍 ' . $aula; }
 				$out[] = $line;
 			}
 		}

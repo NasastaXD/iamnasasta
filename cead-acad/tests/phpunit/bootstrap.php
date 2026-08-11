@@ -109,6 +109,15 @@ if ( ! function_exists( 'wp_strip_all_tags' ) ) {
 		return trim( $text );
 	}
 }
+if ( ! function_exists( 'remove_accents' ) ) {
+	function remove_accents( $string ) {
+		$mapa = [
+			'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ü'=>'u','ñ'=>'n',
+			'Á'=>'A','É'=>'E','Í'=>'I','Ó'=>'O','Ú'=>'U','Ü'=>'U','Ñ'=>'N',
+		];
+		return strtr( (string) $string, $mapa );
+	}
+}
 if ( ! function_exists( 'number_format_i18n' ) ) {
 	function number_format_i18n( $number, $decimals = 0 ) { return number_format( (float) $number, (int) $decimals ); }
 }
@@ -248,6 +257,8 @@ require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-identity.php';
 require_once dirname( __DIR__, 2 ) . '/modules/auth/class-invitations.php';
 require_once dirname( __DIR__, 2 ) . '/modules/broadcasts/class-broadcasts-audiences.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-csv-reader.php';
+require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-base.php';
+require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-horarios.php';
 require_once dirname( __DIR__, 2 ) . '/modules/grades/class-grades-writer.php';
 require_once dirname( __DIR__, 2 ) . '/modules/grades/class-grades-sheet.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-ai.php';

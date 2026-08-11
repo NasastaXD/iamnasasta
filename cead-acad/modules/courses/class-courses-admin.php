@@ -93,6 +93,7 @@ class Cead_Acad_Courses_Admin {
 				<th style="width:90px"><?php esc_html_e( 'Hasta', 'cead-acad' ); ?></th>
 				<th><?php esc_html_e( 'Materia', 'cead-acad' ); ?></th>
 				<th><?php esc_html_e( 'Docente (opcional)', 'cead-acad' ); ?></th>
+				<th style="width:120px"><?php esc_html_e( 'Aula (opcional)', 'cead-acad' ); ?></th>
 			</tr></thead>
 			<tbody>
 			<?php foreach ( $rows as $i => $s ) :
@@ -101,6 +102,7 @@ class Cead_Acad_Courses_Admin {
 				$fin     = esc_attr( (string) ( $s['fin'] ?? '' ) );
 				$materia = esc_attr( (string) ( $s['materia'] ?? '' ) );
 				$docente = esc_attr( (string) ( $s['docente'] ?? '' ) );
+				$aula    = esc_attr( (string) ( $s['aula'] ?? '' ) );
 			?>
 				<tr>
 					<td>
@@ -115,6 +117,7 @@ class Cead_Acad_Courses_Admin {
 					<td><input type="time" name="cead_acad_horario[<?php echo (int) $i; ?>][fin]" value="<?php echo $fin; ?>"></td>
 					<td><input type="text" class="regular-text" name="cead_acad_horario[<?php echo (int) $i; ?>][materia]" value="<?php echo $materia; ?>"></td>
 					<td><input type="text" class="regular-text" name="cead_acad_horario[<?php echo (int) $i; ?>][docente]" value="<?php echo $docente; ?>"></td>
+					<td><input type="text" name="cead_acad_horario[<?php echo (int) $i; ?>][aula]" value="<?php echo $aula; ?>"></td>
 				</tr>
 			<?php endforeach; ?>
 			</tbody>
@@ -229,13 +232,16 @@ class Cead_Acad_Courses_Admin {
 				$dia     = (int) ( $row['dia'] ?? 0 );
 				$materia = sanitize_text_field( wp_unslash( $row['materia'] ?? '' ) );
 				if ( $dia < 1 || $dia > 7 || $materia === '' ) { continue; }
-				$slots[] = [
+				$aula = sanitize_text_field( wp_unslash( $row['aula'] ?? '' ) );
+				$slot = [
 					'dia'     => $dia,
 					'inicio'  => $this->clean_time( wp_unslash( $row['inicio'] ?? '' ) ),
 					'fin'     => $this->clean_time( wp_unslash( $row['fin'] ?? '' ) ),
 					'materia' => $materia,
 					'docente' => sanitize_text_field( wp_unslash( $row['docente'] ?? '' ) ),
 				];
+				if ( '' !== $aula ) { $slot['aula'] = $aula; }
+				$slots[] = $slot;
 			}
 		}
 		update_post_meta( $post_id, '_cead_acad_horario', wp_json_encode( $slots ) );

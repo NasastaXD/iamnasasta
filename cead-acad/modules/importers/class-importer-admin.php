@@ -41,6 +41,7 @@ class Cead_Acad_Importer_Admin {
 			'grades'   => new Cead_Acad_Importer_Grades(),
 			'courses'  => new Cead_Acad_Importer_Courses(),
 			'events'   => new Cead_Acad_Importer_Events(),
+			'horarios' => new Cead_Acad_Importer_Horarios(),
 		];
 	}
 

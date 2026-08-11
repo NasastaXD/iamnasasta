@@ -108,7 +108,7 @@ Mandá un **mensaje directo** a **Dirección**, **Consejo** o **Administración*
 Encuestas dirigidas a vos; las respondés y se registran. (Quien las crea puede ver resultados en la administración.)
 
 ### 📚 Horarios
-Tu **horario semanal de clases** (materias, horas y docentes) según tu curso. Lo carga la secretaría en cada curso.
+Tu **horario semanal de clases** (materias, horas, docentes y aula) según tu curso. Lo carga la secretaría, a mano en cada curso o de una vez con el importador de "Horario de clases" (ver §7 Administración).
 
 ### 📅 Calendario
 **Eventos** (reuniones, exámenes, actos…) en **vista mensual** o **agenda**. Incluye:
@@ -240,13 +240,13 @@ Acceso para dirección/secretaría desde `wp-admin`. El **Escritorio** tiene est
 |---|---|
 | **Usuarios** | Crear usuarios, asignar rol y teléfono. |
 | **Invitaciones** | Generar links de invitación para sumar gente. |
-| **Cursos** | Crear cursos, asignar delegado/tutor/alumnado y **cargar el horario semanal** (día, hora, materia, docente). |
+| **Cursos** | Crear cursos, asignar delegado/tutor/alumnado y **cargar el horario semanal** (día, hora, materia, docente, aula), a mano. |
 | **Comunicados** | Publicar comunicados dirigidos a rol, curso o personas. |
 | **Encuestas** | Crear encuestas y ver resultados. |
 | **Eventos** | Reuniones, exámenes, actos del calendario. |
 | **Recursos** | Subir materiales pedagógicos. |
 | **Tareas (delegado)** | Tareas asignadas a cursos. |
-| **Importadores** | Cargar por archivo CSV/Excel: **Alumnado, Calificaciones, Cursos, Horarios/eventos**. ⚠️ **Solo desde computadora** (en celular está bloqueado por ser poco fiable). |
+| **Importadores** | Cargar por archivo CSV/Excel: **Alumnado, Calificaciones, Cursos, Horario de clases, Horarios/eventos**. El "Horario de clases" carga la grilla semanal de todos los cursos de una vez — pensado para una planilla real de secretaría, no para tipear fila por fila. ⚠️ **Solo desde computadora** (en celular está bloqueado por ser poco fiable). |
 | **WhatsApp** | Estado del bridge, comunicados por WA, reportes, métricas, mensaje directo y **perfil de CEADI**. |
 | **Actualizaciones** | Ver/actualizar la versión del plugin (ver §9). |
 
