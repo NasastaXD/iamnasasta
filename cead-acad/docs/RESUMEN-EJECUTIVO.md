@@ -20,7 +20,7 @@ Una **plataforma propia, hecha a medida**, que centraliza todo en un solo lugar 
 
 ## En números
 
-- **18 módulos** (comunicados, encuestas, horarios, recursos, calificaciones, tareas, carné, importadores, bot…)
+- **17 módulos** (comunicados, encuestas, horarios, recursos, calificaciones, tareas, carné, importadores, bot…)
 - **7 roles** con permisos propios (dirección, secretaría, docente, delegado, alumno, familia, consejo)
 - **18 tablas** de base de datos + **7 tipos de contenido** propios
 - **1 bot** conversacional con IA, voz y reportes cifrados

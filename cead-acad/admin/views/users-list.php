@@ -31,7 +31,10 @@ $roles_cfg_selectable = $can_assign_direction ? $roles_cfg : array_diff_key( $ro
 	<h1><?php esc_html_e( 'Usuarios', 'cead-acad' ); ?></h1>
 
 	<?php if ( $notice ) : ?>
-		<div class="notice notice-<?php echo esc_attr( $notice['type'] === 'success' ? 'success' : 'error' ); ?> is-dismissible">
+		<?php
+		$notice_class = in_array( $notice['type'], [ 'success', 'warning' ], true ) ? $notice['type'] : 'error';
+		?>
+		<div class="notice notice-<?php echo esc_attr( $notice_class ); ?> is-dismissible">
 			<p><?php echo wp_kses_post( $notice['msg'] ); ?></p>
 		</div>
 	<?php endif; ?>
@@ -70,6 +73,42 @@ $roles_cfg_selectable = $can_assign_direction ? $roles_cfg : array_diff_key( $ro
 						<p class="description"><?php esc_html_e( 'Número completo con código de país, sin +. Ej: 595981123456', 'cead-acad' ); ?></p>
 					</td>
 				</tr>
+				<tr>
+					<th scope="row"><label for="edit_document_id"><?php esc_html_e( 'Documento (cédula)', 'cead-acad' ); ?></label></th>
+					<td><input type="text" id="edit_document_id" name="document_id" class="regular-text" value="<?php echo esc_attr( get_user_meta( $editing_user->ID, '_cead_acad_document_id', true ) ); ?>"></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="edit_birthdate"><?php esc_html_e( 'Fecha de nacimiento', 'cead-acad' ); ?></label></th>
+					<td><input type="text" id="edit_birthdate" name="birthdate" class="regular-text" placeholder="AAAA-MM-DD" value="<?php echo esc_attr( get_user_meta( $editing_user->ID, '_cead_acad_birthdate', true ) ); ?>"></td>
+				</tr>
+				<?php if ( current_user_can( 'cead_acad_manage_courses' ) ) :
+					$courses         = cead_acad_courses_for_select();
+					$current_course  = (int) get_user_meta( $editing_user->ID, '_cead_acad_current_course_id', true );
+					$otros_cursos    = array_diff( Cead_Acad_Courses_Roster::courses_for_user( $editing_user->ID ), [ $current_course ] );
+				?>
+				<tr>
+					<th scope="row"><label for="edit_course_id"><?php esc_html_e( 'Curso', 'cead-acad' ); ?></label></th>
+					<td>
+						<select id="edit_course_id" name="course_id">
+							<option value="0" <?php selected( $current_course, 0 ); ?>><?php esc_html_e( '— sin curso —', 'cead-acad' ); ?></option>
+							<?php foreach ( $courses as $cid => $ctitle ) : ?>
+								<option value="<?php echo esc_attr( $cid ); ?>" <?php selected( $current_course, $cid ); ?>><?php echo esc_html( $ctitle ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<?php if ( $otros_cursos ) : ?>
+							<p class="description">
+								<?php
+								$otros_nombres = array_map( static function ( $cid ) use ( $courses ) {
+									return $courses[ $cid ] ?? ( '#' . $cid );
+								}, $otros_cursos );
+								/* translators: %s: lista de otros cursos donde también está inscripto/a */
+								printf( esc_html__( 'También está inscripto/a en: %s (no se toca desde acá; se administra desde el curso).', 'cead-acad' ), esc_html( implode( ', ', $otros_nombres ) ) );
+								?>
+							</p>
+						<?php endif; ?>
+					</td>
+				</tr>
+				<?php endif; ?>
 				<?php
 				// Solo permitir cambio de rol si el usuario NO es administrador de WordPress.
 				$is_wp_admin = in_array( 'administrator', (array) $editing_user->roles, true );
