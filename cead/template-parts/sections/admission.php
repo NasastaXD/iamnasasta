@@ -40,7 +40,7 @@ $adm_botones = array_values( array_filter( [
 
   <div class="container admission-inner">
     <div class="eyebrow admission-eyebrow"><?php echo esc_html(get_theme_mod('cead_adm_eyebrow', '— Admisión 2026')); ?></div>
-    <h2 class="reveal admission-title"><?php echo wp_kses_post(get_theme_mod('cead_adm_title', 'Postulá<br>a CEAD.')); ?></h2>
+    <h2 class="reveal reveal--wipe admission-title"><?php echo wp_kses_post(get_theme_mod('cead_adm_title', 'Postulá<br>a CEAD.')); ?></h2>
 
     <div class="admission-foot">
       <p class="admission-body"><?php echo wp_kses_post(get_theme_mod('cead_adm_body', 'El proceso de admisión 2026 está abierto. Cuatro divisiones técnicas, evaluación académica, entrevista con familia y carta de compromiso al Honor Code.')); ?></p>

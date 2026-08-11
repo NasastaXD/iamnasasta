@@ -27,7 +27,7 @@ $default_colors = ['#E93B3C', '#49A3C8', '#EDDF58', '#F4B74C'];
               $img      = cead_post_image_url(get_the_ID(), '_cead_div_image_url');
               $n        = cead_pad2($i + 1);
               ?>
-              <a href="<?php the_permalink(); ?>" class="reveal division-card" style="--card-color: <?php echo esc_attr($color); ?>">
+              <a href="<?php the_permalink(); ?>" class="reveal division-card" style="--card-color: <?php echo esc_attr($color); ?>; --i: <?php echo (int) $i; ?>">
                 <div class="division-card-image">
                   <?php if ($img): ?>
                     <img src="<?php echo esc_url($img); ?>" alt="<?php echo esc_attr(get_the_title()); ?>" loading="lazy">

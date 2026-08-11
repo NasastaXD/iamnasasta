@@ -86,10 +86,22 @@ $nav_groups = array_values( array_filter( [
       <a href="<?php echo esc_url( home_url( '/?s=' ) ); ?>" class="site-nav-iconbtn" aria-label="<?php esc_attr_e( 'Buscar en el sitio', 'cead' ); ?>">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
       </a>
-      <button id="menu-open" class="site-nav-iconbtn site-nav-iconbtn--brand"
+      <?php
+      /*
+       * Las tres barras van como elementos sueltos, no como un `path` con tres
+       * tramos: así cada una se puede mover por su cuenta. Al pasar el mouse se
+       * escalonan y la del medio se acorta — es lo que le da el gesto de «esto
+       * responde» sin agregar nada de peso.
+       */
+      ?>
+      <button id="menu-open" class="site-nav-iconbtn site-nav-iconbtn--brand site-burger"
               aria-label="<?php esc_attr_e( 'Abrir menú', 'cead' ); ?>"
               aria-expanded="false" aria-controls="mega-menu">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true" focusable="false">
+          <line class="site-burger-l site-burger-l--1" x1="4" y1="6"  x2="20" y2="6"/>
+          <line class="site-burger-l site-burger-l--2" x1="4" y1="12" x2="20" y2="12"/>
+          <line class="site-burger-l site-burger-l--3" x1="4" y1="18" x2="20" y2="18"/>
+        </svg>
       </button>
     </div>
   </div>
@@ -99,8 +111,18 @@ $nav_groups = array_values( array_filter( [
      aria-label="<?php esc_attr_e( 'Menú del sitio', 'cead' ); ?>">
   <div class="container mega-menu-top">
     <?php get_template_part('template-parts/logo', null, ['dark' => true]); ?>
+    <?php
+    /*
+     * La X se dibuja sola al abrir: los dos trazos entran girando desde la
+     * hamburguesa que había abajo. El menú tapa el header, así que el morph
+     * literal no se podría ver — esto lo cuenta igual, y sin JavaScript.
+     */
+    ?>
     <button id="menu-close" class="mega-menu-close" aria-label="<?php esc_attr_e( 'Cerrar menú', 'cead' ); ?>">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true" focusable="false">
+        <line class="mega-menu-close-l mega-menu-close-l--1" x1="18" y1="6" x2="6"  y2="18"/>
+        <line class="mega-menu-close-l mega-menu-close-l--2" x1="6"  y1="6" x2="18" y2="18"/>
+      </svg>
     </button>
   </div>
   <div class="container mega-menu-grid">
@@ -116,14 +138,21 @@ $nav_groups = array_values( array_filter( [
         ]);
         echo '</div>';
     else:
+        /*
+         * `--i` es la posición del ítem contando desde arriba y a través de las
+         * columnas: lo usa el CSS para escalonar la entrada. Se cuenta corrido
+         * (no por columna) para que la cascada baje en diagonal en vez de
+         * arrancar tres veces en paralelo.
+         */
+        $orden = 0;
         foreach ($nav_groups as $i => $s): ?>
-            <div class="mega-menu-col">
+            <div class="mega-menu-col" style="--i:<?php echo (int) $orden++; ?>">
                 <div class="mega-menu-col-title">
                     <?php echo esc_html(cead_pad2($i + 1) . ' — ' . $s['label']); ?>
                 </div>
                 <ul class="mega-menu-list">
                     <?php foreach ($s['items'] as $it): ?>
-                        <li><a href="<?php echo esc_url( $it['url'] ); ?>"><?php echo esc_html( $it['label'] ); ?></a></li>
+                        <li style="--i:<?php echo (int) $orden++; ?>"><a href="<?php echo esc_url( $it['url'] ); ?>"><?php echo esc_html( $it['label'] ); ?></a></li>
                     <?php endforeach; ?>
                 </ul>
             </div>

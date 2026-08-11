@@ -70,6 +70,57 @@ Mismo patrón: 4 entradas precargadas, editables individualmente.
 - Logs locales se guardan en `wp-content/uploads/cead-contact-log.txt` como respaldo.
 - Para usar SMTP real, instalá WP Mail SMTP (o equivalente) — esto solo afecta cómo viaja el correo, no cómo lo recibís.
 
+## Movimiento
+
+El CEAD es tipografía condensada, esquinas rectas y color plano. El movimiento
+sigue la misma idea: **nada rebota ni flota — las cosas se colocan.** Entran
+rápido y frenan en seco.
+
+Todo sale de tokens en `:root` (`assets/css/styles.css`), no de literales:
+
+| Token | Para qué |
+|---|---|
+| `--dur-rapido` `.18s` | Respuesta al mouse: color, escala al presionar |
+| `--dur-medio` `.42s` | El gesto típico: subrayados, entradas de ítem |
+| `--dur-lento` `.8s` | Revelados al hacer scroll |
+| `--dur-menu` `.7s` | La apertura del mega menú |
+| `--ease-corte` | La curva del CEAD para gestos grandes. Arranca lento, cruza rápido y aterriza en seco |
+| `--ease-cead` | Salidas suaves, para lo que acompaña |
+| `--ease-resorte` | Rebote. Se usa **solo** en la página del proyecto, en íconos chicos |
+| `--stagger` `60ms` | Cuánto se corre cada elemento de una cascada |
+
+### Revelados
+
+`.reveal` + `IntersectionObserver` (14 líneas en `main.js`) es todo el sistema.
+Variantes por clase:
+
+- `.reveal--wipe` — recorte desde abajo, para títulos grandes en Anton. El
+  título se **descubre** en vez de aparecer.
+- `.reveal--izq` / `.reveal--der` — entradas laterales.
+- `style="--i: N"` — escalona la entrada dentro de una grilla. Topea a los 7
+  pasos para que la última tarjeta no quede esperando.
+
+Sin JavaScript nada de esto aplica: `.js` en `<html>` lo activa, y sin esa
+clase el contenido se ve entero desde el principio.
+
+### Cambio de página
+
+`@view-transition { navigation: auto }` — dos líneas, y el navegador funde una
+página con la otra en vez de parpadear en blanco. El header lleva
+`view-transition-name` para quedarse quieto mientras el resto cambia. Donde no
+está soportado no pasa nada.
+
+### Barra de progreso
+
+La línea de marca bajo el header usa `animation-timeline: scroll()`, así que no
+hay ni un listener de scroll. Donde el navegador no lo soporta, no se dibuja.
+
+### Movimiento reducido
+
+Con `prefers-reduced-motion: reduce` se apaga todo. Lo importante no es cortar
+la animación sino **dejar visible lo que arranca invisible**: si solo se
+cortaran las transiciones, el mega menú quedaría en blanco.
+
 ## Notas
 
 - **No hay librerías de animación.** Todo el movimiento es CSS más un `IntersectionObserver` de catorce líneas (`.reveal`, en `assets/js/main.js`). GSAP y ScrollTrigger estuvieron enqueued desde un CDN durante un tiempo «por si acaso», sin que ningún código los usara: eran ~110 KB y dos conexiones extra en la portada, para nada. Si algún día hace falta, se suma junto con el código que la use.
