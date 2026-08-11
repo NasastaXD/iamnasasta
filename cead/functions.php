@@ -63,14 +63,25 @@ function cead_enqueue() {
         . '}';
     wp_add_inline_style('cead-main', $custom_css);
 
-    // GSAP (CDN) — solo en front-page
-    if (is_front_page() || is_home()) {
-        wp_enqueue_script('gsap',             'https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js',              [],         '3.12.5', true);
-        wp_enqueue_script('gsap-scrolltrigger', 'https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js', ['gsap'],  '3.12.5', true);
-    }
+    /*
+     * Acá se bajaban GSAP y ScrollTrigger desde un CDN en la portada. No los
+     * usaba nadie: cero referencias en todo el tema. Eran ~110 KB de JavaScript
+     * y dos conexiones a otro dominio, en la página más visitada y sobre datos
+     * móviles, para nada.
+     *
+     * Las animaciones del tema salen de CSS más un IntersectionObserver de
+     * catorce líneas (`.reveal` en main.js), que alcanza de sobra. Si algún día
+     * hace falta una librería de scroll, se suma cuando exista el código que la
+     * use — no antes.
+     */
 
     // JS del tema
     wp_enqueue_script('cead-main', CEAD_URI . '/assets/js/main.js', [], CEAD_VERSION, true);
+
+    // Audio y contadores de /proyecto. Solo donde se usan.
+    if (is_page_template(CEAD_PROYECTO_TEMPLATE)) {
+        wp_enqueue_script('cead-proyecto', CEAD_URI . '/assets/js/proyecto.js', [], CEAD_VERSION, true);
+    }
 
     if (is_singular() && comments_open() && get_option('thread_comments')) {
         wp_enqueue_script('comment-reply');

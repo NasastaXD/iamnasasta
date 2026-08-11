@@ -33,15 +33,68 @@ function cead_institutional_pages() {
 }
 
 /**
- * URL de una página por slug, o '' si no existe.
+ * Texto con el que nacen las páginas sembradas.
+ *
+ * Vive en una constante para que sembrar y detectar usen exactamente la misma
+ * cadena. Si estuviera escrita dos veces, cambiar una y no la otra dejaría
+ * páginas vacías colándose en el menú sin que nadie se entere.
+ */
+const CEAD_PAGE_PLACEHOLDER = '<p>Contenido en preparación. Editá esta página desde <strong>Páginas</strong> en el panel.</p>';
+
+/**
+ * ¿La página sigue con el texto de relleno (o directamente vacía)?
+ *
+ * Se compara sobre el texto pelado y con los espacios normalizados, para que
+ * no dependa de si el editor guardó saltos de línea distintos o envolvió el
+ * párrafo en un bloque de Gutenberg.
+ */
+function cead_page_is_placeholder( $post ) {
+	$post = get_post( $post );
+	if ( ! $post ) { return true; }
+
+	$limpiar = static function ( $html ) {
+		return trim( preg_replace( '/\s+/u', ' ', wp_strip_all_tags( (string) $html ) ) );
+	};
+
+	$actual = $limpiar( $post->post_content );
+	return '' === $actual || $actual === $limpiar( CEAD_PAGE_PLACEHOLDER );
+}
+
+/**
+ * Sección de la portada que cubre el tema cuando la página todavía está vacía.
+ *
+ * La home YA tiene contenido real sobre admisión y bachilleratos. Si esas
+ * páginas siguen sin escribirse, sacarlas del menú sin más dejaría al sitio sin
+ * ninguna forma de llegar a algo que sí existe. Se manda al ancla de la portada
+ * y el visitante llega a contenido de verdad igual.
+ */
+function cead_page_fallback_anchor( $slug ) {
+	$map = [
+		'admision'      => '#admision',
+		'bachilleratos' => '#divisiones',
+	];
+	return isset( $map[ $slug ] ) ? home_url( '/' . $map[ $slug ] ) : '';
+}
+
+/**
+ * URL de una página por slug, o '' si no existe **o si sigue vacía**.
  *
  * Devuelve vacío a propósito: quien arma un menú puede saltear el ítem en vez
  * de imprimir un enlace a un 404. Es el mismo criterio que usan las redes
  * sociales del footer — mejor nada que un enlace que no lleva a ningún lado.
+ *
+ * El criterio se extendió a las páginas vacías: una página sembrada que todavía
+ * dice «Contenido en preparación» es, para quien la visita, lo mismo que un 404
+ * —peor, porque promete algo y no lo cumple—. En cuanto se le escribe contenido
+ * real, vuelve al menú sola: no hay que acordarse de nada.
  */
 function cead_page_url( $slug ) {
 	$p = get_page_by_path( $slug );
-	return $p ? get_permalink( $p ) : '';
+	if ( ! $p ) { return ''; }
+	if ( cead_page_is_placeholder( $p ) ) {
+		return cead_page_fallback_anchor( $slug );
+	}
+	return get_permalink( $p );
 }
 
 /**
@@ -66,6 +119,16 @@ function cead_site_links() {
 		if ( $url ) { $links[ $key ] = [ 'label' => $def[0], 'url' => $url ]; }
 	}
 
+	/*
+	 * La plataforma. Va aparte de las institucionales porque su contenido vive
+	 * en la plantilla, no en el post: la página está en blanco a propósito y no
+	 * debe tratarse como «vacía».
+	 */
+	$proyecto = get_page_by_path( CEAD_PROYECTO_SLUG );
+	if ( $proyecto ) {
+		$links['proyecto'] = [ 'label' => __( 'La plataforma', 'cead' ), 'url' => get_permalink( $proyecto ) ];
+	}
+
 	return $links;
 }
 
@@ -86,6 +149,10 @@ function cead_division_links() {
 	return $out;
 }
 
+/** Slug y plantilla de la página que explica la plataforma. */
+const CEAD_PROYECTO_SLUG     = 'proyecto';
+const CEAD_PROYECTO_TEMPLATE = 'template-proyecto.php';
+
 /** Crea las páginas que falten. Idempotente: nunca pisa contenido existente. */
 function cead_seed_pages() {
 	foreach ( cead_institutional_pages() as $slug => $title ) {
@@ -95,8 +162,32 @@ function cead_seed_pages() {
 			'post_name'    => $slug,
 			'post_status'  => 'publish',
 			'post_type'    => 'page',
-			'post_content' => '<p>Contenido en preparación. Editá esta página desde <strong>Páginas</strong> en el panel.</p>',
+			'post_content' => CEAD_PAGE_PLACEHOLDER,
 		] );
+	}
+
+	/*
+	 * La página de la plataforma. Se crea en blanco y con la plantilla ya
+	 * asignada: todo lo que se ve sale de `template-proyecto.php`, así que el
+	 * contenido del post no se usa. Se siembra sola para que exista sin que
+	 * nadie tenga que acordarse de crearla y elegir la plantilla a mano.
+	 */
+	$proyecto = get_page_by_path( CEAD_PROYECTO_SLUG );
+	if ( ! $proyecto ) {
+		$id = wp_insert_post( [
+			'post_title'   => __( 'La plataforma', 'cead' ),
+			'post_name'    => CEAD_PROYECTO_SLUG,
+			'post_status'  => 'publish',
+			'post_type'    => 'page',
+			'post_content' => '',
+		] );
+		if ( $id && ! is_wp_error( $id ) ) {
+			update_post_meta( $id, '_wp_page_template', CEAD_PROYECTO_TEMPLATE );
+		}
+	} elseif ( get_post_meta( $proyecto->ID, '_wp_page_template', true ) !== CEAD_PROYECTO_TEMPLATE ) {
+		// La página existe pero perdió la plantilla (import, cambio de tema):
+		// sin esto se vería en blanco, que es peor que no existir.
+		update_post_meta( $proyecto->ID, '_wp_page_template', CEAD_PROYECTO_TEMPLATE );
 	}
 }
 
@@ -105,7 +196,7 @@ function cead_seed_pages() {
  * se crean solo las nuevas. Sin esto, un sitio ya sembrado nunca recibiría las
  * páginas agregadas después.
  */
-const CEAD_PAGES_SEED_VERSION = '2';
+const CEAD_PAGES_SEED_VERSION = '3';
 
 add_action( 'init', function () {
 	if ( (string) get_option( 'cead_pages_seeded' ) === CEAD_PAGES_SEED_VERSION ) { return; }

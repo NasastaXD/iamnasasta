@@ -1,7 +1,11 @@
 # 🛠️ CEAD Académico — Wiki técnica
 
 > Documentación técnica del sistema del **Centro Educativo de Alto Desempeño "Félix de Guarania"** (CEAD).
-> Plugin **v0.44.1** · DB schema **v17** · Requiere WordPress 6.4+ y PHP 8.1+.
+> DB schema **v17** · Requiere WordPress 6.4+ y PHP 8.1+.
+
+<!-- La versión del plugin NO va escrita acá: el pie de /wiki la imprime desde
+     CEAD_ACAD_VERSION. Escrita a mano se quedó en 0.44.1 mientras el pie de la
+     misma página decía 0.59.0. `bin/check-symbols.php` ahora lo detecta. -->
 
 Esta wiki está pensada para quien quiera entender **cómo está construido** el proyecto: arquitectura, módulos, modelo de datos, el bot, seguridad y despliegue. Para la guía de uso en lenguaje simple, ver **[Wiki del usuario](WIKI-USUARIO.md)**.
 

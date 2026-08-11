@@ -72,6 +72,6 @@ Mismo patrón: 4 entradas precargadas, editables individualmente.
 
 ## Notas
 
-- GSAP se carga vía CDN pero la intro overlay NO depende de él (es CSS puro). GSAP queda enqueued por si querés agregar scroll triggers más adelante.
+- **No hay librerías de animación.** Todo el movimiento es CSS más un `IntersectionObserver` de catorce líneas (`.reveal`, en `assets/js/main.js`). GSAP y ScrollTrigger estuvieron enqueued desde un CDN durante un tiempo «por si acaso», sin que ningún código los usara: eran ~110 KB y dos conexiones extra en la portada, para nada. Si algún día hace falta, se suma junto con el código que la use.
 - La intro `CEAD` aparece en cada visita (animación CSS con `animation-delay`).
 - Si más adelante necesitás permalinks bonitos para divisiones (`/division/ciencias-basicas/`), entrá a Ajustes → Enlaces permanentes y volvé a guardar para refrescar las reglas de rewrite.

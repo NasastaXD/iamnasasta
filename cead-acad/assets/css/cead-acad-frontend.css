@@ -1218,7 +1218,7 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 .cead-acad-fav.is-fav { color:#F4B74C; border-color:#F4B74C; }
 
 /* ===================== Suscripción de calendario ===================== */
-.cead-acad-subscribe { margin:1rem 0; border:1px solid var(--cead-acad-border); border-radius:12px; background:#fff; padding:.25rem .9rem; }
+.cead-acad-subscribe { margin:1rem 0; border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); background:#fff; padding:.25rem .9rem; }
 .cead-acad-subscribe summary { cursor:pointer; padding:.65rem 0; font-weight:700; }
 .cead-acad-subscribe-body { padding:.3rem 0 1rem; }
 .cead-acad-subscribe-actions { display:flex; gap:.6rem; flex-wrap:wrap; }
@@ -1240,7 +1240,23 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 .cead-acad-burger { display:inline-flex; flex-direction:column; justify-content:center; gap:4px; width:40px; height:40px; border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); background:transparent; cursor:pointer; padding:0 9px; flex:0 0 auto; }
 .cead-acad-burger span { display:block; height:2px; width:100%; background:var(--cead-acad-ink); border-radius:2px; }
 .cead-acad-panel-topbar-l { display:flex; align-items:center; gap:.75rem; min-width:0; }
-.cead-acad-nav-backdrop { display:none; }
+/* Pasó de <div> a <button> para que exista también con teclado; hay que sacarle
+   la apariencia de botón que trae el navegador. */
+.cead-acad-nav-backdrop { display:none; border:0; padding:0; margin:0; appearance:none; -webkit-appearance:none; font:inherit; cursor:pointer; }
+
+/* Saltar al contenido: fuera de pantalla hasta que recibe foco. Sin esto había
+   que atravesar los catorce enlaces del sidebar con Tab en cada pantalla. */
+.cead-acad-skip {
+	position:absolute; left:.75rem; top:-100px; z-index:200;
+	background:var(--cead-acad-brand); color:#fff; text-decoration:none;
+	padding:.7rem 1.1rem; font-weight:700; font-size:.9rem;
+	border-radius:var(--cead-acad-radius);
+	transition:top .18s ease;
+}
+.cead-acad-skip:focus { top:calc(.75rem + env(safe-area-inset-top, 0px)); }
+/* El <main> recibe el foco al saltar, pero no debe dibujar anillo por eso:
+   `tabindex="-1"` lo hace enfocable solo por programa, no con Tab. */
+.cead-acad-panel-content:focus { outline:none; }
 
 @media (max-width:899px) {
 	.cead-acad-panel-sidebar {
@@ -1421,7 +1437,7 @@ body,
 	width:clamp(48px,14vw,72px); height:clamp(48px,14vw,72px);
 	display:flex; align-items:center; justify-content:center;
 	font-family:var(--cead-acad-font-display); font-size:clamp(1.8rem,7vw,2.8rem);
-	color:#fff; border-radius:12px;
+	color:#fff; border-radius:var(--cead-acad-radius);
 	opacity:0; transform:translateY(-44px) scale(.5) rotate(-14deg);
 	animation:cead-splash-drop .55s cubic-bezier(0.34,1.56,0.64,1) forwards;
 	box-shadow:0 10px 24px rgba(0,0,0,.18);
@@ -1509,7 +1525,7 @@ body,
 
 /* ===================== FAQ (panel) ===================== */
 .cead-acad-faq { display:flex; flex-direction:column; gap:.6rem; margin-top:1.5rem; }
-.cead-acad-faq-item { border:1px solid var(--cead-acad-border); border-radius:12px; background:#fff; overflow:hidden; }
+.cead-acad-faq-item { border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); background:#fff; overflow:hidden; }
 .cead-acad-faq-q { cursor:pointer; font-weight:700; padding:1rem 1.1rem; list-style:none; display:flex; justify-content:space-between; align-items:center; gap:1rem; }
 .cead-acad-faq-q::-webkit-details-marker { display:none; }
 .cead-acad-faq-q::after { content:'+'; font-family:var(--cead-acad-font-display); color:var(--cead-acad-brand); font-size:1.5rem; line-height:1; }

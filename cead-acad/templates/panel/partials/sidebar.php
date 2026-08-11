@@ -50,7 +50,7 @@ $items = array_merge( $base_items, $by_role[ $role ] ?? [] );
 
 $current_route = trim( get_query_var( Cead_Acad_Rewrites::QUERY_VAR ), '/' );
 ?>
-<nav class="cead-acad-panel-sidebar" aria-label="<?php esc_attr_e( 'Menú del panel', 'cead-acad' ); ?>">
+<nav id="cead-acad-menu" class="cead-acad-panel-sidebar" aria-label="<?php esc_attr_e( 'Menú del panel', 'cead-acad' ); ?>">
 	<a href="<?php echo esc_url( cead_acad_url( '' ) ); ?>" class="cead-acad-panel-brand">
 		<span class="cead-acad-panel-brand-marks" aria-hidden="true">
 			<span class="m m--brand"></span>

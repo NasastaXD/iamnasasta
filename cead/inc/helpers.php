@@ -63,6 +63,67 @@ function cead_listing_title() {
 }
 
 /**
+ * Los números que la página del proyecto afirma sobre el sistema.
+ *
+ * Viven acá, en un solo lugar, porque `bin/check-symbols.php` los compara
+ * contra la realidad en cada push. Afirmar un número en la web es fácil;
+ * acordarse de actualizarlo un año después, no. Cuando se escribieron a mano en
+ * la documentación pasó exactamente eso: el resumen ejecutivo decía 17 módulos
+ * cuando ya eran 18, y 6 tipos de contenido cuando ya eran 7.
+ *
+ * Si agregás un módulo o una tabla y no tocás esto, CI avisa.
+ */
+function cead_proyecto_numeros() {
+    return [
+        'modulos' => [ 18, __( 'módulos', 'cead' ),          __( 'Cada parte del sistema es una pieza aparte que se puede tocar sin romper el resto.', 'cead' ) ],
+        'tablas'  => [ 18, __( 'tablas propias', 'cead' ),   __( 'Los datos del colegio en su propia estructura, no encajados a la fuerza en otra cosa.', 'cead' ) ],
+        'roles'   => [ 7,  __( 'roles', 'cead' ),            __( 'Dirección, secretaría, docente, delegado, alumno, familia y consejo — cada uno con lo suyo.', 'cead' ) ],
+        'cpts'    => [ 7,  __( 'tipos de contenido', 'cead' ), __( 'Cursos, comunicados, eventos, tareas, recursos, encuestas y preguntas frecuentes.', 'cead' ) ],
+    ];
+}
+
+/**
+ * Botón «Escuchar» de una sección de /proyecto.
+ *
+ * El botón se imprime SIEMPRE oculto (`hidden`) y lo revela el JavaScript solo
+ * si el navegador puede reproducir algo. Así, si no hay voz sintética ni
+ * archivo, nunca queda un control que parece clicable y no hace nada — que es
+ * exactamente el bug que ya tuvimos en el buscador del nav.
+ *
+ * @param string $texto Lo que se lee en voz alta. Se escribe a mano, corto y
+ *                      hablado: leer el texto de pantalla tal cual suena mal
+ *                      (títulos sueltos, números, listas sin verbo).
+ * @param string $audio Ruta opcional dentro de `assets/audio/`. Si el archivo
+ *                      existe, se usa ese en vez de la voz del navegador.
+ */
+function cead_audio_button( $texto, $audio = '' ) {
+    $src = '';
+    if ( $audio ) {
+        $rel = 'assets/audio/' . ltrim( $audio, '/' );
+        // Solo se ofrece el archivo si de verdad está: un `src` roto sería un
+        // botón que falla al primer clic.
+        if ( file_exists( trailingslashit( get_template_directory() ) . $rel ) ) {
+            $src = trailingslashit( CEAD_URI ) . $rel;
+        }
+    }
+    ?>
+    <button type="button" class="proyecto-audio" hidden
+            aria-pressed="false"
+            data-audio-text="<?php echo esc_attr( $texto ); ?>"
+            <?php if ( $src ) : ?>data-audio-src="<?php echo esc_url( $src ); ?>"<?php endif; ?>>
+        <span class="proyecto-audio-ico" aria-hidden="true">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <path d="M11 5 6 9H2v6h4l5 4V5z"/>
+                <path class="proyecto-audio-wave" d="M15.5 8.5a5 5 0 0 1 0 7"/>
+                <path class="proyecto-audio-wave" d="M18.5 5.5a9 9 0 0 1 0 13"/>
+            </svg>
+        </span>
+        <span class="proyecto-audio-txt"><?php esc_html_e( 'Escuchar', 'cead' ); ?></span>
+    </button>
+    <?php
+}
+
+/**
  * Etiqueta chica que va sobre el título del listado.
  */
 function cead_listing_eyebrow() {
