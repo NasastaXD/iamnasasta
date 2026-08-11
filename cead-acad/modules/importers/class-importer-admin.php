@@ -15,6 +15,7 @@ class Cead_Acad_Importer_Admin {
 		add_action( 'admin_post_cead_acad_import_commit',      [ $this, 'handle_commit' ] );
 		add_action( 'admin_post_cead_acad_import_download_template', [ $this, 'handle_template' ] );
 		add_action( 'admin_post_cead_acad_import_errors_csv',  [ $this, 'handle_errors_csv' ] );
+		add_action( 'admin_post_cead_acad_import_delete_data', [ $this, 'handle_delete_data' ] );
 	}
 
 	public function menu() {
@@ -261,5 +262,136 @@ class Cead_Acad_Importer_Admin {
 		}
 		fclose( $fh );
 		exit;
+	}
+
+	/**
+	 * Tipos para los que "Borrar lo que trajo este import" tiene sentido y hay
+	 * cómo hacerlo: los cinco importadores marcan cada fila/registro que crean
+	 * o tocan con el id del job (ver `delete_job_data()`).
+	 */
+	public static function tipos_borrables() {
+		return [ 'students', 'courses', 'events', 'horarios', 'grades' ];
+	}
+
+	public function handle_delete_data() {
+		// Gating más estricto que el resto de Importadores: esto borra datos
+		// reales (cuentas, cursos, notas), no solo sube un archivo.
+		if ( ! current_user_can( 'cead_acad_manage_roles' ) && ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
+		}
+		check_admin_referer( 'cead_acad_import_delete_data' );
+
+		$job_id = (int) ( $_POST['job_id'] ?? 0 );
+		$job    = Cead_Acad_Importer_Job::find( $job_id );
+		if ( ! $job ) { wp_die( esc_html__( 'Job no encontrado.', 'cead-acad' ) ); }
+		if ( ! in_array( $job['type'], self::tipos_borrables(), true ) ) {
+			wp_die( esc_html__( 'Este tipo de importación no admite borrado en masa.', 'cead-acad' ) );
+		}
+
+		$count = $this->delete_job_data( $job );
+
+		Cead_Acad_Audit::log( 'import_data_deleted', [
+			'entity_type' => 'import_job',
+			'entity_id'   => $job_id,
+			'payload'     => [ 'type' => $job['type'], 'count' => $count ],
+		] );
+
+		wp_safe_redirect( add_query_arg( [ 'page' => 'cead-acad-importers', 'deleted' => $count ], admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
+	/**
+	 * Borra lo que un job de importación creó o tocó. Devuelve cuántos
+	 * registros se vieron afectados.
+	 *
+	 * `horarios` es un caso aparte: ese importador no crea cursos, completa el
+	 * horario de uno que ya existe — así que acá no se borra el curso, se
+	 * vacía su `_cead_acad_horario`. El resto sí borra el registro entero, y
+	 * limpia sus filas dependientes en roster/notas para no dejar huérfanos
+	 * (algo que ni siquiera el borrado manual de un curso hace hoy).
+	 */
+	public function delete_job_data( $job ) {
+		global $wpdb;
+		$job_id = (int) $job['id'];
+		$n      = 0;
+
+		switch ( $job['type'] ) {
+			case 'students':
+				$user_ids = get_users( [
+					'meta_key' => '_cead_acad_imported_via_job',
+					'meta_value' => $job_id,
+					'fields'   => 'ID',
+				] );
+				if ( $user_ids ) {
+					$ph = implode( ',', array_fill( 0, count( $user_ids ), '%d' ) );
+					$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . cead_acad_table( 'roster' ) . " WHERE user_id IN ($ph)", $user_ids ) ); // phpcs:ignore
+					$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . cead_acad_table( 'grades' ) . " WHERE student_user_id IN ($ph)", $user_ids ) ); // phpcs:ignore
+					require_once ABSPATH . 'wp-admin/includes/user.php';
+					foreach ( $user_ids as $uid ) {
+						$u = get_userdata( $uid );
+						if ( $u && in_array( 'administrator', (array) $u->roles, true ) ) { continue; }
+						if ( wp_delete_user( $uid, get_current_user_id() ) ) { $n++; }
+					}
+				}
+				break;
+
+			case 'courses':
+				$post_ids = get_posts( [
+					'post_type'   => Cead_Acad_Courses_CPT::POST_TYPE,
+					'post_status' => 'any',
+					'numberposts' => -1,
+					'fields'      => 'ids',
+					'meta_key'    => '_cead_acad_imported_via_job',
+					'meta_value'  => $job_id,
+				] );
+				if ( $post_ids ) {
+					$ph = implode( ',', array_fill( 0, count( $post_ids ), '%d' ) );
+					$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . cead_acad_table( 'roster' ) . " WHERE course_id IN ($ph)", $post_ids ) ); // phpcs:ignore
+					$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . cead_acad_table( 'grades' ) . " WHERE course_id IN ($ph)", $post_ids ) ); // phpcs:ignore
+					foreach ( $post_ids as $pid ) {
+						if ( wp_delete_post( $pid, true ) ) { $n++; }
+					}
+				}
+				break;
+
+			case 'events':
+				$post_ids = get_posts( [
+					'post_type'   => Cead_Acad_Schedule_CPT::POST_TYPE,
+					'post_status' => 'any',
+					'numberposts' => -1,
+					'fields'      => 'ids',
+					'meta_key'    => '_cead_acad_imported_via_job',
+					'meta_value'  => $job_id,
+				] );
+				foreach ( $post_ids as $pid ) {
+					if ( class_exists( 'Cead_Acad_Audiences' ) ) {
+						Cead_Acad_Audiences::set( 'event', $pid, [] );
+					}
+					if ( wp_delete_post( $pid, true ) ) { $n++; }
+				}
+				break;
+
+			case 'horarios':
+				$post_ids = get_posts( [
+					'post_type'   => Cead_Acad_Courses_CPT::POST_TYPE,
+					'post_status' => 'any',
+					'numberposts' => -1,
+					'fields'      => 'ids',
+					'meta_key'    => '_cead_acad_horario_imported_via_job',
+					'meta_value'  => $job_id,
+				] );
+				foreach ( $post_ids as $pid ) {
+					update_post_meta( $pid, '_cead_acad_horario', wp_json_encode( [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+					delete_post_meta( $pid, '_cead_acad_horario_imported_via_job' );
+					$n++;
+				}
+				break;
+
+			case 'grades':
+				$n = (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . cead_acad_table( 'grades' ) . ' WHERE import_job_id = %d', $job_id ) ); // phpcs:ignore
+				break;
+		}
+
+		return $n;
 	}
 }

@@ -4,11 +4,26 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-$importers = Cead_Acad_Importer_Admin::importers();
-$jobs      = Cead_Acad_Importer_Job::recent( 20 );
+$importers        = Cead_Acad_Importer_Admin::importers();
+$jobs             = Cead_Acad_Importer_Job::recent( 20 );
+$tipos_borrables  = Cead_Acad_Importer_Admin::tipos_borrables();
+$can_delete_data  = current_user_can( 'cead_acad_manage_roles' ) || current_user_can( 'manage_options' );
 ?>
 <div class="wrap cead-acad-admin-wrap">
 	<h1><?php esc_html_e( 'Importadores', 'cead-acad' ); ?></h1>
+
+	<?php if ( isset( $_GET['deleted'] ) ) : ?>
+		<div class="notice notice-success is-dismissible">
+			<p>
+				<?php
+				$n = (int) $_GET['deleted'];
+				/* translators: %d: cantidad de registros borrados */
+				printf( esc_html( _n( 'Se borraron %d registro de ese import.', 'Se borraron %d registros de ese import.', $n, 'cead-acad' ) ), $n );
+				?>
+			</p>
+		</div>
+	<?php endif; ?>
+
 	<?php $xlsx_ok = Cead_Acad_Importer_Xlsx_Reader::available(); ?>
 	<p class="description"><?php esc_html_e( 'Subí un archivo CSV o Excel (.xlsx) y, guiado paso a paso, lo mapeás, validás e importás. Descargá una plantilla para ver el formato esperado.', 'cead-acad' ); ?></p>
 
@@ -91,7 +106,18 @@ $jobs      = Cead_Acad_Importer_Job::recent( 20 );
 				<td><?php echo (int) $j['rows_ok']; ?></td>
 				<td><?php echo (int) $j['rows_failed']; ?></td>
 				<td><?php echo esc_html( mysql2date( get_option( 'date_format' ) . ' H:i', $j['created_at'] ) ); ?></td>
-				<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=cead-acad-importers&job=' . (int) $j['id'] ) ); ?>"><?php esc_html_e( 'Abrir', 'cead-acad' ); ?></a></td>
+				<td>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=cead-acad-importers&job=' . (int) $j['id'] ) ); ?>"><?php esc_html_e( 'Abrir', 'cead-acad' ); ?></a>
+					<?php if ( $can_delete_data && 'committed' === $j['status'] && in_array( $j['type'], $tipos_borrables, true ) ) : ?>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline;margin-left:.5rem"
+							onsubmit="return confirm('<?php echo esc_js( __( 'Esto borra lo que trajo este import (cuentas, cursos, notas u horario, según el tipo). No se puede deshacer. ¿Seguir?', 'cead-acad' ) ); ?>');">
+							<?php wp_nonce_field( 'cead_acad_import_delete_data' ); ?>
+							<input type="hidden" name="action" value="cead_acad_import_delete_data">
+							<input type="hidden" name="job_id" value="<?php echo (int) $j['id']; ?>">
+							<button type="submit" class="button-link-delete" style="color:#b32d2e"><?php esc_html_e( 'Borrar lo importado', 'cead-acad' ); ?></button>
+						</form>
+					<?php endif; ?>
+				</td>
 			</tr>
 		<?php endforeach; endif; ?>
 		</tbody>

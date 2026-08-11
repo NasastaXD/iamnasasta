@@ -17,6 +17,78 @@ class Cead_Acad_Courses_Admin {
 		add_action( 'admin_post_cead_acad_roster_remove', [ $this, 'handle_remove_user' ] );
 
 		add_action( 'admin_notices', [ $this, 'roster_notice' ] );
+
+		add_action( 'admin_menu', [ $this, 'register_review_menu' ] );
+		add_action( 'admin_post_cead_acad_horario_review_save', [ $this, 'handle_review_save' ] );
+	}
+
+	/**
+	 * Submenú "Horarios": repasar y corregir el horario de cualquier curso
+	 * desde un solo lugar, sin entrar curso por curso. Nació de una planilla
+	 * real que se importó mal (día u hora corridos en algunas filas) y no
+	 * había dónde revisar eso de punta a punta salvo abriendo cada curso.
+	 */
+	public function register_review_menu() {
+		if ( ! current_user_can( 'cead_acad_manage_courses' ) ) {
+			return;
+		}
+		add_submenu_page(
+			'cead-acad',
+			__( 'Horarios', 'cead-acad' ),
+			__( 'Horarios', 'cead-acad' ),
+			'read',
+			'cead-acad-horarios',
+			[ $this, 'render_review' ]
+		);
+	}
+
+	public function render_review() {
+		if ( ! current_user_can( 'cead_acad_manage_courses' ) ) {
+			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
+		}
+		$courses   = cead_acad_courses_for_select();
+		$course_id = isset( $_GET['curso'] ) ? (int) $_GET['curso'] : 0;
+		if ( $course_id && ! isset( $courses[ $course_id ] ) ) {
+			$course_id = 0;
+		}
+		$slots_count = 0;
+		if ( $course_id ) {
+			$raw   = get_post_meta( $course_id, '_cead_acad_horario', true );
+			$slots = is_array( $raw ) ? $raw : ( is_string( $raw ) && $raw !== '' ? json_decode( $raw, true ) : [] );
+			$slots_count = is_array( $slots ) ? count( $slots ) : 0;
+		}
+		include CEAD_ACAD_DIR . 'admin/views/horarios-review.php';
+	}
+
+	public function handle_review_save() {
+		if ( ! current_user_can( 'cead_acad_manage_courses' ) ) {
+			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
+		}
+		check_admin_referer( 'cead_acad_horario_review' );
+
+		$course_id = (int) ( $_POST['course_id'] ?? 0 );
+		if ( ! $course_id || Cead_Acad_Courses_CPT::POST_TYPE !== get_post_type( $course_id ) ) {
+			wp_die( esc_html__( 'Curso inválido.', 'cead-acad' ) );
+		}
+
+		$slots = $this->slots_from_post();
+		// JSON_UNESCAPED_UNICODE: ver la nota en Cead_Acad_Importer_Horarios::commit_row().
+		update_post_meta( $course_id, '_cead_acad_horario', wp_json_encode( $slots, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+		/*
+		 * Una vez que alguien revisó y corrigió esto a mano, deja de ser "lo que
+		 * trajo el import tal": si quedara marcado, "Borrar lo importado" sobre
+		 * ese job podría pisar una corrección que se acaba de hacer a propósito.
+		 */
+		delete_post_meta( $course_id, '_cead_acad_horario_imported_via_job' );
+
+		Cead_Acad_Audit::log( 'course_horario_reviewed', [
+			'entity_type' => 'course',
+			'entity_id'   => $course_id,
+			'payload'     => [ 'slots' => count( $slots ) ],
+		] );
+
+		wp_safe_redirect( admin_url( 'admin.php?page=cead-acad-horarios&curso=' . $course_id . '&saved=1' ) );
+		exit;
 	}
 
 	/**
@@ -77,7 +149,19 @@ class Cead_Acad_Courses_Admin {
 	}
 
 	public function render_horario_metabox( $post ) {
-		$raw   = get_post_meta( $post->ID, '_cead_acad_horario', true );
+		echo '<p class="description">' . esc_html__( 'El horario semanal de materias de este curso. Se muestra a sus alumnos en el panel y en el bot. Dejá la materia vacía para borrar una fila.', 'cead-acad' ) . '</p>';
+		$this->render_horario_fields( $post->ID );
+	}
+
+	/**
+	 * La tabla editable de horario, sola: la usan tanto el metabox del curso
+	 * (que ya está dentro del `<form>` nativo de editar post) como la pantalla
+	 * de revisión centralizada (`admin/views/horarios-review.php`, con su
+	 * propio `<form>`) — mismo `name="cead_acad_horario[...]"`, mismo
+	 * `slots_from_post()` del lado del guardado.
+	 */
+	public function render_horario_fields( $post_id ) {
+		$raw   = get_post_meta( $post_id, '_cead_acad_horario', true );
 		$slots = is_array( $raw ) ? $raw : ( is_string( $raw ) && $raw !== '' ? json_decode( $raw, true ) : [] );
 		$slots = is_array( $slots ) ? $slots : [];
 		$days  = [ 1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 7 => 'Domingo' ];
@@ -85,7 +169,6 @@ class Cead_Acad_Courses_Admin {
 		$rows = $slots;
 		for ( $i = 0; $i < 8; $i++ ) { $rows[] = []; }
 		?>
-		<p class="description"><?php esc_html_e( 'El horario semanal de materias de este curso. Se muestra a sus alumnos en el panel y en el bot. Dejá la materia vacía para borrar una fila.', 'cead-acad' ); ?></p>
 		<table class="widefat striped">
 			<thead><tr>
 				<th style="width:130px"><?php esc_html_e( 'Día', 'cead-acad' ); ?></th>
@@ -123,6 +206,34 @@ class Cead_Acad_Courses_Admin {
 			</tbody>
 		</table>
 		<?php
+	}
+
+	/**
+	 * Filas de horario posteadas (por el metabox o por la pantalla de
+	 * revisión), ya limpias: se descartan las que no tengan día o materia.
+	 *
+	 * @return array<int,array<string,mixed>>
+	 */
+	protected function slots_from_post() {
+		$slots = [];
+		if ( isset( $_POST['cead_acad_horario'] ) && is_array( $_POST['cead_acad_horario'] ) ) {
+			foreach ( $_POST['cead_acad_horario'] as $row ) {
+				$dia     = (int) ( $row['dia'] ?? 0 );
+				$materia = sanitize_text_field( wp_unslash( $row['materia'] ?? '' ) );
+				if ( $dia < 1 || $dia > 7 || $materia === '' ) { continue; }
+				$aula = sanitize_text_field( wp_unslash( $row['aula'] ?? '' ) );
+				$slot = [
+					'dia'     => $dia,
+					'inicio'  => $this->clean_time( wp_unslash( $row['inicio'] ?? '' ) ),
+					'fin'     => $this->clean_time( wp_unslash( $row['fin'] ?? '' ) ),
+					'materia' => $materia,
+					'docente' => sanitize_text_field( wp_unslash( $row['docente'] ?? '' ) ),
+				];
+				if ( '' !== $aula ) { $slot['aula'] = $aula; }
+				$slots[] = $slot;
+			}
+		}
+		return $slots;
 	}
 
 	protected function clean_time( $t ) {
@@ -225,26 +336,8 @@ class Cead_Acad_Courses_Admin {
 			update_post_meta( $post_id, $key, $val );
 		}
 
-		// Horario de materias (filas; se descartan las que no tengan día o materia).
-		$slots = [];
-		if ( isset( $_POST['cead_acad_horario'] ) && is_array( $_POST['cead_acad_horario'] ) ) {
-			foreach ( $_POST['cead_acad_horario'] as $row ) {
-				$dia     = (int) ( $row['dia'] ?? 0 );
-				$materia = sanitize_text_field( wp_unslash( $row['materia'] ?? '' ) );
-				if ( $dia < 1 || $dia > 7 || $materia === '' ) { continue; }
-				$aula = sanitize_text_field( wp_unslash( $row['aula'] ?? '' ) );
-				$slot = [
-					'dia'     => $dia,
-					'inicio'  => $this->clean_time( wp_unslash( $row['inicio'] ?? '' ) ),
-					'fin'     => $this->clean_time( wp_unslash( $row['fin'] ?? '' ) ),
-					'materia' => $materia,
-					'docente' => sanitize_text_field( wp_unslash( $row['docente'] ?? '' ) ),
-				];
-				if ( '' !== $aula ) { $slot['aula'] = $aula; }
-				$slots[] = $slot;
-			}
-		}
-		update_post_meta( $post_id, '_cead_acad_horario', wp_json_encode( $slots ) );
+		// JSON_UNESCAPED_UNICODE: ver la nota en Cead_Acad_Importer_Horarios::commit_row().
+		update_post_meta( $post_id, '_cead_acad_horario', wp_json_encode( $this->slots_from_post(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
 
 		// Si se asigna delegado/a, asegurar su rol.
 		$delegate_id = (int) ( $_POST['_cead_acad_delegate'] ?? 0 );

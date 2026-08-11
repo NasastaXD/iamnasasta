@@ -769,7 +769,8 @@ Todas con prefijo `_cead_acad_`:
 | `_cead_acad_no_email` | Importador de alumnado | `1` si el usuario no tiene email real |
 | `_cead_acad_invited_via` | Registro | ID de la invitación utilizada |
 | `_cead_acad_current_course_id` | Registro / importador | ID del curso principal del usuario |
-| `_cead_acad_imported_via_job` | Importadores | ID del job de importación que creó/actualizó al usuario |
+| `_cead_acad_imported_via_job` | Importadores | ID del job que creó al usuario, o al curso/evento (meta de post en esos casos) |
+| `_cead_acad_horario_imported_via_job` | Importador de Horario de clases | ID del job que cargó el horario de ESE curso (meta aparte: un curso ya existente recibe su horario en un job distinto al que lo creó) |
 
 ---
 

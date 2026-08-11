@@ -39,6 +39,7 @@ class Cead_Acad_Capabilities {
 						'cead_acad_view_course_grades'   => true,
 						'cead_acad_manage_reports'       => true,
 						'cead_acad_manage_suggestions'   => true,
+						'cead_acad_view_other_schedules' => true,
 					]
 				),
 			],
@@ -61,6 +62,7 @@ class Cead_Acad_Capabilities {
 						'cead_acad_manage_reports'       => true,
 						'cead_acad_manage_suggestions'   => true,
 						'cead_acad_manage_articles'      => true,
+						'cead_acad_view_other_schedules' => true,
 					]
 				),
 			],
@@ -69,12 +71,13 @@ class Cead_Acad_Capabilities {
 				'caps'    => array_merge(
 					self::base_caps(),
 					[
-						'cead_acad_publish_broadcast'   => true,
-						'cead_acad_create_survey'       => true,
-						'cead_acad_manage_schedule'     => true,
-						'cead_acad_upload_resource'     => true,
-						'cead_acad_record_grade'        => true,
-						'cead_acad_view_course_grades'  => true,
+						'cead_acad_publish_broadcast'    => true,
+						'cead_acad_create_survey'        => true,
+						'cead_acad_manage_schedule'      => true,
+						'cead_acad_upload_resource'      => true,
+						'cead_acad_record_grade'         => true,
+						'cead_acad_view_course_grades'   => true,
+						'cead_acad_view_other_schedules' => true,
 					]
 				),
 			],
@@ -86,6 +89,7 @@ class Cead_Acad_Capabilities {
 						'cead_acad_upload_resource'         => true,
 						'cead_acad_complete_delegate_task'  => true,
 						'cead_acad_view_own_grades'         => true,
+						'cead_acad_view_other_schedules'    => true,
 					]
 				),
 			],

@@ -106,4 +106,57 @@ final class ImporterHorariosTest extends TestCase {
 		] );
 		$this->assertSame( 'error', $res['level'] );
 	}
+
+	/* --------------------------------------- tildes en _cead_acad_horario --- */
+
+	/**
+	 * `commit_row()` guarda el horario con `update_post_meta()`, y WordPress le
+	 * saca la barra invertida a lo que guarda ahí (piensa que viene de $_POST y
+	 * necesita "unslash"). Sin `JSON_UNESCAPED_UNICODE`, `wp_json_encode()`
+	 * escribe cada tilde como `Ó`, esa barra desaparece al guardar, y
+	 * queda "u00d3" literal — que es justo lo que se vio en producción con
+	 * "MÓNICA" y "MARTÍNEZ". Este test reproduce esa segunda pisada (lo que
+	 * hace WordPress al guardar el meta) para probar que el flag la evita.
+	 */
+	private function simular_wp_unslash_al_guardar_meta( $texto ) {
+		return stripslashes( $texto );
+	}
+
+	public function test_sin_el_flag_una_tilde_se_corrompe_al_guardarse_como_meta(): void {
+		$json = wp_json_encode( [ 'docente' => 'MÓNICA SALVIONI' ] );
+		$guardado = $this->simular_wp_unslash_al_guardar_meta( $json );
+
+		$this->assertStringContainsString( 'u00d3NICA', $guardado, 'Reproduce la corrupción real vista en producción.' );
+	}
+
+	public function test_con_el_flag_la_tilde_sobrevive_al_guardarse_como_meta(): void {
+		$json = wp_json_encode( [ 'docente' => 'MÓNICA SALVIONI' ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+		$guardado = $this->simular_wp_unslash_al_guardar_meta( $json );
+
+		$decoded = json_decode( $guardado, true );
+		$this->assertSame( 'MÓNICA SALVIONI', $decoded['docente'] );
+	}
+
+	/**
+	 * Que ninguno de los dos lugares que escriben `_cead_acad_horario` vuelva a
+	 * perder el flag (el importador y el metabox manual del curso comparten el
+	 * mismo meta, ver el docblock de `read_horario()`).
+	 */
+	public function test_los_dos_lugares_que_escriben_el_horario_usan_json_unescaped_unicode(): void {
+		$archivos = [
+			dirname( __DIR__, 2 ) . '/modules/importers/class-importer-horarios.php',
+			dirname( __DIR__, 2 ) . '/modules/courses/class-courses-admin.php',
+		];
+		foreach ( $archivos as $archivo ) {
+			$src = (string) file_get_contents( $archivo );
+			foreach ( explode( "\n", $src ) as $linea ) {
+				if ( false === strpos( $linea, 'update_post_meta' ) || false === strpos( $linea, "'_cead_acad_horario'" ) ) { continue; }
+				$this->assertStringContainsString(
+					'JSON_UNESCAPED_UNICODE',
+					$linea,
+					basename( $archivo ) . ' tiene que usar JSON_UNESCAPED_UNICODE al guardar _cead_acad_horario.'
+				);
+			}
+		}
+	}
 }
