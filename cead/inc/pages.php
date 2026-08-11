@@ -61,15 +61,32 @@ function cead_page_is_placeholder( $post ) {
 }
 
 /**
- * Sección de la portada que cubre el tema cuando la página todavía está vacía.
+ * Sección de la portada a la que apunta una página que todavía está vacía.
  *
- * La home YA tiene contenido real sobre admisión y bachilleratos. Si esas
- * páginas siguen sin escribirse, sacarlas del menú sin más dejaría al sitio sin
- * ninguna forma de llegar a algo que sí existe. Se manda al ancla de la portada
- * y el visitante llega a contenido de verdad igual.
+ * La portada YA tiene contenido real sobre casi todos estos temas. Sacar del
+ * menú a las páginas sin escribir dejaba grupos enteros sin dibujar —el bloque
+ * Institucional desaparecía completo—, y eso es peor que el problema que venía
+ * a resolver: el sitio pierde secciones que sí existen.
+ *
+ * Así que en vez de desaparecer, mientras la página no tenga contenido el enlace
+ * lleva al punto de la portada que cubre ese tema. El visitante llega a algo
+ * real, y en cuanto se escriba la página el enlace pasa a apuntarle a ella sola,
+ * sin tocar nada.
+ *
+ * Dos avisos honestos sobre este mapa:
+ *
+ *  - **Historia** y **Autoridades** no tienen equivalente en la portada. Van al
+ *    bloque de valores, que es lo más cercano a «quiénes somos», pero es un
+ *    parche: son las dos que más piden que les escribas contenido propio.
+ *  - Cuando una página se llena, su entrada acá deja de usarse sola. No hay que
+ *    acordarse de sacarla.
  */
 function cead_page_fallback_anchor( $slug ) {
 	$map = [
+		'sobre-cead'    => '#creemos',    // «Cuatro valores. Una sola institución.»
+		'historia'      => '#creemos',    // sin sección propia todavía
+		'honor-code'    => '#honor-code', // la cita de la portada ES el Código de Honor
+		'autoridades'   => '#creemos',    // sin sección propia todavía
 		'admision'      => '#admision',
 		'bachilleratos' => '#divisiones',
 	];
@@ -77,16 +94,20 @@ function cead_page_fallback_anchor( $slug ) {
 }
 
 /**
- * URL de una página por slug, o '' si no existe **o si sigue vacía**.
+ * URL de una página por slug: la página misma, el punto de la portada que la
+ * cubre mientras esté vacía, o '' si no hay nada de eso.
  *
- * Devuelve vacío a propósito: quien arma un menú puede saltear el ítem en vez
+ * Devolver vacío es a propósito: quien arma un menú puede saltear el ítem en vez
  * de imprimir un enlace a un 404. Es el mismo criterio que usan las redes
  * sociales del footer — mejor nada que un enlace que no lleva a ningún lado.
  *
- * El criterio se extendió a las páginas vacías: una página sembrada que todavía
- * dice «Contenido en preparación» es, para quien la visita, lo mismo que un 404
- * —peor, porque promete algo y no lo cumple—. En cuanto se le escribe contenido
- * real, vuelve al menú sola: no hay que acordarse de nada.
+ * Pero saltear el ítem es el ÚLTIMO recurso, no el primero. Una página sembrada
+ * que todavía dice «Contenido en preparación» no ayuda a nadie, y borrarla del
+ * menú tampoco: se lleva puesto el grupo entero. Mientras haya un punto de la
+ * portada que cubra el tema, el enlace va ahí.
+ *
+ * En cuanto se escribe el contenido, el enlace apunta a la página sola: no hay
+ * que acordarse de nada.
  */
 function cead_page_url( $slug ) {
 	$p = get_page_by_path( $slug );
