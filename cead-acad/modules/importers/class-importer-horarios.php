@@ -162,16 +162,32 @@ class Cead_Acad_Importer_Horarios extends Cead_Acad_Importer_Base {
 		 * llamadas — cada `commit_row` es independiente, como en el resto de
 		 * los importadores.
 		 */
-		update_post_meta( $course_id, '_cead_acad_horario', wp_json_encode( $slots ) );
-		update_post_meta( $course_id, '_cead_acad_imported_via_job', (int) $job_id );
+		/*
+		 * JSON_UNESCAPED_UNICODE: sin este flag, wp_json_encode() escapa cada
+		 * tilde como \u00xx, y WordPress le saca la barra invertida a ese texto
+		 * al guardarlo como post meta — queda "u00d3" literal en vez de "Ó". Es
+		 * justo lo que se vio en producción con nombres y materias con tilde.
+		 */
+		update_post_meta( $course_id, '_cead_acad_horario', wp_json_encode( $slots, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+		/*
+		 * Meta APARTE de `_cead_acad_imported_via_job`: ese key lo usa el
+		 * importador de Cursos para "qué job creó este curso", y un curso ya
+		 * existente recibe su horario en un job DISTINTO al que lo creó. Si
+		 * compartieran el key, importar el horario le robaría al curso el rastro
+		 * de qué job lo creó — justo lo que hace falta para poder borrar en masa
+		 * lo que trajo un import específico.
+		 */
+		update_post_meta( $course_id, '_cead_acad_horario_imported_via_job', (int) $job_id );
 
 		return true;
 	}
 
 	/**
 	 * Horario actual del curso, tolerando que el meta esté guardado como
-	 * array PHP (lo escribe el sembrador de demo) o como JSON (lo escribe el
-	 * metabox manual). Ambas formas conviven en el sistema.
+	 * array PHP o como JSON: el importador y el metabox manual del curso
+	 * (`Cead_Acad_Courses_Admin::save()`) escriben ambos JSON, pero
+	 * `update_post_meta()` también acepta un array PHP tal cual, así que no
+	 * se descarta ese caso.
 	 *
 	 * @return array<int,array<string,mixed>>
 	 */
