@@ -12,11 +12,11 @@ $numeros = cead_proyecto_numeros();
 <section id="numeros" class="proy-section proy-section--numeros">
 	<div class="container">
 		<header class="proy-head proy-head--centro">
-			<p class="reveal eyebrow"><?php esc_html_e( '— En números', 'cead' ); ?></p>
-			<h2 class="reveal proy-h2"><?php esc_html_e( 'No es una demo. Está en producción.', 'cead' ); ?></h2>
+			<p class="reveal eyebrow"><?php esc_html_e( 'En números', 'cead' ); ?></p>
+			<h2 class="reveal proy-h2"><?php esc_html_e( 'Es un sistema en uso, no una demostración.', 'cead' ); ?></h2>
 			<?php
 			cead_audio_button(
-				__( 'Para dar una idea del tamaño: el sistema tiene dieciocho módulos, dieciocho tablas propias de base de datos, siete roles distintos y siete tipos de contenido. No es una maqueta: es lo que el colegio usa todos los días.', 'cead' ),
+				__( 'Para entender su tamaño, el sistema cuenta con dieciocho módulos, dieciocho tablas propias de base de datos, siete roles y siete tipos de contenido. Son componentes que ya forman parte del funcionamiento de la plataforma.', 'cead' ),
 				'numeros.mp3'
 			);
 			?>

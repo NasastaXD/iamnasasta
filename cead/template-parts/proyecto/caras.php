@@ -13,38 +13,38 @@ $caras = [
 		'clave' => 'panel',
 		'color' => 'var(--brand)',
 		'tit'   => __( 'El panel web', 'cead' ),
-		'sub'   => __( 'Desde cualquier navegador', 'cead' ),
-		'txt'   => __( 'Comunicados, horario, calendario, tareas, recursos, boletín y carné digital. Cada persona ve lo que le corresponde según su rol: un alumno no ve lo mismo que secretaría.', 'cead' ),
-		'quien' => __( 'Toda la comunidad', 'cead' ),
+		'sub'   => __( 'Disponible desde cualquier navegador', 'cead' ),
+		'txt'   => __( 'Reúne comunicados, horarios, calendario, tareas, recursos, boletín y carné digital. Cada persona accede únicamente a las funciones que corresponden a su rol.', 'cead' ),
+		'quien' => __( 'Para toda la comunidad educativa', 'cead' ),
 	],
 	[
 		'clave' => 'app',
 		'color' => 'var(--acc-blue)',
-		'tit'   => __( 'La app', 'cead' ),
-		'sub'   => __( 'Se instala desde el navegador', 'cead' ),
-		'txt'   => __( 'El mismo panel, pero en la pantalla de inicio del celular, con su ícono. No se baja de ninguna tienda y lo ya visitado sigue abriéndose sin internet.', 'cead' ),
-		'quien' => __( 'Alumnado y familias', 'cead' ),
+		'tit'   => __( 'La aplicación', 'cead' ),
+		'sub'   => __( 'Se instala directamente desde el navegador', 'cead' ),
+		'txt'   => __( 'Ofrece el mismo panel desde la pantalla de inicio del celular. No requiere una tienda de aplicaciones y parte del contenido consultado puede seguir disponible sin conexión.', 'cead' ),
+		'quien' => __( 'Para estudiantes y familias', 'cead' ),
 	],
 	[
 		'clave' => 'ceadi',
 		'color' => 'var(--acc-orange)',
-		'tit'   => __( 'CEADI, por WhatsApp', 'cead' ),
-		'sub'   => __( 'Sin instalar nada', 'cead' ),
-		'txt'   => __( 'Se le escribe como a una persona: «¿qué clases tengo mañana?». Entiende lenguaje natural, escucha notas de voz y responde con datos reales del sistema.', 'cead' ),
-		'quien' => __( 'Quien prefiere no entrar a la web', 'cead' ),
+		'tit'   => __( 'CEADI por WhatsApp', 'cead' ),
+		'sub'   => __( 'Sin instalar una aplicación adicional', 'cead' ),
+		'txt'   => __( 'Se puede escribir una pregunta normal, como «¿qué clases tengo mañana?». CEADI entiende texto y notas de voz, y responde con información del sistema.', 'cead' ),
+		'quien' => __( 'Para quienes prefieren usar WhatsApp', 'cead' ),
 	],
 ];
 ?>
 <section id="caras" class="proy-section proy-section--caras">
 	<div class="container">
 		<header class="proy-head">
-			<p class="reveal eyebrow"><?php esc_html_e( '— Cómo se usa', 'cead' ); ?></p>
-			<h2 class="reveal proy-h2"><?php esc_html_e( 'Un solo sistema. Tres puertas de entrada.', 'cead' ); ?></h2>
+			<p class="reveal eyebrow"><?php esc_html_e( 'Formas de acceso', 'cead' ); ?></p>
+			<h2 class="reveal proy-h2"><?php esc_html_e( 'Un solo sistema, con tres formas de entrar.', 'cead' ); ?></h2>
 			<div class="reveal proy-head-aside">
-				<p class="proy-lead"><?php esc_html_e( 'Esto es lo único que hay que entender de todo el proyecto: no son tres sistemas distintos que hay que mantener sincronizados. Es uno solo. Un comunicado que dirección manda desde WhatsApp aparece en el panel del alumno en el mismo momento — y al revés.', 'cead' ); ?></p>
+				<p class="proy-lead"><?php esc_html_e( 'El panel, la aplicación y CEADI trabajan con la misma información. Si Dirección publica un comunicado desde WhatsApp, el estudiante puede verlo en su panel sin que nadie tenga que copiarlo a otro lugar.', 'cead' ); ?></p>
 				<?php
 				cead_audio_button(
-					__( 'Hay tres formas de usar el sistema: el panel web, la app del celular, y CEADI por WhatsApp. Lo importante es que no son tres sistemas distintos, es uno solo con tres puertas. Un comunicado que dirección manda desde WhatsApp aparece en el panel del alumno en el mismo momento, y al revés.', 'cead' ),
+					__( 'El sistema puede usarse de tres formas: desde el panel web, desde la aplicación del celular o por WhatsApp mediante CEADI. Las tres formas consultan la misma información. Si se publica un comunicado desde una de ellas, aparece también en las demás sin necesidad de copiarlo.', 'cead' ),
 					'caras.mp3'
 				);
 				?>
@@ -71,7 +71,7 @@ $caras = [
 		<?php /* El puente: lo que ata las tres caras entre sí. */ ?>
 		<p class="reveal proy-caras-nota">
 			<span class="proy-caras-nota-mark" aria-hidden="true"></span>
-			<?php esc_html_e( 'Un mismo dato, una sola vez. Las tres puertas leen y escriben en la misma base: no hay nada que copiar de un lado al otro, y por lo tanto nada que se desactualice.', 'cead' ); ?>
+			<?php esc_html_e( 'Cada dato se carga una sola vez. Las tres formas de acceso consultan la misma base, lo que reduce duplicaciones y evita versiones diferentes de una misma información.', 'cead' ); ?>
 		</p>
 	</div>
 </section>

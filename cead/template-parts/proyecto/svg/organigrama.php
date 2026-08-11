@@ -15,8 +15,8 @@ $desc_id = 'proy-org-desc';
 ?>
 <div class="reveal proy-org">
 	<svg viewBox="0 0 360 250" fill="none" role="img" aria-describedby="<?php echo esc_attr( $desc_id ); ?>" focusable="false">
-		<title><?php esc_attr_e( 'Cómo se conectan las piezas del sistema', 'cead' ); ?></title>
-		<desc id="<?php echo esc_attr( $desc_id ); ?>"><?php esc_attr_e( 'Las personas entran por tres caminos: el navegador y la app llegan directo a la aplicación; WhatsApp pasa antes por un puente. La aplicación es la única que guarda los datos.', 'cead' ); ?></desc>
+		<title><?php esc_attr_e( 'Cómo se conectan las partes del sistema', 'cead' ); ?></title>
+		<desc id="<?php echo esc_attr( $desc_id ); ?>"><?php esc_attr_e( 'Hay tres formas de entrar: navegador, aplicación y WhatsApp. El navegador y la aplicación se conectan directamente con el sistema principal; WhatsApp lo hace a través de un puente. Los datos se guardan únicamente en la aplicación.', 'cead' ); ?></desc>
 
 		<?php // Las tres puertas ?>
 		<g class="proy-org-caja">
@@ -26,7 +26,7 @@ $desc_id = 'proy-org-desc';
 		</g>
 		<g class="proy-org-caja proy-org-caja--2">
 			<rect x="134" y="14" width="92" height="42" fill="#fff" stroke="var(--ink)" stroke-width="3"/>
-			<text x="180" y="33" text-anchor="middle" class="proy-org-t"><?php esc_html_e( 'App', 'cead' ); ?></text>
+			<text x="180" y="33" text-anchor="middle" class="proy-org-t"><?php esc_html_e( 'Aplicación', 'cead' ); ?></text>
 			<text x="180" y="47" text-anchor="middle" class="proy-org-s"><?php esc_html_e( 'el celular', 'cead' ); ?></text>
 		</g>
 		<g class="proy-org-caja proy-org-caja--3">

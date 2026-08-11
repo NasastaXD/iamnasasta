@@ -14,33 +14,33 @@ $piezas = [
 	[
 		'color' => 'var(--acc-blue)',
 		'tit'   => __( 'La web pública', 'cead' ),
-		'rol'   => __( 'Lo que ve cualquiera', 'cead' ),
-		'txt'   => __( 'El sitio del colegio: novedades, bachilleratos, galería y esta misma página. No hace falta cuenta.', 'cead' ),
+		'rol'   => __( 'Información abierta para cualquier visitante', 'cead' ),
+		'txt'   => __( 'Es el sitio público del colegio: incluye novedades, bachilleratos, galería y esta página. No requiere una cuenta.', 'cead' ),
 	],
 	[
 		'color' => 'var(--brand)',
 		'tit'   => __( 'La aplicación', 'cead' ),
-		'rol'   => __( 'El corazón del sistema', 'cead' ),
-		'txt'   => __( 'Acá vive todo: usuarios, roles, permisos, notas, comunicados, encuestas y el cerebro de CEADI. Es la única pieza que guarda datos.', 'cead' ),
+		'rol'   => __( 'Donde funciona el sistema principal', 'cead' ),
+		'txt'   => __( 'Aquí se administran los usuarios, los roles, los permisos, las notas, los comunicados, las encuestas y las funciones de CEADI. Es la parte que guarda la información del sistema.', 'cead' ),
 	],
 	[
 		'color' => 'var(--acc-orange)',
-		'tit'   => __( 'El puente a WhatsApp', 'cead' ),
-		'rol'   => __( 'Un programa chico, aparte', 'cead' ),
-		'txt'   => __( 'Lo único que hace es pasar mensajes entre WhatsApp y la aplicación. Si se apaga, el panel y la web siguen funcionando igual: solo deja de contestar el bot.', 'cead' ),
+		'tit'   => __( 'El puente con WhatsApp', 'cead' ),
+		'rol'   => __( 'Un componente separado y pequeño', 'cead' ),
+		'txt'   => __( 'Su función es llevar los mensajes entre WhatsApp y la aplicación. Si deja de funcionar, la web y el panel continúan disponibles; únicamente CEADI deja de responder por WhatsApp.', 'cead' ),
 	],
 ];
 ?>
 <section id="arquitectura" class="proy-section proy-section--arq">
 	<div class="container">
 		<header class="proy-head">
-			<p class="reveal eyebrow"><?php esc_html_e( '— Cómo está armado', 'cead' ); ?></p>
-			<h2 class="reveal proy-h2"><?php esc_html_e( 'Tres piezas, y ninguna depende de un tercero.', 'cead' ); ?></h2>
+			<p class="reveal eyebrow"><?php esc_html_e( 'Estructura del sistema', 'cead' ); ?></p>
+			<h2 class="reveal proy-h2"><?php esc_html_e( 'Tres componentes que trabajan como un solo sistema.', 'cead' ); ?></h2>
 			<div class="reveal proy-head-aside">
-				<p class="proy-lead"><?php esc_html_e( 'Todo corre en el servidor del colegio. No hay una empresa de por medio que pueda subir el precio, cerrar el servicio o quedarse con los datos del alumnado.', 'cead' ); ?></p>
+				<p class="proy-lead"><?php esc_html_e( 'El sistema funciona en el servidor del colegio. La institución mantiene el control de los datos y no depende de una suscripción externa para conservar el acceso a la plataforma.', 'cead' ); ?></p>
 				<?php
 				cead_audio_button(
-					__( 'El sistema son tres piezas. La web pública, que ve cualquiera. La aplicación, que es el corazón: ahí viven los usuarios, los permisos, las notas y el cerebro del bot. Y un programa chico aparte, que es el puente a WhatsApp. Si el puente se apaga, la web y el panel siguen andando igual: solo deja de contestar el bot. Todo corre en el servidor del colegio.', 'cead' ),
+					__( 'El sistema tiene tres partes. La web pública muestra la información abierta del colegio. La aplicación administra usuarios, permisos, notas y demás datos. Un componente separado conecta esa aplicación con WhatsApp. Si esa conexión se detiene, la web y el panel siguen funcionando. Todo se ejecuta en el servidor del colegio.', 'cead' ),
 					'arquitectura.mp3'
 				);
 				?>
@@ -62,7 +62,7 @@ $piezas = [
 
 		<p class="reveal proy-arq-nota">
 			<span class="proy-caras-nota-mark" aria-hidden="true"></span>
-			<?php esc_html_e( 'Se actualiza solo. Cuando hay una versión nueva, aparece el aviso en el panel de administración y se instala con un clic — igual que cualquier actualización de WordPress.', 'cead' ); ?>
+			<?php esc_html_e( 'Las actualizaciones se administran desde el panel. Cuando hay una nueva versión, aparece un aviso y puede instalarse desde allí.', 'cead' ); ?>
 		</p>
 	</div>
 </section>

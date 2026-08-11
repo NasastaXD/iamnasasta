@@ -11,40 +11,40 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 $puntos = [
 	[
 		'tit' => __( 'No hay registro abierto', 'cead' ),
-		'txt' => __( 'Nadie se crea una cuenta solo. Se entra por invitación de secretaría, y cada invitación sirve una vez y vence.', 'cead' ),
+		'txt' => __( 'Las cuentas se crean mediante una invitación de secretaría. Cada invitación puede usarse una sola vez y tiene una fecha de vencimiento.', 'cead' ),
 	],
 	[
-		'tit' => __( 'Cada quien ve lo suyo', 'cead' ),
-		'txt' => __( 'Los permisos se verifican en cada acción, no solo al mostrar el menú. Esconder un botón no alcanza: si alguien fuerza la dirección igual se le dice que no.', 'cead' ),
+		'tit' => __( 'Cada persona accede solo a lo que le corresponde', 'cead' ),
+		'txt' => __( 'Los permisos se comprueban cada vez que alguien intenta realizar una acción. Por eso, ocultar una opción del menú no es la única medida de seguridad: el sistema también bloquea el acceso cuando la cuenta no tiene autorización.', 'cead' ),
 	],
 	[
-		'tit' => __( 'Las denuncias van cifradas', 'cead' ),
-		'txt' => __( 'Un reporte por CEADI se guarda cifrado y con código de seguimiento. Se puede mandar anónimo, y anónimo quiere decir anónimo.', 'cead' ),
+		'tit' => __( 'Los reportes se guardan cifrados', 'cead' ),
+		'txt' => __( 'Los reportes enviados mediante CEADI se guardan cifrados y reciben un código de seguimiento. También pueden enviarse de forma anónima.', 'cead' ),
 	],
 	[
-		'tit' => __( 'Queda registro de lo importante', 'cead' ),
-		'txt' => __( 'Quién cargó una nota, quién mandó un comunicado, quién cambió un rol. No para vigilar a nadie: para poder reconstruir qué pasó si algo sale mal.', 'cead' ),
+		'tit' => __( 'Las acciones importantes quedan registradas', 'cead' ),
+		'txt' => __( 'El sistema registra acciones como cargar una nota, enviar un comunicado o cambiar un rol. Este historial permite revisar qué ocurrió si aparece un error o una situación que necesita aclararse.', 'cead' ),
 	],
 	[
-		'tit' => __( 'Los datos son del colegio', 'cead' ),
-		'txt' => __( 'Todo vive en el servidor de la institución. No hay una empresa intermediaria con acceso, ni una suscripción que pueda cortarse.', 'cead' ),
+		'tit' => __( 'Los datos permanecen bajo control del colegio', 'cead' ),
+		'txt' => __( 'La información se almacena en el servidor de la institución. El funcionamiento del sistema no depende de una empresa intermediaria ni de una suscripción externa.', 'cead' ),
 	],
 	[
-		'tit' => __( 'El bot no se deja convencer', 'cead' ),
-		'txt' => __( 'CEADI identifica a la persona por su número registrado. Decirle «soy el director» en el chat no cambia absolutamente nada.', 'cead' ),
+		'tit' => __( 'La identidad no se cambia desde el chat', 'cead' ),
+		'txt' => __( 'CEADI reconoce a cada persona por su número registrado y aplica los permisos de esa cuenta. Lo que alguien diga sobre su identidad dentro del chat no modifica esos permisos.', 'cead' ),
 	],
 ];
 ?>
 <section id="seguridad" class="proy-section proy-section--seg">
 	<div class="container">
 		<header class="proy-head">
-			<p class="reveal eyebrow"><?php esc_html_e( '— Lo que suele preguntarse', 'cead' ); ?></p>
-			<h2 class="reveal proy-h2"><?php esc_html_e( '¿Y quién puede ver qué?', 'cead' ); ?></h2>
+			<p class="reveal eyebrow"><?php esc_html_e( 'Seguridad y acceso', 'cead' ); ?></p>
+			<h2 class="reveal proy-h2"><?php esc_html_e( '¿Quién puede ver cada dato?', 'cead' ); ?></h2>
 			<div class="reveal proy-head-aside">
-				<p class="proy-lead"><?php esc_html_e( 'Es la primera pregunta que hace cualquier institución, y con razón: acá hay datos de menores de edad. Estas seis respuestas son las que más importan.', 'cead' ); ?></p>
+				<p class="proy-lead"><?php esc_html_e( 'Es una pregunta esencial porque el sistema trabaja con información de estudiantes, incluidos menores de edad. Estas son las medidas principales que determinan quién puede entrar y qué puede consultar.', 'cead' ); ?></p>
 				<?php
 				cead_audio_button(
-					__( 'Sobre seguridad: no hay registro abierto, se entra solo por invitación. Los permisos se verifican en cada acción, no solo al dibujar el menú. Las denuncias se guardan cifradas y pueden ser anónimas de verdad. Queda registro de las acciones importantes. Los datos viven en el servidor del colegio, sin empresa intermediaria. Y el bot identifica a la persona por su número: decirle que sos el director no cambia nada.', 'cead' ),
+					__( 'En materia de seguridad, las cuentas se crean por invitación y cada acción comprueba los permisos del usuario. Los reportes se guardan cifrados y pueden enviarse de forma anónima. Las acciones importantes quedan registradas. Los datos permanecen en el servidor del colegio y CEADI identifica a cada persona por su número registrado.', 'cead' ),
 					'seguridad.mp3'
 				);
 				?>

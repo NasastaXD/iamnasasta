@@ -22,7 +22,7 @@ $title = __( 'Cerrar sesión', 'cead-acad' );
 $body  = function () {
 	?>
 	<h1 class="cead-acad-auth-h"><?php esc_html_e( 'Cerrar sesión', 'cead-acad' ); ?></h1>
-	<p class="cead-acad-auth-sub"><?php esc_html_e( '¿Querés salir de tu cuenta?', 'cead-acad' ); ?></p>
+	<p class="cead-acad-auth-sub"><?php esc_html_e( '¿Desea salir de su cuenta?', 'cead-acad' ); ?></p>
 
 	<p>
 		<a class="cead-acad-btn cead-acad-btn--primary" href="<?php echo esc_url( cead_acad_logout_url() ); ?>">

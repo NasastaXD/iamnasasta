@@ -1,48 +1,4 @@
-# Textos para humanizar
-
-Acá está **todo el texto que escribí yo**. Reescribilo con tu voz y devolvémelo:
-cada bloque tiene un ID entre corchetes, y con eso lo devuelvo exactamente a su
-lugar en el código. No hay que buscar nada a mano ni de los dos lados.
-
-**185 textos**, en tres partes. La Parte 1 es la que importa de verdad.
-
----
-
-## Cómo trabajar este archivo
-
-1. **Editá el texto que está debajo de cada `### [id]`.** Reescribilo entero si
-   querés: puede ser más largo, más corto, o varias líneas.
-2. **No toques la línea del `### [id]`.** Es lo único que me dice a dónde va.
-3. **Lo que no te moleste, dejalo.** No hace falta tocar los 185 — con que
-   arregles lo que suena mecanizado alcanza.
-4. Si algo te sobra, escribí `BORRAR` debajo del ID.
-
-### Dos cosas que hay que respetar
-
-**`%s` y `%1$d`** son huecos donde el sistema mete un dato (un nombre, un
-número). Si están, tienen que seguir estando, y los mismos. El texto alrededor
-cambialo todo lo que quieras. *(Si te olvidás, no pasa nada: la herramienta
-rechaza ese texto y me avisa, en vez de romper la página.)*
-
-**Los guiones de audio** (Parte 2) son texto **hablado**, no escrito. Se leen en
-voz alta, así que evitá paréntesis, comillas y símbolos. Si escribís «18», la
-voz dice «dieciocho»; si querés controlar cómo suena, escribilo con letras.
-
-### Qué le falta, en mi opinión
-
-Lo escribí corto y directo para darte dónde apoyarte, pero le falta justo lo que
-solo vos podés poner: **cómo se dicen las cosas en el CEAD**. Qué palabra usan
-los profes, qué le importa a tu director, qué le diría un alumno a otro.
-
-El olfato que te sirve: si una oración podría estar en la web de cualquier
-colegio del país, ahí está el problema. Las que más me suenan a mí son las de la
-Parte 1 secciones 2 y 8 — están correctas y no dicen nada que sea de ustedes.
-
-
 # PARTE 1 — La página /proyecto
-
-Lo que se ve en pantalla, en el orden en que aparece al bajar.
-
 
 ## 1 · Portada
 
@@ -53,47 +9,45 @@ CEAD Académico
 Todo el colegio, %s.
 
 ### [hero#3]
-en el celular
+en un solo lugar
 
 ### [hero#4]
-Las notas, el horario, los comunicados y los trámites del CEAD, en un solo lugar. Se entra desde la web, desde la app o escribiéndole por WhatsApp a CEADI — lo que a cada uno le quede más cómodo.
+Notas, horarios, comunicados y trámites del CEAD, reunidos en una sola plataforma. Se puede acceder desde la web, instalarla en el celular o consultar a CEADI por WhatsApp.
 
 ### [hero#6]
-→ Ver cómo funciona
+Ver cómo funciona
 
 ### [hero#7]
-Seguí bajando
-
+Continuar
 
 ## 2 · El punto de partida
 
 ### [problema#1]
-La circular que nunca llegó
+Una circular que no siempre llega
 
 ### [problema#2]
-Se imprime, se reparte, se pierde en el fondo de la mochila. Nadie sabe quién la leyó de verdad.
+El papel puede perderse antes de llegar a casa. Después, resulta difícil saber quién recibió la información y quién no.
 
 ### [problema#3]
-Doce grupos de WhatsApp
+La información repartida en varios chats
 
 ### [problema#4]
-La información importante queda entre memes y buenos días. Lo urgente y lo trivial pesan igual.
+En los grupos de WhatsApp, un aviso importante puede quedar entre muchos otros mensajes y pasar desapercibido.
 
 ### [problema#5]
-Las notas, en un cuaderno
+Las notas, fuera de un sistema común
 
 ### [problema#6]
-Para saber cómo va un alumno hay que preguntar, esperar y confiar en que alguien sumó bien.
+Consultar el rendimiento de un estudiante puede requerir preguntar, esperar una respuesta y revisar datos que están en lugares distintos.
 
 ### [problema#7]
-— El punto de partida
+El punto de partida
 
 ### [problema#8]
-El colegio ya se comunicaba. El problema era cómo.
+El colegio ya tenía formas de comunicarse, pero la información quedaba repartida entre papel, mensajes y registros separados.
 
 ### [problema#9]
-Nada de esto es culpa de nadie: es lo que pasa cuando la información vive en papel y en chats sueltos. La plataforma no reemplaza a las personas, les saca el trabajo de encima.
-
+CEAD Académico reúne esa información en un mismo sistema. Así reduce tareas repetidas y facilita que estudiantes, familias y personal encuentren lo que necesitan.
 
 ## 3 · Las tres puertas
 
@@ -101,220 +55,218 @@ Nada de esto es culpa de nadie: es lo que pasa cuando la información vive en pa
 El panel web
 
 ### [caras#2]
-Desde cualquier navegador
+Disponible desde cualquier navegador
 
 ### [caras#3]
-Comunicados, horario, calendario, tareas, recursos, boletín y carné digital. Cada persona ve lo que le corresponde según su rol: un alumno no ve lo mismo que secretaría.
+Reúne comunicados, horarios, calendario, tareas, recursos, boletín y carné digital. Cada persona accede únicamente a las funciones que corresponden a su rol.
 
 ### [caras#4]
-Toda la comunidad
+Para toda la comunidad educativa
 
 ### [caras#5]
-La app
+La aplicación
 
 ### [caras#6]
-Se instala desde el navegador
+Se instala directamente desde el navegador
 
 ### [caras#7]
-El mismo panel, pero en la pantalla de inicio del celular, con su ícono. No se baja de ninguna tienda y lo ya visitado sigue abriéndose sin internet.
+Ofrece el mismo panel desde la pantalla de inicio del celular. No requiere una tienda de aplicaciones y parte del contenido consultado puede seguir disponible sin conexión.
 
 ### [caras#8]
-Alumnado y familias
+Para estudiantes y familias
 
 ### [caras#9]
-CEADI, por WhatsApp
+CEADI por WhatsApp
 
 ### [caras#10]
-Sin instalar nada
+Sin instalar una aplicación adicional
 
 ### [caras#11]
-Se le escribe como a una persona: «¿qué clases tengo mañana?». Entiende lenguaje natural, escucha notas de voz y responde con datos reales del sistema.
+Se puede escribir una pregunta normal, como «¿qué clases tengo mañana?». CEADI entiende texto y notas de voz, y responde con información del sistema.
 
 ### [caras#12]
-Quien prefiere no entrar a la web
+Para quienes prefieren usar WhatsApp
 
 ### [caras#13]
-— Cómo se usa
+Formas de acceso
 
 ### [caras#14]
-Un solo sistema. Tres puertas de entrada.
+Un solo sistema, con tres formas de entrar.
 
 ### [caras#15]
-Esto es lo único que hay que entender de todo el proyecto: no son tres sistemas distintos que hay que mantener sincronizados. Es uno solo. Un comunicado que dirección manda desde WhatsApp aparece en el panel del alumno en el mismo momento — y al revés.
+El panel, la aplicación y CEADI trabajan con la misma información. Si Dirección publica un comunicado desde WhatsApp, el estudiante puede verlo en su panel sin que nadie tenga que copiarlo a otro lugar.
 
 ### [caras#17]
 Para
 
 ### [caras#18]
-Un mismo dato, una sola vez. Las tres puertas leen y escriben en la misma base: no hay nada que copiar de un lado al otro, y por lo tanto nada que se desactualice.
-
+Cada dato se carga una sola vez. Las tres formas de acceso consultan la misma base, lo que reduce duplicaciones y evita versiones diferentes de una misma información.
 
 ## 4 · Recorrido por el panel
 
 ### [panel#1]
-Todos los días
+Uso diario
 
 ### [panel#2]
-Lo que un alumno abre sin pensarlo.
+La información que un estudiante suele necesitar con más frecuencia.
 
 ### [panel#3]
 Inicio
 
 ### [panel#4]
-Las clases de hoy, los próximos eventos y los últimos comunicados, en una pantalla.
+Muestra las clases del día, los próximos eventos y los comunicados más recientes.
 
 ### [panel#5]
 Comunicados
 
 ### [panel#6]
-Solo los que le tocan. Al abrirlo queda marcado como leído — y dirección ve cuántos lo leyeron.
+Cada persona recibe solo los comunicados que le corresponden. Al abrir uno, queda registrado como leído para que Dirección pueda conocer su alcance.
 
 ### [panel#7]
 Horarios
 
 ### [panel#8]
-El horario semanal del curso, con materia, hora y docente.
+Muestra el horario semanal del curso con la materia, la hora y el docente de cada clase.
 
 ### [panel#9]
 Calendario
 
 ### [panel#10]
-Vista mensual o agenda. Se puede suscribir desde Google Calendar o el iPhone.
+Puede verse por mes o como agenda. También puede añadirse a Google Calendar o al calendario del iPhone.
 
 ### [panel#11]
-Lo académico
+Información académica
 
 ### [panel#12]
-Lo que antes había que ir a preguntar.
+Datos que pueden consultarse directamente, sin tener que solicitarlos por separado.
 
 ### [panel#13]
 Boletín
 
 ### [panel#14]
-Las notas por materia y etapa, en la escala del colegio. Cada quien ve solo las suyas.
+Muestra las calificaciones por materia y etapa según la escala del colegio. Cada estudiante accede únicamente a sus propios resultados.
 
 ### [panel#15]
 Mis tareas
 
 ### [panel#16]
-Con fecha de entrega y prioridad. Se marcan como hechas y se puede adjuntar el trabajo.
+Cada tarea muestra su fecha de entrega y prioridad. Puede marcarse como terminada y, cuando corresponde, permite adjuntar un archivo.
 
 ### [panel#17]
 Recursos
 
 ### [panel#18]
-Guías, modelos de examen y apuntes, con buscador, filtros y favoritos.
+Reúne guías, modelos de examen y apuntes. Incluye búsqueda, filtros y favoritos para encontrarlos con mayor facilidad.
 
 ### [panel#19]
-Los trámites
+Trámites y gestiones
 
 ### [panel#20]
-Lo que antes era una fila en secretaría.
+Funciones que permiten resolver desde el sistema gestiones que antes requerían acudir a secretaría.
 
 ### [panel#21]
 Mi carné
 
 ### [panel#22]
-Carné digital con QR. Quien lo escanea llega a una página que confirma que es válido.
+Carné digital con código QR. Al escanearlo, se abre una página que permite comprobar si el carné es válido.
 
 ### [panel#23]
-Escribir al CEAD
+Contactar al CEAD
 
 ### [panel#24]
-Un mensaje directo a dirección, consejo o administración, que cae en su buzón.
+Permite enviar un mensaje directo a Dirección, al Consejo o a Administración desde el propio panel.
 
 ### [panel#25]
 Encuestas
 
 ### [panel#26]
-Las que le corresponden, con resultados que dirección ve en vivo.
+Muestra las encuestas asignadas a cada persona. Dirección puede consultar los resultados a medida que se reciben.
 
 ### [panel#27]
-Para quien gestiona
+Funciones de gestión
 
 ### [panel#28]
-Pantallas que aparecen solo si el rol las habilita.
+Estas pantallas aparecen únicamente para los roles que necesitan utilizarlas.
 
 ### [panel#29]
 Dirección
 
 ### [panel#30]
-Cuánta gente hay, cuánto se publica y —lo importante— cuántos leyeron y cuántos respondieron.
+Resume la cantidad de usuarios, publicaciones, lecturas y respuestas para ofrecer una visión general del uso del sistema.
 
 ### [panel#31]
 Secretaría
 
 ### [panel#32]
-Invitaciones, cursos, borradores y el historial de importaciones con sus errores.
+Permite gestionar invitaciones, cursos, borradores e importaciones, además de revisar los errores que hayan ocurrido durante una carga.
 
 ### [panel#33]
 Delegado
 
 ### [panel#34]
-El tablero de tareas del curso, separadas en pendientes y hechas.
+Muestra las tareas del curso y las separa entre pendientes y realizadas.
 
 ### [panel#35]
-— Por dentro
+Organización del panel
 
 ### [panel#36]
-Catorce pantallas, y cada una se gana el lugar.
+Las catorce pantallas se organizan por función para que cada persona encuentre solo lo que necesita.
 
 ### [panel#37]
-El menú no es igual para todos: se arma según el rol de quien entró. Un alumno no ve la pantalla de secretaría, y no porque esté escondida — sencillamente no existe para él.
-
+El menú cambia según el rol. Un estudiante, por ejemplo, no recibe acceso a las funciones de secretaría porque esas funciones no forman parte de su cuenta.
 
 ## 5 · CEADI en acción
 
 ### [ceadi#1]
-¿qué clases tengo mañana?
+¿Qué clases tengo mañana?
 
 ### [ceadi#2]
-Mañana (martes) tenés:
+Mañana, martes, tienes:
 
 ### [ceadi#3]
 07:00 Matemática · 08:40 Ciencias Básicas · 10:00 Guaraní Ñe'ẽ
 
 ### [ceadi#4]
-🎤 Nota de voz
+Nota de voz
 
 ### [ceadi#5]
-Escuché: «¿me falta entregar algo?».
+Entendí: «¿me falta entregar algo?».
 
 ### [ceadi#6]
-Sí, tenés 2 tareas pendientes. La más próxima vence el jueves.
+Sí. Tienes 2 tareas pendientes. La más próxima vence el jueves.
 
 ### [ceadi#7]
-Lee documentos
+Puede leer documentos
 
 ### [ceadi#8]
-Le mandás un PDF o un Word y lo lee para responderte sobre eso.
+Si se envía un PDF o un archivo de Word, CEADI puede leerlo y responder preguntas sobre su contenido.
 
 ### [ceadi#9]
-Carga notas
+Puede cargar notas
 
 ### [ceadi#10]
-Un docente dice «ponele 4 a Pérez en Matemática» y CEADI confirma antes de guardar.
+Un docente puede indicar una calificación por mensaje. Antes de guardarla, CEADI muestra los datos y solicita confirmación.
 
 ### [ceadi#11]
-Lee tu planilla
+Puede leer una planilla
 
 ### [ceadi#12]
-Se le manda el Excel de siempre: adivina las columnas, muestra qué va a cargar y recién ahí guarda. El archivo no se almacena.
+El docente puede enviar su archivo de Excel habitual. CEADI identifica las columnas, muestra qué datos encontró y solo guarda la información después de una confirmación. El archivo original no queda almacenado.
 
 ### [ceadi#13]
-Recibe reportes
+Puede recibir reportes
 
 ### [ceadi#14]
-Anónimos o confidenciales, cifrados, con código de seguimiento. Caen en el buzón del panel.
+Los reportes pueden enviarse de forma anónima o confidencial. Se guardan cifrados, reciben un código de seguimiento y llegan al buzón correspondiente dentro del panel.
 
 ### [ceadi#15]
-— El bot
+CEADI
 
 ### [ceadi#16]
-A CEADI se le habla como a una persona.
+Con CEADI basta con escribir una pregunta de forma normal.
 
 ### [ceadi#17]
-No hay que aprenderse comandos ni números de menú: se escribe la pregunta y listo. Y si alguien prefiere el menú de siempre, también está — se escribe «menú» y aparece.
+No hace falta memorizar comandos ni números de menú. Se escribe la consulta y CEADI responde. Quien prefiera un menú tradicional también puede escribir «menú» para verlo.
 
 ### [ceadi#19]
 CEADI
@@ -326,17 +278,16 @@ en línea
 Ejemplo de conversación con CEADI
 
 ### [ceadi#22]
-Alumno:
+Estudiante:
 
 ### [ceadi#23]
 CEADI:
 
 ### [ceadi#24]
-Manda una nota de voz de cuatro segundos.
+Envía una nota de voz de cuatro segundos.
 
 ### [ceadi#25]
-CEADI solo atiende números registrados, y nunca le muestra a alguien los datos de otra persona. Quién sos lo define tu número, no lo que digas en el chat.
-
+CEADI atiende únicamente a números registrados. La cuenta y los permisos se identifican por el número de teléfono, por lo que una persona no puede acceder a datos ajenos simplemente diciendo que es otra.
 
 ## 6 · Cómo está armado
 
@@ -344,50 +295,48 @@ CEADI solo atiende números registrados, y nunca le muestra a alguien los datos 
 La web pública
 
 ### [arquitectura#2]
-Lo que ve cualquiera
+Información abierta para cualquier visitante
 
 ### [arquitectura#3]
-El sitio del colegio: novedades, bachilleratos, galería y esta misma página. No hace falta cuenta.
+Es el sitio público del colegio: incluye novedades, bachilleratos, galería y esta página. No requiere una cuenta.
 
 ### [arquitectura#4]
 La aplicación
 
 ### [arquitectura#5]
-El corazón del sistema
+Donde funciona el sistema principal
 
 ### [arquitectura#6]
-Acá vive todo: usuarios, roles, permisos, notas, comunicados, encuestas y el cerebro de CEADI. Es la única pieza que guarda datos.
+Aquí se administran los usuarios, los roles, los permisos, las notas, los comunicados, las encuestas y las funciones de CEADI. Es la parte que guarda la información del sistema.
 
 ### [arquitectura#7]
-El puente a WhatsApp
+El puente con WhatsApp
 
 ### [arquitectura#8]
-Un programa chico, aparte
+Un componente separado y pequeño
 
 ### [arquitectura#9]
-Lo único que hace es pasar mensajes entre WhatsApp y la aplicación. Si se apaga, el panel y la web siguen funcionando igual: solo deja de contestar el bot.
+Su función es llevar los mensajes entre WhatsApp y la aplicación. Si deja de funcionar, la web y el panel continúan disponibles; únicamente CEADI deja de responder por WhatsApp.
 
 ### [arquitectura#10]
-— Cómo está armado
+Estructura del sistema
 
 ### [arquitectura#11]
-Tres piezas, y ninguna depende de un tercero.
+Tres componentes que trabajan como un solo sistema.
 
 ### [arquitectura#12]
-Todo corre en el servidor del colegio. No hay una empresa de por medio que pueda subir el precio, cerrar el servicio o quedarse con los datos del alumnado.
+El sistema funciona en el servidor del colegio. La institución mantiene el control de los datos y no depende de una suscripción externa para conservar el acceso a la plataforma.
 
 ### [arquitectura#14]
-Se actualiza solo. Cuando hay una versión nueva, aparece el aviso en el panel de administración y se instala con un clic — igual que cualquier actualización de WordPress.
-
+Las actualizaciones se administran desde el panel. Cuando hay una nueva versión, aparece un aviso y puede instalarse desde allí.
 
 ## 7 · En números
 
 ### [numeros#1]
-— En números
+En números
 
 ### [numeros#2]
-No es una demo. Está en producción.
-
+Es un sistema en uso, no una demostración.
 
 ## 8 · Seguridad
 
@@ -395,47 +344,46 @@ No es una demo. Está en producción.
 No hay registro abierto
 
 ### [seguridad#2]
-Nadie se crea una cuenta solo. Se entra por invitación de secretaría, y cada invitación sirve una vez y vence.
+Las cuentas se crean mediante una invitación de secretaría. Cada invitación puede usarse una sola vez y tiene una fecha de vencimiento.
 
 ### [seguridad#3]
-Cada quien ve lo suyo
+Cada persona accede solo a lo que le corresponde
 
 ### [seguridad#4]
-Los permisos se verifican en cada acción, no solo al mostrar el menú. Esconder un botón no alcanza: si alguien fuerza la dirección igual se le dice que no.
+Los permisos se comprueban cada vez que alguien intenta realizar una acción. Por eso, ocultar una opción del menú no es la única medida de seguridad: el sistema también bloquea el acceso cuando la cuenta no tiene autorización.
 
 ### [seguridad#5]
-Las denuncias van cifradas
+Los reportes se guardan cifrados
 
 ### [seguridad#6]
-Un reporte por CEADI se guarda cifrado y con código de seguimiento. Se puede mandar anónimo, y anónimo quiere decir anónimo.
+Los reportes enviados mediante CEADI se guardan cifrados y reciben un código de seguimiento. También pueden enviarse de forma anónima.
 
 ### [seguridad#7]
-Queda registro de lo importante
+Las acciones importantes quedan registradas
 
 ### [seguridad#8]
-Quién cargó una nota, quién mandó un comunicado, quién cambió un rol. No para vigilar a nadie: para poder reconstruir qué pasó si algo sale mal.
+El sistema registra acciones como cargar una nota, enviar un comunicado o cambiar un rol. Este historial permite revisar qué ocurrió si aparece un error o una situación que necesita aclararse.
 
 ### [seguridad#9]
-Los datos son del colegio
+Los datos permanecen bajo control del colegio
 
 ### [seguridad#10]
-Todo vive en el servidor de la institución. No hay una empresa intermediaria con acceso, ni una suscripción que pueda cortarse.
+La información se almacena en el servidor de la institución. El funcionamiento del sistema no depende de una empresa intermediaria ni de una suscripción externa.
 
 ### [seguridad#11]
-El bot no se deja convencer
+La identidad no se cambia desde el chat
 
 ### [seguridad#12]
-CEADI identifica a la persona por su número registrado. Decirle «soy el director» en el chat no cambia absolutamente nada.
+CEADI reconoce a cada persona por su número registrado y aplica los permisos de esa cuenta. Lo que alguien diga sobre su identidad dentro del chat no modifica esos permisos.
 
 ### [seguridad#13]
-— Lo que suele preguntarse
+Seguridad y acceso
 
 ### [seguridad#14]
-¿Y quién puede ver qué?
+¿Quién puede ver cada dato?
 
 ### [seguridad#15]
-Es la primera pregunta que hace cualquier institución, y con razón: acá hay datos de menores de edad. Estas seis respuestas son las que más importan.
-
+Es una pregunta esencial porque el sistema trabaja con información de estudiantes, incluidos menores de edad. Estas son las medidas principales que determinan quién puede entrar y qué puede consultar.
 
 ## 9 · Cierre
 
@@ -443,40 +391,39 @@ Es la primera pregunta que hace cualquier institución, y con razón: acá hay d
 Entrar al panel
 
 ### [cierre#2]
-Si ya tenés cuenta, es por acá.
+Acceso para quienes ya tienen una cuenta.
 
 ### [cierre#3]
-La guía completa
+Guía completa
 
 ### [cierre#4]
-Pantalla por pantalla, con todo lo que hace CEADI y las preguntas frecuentes.
+Explica cada pantalla, las funciones de CEADI y las preguntas más frecuentes.
 
 ### [cierre#5]
-La documentación técnica
+Documentación técnica
 
 ### [cierre#6]
-Arquitectura, modelo de datos, permisos y despliegue. Para quien va a mantenerlo.
+Describe la arquitectura, los datos, los permisos y el despliegue para quienes administran o mantienen el sistema.
 
 ### [cierre#7]
-— Para seguir
+Más información
 
 ### [cierre#8]
-Hecho acá, para %s.
+Hecho en el CEAD, para %s.
 
 ### [cierre#9]
 este colegio
 
 ### [cierre#10]
-No es un sistema genérico al que hubo que adaptarse. Los roles, los permisos, las etapas y la escala de notas son los del CEAD porque se construyó mirando cómo trabaja el CEAD.
-
+CEAD Académico fue diseñado para la forma de trabajar del propio colegio. Sus roles, permisos, etapas y escala de notas responden a la organización real del CEAD.
 
 ## Etiquetas del organigrama
 
 ### [organigrama#1]
-Cómo se conectan las piezas del sistema
+Cómo se conectan las partes del sistema
 
 ### [organigrama#2]
-Las personas entran por tres caminos: el navegador y la app llegan directo a la aplicación; WhatsApp pasa antes por un puente. La aplicación es la única que guarda los datos.
+Hay tres formas de entrar: navegador, aplicación y WhatsApp. El navegador y la aplicación se conectan directamente con el sistema principal; WhatsApp lo hace a través de un puente. Los datos se guardan únicamente en la aplicación.
 
 ### [organigrama#3]
 Navegador
@@ -485,7 +432,7 @@ Navegador
 la web
 
 ### [organigrama#5]
-App
+Aplicación
 
 ### [organigrama#6]
 el celular
@@ -508,51 +455,38 @@ usuarios · permisos · notas · comunicados · datos
 ### [organigrama#12]
 Todo en el servidor del colegio
 
-
 ## Pie de la ilustración
 
 ### [pantalla#1]
-Ilustración del panel — no es una captura
-
-
----
+Ilustración del panel. No es una captura de pantalla.
 
 # PARTE 2 — Los guiones de audio
 
-Uno por sección. Son **texto hablado**: se leen en voz alta. No repiten lo
-que está en pantalla, lo cuentan.
-
 ### [hero#5]
-CEAD Académico es la plataforma propia del colegio. Reúne las notas, el horario, los comunicados y los trámites en un solo lugar, y se usa desde la web, desde la app del celular, o escribiéndole por WhatsApp a CEADI. Bajá para ver cómo funciona.
+CEAD Académico es la plataforma propia del colegio. Reúne notas, horarios, comunicados y trámites en un solo lugar. Puede usarse desde la web, instalarse en el celular o consultarse por WhatsApp mediante CEADI. A continuación se explica cómo funciona.
 
 ### [problema#10]
-Antes de la plataforma, el colegio se comunicaba con circulares en papel, que se perdían; con grupos de WhatsApp, donde lo urgente y lo trivial pesaban igual; y con las notas anotadas en cuadernos. Nada de eso es culpa de nadie: es lo que pasa cuando la información vive dispersa.
+Antes de la plataforma, mucha información quedaba repartida entre circulares impresas, grupos de WhatsApp y registros separados. Eso hacía más difícil encontrar un aviso, comprobar si había llegado o consultar un dato académico. CEAD Académico reúne esa información para que sea más fácil acceder a ella.
 
 ### [caras#16]
-Hay tres formas de usar el sistema: el panel web, la app del celular, y CEADI por WhatsApp. Lo importante es que no son tres sistemas distintos, es uno solo con tres puertas. Un comunicado que dirección manda desde WhatsApp aparece en el panel del alumno en el mismo momento, y al revés.
+El sistema puede usarse de tres formas: desde el panel web, desde la aplicación del celular o por WhatsApp mediante CEADI. Las tres formas consultan la misma información. Si se publica un comunicado desde una de ellas, aparece también en las demás sin necesidad de copiarlo.
 
 ### [panel#38]
-El panel tiene catorce pantallas, agrupadas en cuatro cosas: lo de todos los días, como el inicio, los comunicados y el horario; lo académico, como el boletín y las tareas; los trámites, como el carné digital; y las pantallas de gestión, que aparecen solo si el rol las habilita. Un alumno no ve la pantalla de secretaría: no está escondida, no existe para él.
+El panel reúne catorce pantallas. Algunas sirven para el uso diario, como Inicio, Comunicados y Horarios. Otras reúnen información académica, trámites o funciones de gestión. Cada cuenta ve únicamente las pantallas que necesita según su rol.
 
 ### [ceadi#18]
-A CEADI se le escribe como a una persona. Por ejemplo: qué clases tengo mañana. No hay que aprenderse comandos. También entiende notas de voz: las escucha y contesta. Y hace cosas más grandes: lee documentos, carga notas por chat, procesa la planilla de Excel del docente y recibe reportes cifrados.
+CEADI permite consultar el sistema con preguntas normales. Puede responder sobre horarios y tareas, entender notas de voz, leer documentos y ayudar a cargar información. También puede procesar una planilla de Excel y recibir reportes cifrados. Antes de guardar datos importantes, pide una confirmación.
 
 ### [arquitectura#13]
-El sistema son tres piezas. La web pública, que ve cualquiera. La aplicación, que es el corazón: ahí viven los usuarios, los permisos, las notas y el cerebro del bot. Y un programa chico aparte, que es el puente a WhatsApp. Si el puente se apaga, la web y el panel siguen andando igual: solo deja de contestar el bot. Todo corre en el servidor del colegio.
+El sistema tiene tres partes. La web pública muestra la información abierta del colegio. La aplicación administra usuarios, permisos, notas y demás datos. Un componente separado conecta esa aplicación con WhatsApp. Si esa conexión se detiene, la web y el panel siguen funcionando. Todo se ejecuta en el servidor del colegio.
 
 ### [numeros#3]
-Para dar una idea del tamaño: el sistema tiene dieciocho módulos, dieciocho tablas propias de base de datos, siete roles distintos y siete tipos de contenido. No es una maqueta: es lo que el colegio usa todos los días.
+Para entender su tamaño, el sistema cuenta con dieciocho módulos, dieciocho tablas propias de base de datos, siete roles y siete tipos de contenido. Son componentes que ya forman parte del funcionamiento de la plataforma.
 
 ### [seguridad#16]
-Sobre seguridad: no hay registro abierto, se entra solo por invitación. Los permisos se verifican en cada acción, no solo al dibujar el menú. Las denuncias se guardan cifradas y pueden ser anónimas de verdad. Queda registro de las acciones importantes. Los datos viven en el servidor del colegio, sin empresa intermediaria. Y el bot identifica a la persona por su número: decirle que sos el director no cambia nada.
-
-
----
+En materia de seguridad, las cuentas se crean por invitación y cada acción comprueba los permisos del usuario. Los reportes se guardan cifrados y pueden enviarse de forma anónima. Las acciones importantes quedan registradas. Los datos permanecen en el servidor del colegio y CEADI identifica a cada persona por su número registrado.
 
 # PARTE 3 — Microcopy de interfaz
-
-Botones, etiquetas y avisos. Acá importa que sea claro y breve, no que suene lindo.
-
 
 ## Menú del sitio
 
@@ -565,26 +499,25 @@ Documentación técnica
 ### [nav#4]
 La plataforma
 
-
 ## Números y botón de audio
 
 ### [helpers#3]
 módulos
 
 ### [helpers#4]
-Cada parte del sistema es una pieza aparte que se puede tocar sin romper el resto.
+Partes independientes del sistema que cumplen funciones distintas y pueden actualizarse por separado.
 
 ### [helpers#5]
 tablas propias
 
 ### [helpers#6]
-Los datos del colegio en su propia estructura, no encajados a la fuerza en otra cosa.
+Estructuras creadas para guardar los datos del colegio de forma ordenada.
 
 ### [helpers#7]
 roles
 
 ### [helpers#8]
-Dirección, secretaría, docente, delegado, alumno, familia y consejo — cada uno con lo suyo.
+Dirección, secretaría, docente, delegado, estudiante, familia y consejo. Cada rol tiene permisos diferentes.
 
 ### [helpers#9]
 tipos de contenido
@@ -595,7 +528,6 @@ Cursos, comunicados, eventos, tareas, recursos, encuestas y preguntas frecuentes
 ### [helpers#11]
 Escuchar
 
-
 ## Formulario de contacto
 
 ### [footer#1]
@@ -605,7 +537,7 @@ Nombre
 Ana Rodríguez
 
 ### [footer#3]
-Email
+Correo electrónico
 
 ### [footer#4]
 ana@ejemplo.com
@@ -614,17 +546,16 @@ ana@ejemplo.com
 Mensaje
 
 ### [footer#6]
-Contanos en qué podemos ayudarte…
+Escriba su consulta o mensaje…
 
 ### [footer#7]
-Enviar mensaje →
+Enviar mensaje
 
 ### [footer#8]
-✓ Mensaje enviado correctamente.
+Mensaje enviado correctamente.
 
 ### [footer#9]
-✗ No se pudo enviar. Probá de nuevo.
-
+No se pudo enviar el mensaje. Intente de nuevo.
 
 ## Pantalla de cerrar sesión
 
@@ -635,14 +566,13 @@ Cerrar sesión
 Cerrar sesión
 
 ### [logout#3]
-¿Querés salir de tu cuenta?
+¿Desea salir de su cuenta?
 
 ### [logout#4]
 Sí, cerrar sesión
 
 ### [logout#5]
 Volver al panel
-
 
 ## Panel
 
@@ -652,35 +582,13 @@ Saltar al contenido
 ### [shell#5]
 Cerrar menú
 
-
 ## Avisos al inscribir en un curso
 
 ### [cursos#1]
-No se pudo inscribir a esa persona en el curso. La escritura en la base falló; probá de nuevo y, si sigue, revisá el registro de errores.
+No se pudo inscribir a esa persona en el curso. La información no se guardó correctamente. Intente de nuevo y, si el problema continúa, revise el registro de errores.
 
 ### [cursos#23]
-Se guardó el curso pero no se pudo inscribir a %s como delegado/a. Agregalo a mano desde el cuadro de alumnado.
+El curso se guardó, pero no fue posible inscribir a %s como delegado o delegada. Puede agregar a esa persona manualmente desde el listado de estudiantes.
 
 ### [cursos#24]
-Se guardó el curso pero no se pudo inscribir al tutor/a. Agregalo a mano desde el cuadro de alumnado.
-
----
-
-# PARTE 4 — La wiki (aparte)
-
-Lo que escribí en la wiki es prosa larga en Markdown, así que picarla en IDs no
-aporta nada. Editala directo en el archivo:
-
-- `cead-acad/docs/WIKI-USUARIO.md` — el índice, el menú del alumnado (opciones
-  1 a 15) y la sección «📎 Mandarle un documento».
-- `cead-acad/docs/RESUMEN-EJECUTIVO.md` — ahí toqué solo los números y el pie.
-
-Si preferís que también te las pase en este formato, decime.
-
----
-
-# Cuando me lo devuelvas
-
-Corro `php bin/textos.php aplicar TEXTOS-PARA-HUMANIZAR.md` y queda aplicado.
-La herramienta está en el repo, así que esto se puede repetir las veces que
-haga falta — no es un trámite de una sola vez.
+El curso se guardó, pero no fue posible inscribir al tutor o tutora. Puede agregarlo manualmente desde el listado de estudiantes.
