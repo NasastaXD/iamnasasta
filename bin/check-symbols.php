@@ -160,6 +160,87 @@ foreach ( $tema as $a ) {
 	}
 }
 
+/* ------------------------------ 3.5 clases definidas pero nunca cargadas */
+
+/*
+ * Que una clase EXISTA en el repo no significa que el plugin la cargue.
+ *
+ * Pasó tal cual: se agregó `class-importer-horarios.php`, se registró el
+ * importador en la lista que arma la pantalla de admin, y se olvidó el
+ * `require_once` en `cead-acad.php`. El archivo estaba, la clase estaba, los
+ * tests pasaban (la suite lo requiere por su cuenta) y el chequeo de símbolos
+ * daba verde — pero en el sitio real `new Cead_Acad_Importer_Horarios()`
+ * tiraba "class not found" y la pantalla de Importadores quedaba en error
+ * crítico.
+ *
+ * El chequeo #1 no lo agarra porque solo mira nombres de clase escritos como
+ * STRING (`class_exists('X')`). Una instanciación directa `new X()` no es un
+ * string, así que pasaba de largo.
+ *
+ * Acá se resuelve de raíz: se sigue la cadena de `require_once` desde el
+ * archivo principal y se comprueba que toda clase instanciada o llamada
+ * estáticamente dentro de esa cadena esté DEFINIDA en algún archivo de la
+ * misma cadena.
+ */
+
+/** Devuelve el conjunto de archivos que el plugin carga, siguiendo los require. */
+$resolver_cadena = static function ( $entrada ) use ( $raiz ) {
+	$vistos = [];
+	$cola   = [ $entrada ];
+	while ( $cola ) {
+		$archivo = array_pop( $cola );
+		if ( isset( $vistos[ $archivo ] ) || ! is_readable( $archivo ) ) { continue; }
+		$vistos[ $archivo ] = true;
+
+		$src = (string) file_get_contents( $archivo );
+		// require_once CEAD_ACAD_DIR . 'ruta/al/archivo.php';
+		if ( preg_match_all( "/require(?:_once)?\s+CEAD_ACAD_DIR\s*\.\s*'([^']+)'/", $src, $m ) ) {
+			foreach ( $m[1] as $rel ) { $cola[] = $raiz . '/cead-acad/' . $rel; }
+		}
+	}
+	return array_keys( $vistos );
+};
+
+$cargados = $resolver_cadena( $raiz . '/cead-acad/cead-acad.php' );
+
+// Clases definidas DENTRO de la cadena de carga.
+$definidos_cargados = [];
+foreach ( $cargados as $a ) {
+	if ( preg_match_all( '/^\s*(?:final\s+|abstract\s+)?(?:class|interface|trait)\s+([A-Za-z0-9_]+)/mi', (string) file_get_contents( $a ), $m ) ) {
+		foreach ( $m[1] as $nombre ) { $definidos_cargados[ $nombre ] = true; }
+	}
+}
+
+/*
+ * Las vistas de admin se incluyen con `include CEAD_ACAD_DIR . 'admin/views/...'`
+ * desde dentro de un método, así que no las alcanza el resolutor de arriba —
+ * pero corren con todo el plugin cargado, y ahí también se instancian clases.
+ */
+foreach ( glob( $raiz . '/cead-acad/admin/views/*.php' ) as $v ) { $cargados[] = $v; }
+
+foreach ( $cargados as $a ) {
+	$src = (string) file_get_contents( $a );
+	$archivo_rel = str_replace( $raiz . '/', '', $a );
+
+	// `new Cead_Acad_X(` y `Cead_Acad_X::`
+	foreach ( [ '/\bnew\s+(Cead_Acad_[A-Za-z0-9_]+)\s*\(/', '/(?<![\'"\$>\w])(Cead_Acad_[A-Za-z0-9_]+)::/' ] as $patron ) {
+		if ( ! preg_match_all( $patron, $src, $m, PREG_OFFSET_CAPTURE ) ) { continue; }
+		foreach ( $m[1] as $hit ) {
+			$nombre = $hit[0];
+			if ( isset( $definidos_cargados[ $nombre ] ) ) { continue; }
+
+			$linea = substr_count( substr( $src, 0, $hit[1] ), "\n" ) + 1;
+			if ( isset( $definidos[ $nombre ] ) ) {
+				$fallos[] = "{$archivo_rel}:{$linea}  {$nombre} existe en el repo pero el plugin NUNCA la carga.\n"
+					. "    Falta su require_once en cead-acad/cead-acad.php. En el sitio real esto es un error fatal,\n"
+					. '    aunque los tests pasen (la suite requiere los archivos por su cuenta).';
+			} else {
+				$fallos[] = "{$archivo_rel}:{$linea}  {$nombre} no está definida en ningún lado.";
+			}
+		}
+	}
+}
+
 /* --------------------------------------- 4. números y versiones en los docs */
 
 /*
