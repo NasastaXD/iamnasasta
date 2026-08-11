@@ -484,11 +484,15 @@ class Cead_Acad_Admin_Menu {
 			return [ 'type' => 'error', 'msg' => __( 'Usuario inválido.', 'cead-acad' ) ];
 		}
 
-		$phone   = sanitize_text_field( wp_unslash( $_POST['phone'] ?? '' ) );
-		$role    = sanitize_key( wp_unslash( $_POST['role'] ?? '' ) );
-		$name    = sanitize_text_field( wp_unslash( $_POST['display_name'] ?? '' ) );
-		$email   = sanitize_email( wp_unslash( $_POST['email'] ?? '' ) );
-		$resetpw = ! empty( $_POST['reset_password'] );
+		$phone       = sanitize_text_field( wp_unslash( $_POST['phone'] ?? '' ) );
+		$document_id = sanitize_text_field( wp_unslash( $_POST['document_id'] ?? '' ) );
+		$birthdate   = sanitize_text_field( wp_unslash( $_POST['birthdate'] ?? '' ) );
+		$role        = sanitize_key( wp_unslash( $_POST['role'] ?? '' ) );
+		$name        = sanitize_text_field( wp_unslash( $_POST['display_name'] ?? '' ) );
+		$email       = sanitize_email( wp_unslash( $_POST['email'] ?? '' ) );
+		$resetpw     = ! empty( $_POST['reset_password'] );
+		// '' = no tocar el curso (el campo no vino en el POST); '0' = "sin curso".
+		$course_id_posted = isset( $_POST['course_id'] ) ? (int) $_POST['course_id'] : null;
 
 		if ( $name !== '' && cead_acad_has_banned_words( $name ) ) {
 			return [ 'type' => 'error', 'msg' => __( 'El nombre contiene lenguaje no permitido.', 'cead-acad' ) ];
@@ -498,6 +502,8 @@ class Cead_Acad_Admin_Menu {
 		}
 
 		update_user_meta( $user_id, '_cead_acad_phone', $phone );
+		update_user_meta( $user_id, '_cead_acad_document_id', $document_id );
+		update_user_meta( $user_id, '_cead_acad_birthdate', $birthdate );
 
 		// Datos básicos (nombre / email).
 		$update = [ 'ID' => $user_id ];
@@ -527,20 +533,72 @@ class Cead_Acad_Admin_Menu {
 			}
 		}
 
+		$curso_error = null;
+		if ( null !== $course_id_posted && current_user_can( 'cead_acad_manage_courses' ) ) {
+			$curso_error = $this->save_user_course( $user_id, $course_id_posted, $role );
+		}
+
 		// Resetear contraseña (opcional): se muestra una sola vez.
 		Cead_Acad_Audit::log( 'user_updated', [
 			'entity_type' => 'user',
 			'entity_id'   => $user_id,
-			'payload'     => array_filter( [ 'role' => $role, 'password_reset' => $resetpw ? 1 : 0 ] ),
+			'payload'     => array_filter( [ 'role' => $role, 'course_id' => $course_id_posted, 'password_reset' => $resetpw ? 1 : 0 ] ),
 		] );
 
 		if ( $resetpw ) {
 			$newpass = wp_generate_password( 12, false );
 			wp_set_password( $newpass, $user_id );
 			$this->last_created_password = $newpass;
-			return [ 'type' => 'success', 'msg' => __( 'Usuario actualizado. Nueva contraseña generada (abajo).', 'cead-acad' ) ];
+			$msg = __( 'Usuario actualizado. Nueva contraseña generada (abajo).', 'cead-acad' );
+		} else {
+			$msg = __( 'Usuario actualizado.', 'cead-acad' );
 		}
 
-		return [ 'type' => 'success', 'msg' => __( 'Usuario actualizado.', 'cead-acad' ) ];
+		if ( $curso_error ) {
+			return [ 'type' => 'warning', 'msg' => $msg . ' ' . $curso_error ];
+		}
+		return [ 'type' => 'success', 'msg' => $msg ];
+	}
+
+	/**
+	 * Mueve al usuario al curso elegido en el formulario de edición.
+	 *
+	 * Sigue el mismo orden que ya usan el alta por invitación y el importador:
+	 * primero `Roster::add()` al curso nuevo, y solo si esa escritura anduvo se
+	 * toca `_cead_acad_current_course_id` y se da de baja el curso anterior. Si
+	 * el insert falla, la persona queda como estaba —inscripta en el curso
+	 * viejo, no en ningún curso a medias— en vez de quedar sin curso por un
+	 * error de escritura.
+	 *
+	 * Solo mueve la fila de roster que representa "el curso actual" de esta
+	 * pantalla; si el usuario tiene otras inscripciones activas (un/a
+	 * profesor/a con varios cursos, por ejemplo), esas no se tocan.
+	 *
+	 * @return string|null Mensaje de error, o null si salió bien.
+	 */
+	protected function save_user_course( $user_id, $new_course_id, $role ) {
+		$old_course_id = (int) get_user_meta( $user_id, '_cead_acad_current_course_id', true );
+		if ( $new_course_id === $old_course_id ) {
+			return null;
+		}
+
+		if ( 0 === $new_course_id ) {
+			if ( $old_course_id ) {
+				Cead_Acad_Courses_Roster::remove( $user_id, $old_course_id );
+			}
+			delete_user_meta( $user_id, '_cead_acad_current_course_id' );
+			return null;
+		}
+
+		$role_in_course = 'cead_acad_teacher' === $role ? 'teacher' : ( 'cead_acad_delegate' === $role ? 'delegate' : 'student' );
+		$roster_id = Cead_Acad_Courses_Roster::add( $user_id, $new_course_id, $role_in_course );
+		if ( ! $roster_id ) {
+			return __( 'No se pudo inscribir en el curso elegido (falló la escritura). El resto de los cambios se guardó igual.', 'cead-acad' );
+		}
+		if ( $old_course_id ) {
+			Cead_Acad_Courses_Roster::remove( $user_id, $old_course_id );
+		}
+		update_user_meta( $user_id, '_cead_acad_current_course_id', $new_course_id );
+		return null;
 	}
 }

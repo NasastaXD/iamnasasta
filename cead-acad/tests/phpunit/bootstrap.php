@@ -32,6 +32,35 @@ function cead_test_reset_options() {
 	$GLOBALS['cead_test_transients'] = [];
 }
 
+// ---- Store de user meta controlable desde los tests ----
+$GLOBALS['cead_test_usermeta'] = []; // user_id => [ key => value ]
+
+function cead_test_reset_usermeta() {
+	$GLOBALS['cead_test_usermeta'] = [];
+}
+
+if ( ! function_exists( 'get_user_meta' ) ) {
+	function get_user_meta( $user_id, $key = '', $single = false ) {
+		if ( '' === $key ) {
+			return $GLOBALS['cead_test_usermeta'][ $user_id ] ?? [];
+		}
+		$value = $GLOBALS['cead_test_usermeta'][ $user_id ][ $key ] ?? '';
+		return $single ? $value : [ $value ];
+	}
+}
+if ( ! function_exists( 'update_user_meta' ) ) {
+	function update_user_meta( $user_id, $key, $value ) {
+		$GLOBALS['cead_test_usermeta'][ $user_id ][ $key ] = $value;
+		return true;
+	}
+}
+if ( ! function_exists( 'delete_user_meta' ) ) {
+	function delete_user_meta( $user_id, $key ) {
+		unset( $GLOBALS['cead_test_usermeta'][ $user_id ][ $key ] );
+		return true;
+	}
+}
+
 // ---- Stubs de WordPress ----
 if ( ! function_exists( 'get_option' ) ) {
 	function get_option( $key, $default = false ) {
@@ -355,6 +384,7 @@ if ( ! function_exists( 'wp_set_object_terms' ) ) {
 // ---- Código bajo test ----
 require_once dirname( __DIR__, 2 ) . '/includes/helpers.php';
 require_once dirname( __DIR__, 2 ) . '/modules/courses/class-courses-roster.php';
+require_once dirname( __DIR__, 2 ) . '/admin/class-admin-menu.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-identity.php';
 require_once dirname( __DIR__, 2 ) . '/modules/auth/class-invitations.php';
 require_once dirname( __DIR__, 2 ) . '/modules/broadcasts/class-broadcasts-audiences.php';
