@@ -94,7 +94,7 @@ $title  = isset( $page_title ) ? $page_title : __( 'Panel', 'cead-acad' );
 			<div class="cead-acad-user-menu-panel">
 				<a href="<?php echo esc_url( cead_acad_url( 'panel/perfil' ) ); ?>"><?php esc_html_e( 'Mi perfil', 'cead-acad' ); ?></a>
 				<a href="<?php echo esc_url( cead_acad_url( 'panel/carne' ) ); ?>"><?php esc_html_e( 'Mi carné', 'cead-acad' ); ?></a>
-				<a class="cead-acad-user-menu-out" href="<?php echo esc_url( cead_acad_url( 'salir' ) ); ?>"><?php esc_html_e( 'Cerrar sesión', 'cead-acad' ); ?></a>
+				<a class="cead-acad-user-menu-out" href="<?php echo esc_url( cead_acad_logout_url() ); ?>"><?php esc_html_e( 'Cerrar sesión', 'cead-acad' ); ?></a>
 			</div>
 		</details>
 	</div>

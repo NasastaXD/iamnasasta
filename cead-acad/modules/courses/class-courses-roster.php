@@ -9,6 +9,15 @@ class Cead_Acad_Courses_Roster {
 
 	/**
 	 * Agrega un usuario al curso. Idempotente por unique (user_id, course_id).
+	 *
+	 * Devuelve el id de la fila, o **0 si la escritura falló**.
+	 *
+	 * Antes se devolvía `$wpdb->insert_id` sin mirar si el insert había andado.
+	 * Ante un fallo, ese valor conserva el id del insert ANTERIOR de la misma
+	 * request, así que la función podía devolver un id ajeno y quien la llama lo
+	 * leía como «se inscribió bien». La persona quedaba fuera del curso y todo lo
+	 * que cuelga del roster —horario, boletín, tareas, comunicados del curso— le
+	 * aparecía vacío, sin ningún error a la vista.
 	 */
 	public static function add( $user_id, $course_id, $role_in_course = 'student' ) {
 		global $wpdb;
@@ -20,17 +29,23 @@ class Cead_Acad_Courses_Roster {
 		), ARRAY_A );
 
 		if ( $existing ) {
-			$wpdb->update(
+			$res = $wpdb->update(
 				$table,
 				[ 'status' => 'active', 'role_in_course' => $role_in_course, 'end_date' => null ],
 				[ 'id' => (int) $existing['id'] ],
 				[ '%s', '%s', '%s' ],
 				[ '%d' ]
 			);
+			// Solo `false` es error: 0 filas afectadas significa que ya estaba
+			// igual, que es exactamente lo que se busca al reinscribir.
+			if ( false === $res ) {
+				error_log( '[CeadAcad][Roster] no se pudo reactivar la inscripción: user ' . (int) $user_id . ' curso ' . (int) $course_id );
+				return 0;
+			}
 			return (int) $existing['id'];
 		}
 
-		$wpdb->insert(
+		$res = $wpdb->insert(
 			$table,
 			[
 				'user_id'        => (int) $user_id,
@@ -42,6 +57,10 @@ class Cead_Acad_Courses_Roster {
 			],
 			[ '%d', '%d', '%s', '%s', '%s', '%s' ]
 		);
+		if ( false === $res ) {
+			error_log( '[CeadAcad][Roster] no se pudo inscribir: user ' . (int) $user_id . ' curso ' . (int) $course_id );
+			return 0;
+		}
 		return (int) $wpdb->insert_id;
 	}
 

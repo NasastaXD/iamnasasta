@@ -58,11 +58,23 @@ class Cead_Acad_Demo_Admin {
 			} elseif ( 'seed' === $action && self::is_allowed() ) {
 				$r = Cead_Acad_Demo_Seeder::seed();
 				Cead_Acad_Audit::log( 'demo_seeded', [ 'user_id' => get_current_user_id() ?: null, 'payload' => $r ] );
-				$notice = [ 'success', sprintf(
+				$resumen = sprintf(
 					/* translators: 1: usuarios, 2: comunicados, 3: eventos, 4: tareas, 5: recursos, 6: notas */
 					__( 'Datos cargados: %1$d usuarios, %2$d comunicados, %3$d eventos, %4$d tareas, %5$d recursos y %6$d notas.', 'cead-acad' ),
 					$r['usuarios'], $r['comunicados'], $r['eventos'], $r['tareas'], $r['recursos'], $r['notas']
-				) ];
+				);
+				// Si alguna inscripción no se pudo escribir hay que decirlo: el panel
+				// de esas personas se ve vacío y sin este aviso parece que el seeder
+				// no hizo nada, que es exactamente lo que ya nos pasó.
+				if ( ! empty( $r['fallos'] ) ) {
+					$notice = [ 'warning', $resumen . ' ' . sprintf(
+						/* translators: %s: lista de nombres separados por coma */
+						__( 'Ojo: no se pudo inscribir en el curso a %s, así que su panel va a verse vacío.', 'cead-acad' ),
+						implode( ', ', $r['fallos'] )
+					) ];
+				} else {
+					$notice = [ 'success', $resumen ];
+				}
 			} elseif ( 'purge' === $action && self::is_allowed() ) {
 				$r = Cead_Acad_Demo_Seeder::purge();
 				Cead_Acad_Audit::log( 'demo_purged', [ 'user_id' => get_current_user_id() ?: null, 'payload' => $r ] );

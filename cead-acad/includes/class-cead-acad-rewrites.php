@@ -102,6 +102,22 @@ class Cead_Acad_Rewrites {
 				return;
 
 			case 'logout' === $route:
+				/*
+				 * Sin nonce no se cierra nada. Un GET pelado significa que
+				 * cualquier cosa que precargue enlaces desloguea al usuario:
+				 * prefetch del navegador, escáneres de antivirus, la
+				 * previsualización de WhatsApp al compartir una URL del panel.
+				 * Es también lo que hace WordPress con su propio logout.
+				 *
+				 * Si el nonce falta o venció, se muestra una confirmación en vez
+				 * de fallar en seco: el caso normal es un enlace viejo, no un
+				 * ataque.
+				 */
+				$nonce = isset( $_GET['cead_nonce'] ) ? sanitize_text_field( wp_unslash( $_GET['cead_nonce'] ) ) : '';
+				if ( ! wp_verify_nonce( $nonce, CEAD_ACAD_LOGOUT_ACTION ) ) {
+					cead_acad_template( 'auth/logout-confirm.php' );
+					return;
+				}
 				$redirect = cead_acad_url( 'login' );
 				wp_logout();
 				wp_safe_redirect( $redirect );

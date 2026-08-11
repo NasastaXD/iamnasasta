@@ -15,6 +15,36 @@ class Cead_Acad_Courses_Admin {
 
 		add_action( 'admin_post_cead_acad_roster_add',    [ $this, 'handle_add_user' ] );
 		add_action( 'admin_post_cead_acad_roster_remove', [ $this, 'handle_remove_user' ] );
+
+		add_action( 'admin_notices', [ $this, 'roster_notice' ] );
+	}
+
+	/**
+	 * Aviso cuando una inscripción no se pudo escribir.
+	 *
+	 * Sin esto, agregar a alguien al curso y que el insert falle se ve igual que
+	 * agregarlo bien: la pantalla vuelve al curso y la persona simplemente no
+	 * está en la lista, sin ningún motivo a la vista.
+	 */
+	public function roster_notice() {
+		$clave    = 'cead_acad_roster_error_' . get_current_user_id();
+		$guardado = get_transient( $clave );
+		if ( $guardado ) {
+			delete_transient( $clave );
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( empty( $_GET['cead_roster_error'] ) && ! $guardado ) {
+			return;
+		}
+		$msg = is_string( $guardado ) && $guardado !== '1'
+			? $guardado
+			: __( 'No se pudo inscribir a esa persona en el curso. La escritura en la base falló; probá de nuevo y, si sigue, revisá el registro de errores.', 'cead-acad' );
+		echo '<div class="notice notice-error"><p>' . esc_html( $msg ) . '</p></div>';
+	}
+
+	/** Deja un aviso para el próximo pintado del admin (save_post no puede redirigir). */
+	protected function flag_roster_error( $msg ) {
+		set_transient( 'cead_acad_roster_error_' . get_current_user_id(), $msg, 60 );
 	}
 
 	public function metabox() {
@@ -216,7 +246,10 @@ class Cead_Acad_Courses_Admin {
 			$u = get_user_by( 'id', $delegate_id );
 			if ( $u ) {
 				$u->add_role( 'cead_acad_delegate' );
-				Cead_Acad_Courses_Roster::add( $delegate_id, $post_id, 'delegate' );
+				if ( ! Cead_Acad_Courses_Roster::add( $delegate_id, $post_id, 'delegate' ) ) {
+					/* translators: %s: nombre del delegado/a */
+					$this->flag_roster_error( sprintf( __( 'Se guardó el curso pero no se pudo inscribir a %s como delegado/a. Agregalo a mano desde el cuadro de alumnado.', 'cead-acad' ), $u->display_name ) );
+				}
 			}
 		}
 		// Delegado/a rotado: revocar el rol/roster de quien dejó de serlo en
@@ -231,8 +264,8 @@ class Cead_Acad_Courses_Admin {
 			}
 		}
 		$tutor_id = (int) ( $_POST['_cead_acad_tutor'] ?? 0 );
-		if ( $tutor_id ) {
-			Cead_Acad_Courses_Roster::add( $tutor_id, $post_id, 'teacher' );
+		if ( $tutor_id && ! Cead_Acad_Courses_Roster::add( $tutor_id, $post_id, 'teacher' ) ) {
+			$this->flag_roster_error( __( 'Se guardó el curso pero no se pudo inscribir al tutor/a. Agregalo a mano desde el cuadro de alumnado.', 'cead-acad' ) );
 		}
 	}
 
@@ -295,10 +328,11 @@ class Cead_Acad_Courses_Admin {
 		$user_id   = (int) ( $_POST['user_id'] ?? 0 );
 		$course_id = (int) ( $_POST['course_id'] ?? 0 );
 		$role      = sanitize_key( $_POST['role_in_course'] ?? 'student' );
-		if ( $user_id && $course_id ) {
-			Cead_Acad_Courses_Roster::add( $user_id, $course_id, $role );
+		$destino   = get_edit_post_link( $course_id, '' );
+		if ( $user_id && $course_id && ! Cead_Acad_Courses_Roster::add( $user_id, $course_id, $role ) ) {
+			$destino = add_query_arg( 'cead_roster_error', 1, $destino );
 		}
-		wp_safe_redirect( get_edit_post_link( $course_id, '' ) );
+		wp_safe_redirect( $destino );
 		exit;
 	}
 
