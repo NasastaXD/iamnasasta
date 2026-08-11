@@ -11,29 +11,29 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 $chat = [
-	[ 'yo',   __( '¿qué clases tengo mañana?', 'cead' ), '' ],
-	[ 'bot',  __( 'Mañana (martes) tenés:', 'cead' ), __( '07:00 Matemática · 08:40 Ciencias Básicas · 10:00 Guaraní Ñe\'ẽ', 'cead' ) ],
-	[ 'yo',   __( '🎤 Nota de voz', 'cead' ), 'voz' ],
-	[ 'bot',  __( 'Escuché: «¿me falta entregar algo?».', 'cead' ), __( 'Sí, tenés 2 tareas pendientes. La más próxima vence el jueves.', 'cead' ) ],
+	[ 'yo',   __( '¿Qué clases tengo mañana?', 'cead' ), '' ],
+	[ 'bot',  __( 'Mañana, martes, tienes:', 'cead' ), __( '07:00 Matemática · 08:40 Ciencias Básicas · 10:00 Guaraní Ñe\'ẽ', 'cead' ) ],
+	[ 'yo',   __( 'Nota de voz', 'cead' ), 'voz' ],
+	[ 'bot',  __( 'Entendí: «¿me falta entregar algo?».', 'cead' ), __( 'Sí. Tienes 2 tareas pendientes. La más próxima vence el jueves.', 'cead' ) ],
 ];
 
 $capacidades = [
-	[ __( 'Lee documentos', 'cead' ),   __( 'Le mandás un PDF o un Word y lo lee para responderte sobre eso.', 'cead' ) ],
-	[ __( 'Carga notas', 'cead' ),      __( 'Un docente dice «ponele 4 a Pérez en Matemática» y CEADI confirma antes de guardar.', 'cead' ) ],
-	[ __( 'Lee tu planilla', 'cead' ),  __( 'Se le manda el Excel de siempre: adivina las columnas, muestra qué va a cargar y recién ahí guarda. El archivo no se almacena.', 'cead' ) ],
-	[ __( 'Recibe reportes', 'cead' ),  __( 'Anónimos o confidenciales, cifrados, con código de seguimiento. Caen en el buzón del panel.', 'cead' ) ],
+	[ __( 'Puede leer documentos', 'cead' ),   __( 'Si se envía un PDF o un archivo de Word, CEADI puede leerlo y responder preguntas sobre su contenido.', 'cead' ) ],
+	[ __( 'Puede cargar notas', 'cead' ),      __( 'Un docente puede indicar una calificación por mensaje. Antes de guardarla, CEADI muestra los datos y solicita confirmación.', 'cead' ) ],
+	[ __( 'Puede leer una planilla', 'cead' ),  __( 'El docente puede enviar su archivo de Excel habitual. CEADI identifica las columnas, muestra qué datos encontró y solo guarda la información después de una confirmación. El archivo original no queda almacenado.', 'cead' ) ],
+	[ __( 'Puede recibir reportes', 'cead' ),  __( 'Los reportes pueden enviarse de forma anónima o confidencial. Se guardan cifrados, reciben un código de seguimiento y llegan al buzón correspondiente dentro del panel.', 'cead' ) ],
 ];
 ?>
 <section id="ceadi" class="proy-section proy-section--ceadi">
 	<div class="container">
 		<header class="proy-head">
-			<p class="reveal eyebrow"><?php esc_html_e( '— El bot', 'cead' ); ?></p>
-			<h2 class="reveal proy-h2"><?php esc_html_e( 'A CEADI se le habla como a una persona.', 'cead' ); ?></h2>
+			<p class="reveal eyebrow"><?php esc_html_e( 'CEADI', 'cead' ); ?></p>
+			<h2 class="reveal proy-h2"><?php esc_html_e( 'Con CEADI basta con escribir una pregunta de forma normal.', 'cead' ); ?></h2>
 			<div class="reveal proy-head-aside">
-				<p class="proy-lead"><?php esc_html_e( 'No hay que aprenderse comandos ni números de menú: se escribe la pregunta y listo. Y si alguien prefiere el menú de siempre, también está — se escribe «menú» y aparece.', 'cead' ); ?></p>
+				<p class="proy-lead"><?php esc_html_e( 'No hace falta memorizar comandos ni números de menú. Se escribe la consulta y CEADI responde. Quien prefiera un menú tradicional también puede escribir «menú» para verlo.', 'cead' ); ?></p>
 				<?php
 				cead_audio_button(
-					__( 'A CEADI se le escribe como a una persona. Por ejemplo: qué clases tengo mañana. No hay que aprenderse comandos. También entiende notas de voz: las escucha y contesta. Y hace cosas más grandes: lee documentos, carga notas por chat, procesa la planilla de Excel del docente y recibe reportes cifrados.', 'cead' ),
+					__( 'CEADI permite consultar el sistema con preguntas normales. Puede responder sobre horarios y tareas, entender notas de voz, leer documentos y ayudar a cargar información. También puede procesar una planilla de Excel y recibir reportes cifrados. Antes de guardar datos importantes, pide una confirmación.', 'cead' ),
 					'ceadi.mp3'
 				);
 				?>
@@ -77,11 +77,11 @@ $capacidades = [
 				<h3><?php esc_html_e( 'Ejemplo de conversación con CEADI', 'cead' ); ?></h3>
 				<dl>
 					<?php foreach ( $chat as $m ) : ?>
-						<dt><?php echo 'yo' === $m[0] ? esc_html__( 'Alumno:', 'cead' ) : esc_html__( 'CEADI:', 'cead' ); ?></dt>
+						<dt><?php echo 'yo' === $m[0] ? esc_html__( 'Estudiante:', 'cead' ) : esc_html__( 'CEADI:', 'cead' ); ?></dt>
 						<dd>
 							<?php
 							echo 'voz' === $m[2]
-								? esc_html__( 'Manda una nota de voz de cuatro segundos.', 'cead' )
+								? esc_html__( 'Envía una nota de voz de cuatro segundos.', 'cead' )
 								: esc_html( trim( $m[1] . ' ' . $m[2] ) );
 							?>
 						</dd>
@@ -101,7 +101,7 @@ $capacidades = [
 
 		<p class="reveal proy-ceadi-nota">
 			<span class="proy-caras-nota-mark" aria-hidden="true"></span>
-			<?php esc_html_e( 'CEADI solo atiende números registrados, y nunca le muestra a alguien los datos de otra persona. Quién sos lo define tu número, no lo que digas en el chat.', 'cead' ); ?>
+			<?php esc_html_e( 'CEADI atiende únicamente a números registrados. La cuenta y los permisos se identifican por el número de teléfono, por lo que una persona no puede acceder a datos ajenos simplemente diciendo que es otra.', 'cead' ); ?>
 		</p>
 	</div>
 </section>

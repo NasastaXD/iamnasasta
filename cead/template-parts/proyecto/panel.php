@@ -10,40 +10,40 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 $grupos = [
 	[
-		'tit' => __( 'Todos los días', 'cead' ),
-		'txt' => __( 'Lo que un alumno abre sin pensarlo.', 'cead' ),
+		'tit' => __( 'Uso diario', 'cead' ),
+		'txt' => __( 'La información que un estudiante suele necesitar con más frecuencia.', 'cead' ),
 		'items' => [
-			[ '🏠', __( 'Inicio', 'cead' ),      __( 'Las clases de hoy, los próximos eventos y los últimos comunicados, en una pantalla.', 'cead' ) ],
-			[ '📣', __( 'Comunicados', 'cead' ), __( 'Solo los que le tocan. Al abrirlo queda marcado como leído — y dirección ve cuántos lo leyeron.', 'cead' ) ],
-			[ '📚', __( 'Horarios', 'cead' ),    __( 'El horario semanal del curso, con materia, hora y docente.', 'cead' ) ],
-			[ '📅', __( 'Calendario', 'cead' ),  __( 'Vista mensual o agenda. Se puede suscribir desde Google Calendar o el iPhone.', 'cead' ) ],
+			[ '🏠', __( 'Inicio', 'cead' ),      __( 'Muestra las clases del día, los próximos eventos y los comunicados más recientes.', 'cead' ) ],
+			[ '📣', __( 'Comunicados', 'cead' ), __( 'Cada persona recibe solo los comunicados que le corresponden. Al abrir uno, queda registrado como leído para que Dirección pueda conocer su alcance.', 'cead' ) ],
+			[ '📚', __( 'Horarios', 'cead' ),    __( 'Muestra el horario semanal del curso con la materia, la hora y el docente de cada clase.', 'cead' ) ],
+			[ '📅', __( 'Calendario', 'cead' ),  __( 'Puede verse por mes o como agenda. También puede añadirse a Google Calendar o al calendario del iPhone.', 'cead' ) ],
 		],
 	],
 	[
-		'tit' => __( 'Lo académico', 'cead' ),
-		'txt' => __( 'Lo que antes había que ir a preguntar.', 'cead' ),
+		'tit' => __( 'Información académica', 'cead' ),
+		'txt' => __( 'Datos que pueden consultarse directamente, sin tener que solicitarlos por separado.', 'cead' ),
 		'items' => [
-			[ '📊', __( 'Boletín', 'cead' ),  __( 'Las notas por materia y etapa, en la escala del colegio. Cada quien ve solo las suyas.', 'cead' ) ],
-			[ '📝', __( 'Mis tareas', 'cead' ), __( 'Con fecha de entrega y prioridad. Se marcan como hechas y se puede adjuntar el trabajo.', 'cead' ) ],
-			[ '📁', __( 'Recursos', 'cead' ),  __( 'Guías, modelos de examen y apuntes, con buscador, filtros y favoritos.', 'cead' ) ],
+			[ '📊', __( 'Boletín', 'cead' ),  __( 'Muestra las calificaciones por materia y etapa según la escala del colegio. Cada estudiante accede únicamente a sus propios resultados.', 'cead' ) ],
+			[ '📝', __( 'Mis tareas', 'cead' ), __( 'Cada tarea muestra su fecha de entrega y prioridad. Puede marcarse como terminada y, cuando corresponde, permite adjuntar un archivo.', 'cead' ) ],
+			[ '📁', __( 'Recursos', 'cead' ),  __( 'Reúne guías, modelos de examen y apuntes. Incluye búsqueda, filtros y favoritos para encontrarlos con mayor facilidad.', 'cead' ) ],
 		],
 	],
 	[
-		'tit' => __( 'Los trámites', 'cead' ),
-		'txt' => __( 'Lo que antes era una fila en secretaría.', 'cead' ),
+		'tit' => __( 'Trámites y gestiones', 'cead' ),
+		'txt' => __( 'Funciones que permiten resolver desde el sistema gestiones que antes requerían acudir a secretaría.', 'cead' ),
 		'items' => [
-			[ '🪪', __( 'Mi carné', 'cead' ),        __( 'Carné digital con QR. Quien lo escanea llega a una página que confirma que es válido.', 'cead' ) ],
-			[ '✉️', __( 'Escribir al CEAD', 'cead' ), __( 'Un mensaje directo a dirección, consejo o administración, que cae en su buzón.', 'cead' ) ],
-			[ '🗳️', __( 'Encuestas', 'cead' ),       __( 'Las que le corresponden, con resultados que dirección ve en vivo.', 'cead' ) ],
+			[ '🪪', __( 'Mi carné', 'cead' ),        __( 'Carné digital con código QR. Al escanearlo, se abre una página que permite comprobar si el carné es válido.', 'cead' ) ],
+			[ '✉️', __( 'Contactar al CEAD', 'cead' ), __( 'Permite enviar un mensaje directo a Dirección, al Consejo o a Administración desde el propio panel.', 'cead' ) ],
+			[ '🗳️', __( 'Encuestas', 'cead' ),       __( 'Muestra las encuestas asignadas a cada persona. Dirección puede consultar los resultados a medida que se reciben.', 'cead' ) ],
 		],
 	],
 	[
-		'tit' => __( 'Para quien gestiona', 'cead' ),
-		'txt' => __( 'Pantallas que aparecen solo si el rol las habilita.', 'cead' ),
+		'tit' => __( 'Funciones de gestión', 'cead' ),
+		'txt' => __( 'Estas pantallas aparecen únicamente para los roles que necesitan utilizarlas.', 'cead' ),
 		'items' => [
-			[ '⭐', __( 'Dirección', 'cead' ),  __( 'Cuánta gente hay, cuánto se publica y —lo importante— cuántos leyeron y cuántos respondieron.', 'cead' ) ],
-			[ '💼', __( 'Secretaría', 'cead' ), __( 'Invitaciones, cursos, borradores y el historial de importaciones con sus errores.', 'cead' ) ],
-			[ '📋', __( 'Delegado', 'cead' ),   __( 'El tablero de tareas del curso, separadas en pendientes y hechas.', 'cead' ) ],
+			[ '⭐', __( 'Dirección', 'cead' ),  __( 'Resume la cantidad de usuarios, publicaciones, lecturas y respuestas para ofrecer una visión general del uso del sistema.', 'cead' ) ],
+			[ '💼', __( 'Secretaría', 'cead' ), __( 'Permite gestionar invitaciones, cursos, borradores e importaciones, además de revisar los errores que hayan ocurrido durante una carga.', 'cead' ) ],
+			[ '📋', __( 'Delegado', 'cead' ),   __( 'Muestra las tareas del curso y las separa entre pendientes y realizadas.', 'cead' ) ],
 		],
 	],
 ];
@@ -51,13 +51,13 @@ $grupos = [
 <section id="panel" class="proy-section proy-section--panel">
 	<div class="container">
 		<header class="proy-head">
-			<p class="reveal eyebrow"><?php esc_html_e( '— Por dentro', 'cead' ); ?></p>
-			<h2 class="reveal proy-h2"><?php esc_html_e( 'Catorce pantallas, y cada una se gana el lugar.', 'cead' ); ?></h2>
+			<p class="reveal eyebrow"><?php esc_html_e( 'Organización del panel', 'cead' ); ?></p>
+			<h2 class="reveal proy-h2"><?php esc_html_e( 'Las catorce pantallas se organizan por función para que cada persona encuentre solo lo que necesita.', 'cead' ); ?></h2>
 			<div class="reveal proy-head-aside">
-				<p class="proy-lead"><?php esc_html_e( 'El menú no es igual para todos: se arma según el rol de quien entró. Un alumno no ve la pantalla de secretaría, y no porque esté escondida — sencillamente no existe para él.', 'cead' ); ?></p>
+				<p class="proy-lead"><?php esc_html_e( 'El menú cambia según el rol. Un estudiante, por ejemplo, no recibe acceso a las funciones de secretaría porque esas funciones no forman parte de su cuenta.', 'cead' ); ?></p>
 				<?php
 				cead_audio_button(
-					__( 'El panel tiene catorce pantallas, agrupadas en cuatro cosas: lo de todos los días, como el inicio, los comunicados y el horario; lo académico, como el boletín y las tareas; los trámites, como el carné digital; y las pantallas de gestión, que aparecen solo si el rol las habilita. Un alumno no ve la pantalla de secretaría: no está escondida, no existe para él.', 'cead' ),
+					__( 'El panel reúne catorce pantallas. Algunas sirven para el uso diario, como Inicio, Comunicados y Horarios. Otras reúnen información académica, trámites o funciones de gestión. Cada cuenta ve únicamente las pantallas que necesita según su rol.', 'cead' ),
 					'panel.mp3'
 				);
 				?>

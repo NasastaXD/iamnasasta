@@ -38,7 +38,7 @@ class Cead_Acad_Courses_Admin {
 		}
 		$msg = is_string( $guardado ) && $guardado !== '1'
 			? $guardado
-			: __( 'No se pudo inscribir a esa persona en el curso. La escritura en la base falló; probá de nuevo y, si sigue, revisá el registro de errores.', 'cead-acad' );
+			: __( 'No se pudo inscribir a esa persona en el curso. La información no se guardó correctamente. Intente de nuevo y, si el problema continúa, revise el registro de errores.', 'cead-acad' );
 		echo '<div class="notice notice-error"><p>' . esc_html( $msg ) . '</p></div>';
 	}
 
@@ -93,6 +93,7 @@ class Cead_Acad_Courses_Admin {
 				<th style="width:90px"><?php esc_html_e( 'Hasta', 'cead-acad' ); ?></th>
 				<th><?php esc_html_e( 'Materia', 'cead-acad' ); ?></th>
 				<th><?php esc_html_e( 'Docente (opcional)', 'cead-acad' ); ?></th>
+				<th style="width:120px"><?php esc_html_e( 'Aula (opcional)', 'cead-acad' ); ?></th>
 			</tr></thead>
 			<tbody>
 			<?php foreach ( $rows as $i => $s ) :
@@ -101,6 +102,7 @@ class Cead_Acad_Courses_Admin {
 				$fin     = esc_attr( (string) ( $s['fin'] ?? '' ) );
 				$materia = esc_attr( (string) ( $s['materia'] ?? '' ) );
 				$docente = esc_attr( (string) ( $s['docente'] ?? '' ) );
+				$aula    = esc_attr( (string) ( $s['aula'] ?? '' ) );
 			?>
 				<tr>
 					<td>
@@ -115,6 +117,7 @@ class Cead_Acad_Courses_Admin {
 					<td><input type="time" name="cead_acad_horario[<?php echo (int) $i; ?>][fin]" value="<?php echo $fin; ?>"></td>
 					<td><input type="text" class="regular-text" name="cead_acad_horario[<?php echo (int) $i; ?>][materia]" value="<?php echo $materia; ?>"></td>
 					<td><input type="text" class="regular-text" name="cead_acad_horario[<?php echo (int) $i; ?>][docente]" value="<?php echo $docente; ?>"></td>
+					<td><input type="text" name="cead_acad_horario[<?php echo (int) $i; ?>][aula]" value="<?php echo $aula; ?>"></td>
 				</tr>
 			<?php endforeach; ?>
 			</tbody>
@@ -229,13 +232,16 @@ class Cead_Acad_Courses_Admin {
 				$dia     = (int) ( $row['dia'] ?? 0 );
 				$materia = sanitize_text_field( wp_unslash( $row['materia'] ?? '' ) );
 				if ( $dia < 1 || $dia > 7 || $materia === '' ) { continue; }
-				$slots[] = [
+				$aula = sanitize_text_field( wp_unslash( $row['aula'] ?? '' ) );
+				$slot = [
 					'dia'     => $dia,
 					'inicio'  => $this->clean_time( wp_unslash( $row['inicio'] ?? '' ) ),
 					'fin'     => $this->clean_time( wp_unslash( $row['fin'] ?? '' ) ),
 					'materia' => $materia,
 					'docente' => sanitize_text_field( wp_unslash( $row['docente'] ?? '' ) ),
 				];
+				if ( '' !== $aula ) { $slot['aula'] = $aula; }
+				$slots[] = $slot;
 			}
 		}
 		update_post_meta( $post_id, '_cead_acad_horario', wp_json_encode( $slots ) );
@@ -248,7 +254,7 @@ class Cead_Acad_Courses_Admin {
 				$u->add_role( 'cead_acad_delegate' );
 				if ( ! Cead_Acad_Courses_Roster::add( $delegate_id, $post_id, 'delegate' ) ) {
 					/* translators: %s: nombre del delegado/a */
-					$this->flag_roster_error( sprintf( __( 'Se guardó el curso pero no se pudo inscribir a %s como delegado/a. Agregalo a mano desde el cuadro de alumnado.', 'cead-acad' ), $u->display_name ) );
+					$this->flag_roster_error( sprintf( __( 'El curso se guardó, pero no fue posible inscribir a %s como delegado o delegada. Puede agregar a esa persona manualmente desde el listado de estudiantes.', 'cead-acad' ), $u->display_name ) );
 				}
 			}
 		}
@@ -265,7 +271,7 @@ class Cead_Acad_Courses_Admin {
 		}
 		$tutor_id = (int) ( $_POST['_cead_acad_tutor'] ?? 0 );
 		if ( $tutor_id && ! Cead_Acad_Courses_Roster::add( $tutor_id, $post_id, 'teacher' ) ) {
-			$this->flag_roster_error( __( 'Se guardó el curso pero no se pudo inscribir al tutor/a. Agregalo a mano desde el cuadro de alumnado.', 'cead-acad' ) );
+			$this->flag_roster_error( __( 'El curso se guardó, pero no fue posible inscribir al tutor o tutora. Puede agregarlo manualmente desde el listado de estudiantes.', 'cead-acad' ) );
 		}
 	}
 

@@ -16,11 +16,12 @@ $life_q = new WP_Query([
     <div class="life-grid">
       <?php
       if ($life_q->have_posts()):
+          $li = 0;
           while ($life_q->have_posts()): $life_q->the_post();
               $tag = get_post_meta(get_the_ID(), '_cead_vida_tag', true);
               $img = cead_post_image_url(get_the_ID(), '_cead_vida_image_url');
               ?>
-              <a href="<?php the_permalink(); ?>" class="reveal life-card">
+              <a href="<?php the_permalink(); ?>" class="reveal life-card" style="--i: <?php echo (int) $li++; ?>">
                 <div class="life-card-image">
                   <?php if ($img): ?>
                     <img src="<?php echo esc_url($img); ?>" alt="<?php echo esc_attr(get_the_title()); ?>" loading="lazy">

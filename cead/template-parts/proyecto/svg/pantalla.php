@@ -56,5 +56,5 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 			</g>
 		</g>
 	</svg>
-	<p class="proy-pantalla-pie"><?php esc_html_e( 'Ilustración del panel — no es una captura', 'cead' ); ?></p>
+	<p class="proy-pantalla-pie"><?php esc_html_e( 'Ilustración del panel. No es una captura de pantalla.', 'cead' ); ?></p>
 </div>

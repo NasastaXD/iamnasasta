@@ -122,7 +122,7 @@
          */
         $campos = [
             [ 'nombre',  'text',  __( 'Nombre', 'cead' ),     __( 'Ana Rodríguez', 'cead' ) ],
-            [ 'email',   'email', __( 'Email', 'cead' ),      __( 'ana@ejemplo.com', 'cead' ) ],
+            [ 'email',   'email', __( 'Correo electrónico', 'cead' ),      __( 'ana@ejemplo.com', 'cead' ) ],
         ];
         foreach ( $campos as $c ) :
             $id = 'cead-contacto-' . $c[0];
@@ -139,11 +139,11 @@
         <p class="form-field form-field--full">
             <label class="sr-only" for="cead-contacto-mensaje"><?php esc_html_e( 'Mensaje', 'cead' ); ?></label>
             <textarea required id="cead-contacto-mensaje" name="mensaje" rows="4"
-                      placeholder="<?php esc_attr_e( 'Contanos en qué podemos ayudarte…', 'cead' ); ?>"
+                      placeholder="<?php esc_attr_e( 'Escriba su consulta o mensaje…', 'cead' ); ?>"
                       class="form-input form-input--full"></textarea>
         </p>
 
-        <button type="submit" class="cead-btn cead-btn-dark form-submit"><?php esc_html_e( 'Enviar mensaje →', 'cead' ); ?></button>
+        <button type="submit" class="cead-btn cead-btn-dark form-submit"><?php esc_html_e( 'Enviar mensaje', 'cead' ); ?></button>
 
         <?php
         /*
@@ -159,9 +159,9 @@
         ?>
         <div class="form-msg-slot" role="status" aria-live="polite">
           <?php if ( isset( $_GET['cead_ok'] ) ) : ?>
-            <div class="form-msg form-msg--ok"><?php esc_html_e( '✓ Mensaje enviado correctamente.', 'cead' ); ?></div>
+            <div class="form-msg form-msg--ok"><?php esc_html_e( 'Mensaje enviado correctamente.', 'cead' ); ?></div>
           <?php elseif ( isset( $_GET['cead_err'] ) ) : ?>
-            <div class="form-msg form-msg--err"><?php esc_html_e( '✗ No se pudo enviar. Probá de nuevo.', 'cead' ); ?></div>
+            <div class="form-msg form-msg--err"><?php esc_html_e( 'No se pudo enviar el mensaje. Intente de nuevo.', 'cead' ); ?></div>
           <?php endif; ?>
         </div>
       </form>

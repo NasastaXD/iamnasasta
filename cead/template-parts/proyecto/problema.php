@@ -13,35 +13,35 @@ $escenas = [
 		'n'    => '01',
 		'icono'=> 'papel',
 		'color'=> 'var(--acc-orange)',
-		'tit'  => __( 'La circular que nunca llegó', 'cead' ),
-		'txt'  => __( 'Se imprime, se reparte, se pierde en el fondo de la mochila. Nadie sabe quién la leyó de verdad.', 'cead' ),
+		'tit'  => __( 'Una circular que no siempre llega', 'cead' ),
+		'txt'  => __( 'El papel puede perderse antes de llegar a casa. Después, resulta difícil saber quién recibió la información y quién no.', 'cead' ),
 	],
 	[
 		'n'    => '02',
 		'icono'=> 'chats',
 		'color'=> 'var(--acc-blue)',
-		'tit'  => __( 'Doce grupos de WhatsApp', 'cead' ),
-		'txt'  => __( 'La información importante queda entre memes y buenos días. Lo urgente y lo trivial pesan igual.', 'cead' ),
+		'tit'  => __( 'La información repartida en varios chats', 'cead' ),
+		'txt'  => __( 'En los grupos de WhatsApp, un aviso importante puede quedar entre muchos otros mensajes y pasar desapercibido.', 'cead' ),
 	],
 	[
 		'n'    => '03',
 		'icono'=> 'cuaderno',
 		'color'=> 'var(--brand)',
-		'tit'  => __( 'Las notas, en un cuaderno', 'cead' ),
-		'txt'  => __( 'Para saber cómo va un alumno hay que preguntar, esperar y confiar en que alguien sumó bien.', 'cead' ),
+		'tit'  => __( 'Las notas, fuera de un sistema común', 'cead' ),
+		'txt'  => __( 'Consultar el rendimiento de un estudiante puede requerir preguntar, esperar una respuesta y revisar datos que están en lugares distintos.', 'cead' ),
 	],
 ];
 ?>
 <section id="problema" class="proy-section proy-section--problema">
 	<div class="container">
 		<header class="proy-head">
-			<p class="reveal eyebrow"><?php esc_html_e( '— El punto de partida', 'cead' ); ?></p>
-			<h2 class="reveal proy-h2"><?php esc_html_e( 'El colegio ya se comunicaba. El problema era cómo.', 'cead' ); ?></h2>
+			<p class="reveal eyebrow"><?php esc_html_e( 'El punto de partida', 'cead' ); ?></p>
+			<h2 class="reveal proy-h2"><?php esc_html_e( 'El colegio ya tenía formas de comunicarse, pero la información quedaba repartida entre papel, mensajes y registros separados.', 'cead' ); ?></h2>
 			<div class="reveal proy-head-aside">
-				<p class="proy-lead"><?php esc_html_e( 'Nada de esto es culpa de nadie: es lo que pasa cuando la información vive en papel y en chats sueltos. La plataforma no reemplaza a las personas, les saca el trabajo de encima.', 'cead' ); ?></p>
+				<p class="proy-lead"><?php esc_html_e( 'CEAD Académico reúne esa información en un mismo sistema. Así reduce tareas repetidas y facilita que estudiantes, familias y personal encuentren lo que necesitan.', 'cead' ); ?></p>
 				<?php
 				cead_audio_button(
-					__( 'Antes de la plataforma, el colegio se comunicaba con circulares en papel, que se perdían; con grupos de WhatsApp, donde lo urgente y lo trivial pesaban igual; y con las notas anotadas en cuadernos. Nada de eso es culpa de nadie: es lo que pasa cuando la información vive dispersa.', 'cead' ),
+					__( 'Antes de la plataforma, mucha información quedaba repartida entre circulares impresas, grupos de WhatsApp y registros separados. Eso hacía más difícil encontrar un aviso, comprobar si había llegado o consultar un dato académico. CEAD Académico reúne esa información para que sea más fácil acceder a ella.', 'cead' ),
 					'problema.mp3'
 				);
 				?>

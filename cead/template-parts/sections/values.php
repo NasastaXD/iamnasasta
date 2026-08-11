@@ -19,8 +19,8 @@ for ($i = 1; $i <= 4; $i++) {
     </div>
 
     <div class="values-grid">
-      <?php foreach ($values as $v): ?>
-        <div class="reveal values-card">
+      <?php foreach ($values as $vi => $v): ?>
+        <div class="reveal values-card" style="--i:<?php echo (int) $vi; ?>">
           <div class="values-card-head">
             <?php echo cead_value_shape_html($v['shape'], $v['color']); /* HTML autorizado */ ?>
             <span class="values-card-num" style="color: <?php echo esc_attr($v['color']); ?>"><?php echo esc_html($v['n']); ?></span>

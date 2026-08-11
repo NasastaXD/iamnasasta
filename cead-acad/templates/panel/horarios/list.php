@@ -62,9 +62,10 @@ $body = function () use ( $by_day, $days, $course_title, $course_id ) {
 						</div>
 						<div class="cead-acad-agenda-items">
 							<?php foreach ( $items as $it ) :
-								$hi  = (string) ( $it['inicio'] ?? '' );
-								$hf  = (string) ( $it['fin'] ?? '' );
-								$doc = (string) ( $it['docente'] ?? '' );
+								$hi   = (string) ( $it['inicio'] ?? '' );
+								$hf   = (string) ( $it['fin'] ?? '' );
+								$doc  = (string) ( $it['docente'] ?? '' );
+								$aula = (string) ( $it['aula'] ?? '' );
 							?>
 								<div class="cead-acad-agenda-item cead-acad-agenda-item--clase">
 									<div class="cead-acad-agenda-time">
@@ -74,6 +75,7 @@ $body = function () use ( $by_day, $days, $course_title, $course_id ) {
 									<div class="cead-acad-agenda-body">
 										<h3 class="cead-acad-agenda-title"><?php echo esc_html( (string) ( $it['materia'] ?? '' ) ); ?></h3>
 										<?php if ( $doc !== '' ) : ?><p class="cead-acad-agenda-loc">👤 <?php echo esc_html( $doc ); ?></p><?php endif; ?>
+										<?php if ( $aula !== '' ) : ?><p class="cead-acad-agenda-loc">📍 <?php echo esc_html( $aula ); ?></p><?php endif; ?>
 									</div>
 								</div>
 							<?php endforeach; ?>

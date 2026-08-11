@@ -35,7 +35,7 @@ $btn2_url = $anclas_rotas[ $btn2_url ] ?? $btn2_url;
       <span class="hero-eyebrow-line"></span>
       <?php echo esc_html($hero_eb); ?>
     </div>
-    <h1 class="reveal hero-title"><?php echo wp_kses_post($hero_title); ?></h1>
+    <h1 class="reveal reveal--wipe hero-title"><?php echo wp_kses_post($hero_title); ?></h1>
     <div class="reveal hero-foot">
       <p class="hero-body"><?php echo wp_kses_post($hero_body); ?></p>
       <div class="hero-buttons">
