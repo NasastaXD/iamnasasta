@@ -32,7 +32,8 @@ class Cead_Acad_Demo_Seeder {
 	public static function seed() {
 		if ( self::has_data() ) { self::purge(); }
 
-		$out = [ 'curso' => 0, 'usuarios' => 0, 'comunicados' => 0, 'eventos' => 0, 'tareas' => 0, 'recursos' => 0, 'encuestas' => 0, 'notas' => 0 ];
+		$out = [ 'curso' => 0, 'usuarios' => 0, 'comunicados' => 0, 'eventos' => 0, 'tareas' => 0, 'recursos' => 0, 'encuestas' => 0, 'notas' => 0, 'fallos' => [] ];
+		self::$fallos = [];
 
 		$course_id = self::seed_course();
 		$out['curso'] = $course_id;
@@ -49,7 +50,31 @@ class Cead_Acad_Demo_Seeder {
 
 		self::enroll_current_user( $course_id );
 
+		$out['fallos'] = self::$fallos;
+
 		return $out;
+	}
+
+	/**
+	 * Inscripciones que no se pudieron escribir durante el sembrado.
+	 *
+	 * Existe porque el modo callado es el peor: si el roster falla, el panel
+	 * queda igual de vacío que antes de sembrar —horario, boletín, tareas y
+	 * comunicados del curso cuelgan todos de ahí— y desde la pantalla de admin
+	 * parece que el seeder no hizo nada. Se junta acá y se muestra al final.
+	 *
+	 * @var string[]
+	 */
+	protected static $fallos = [];
+
+	/** Inscribe y anota el fallo si la escritura no prosperó. */
+	protected static function enroll( $user_id, $course_id, $role_in_course, $quien ) {
+		if ( Cead_Acad_Courses_Roster::add( $user_id, $course_id, $role_in_course ) ) {
+			return true;
+		}
+		self::$fallos[] = $quien;
+		error_log( '[CeadAcad][Demo] no se pudo inscribir a ' . $quien . ' en el curso ' . (int) $course_id );
+		return false;
 	}
 
 	/**
@@ -71,7 +96,12 @@ class Cead_Acad_Demo_Seeder {
 		if ( ! $uid || ! $course_id ) { return; }
 		if ( ! class_exists( 'Cead_Acad_Courses_Roster' ) ) { return; }
 
-		Cead_Acad_Courses_Roster::add( $uid, $course_id, 'student' );
+		$user = get_userdata( $uid );
+		if ( ! self::enroll( $uid, $course_id, 'student', $user ? $user->display_name : ( 'usuario ' . $uid ) ) ) {
+			// Sin inscripción el meta apuntaría a un curso donde la persona no
+			// está, y el panel le mostraría un horario que no le corresponde.
+			return;
+		}
 		update_user_meta( $uid, '_cead_acad_current_course_id', $course_id );
 		update_option( 'cead_acad_demo_enrolled', $uid, false );
 	}
@@ -285,14 +315,12 @@ class Cead_Acad_Demo_Seeder {
 			if ( ! $uid ) { continue; }
 			$ids[] = $uid;
 			update_user_meta( $uid, '_cead_acad_current_course_id', $course_id );
-			if ( class_exists( 'Cead_Acad_Courses_Roster' ) ) {
-				// Todas van como `student` en el roster, incluida la delegada: ser
-				// delegada es un rol extra encima de ser alumna, no en lugar de.
-				// Si se la cargara como `delegate`, quedaría fuera de
-				// users_in_course(..., 'student') y no contaría como alumnado ni
-				// recibiría los comunicados dirigidos al curso.
-				Cead_Acad_Courses_Roster::add( $uid, $course_id, 'student' );
-			}
+			// Todas van como `student` en el roster, incluida la delegada: ser
+			// delegada es un rol extra encima de ser alumna, no en lugar de.
+			// Si se la cargara como `delegate`, quedaría fuera de
+			// users_in_course(..., 'student') y no contaría como alumnado ni
+			// recibiría los comunicados dirigidos al curso.
+			self::enroll( $uid, $course_id, 'student', $a[0] );
 		}
 
 		$todos = $ids;
@@ -306,9 +334,7 @@ class Cead_Acad_Demo_Seeder {
 		$doc = self::make_user( 'prof.rodriguez', 'Prof. Rodríguez', 'cead_acad_teacher' );
 		if ( $doc ) {
 			$todos[] = $doc;
-			if ( class_exists( 'Cead_Acad_Courses_Roster' ) ) {
-				Cead_Acad_Courses_Roster::add( $doc, $course_id, 'teacher' );
-			}
+			self::enroll( $doc, $course_id, 'teacher', 'Prof. Rodríguez' );
 		}
 
 		return [ 'alumnos' => $ids, 'todos' => $todos ];
@@ -332,8 +358,9 @@ class Cead_Acad_Demo_Seeder {
 				'post_title'    => $it[0],
 				'post_content'  => $it[1],
 				'post_status'   => 'publish',
-				'post_date'     => gmdate( 'Y-m-d H:i:s', strtotime( "-{$it[3]} days" ) ),
-				'post_date_gmt' => gmdate( 'Y-m-d H:i:s', strtotime( "-{$it[3]} days" ) ),
+				// post_date es local; post_date_gmt es el que va en UTC.
+				'post_date'     => self::local( 'Y-m-d H:i:s', "-{$it[3]} days" ),
+				'post_date_gmt' => self::utc( 'Y-m-d H:i:s', "-{$it[3]} days" ),
 			] );
 			wp_set_object_terms( $id, $it[2], 'cead_acad_broadcast_category' );
 
@@ -365,13 +392,15 @@ class Cead_Acad_Demo_Seeder {
 		];
 		$n = 0;
 		foreach ( $items as $it ) {
-			$start = gmdate( 'Y-m-d', strtotime( "+{$it[1]} days" ) ) . ' ' . $it[2] . ':00';
+			$start = self::local( 'Y-m-d', "+{$it[1]} days" ) . ' ' . $it[2] . ':00';
 			$id    = self::insert( [
 				'post_type'   => 'cead_acad_event',
 				'post_title'  => $it[0],
 				'post_status' => 'publish',
 			] );
 			update_post_meta( $id, '_cead_acad_event_start', $start );
+			// Sumarle dos horas a una hora de pared es aritmética sobre el string:
+			// no hay conversión de huso, así que gmdate() acá es lo correcto.
 			update_post_meta( $id, '_cead_acad_event_end', gmdate( 'Y-m-d H:i:s', strtotime( $start . ' +2 hours' ) ) );
 			update_post_meta( $id, '_cead_acad_event_location', $it[3] );
 			$n++;
@@ -399,7 +428,7 @@ class Cead_Acad_Demo_Seeder {
 			update_post_meta( $id, '_cead_acad_task_course', $course_id );
 			update_post_meta( $id, '_cead_acad_task_status', $it[1] );
 			update_post_meta( $id, '_cead_acad_task_done', 'done' === $it[1] ? 1 : 0 );
-			update_post_meta( $id, '_cead_acad_task_due_date', gmdate( 'Y-m-d', strtotime( "{$it[2]} days" ) ) );
+			update_post_meta( $id, '_cead_acad_task_due_date', self::local( 'Y-m-d', "{$it[2]} days" ) );
 			update_post_meta( $id, '_cead_acad_task_priority', $it[3] );
 			$n++;
 		}
@@ -441,8 +470,9 @@ class Cead_Acad_Demo_Seeder {
 			'post_content' => 'Queremos saber cómo están llevando las materias para ajustar el ritmo.',
 			'post_status'  => 'publish',
 		] );
-		update_post_meta( $id, '_cead_acad_survey_opens_at', gmdate( 'Y-m-d H:i:s', strtotime( '-6 days' ) ) );
-		update_post_meta( $id, '_cead_acad_survey_closes_at', gmdate( 'Y-m-d H:i:s', strtotime( '+8 days' ) ) );
+		// Ventana en hora local: Surveys_CPT::is_open() la compara con current_time().
+		update_post_meta( $id, '_cead_acad_survey_opens_at', self::local( 'Y-m-d H:i:s', '-6 days' ) );
+		update_post_meta( $id, '_cead_acad_survey_closes_at', self::local( 'Y-m-d H:i:s', '+8 days' ) );
 		update_post_meta( $id, '_cead_acad_survey_anonymous', 0 );
 
 		// Sin audiencia la encuesta no le corresponde a nadie: la vista del panel
@@ -465,7 +495,7 @@ class Cead_Acad_Demo_Seeder {
 				'text'       => $q[1],
 				'required'   => 'text' === $q[0] ? 0 : 1,
 				'config'     => $q[2],
-				'created_at' => current_time( 'mysql' ),
+				'created_at' => current_time( 'mysql', 1 ),
 			] );
 			$qids[] = (int) $wpdb->insert_id;
 		}
@@ -485,7 +515,7 @@ class Cead_Acad_Demo_Seeder {
 			$wpdb->insert( $tr, [
 				'survey_id'    => $id,
 				'user_id'      => $uid,
-				'submitted_at' => gmdate( 'Y-m-d H:i:s', strtotime( '-' . ( 5 - $i ) . ' days' ) ),
+				'submitted_at' => self::utc( 'Y-m-d H:i:s', '-' . ( 5 - $i ) . ' days' ),
 			] );
 			$rid = (int) $wpdb->insert_id;
 			foreach ( [ 0 => $r1[ $i ], 1 => $r2[ $i ], 2 => $r3[ $i ] ] as $qi => $val ) {
@@ -533,7 +563,7 @@ class Cead_Acad_Demo_Seeder {
 						'subject_term_id' => $tid,
 						'period'          => $periodo,
 						'score'           => $score,
-						'recorded_at'     => current_time( 'mysql' ),
+						'recorded_at'     => current_time( 'mysql', 1 ),
 					] );
 					$n++;
 				}
@@ -543,6 +573,36 @@ class Cead_Acad_Demo_Seeder {
 	}
 
 	/* ---------------- Utilidades ---------------- */
+
+	/**
+	 * Fecha/hora LOCAL a partir de una expresión relativa ("+3 days").
+	 *
+	 * El sistema guarda tiempo en dos husos distintos según dónde:
+	 *
+	 *  - Los metas que en el admin se cargan con `<input type="datetime-local">`
+	 *    o `type="date"` —inicio/fin de evento, apertura/cierre de encuesta,
+	 *    vencimiento de tarea— quedan en hora LOCAL, y se comparan contra
+	 *    `current_time()`. `post_date` también es local (`post_date_gmt` es el
+	 *    que va en UTC).
+	 *  - Las tablas propias del plugin guardan GMT: todos sus escritores usan
+	 *    `current_time( 'mysql', 1 )`.
+	 *
+	 * Acá salía casi todo de `gmdate()`, que es UTC. En Paraguay (UTC-3) eso
+	 * adelantaba los comunicados tres horas y corría un día los eventos cercanos
+	 * a medianoche, justo lo que se mira en una demo.
+	 *
+	 * `current_time( 'timestamp' )` devuelve el timestamp ya desplazado al huso
+	 * del sitio, así que formatearlo con `gmdate()` —que no vuelve a
+	 * convertir— da la hora de pared local.
+	 */
+	protected static function local( $format, $relative = 'now' ) {
+		return gmdate( $format, strtotime( $relative, current_time( 'timestamp' ) ) );
+	}
+
+	/** Lo mismo pero en GMT, para las tablas propias. */
+	protected static function utc( $format, $relative = 'now' ) {
+		return gmdate( $format, strtotime( $relative ) );
+	}
 
 	protected static function insert( array $args ) {
 		$id = wp_insert_post( $args );
@@ -575,7 +635,7 @@ class Cead_Acad_Demo_Seeder {
 			$wpdb->replace( $tabla, [
 				'broadcast_id' => $broadcast_id,
 				'user_id'      => $uid,
-				'read_at'      => current_time( 'mysql' ),
+				'read_at'      => current_time( 'mysql', 1 ),
 			] );
 		}
 	}

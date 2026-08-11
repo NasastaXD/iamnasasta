@@ -1,6 +1,6 @@
 # CEAD Académico — El proyecto en una página
 
-> **Centro Educativo de Alto Desempeño "Félix de Guarania"** · Caaguazú · Plugin v0.31.0
+> **Centro Educativo de Alto Desempeño "Félix de Guarania"** · Caaguazú
 
 ## El problema
 
@@ -20,9 +20,9 @@ Una **plataforma propia, hecha a medida**, que centraliza todo en un solo lugar 
 
 ## En números
 
-- **17 módulos** (comunicados, encuestas, horarios, recursos, calificaciones, tareas, carné, importadores, bot…)
+- **18 módulos** (comunicados, encuestas, horarios, recursos, calificaciones, tareas, carné, importadores, bot…)
 - **7 roles** con permisos propios (dirección, secretaría, docente, delegado, alumno, familia, consejo)
-- **18 tablas** de base de datos + **6 tipos de contenido** propios
+- **18 tablas** de base de datos + **7 tipos de contenido** propios
 - **1 bot** conversacional con IA, voz y reportes cifrados
 - **0 dependencias pesadas**: sin frameworks de build; liviano y mantenible
 
@@ -41,3 +41,5 @@ Una **plataforma propia, hecha a medida**, que centraliza todo en un solo lugar 
 ---
 
 *Resumen para presentación · CEAD Félix de Guarania.*
+
+> ¿Buscás la versión visual y con audio? Está en **`/proyecto`** del sitio.

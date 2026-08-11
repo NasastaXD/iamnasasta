@@ -40,9 +40,51 @@
     menu.querySelectorAll('a').forEach(function (a) {
       a.addEventListener('click', function () { closeMenu(false); });
     });
-    // Escape cierra, que es lo que todo el mundo intenta primero.
+
+    /*
+     * El foco queda encerrado mientras el menú está abierto.
+     *
+     * El menú es `role="dialog" aria-modal="true"` y tapa la pantalla entera,
+     * pero el foco se escapaba igual: al llegar al último enlace, el siguiente
+     * Tab saltaba al contenido de atrás — invisible, tapado por el overlay— y
+     * quien navega con teclado se perdía sin ninguna pista de dónde estaba.
+     *
+     * Se recalculan los focusables en cada Tab en vez de guardarlos al abrir:
+     * el mega menú se arma con lo que el sitio sirve, así que su contenido
+     * cambia entre páginas.
+     */
+    var SELECTOR_FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && menu.classList.contains('is-open')) { closeMenu(true); }
+      if (!menu.classList.contains('is-open')) { return; }
+
+      // Escape cierra, que es lo que todo el mundo intenta primero.
+      if (e.key === 'Escape') { closeMenu(true); return; }
+
+      if (e.key !== 'Tab') { return; }
+
+      var focusables = Array.prototype.filter.call(
+        menu.querySelectorAll(SELECTOR_FOCUSABLE),
+        function (el) { return el.offsetParent !== null; }
+      );
+      if (!focusables.length) { return; }
+
+      var primero = focusables[0];
+      var ultimo  = focusables[focusables.length - 1];
+
+      // Si el foco se fue afuera (o nunca entró), lo traemos de vuelta.
+      if (!menu.contains(document.activeElement)) {
+        e.preventDefault();
+        (e.shiftKey ? ultimo : primero).focus();
+        return;
+      }
+      if (e.shiftKey && document.activeElement === primero) {
+        e.preventDefault();
+        ultimo.focus();
+      } else if (!e.shiftKey && document.activeElement === ultimo) {
+        e.preventDefault();
+        primero.focus();
+      }
     });
   }
 

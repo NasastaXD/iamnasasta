@@ -132,6 +132,24 @@ function cead_acad_url( $route ) {
 	return home_url( '/' . ltrim( $route, '/' ) );
 }
 
+/** Acción del nonce que protege el cierre de sesión. */
+const CEAD_ACAD_LOGOUT_ACTION = 'cead_acad_logout';
+
+/**
+ * URL para cerrar sesión, con su nonce.
+ *
+ * Cerrar sesión con un GET pelado significa que CUALQUIER cosa que precargue
+ * enlaces te desloguea: el prefetch del navegador, un escáner de links de
+ * antivirus, o la previsualización de WhatsApp cuando alguien comparte una URL
+ * del panel. Con el nonce, esas visitas automáticas no cierran nada.
+ *
+ * Se centraliza acá para que ninguna plantilla arme la URL a mano y se olvide
+ * del nonce.
+ */
+function cead_acad_logout_url() {
+	return wp_nonce_url( cead_acad_url( 'salir' ), CEAD_ACAD_LOGOUT_ACTION, 'cead_nonce' );
+}
+
 /**
  * Flash messages basados en transients namespaced por sesión/IP.
  */

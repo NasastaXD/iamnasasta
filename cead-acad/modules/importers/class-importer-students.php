@@ -106,7 +106,17 @@ class Cead_Acad_Importer_Students extends Cead_Acad_Importer_Base {
 		update_user_meta( $user_id, '_cead_acad_imported_via_job', (int) $job_id );
 
 		if ( $course_id ) {
-			Cead_Acad_Courses_Roster::add( (int) $user_id, (int) $course_id, 'student' );
+			// Si la inscripción falla, la fila se reporta como error en vez de
+			// darse por importada: el alumno existiría pero fuera del curso, y
+			// el panel le mostraría todo vacío sin explicar por qué.
+			if ( ! Cead_Acad_Courses_Roster::add( (int) $user_id, (int) $course_id, 'student' ) ) {
+				return new WP_Error(
+					'cead_acad_roster_failed',
+					__( 'Se creó la cuenta pero no se pudo inscribir en el curso. Revisá y volvé a importar esta fila.', 'cead-acad' )
+				);
+			}
+			// El meta solo se escribe si la inscripción quedó: si no, apuntaría a
+			// un curso en el que la persona no está.
 			update_user_meta( $user_id, '_cead_acad_current_course_id', (int) $course_id );
 		}
 

@@ -39,7 +39,12 @@ $next_events = get_posts( [
 	'orderby'        => 'meta_value',
 	'order'          => 'ASC',
 	'meta_query'     => [
-		[ 'key' => '_cead_acad_event_start', 'value' => current_time( 'mysql', 1 ), 'compare' => '>=' ],
+		// `_cead_acad_event_start` se guarda en hora LOCAL (viene de un
+		// <input type="datetime-local">), así que el corte también va en local.
+		// Con `current_time( 'mysql', 1 )` —que es GMT— en Paraguay (UTC-3) se
+		// comparaba contra tres horas en el futuro: los eventos de esta mañana
+		// desaparecían de «Próximos eventos» estando todavía por empezar.
+		[ 'key' => '_cead_acad_event_start', 'value' => current_time( 'mysql' ), 'compare' => '>=', 'type' => 'DATETIME' ],
 	],
 ] );
 

@@ -4,9 +4,25 @@ $hero_eb     = get_theme_mod('cead_hero_eyebrow',   'Bachillerato Técnico — C
 $hero_title  = get_theme_mod('cead_hero_title',     'Formar con<br><span class="hero-accent">honor</span> y rigor.');
 $hero_body   = get_theme_mod('cead_hero_body',      'Centro Educativo de Alto Desempeño “Félix de Guarania”. Una institución pública que forma técnicos con visión académica internacional, raíz paraguaya y disciplina sostenida.');
 $btn1_text   = get_theme_mod('cead_hero_btn1_text', '→ Conocer CEAD');
-$btn1_url    = get_theme_mod('cead_hero_btn1_url',  '#Creemos');
 $btn2_text   = get_theme_mod('cead_hero_btn2_text', '→ Admisión 2026');
-$btn2_url    = get_theme_mod('cead_hero_btn2_url',  '#Admision');
+
+/*
+ * Los destinos van en minúscula porque los `id` reales lo están
+ * (`id="creemos"` en values.php, `id="admision"` en admission.php) y los
+ * identificadores de fragmento DISTINGUEN MAYÚSCULAS. Los defaults decían
+ * "#Creemos" y "#Admision", así que los dos botones del hero —el camino
+ * principal de la home— no llevaban a ningún lado: el navegador no encontraba
+ * el ancla y se quedaba donde estaba.
+ *
+ * Solo se reescriben esos dos valores exactos, que son el default viejo y
+ * siempre un error. No se baja a minúscula cualquier ancla: `#Contacto` existe
+ * con mayúscula a propósito (footer.php), y normalizar a ciegas lo rompería.
+ */
+$anclas_rotas = [ '#Creemos' => '#creemos', '#Admision' => '#admision' ];
+$btn1_url = get_theme_mod( 'cead_hero_btn1_url', '#creemos' );
+$btn2_url = get_theme_mod( 'cead_hero_btn2_url', '#admision' );
+$btn1_url = $anclas_rotas[ $btn1_url ] ?? $btn1_url;
+$btn2_url = $anclas_rotas[ $btn2_url ] ?? $btn2_url;
 ?>
 <section class="hero">
   <div class="hero-bg">

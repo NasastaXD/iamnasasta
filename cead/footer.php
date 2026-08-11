@@ -50,7 +50,7 @@
       $cols = [
           [ 'Institucional', 'footer_1', $pick( ['sobre-cead', 'historia', 'honor-code', 'autoridades'] ) ],
           [ 'Bachilleratos', 'footer_2', cead_division_links() ],
-          [ 'Comunidad',     'footer_3', $pick( ['admision', 'noticias', 'galeria', 'recursos'] ) ],
+          [ 'Comunidad',     'footer_3', $pick( ['proyecto', 'admision', 'noticias', 'galeria', 'recursos'] ) ],
       ];
 
       foreach ($cols as $c):
@@ -109,16 +109,61 @@
         <?php wp_nonce_field('cead_contact', 'cead_contact_nonce'); ?>
         <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-10000px" aria-hidden="true">
 
-        <input required name="nombre"  placeholder="Nombre" class="form-input">
-        <input required name="email"  type="email" placeholder="Email" class="form-input">
-        <textarea required name="mensaje" rows="4" placeholder="Mensaje" class="form-input form-input--full"></textarea>
-        <button type="submit" class="cead-btn cead-btn-dark form-submit">Enviar mensaje →</button>
+        <?php
+        /*
+         * Cada campo lleva su <label> de verdad, aunque no se vea.
+         *
+         * Antes el `placeholder` era la única etiqueta, y un placeholder
+         * desaparece en cuanto empezás a escribir: si te distraés a mitad del
+         * formulario, ya no hay forma de saber qué campo estabas llenando. A un
+         * lector de pantalla directamente no se lo anuncia como nombre del
+         * campo. El `placeholder` se queda como ejemplo, que es para lo que
+         * sirve, y la etiqueta pasa a estar donde corresponde.
+         */
+        $campos = [
+            [ 'nombre',  'text',  __( 'Nombre', 'cead' ),     __( 'Ana Rodríguez', 'cead' ) ],
+            [ 'email',   'email', __( 'Email', 'cead' ),      __( 'ana@ejemplo.com', 'cead' ) ],
+        ];
+        foreach ( $campos as $c ) :
+            $id = 'cead-contacto-' . $c[0];
+            ?>
+            <p class="form-field">
+                <label class="sr-only" for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $c[2] ); ?></label>
+                <input required id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $c[0] ); ?>"
+                       type="<?php echo esc_attr( $c[1] ); ?>"
+                       autocomplete="<?php echo 'email' === $c[0] ? 'email' : 'name'; ?>"
+                       placeholder="<?php echo esc_attr( $c[3] ); ?>" class="form-input">
+            </p>
+        <?php endforeach; ?>
 
-        <?php if (isset($_GET['cead_ok'])): ?>
-          <div class="form-msg form-msg--ok">✓ Mensaje enviado correctamente.</div>
-        <?php elseif (isset($_GET['cead_err'])): ?>
-          <div class="form-msg form-msg--err">✗ No se pudo enviar. Probá de nuevo.</div>
-        <?php endif; ?>
+        <p class="form-field form-field--full">
+            <label class="sr-only" for="cead-contacto-mensaje"><?php esc_html_e( 'Mensaje', 'cead' ); ?></label>
+            <textarea required id="cead-contacto-mensaje" name="mensaje" rows="4"
+                      placeholder="<?php esc_attr_e( 'Contanos en qué podemos ayudarte…', 'cead' ); ?>"
+                      class="form-input form-input--full"></textarea>
+        </p>
+
+        <button type="submit" class="cead-btn cead-btn-dark form-submit"><?php esc_html_e( 'Enviar mensaje →', 'cead' ); ?></button>
+
+        <?php
+        /*
+         * La respuesta va en una región `aria-live`: se envía, la página
+         * recarga con `?cead_ok`, y quien no ve la pantalla necesita que el
+         * resultado se le anuncie. Sin esto el formulario se vaciaba y no
+         * pasaba nada más.
+         *
+         * El contenedor se imprime siempre, aunque esté vacío: una región viva
+         * que aparece junto con su texto no siempre se anuncia — el lector
+         * tiene que estar observándola de antes.
+         */
+        ?>
+        <div class="form-msg-slot" role="status" aria-live="polite">
+          <?php if ( isset( $_GET['cead_ok'] ) ) : ?>
+            <div class="form-msg form-msg--ok"><?php esc_html_e( '✓ Mensaje enviado correctamente.', 'cead' ); ?></div>
+          <?php elseif ( isset( $_GET['cead_err'] ) ) : ?>
+            <div class="form-msg form-msg--err"><?php esc_html_e( '✗ No se pudo enviar. Probá de nuevo.', 'cead' ); ?></div>
+          <?php endif; ?>
+        </div>
       </form>
     </div>
 

@@ -15,6 +15,11 @@ defined( 'HOUR_IN_SECONDS' )   || define( 'HOUR_IN_SECONDS', 3600 );
 defined( 'DAY_IN_SECONDS' )    || define( 'DAY_IN_SECONDS', 86400 );
 defined( 'WEEK_IN_SECONDS' )   || define( 'WEEK_IN_SECONDS', 604800 );
 
+// Formatos de salida de $wpdb.
+defined( 'OBJECT' )   || define( 'OBJECT', 'OBJECT' );
+defined( 'ARRAY_A' )  || define( 'ARRAY_A', 'ARRAY_A' );
+defined( 'ARRAY_N' )  || define( 'ARRAY_N', 'ARRAY_N' );
+
 // ---- Store de opciones controlable desde los tests ----
 $GLOBALS['cead_test_options'] = [];
 
@@ -132,8 +137,113 @@ if ( ! function_exists( 'is_wp_error' ) ) {
 	function is_wp_error( $thing ) { return $thing instanceof WP_Error; }
 }
 
+/*
+ * Huso horario del "sitio", controlable desde los tests. WordPress no expone la
+ * hora local con date(): la expone desplazando el timestamp, y esa distinción
+ * es justo lo que hay que poder probar.
+ */
+$GLOBALS['cead_test_gmt_offset'] = 0;
+
+function cead_test_set_gmt_offset( $horas ) {
+	$GLOBALS['cead_test_gmt_offset'] = (float) $horas;
+}
+
+if ( ! function_exists( 'current_time' ) ) {
+	/**
+	 * Réplica del contrato de current_time(): con $gmt devuelve UTC; sin él,
+	 * devuelve el timestamp YA desplazado al huso del sitio (no una conversión
+	 * de zona horaria real, que es exactamente cómo se comporta WordPress).
+	 */
+	function current_time( $type, $gmt = 0 ) {
+		$ts = time() + ( $gmt ? 0 : (int) round( $GLOBALS['cead_test_gmt_offset'] * HOUR_IN_SECONDS ) );
+		if ( 'timestamp' === $type || 'U' === $type ) { return $ts; }
+		if ( 'mysql' === $type ) { return gmdate( 'Y-m-d H:i:s', $ts ); }
+		return gmdate( $type, $ts );
+	}
+}
+
+if ( ! function_exists( 'home_url' ) ) {
+	function home_url( $path = '' ) { return 'https://cead.test' . $path; }
+}
+if ( ! function_exists( 'wp_create_nonce' ) ) {
+	function wp_create_nonce( $action = -1 ) { return substr( md5( 'nonce|' . $action ), 0, 10 ); }
+}
+if ( ! function_exists( 'wp_nonce_url' ) ) {
+	function wp_nonce_url( $actionurl, $action = -1, $name = '_wpnonce' ) {
+		$sep = false === strpos( $actionurl, '?' ) ? '?' : '&';
+		return $actionurl . $sep . rawurlencode( $name ) . '=' . rawurlencode( wp_create_nonce( $action ) );
+	}
+}
+if ( ! function_exists( 'wp_verify_nonce' ) ) {
+	function wp_verify_nonce( $nonce, $action = -1 ) {
+		return hash_equals( wp_create_nonce( $action ), (string) $nonce ) ? 1 : false;
+	}
+}
+
+/**
+ * $wpdb de mentira, lo mínimo para probar escrituras que pueden fallar.
+ *
+ * Reproduce el detalle que importa: `insert_id` NO se limpia cuando el insert
+ * falla, así que conserva el id del insert anterior de la misma request. Ese es
+ * el valor que se colaba como "salió bien".
+ */
+class Cead_Test_WPDB {
+	public $prefix    = 'wptest_';
+	public $insert_id = 0;
+	public $last_error = '';
+
+	/** Qué devolver en el próximo insert/update: false simula error de BD. */
+	public $insert_result = 1;
+	public $update_result = 1;
+
+	/** Fila que devuelve get_row (null = no existe). */
+	public $row = null;
+
+	/** Registro de lo que se intentó escribir. */
+	public $writes = [];
+
+	public function prepare( $query, ...$args ) {
+		if ( isset( $args[0] ) && is_array( $args[0] ) ) { $args = $args[0]; }
+		$query = str_replace( [ '%d', '%s', '%f' ], '%s', $query );
+		return vsprintf( $query, array_map( static function ( $a ) {
+			return is_numeric( $a ) ? $a : "'" . $a . "'";
+		}, $args ) );
+	}
+
+	public function get_row( $query, $output = null ) { return $this->row; }
+	public function get_col( $query ) { return []; }
+	public function get_var( $query ) { return 0; }
+	public function query( $query ) { return 1; }
+
+	public function insert( $table, $data, $format = null ) {
+		$this->writes[] = [ 'insert', $table, $data ];
+		if ( false === $this->insert_result ) {
+			$this->last_error = 'simulado: el insert falló';
+			return false; // insert_id queda como estaba: ese es el punto.
+		}
+		$this->insert_id = 4242;
+		return 1;
+	}
+
+	public function update( $table, $data, $where, $format = null, $where_format = null ) {
+		$this->writes[] = [ 'update', $table, $data, $where ];
+		if ( false === $this->update_result ) {
+			$this->last_error = 'simulado: el update falló';
+			return false;
+		}
+		return $this->update_result;
+	}
+
+	public function replace( $table, $data, $format = null ) {
+		$this->writes[] = [ 'replace', $table, $data ];
+		return 1;
+	}
+}
+
 // ---- Código bajo test ----
 require_once dirname( __DIR__, 2 ) . '/includes/helpers.php';
+require_once dirname( __DIR__, 2 ) . '/modules/courses/class-courses-roster.php';
+require_once dirname( __DIR__, 2 ) . '/modules/demo/class-demo-seeder.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-identity.php';
 require_once dirname( __DIR__, 2 ) . '/modules/auth/class-invitations.php';
 require_once dirname( __DIR__, 2 ) . '/modules/broadcasts/class-broadcasts-audiences.php';

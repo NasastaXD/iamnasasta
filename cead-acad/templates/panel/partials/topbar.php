@@ -16,7 +16,7 @@ $title  = isset( $page_title ) ? $page_title : __( 'Panel', 'cead-acad' );
 ?>
 <header class="cead-acad-panel-topbar">
 	<div class="cead-acad-panel-topbar-l">
-		<button type="button" class="cead-acad-burger" aria-label="<?php esc_attr_e( 'Abrir menú', 'cead-acad' ); ?>" aria-expanded="false" onclick="var o=document.body.classList.toggle('cead-acad-nav-open');this.setAttribute('aria-expanded',o);">
+		<button type="button" class="cead-acad-burger" aria-controls="cead-acad-menu" aria-label="<?php esc_attr_e( 'Abrir menú', 'cead-acad' ); ?>" aria-expanded="false" onclick="var o=document.body.classList.toggle('cead-acad-nav-open');this.setAttribute('aria-expanded',o);if(!o&amp;&amp;window.ceadCerrarNav){window.ceadCerrarNav(false);}">
 			<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
 				<line x1="3" y1="6"  x2="21" y2="6"  stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
 				<line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -30,9 +30,36 @@ $title  = isset( $page_title ) ? $page_title : __( 'Panel', 'cead-acad' );
 			<input type="search" name="q" placeholder="<?php esc_attr_e( 'Buscar…', 'cead-acad' ); ?>" aria-label="<?php esc_attr_e( 'Buscar en el panel', 'cead-acad' ); ?>">
 		</form>
 
-		<button type="button" class="cead-acad-theme-toggle" aria-label="<?php esc_attr_e( 'Cambiar tema claro/oscuro', 'cead-acad' ); ?>" onclick="(function(d){var on=d.getAttribute('data-theme')==='dark';if(on){d.removeAttribute('data-theme');}else{d.setAttribute('data-theme','dark');}try{localStorage.setItem('cead_theme',on?'light':'dark');}catch(e){}})(document.documentElement)">
+		<?php
+		/*
+		 * El botón dice en qué estado está, no solo qué hace.
+		 *
+		 * Sin `aria-pressed` un lector de pantalla anuncia «cambiar tema» y nada
+		 * más: no hay forma de saber si el modo oscuro está puesto o no —y es
+		 * justo lo que el botón controla—. Ahora al pulsarlo se anuncia el
+		 * cambio.
+		 *
+		 * El valor inicial lo escribe el mismo script de la cabecera que decide
+		 * el tema, así que sale correcto ya en el primer pintado; acá va la
+		 * lectura sincrónica del atributo por si ese script no llegó a correr.
+		 *
+		 * También se quita `data-theme="light"` explícito al pasar a claro: sin
+		 * eso, quien tiene el sistema en oscuro no podría volver a claro nunca,
+		 * porque la consulta de preferencia del sistema lo devolvería a oscuro.
+		 */
+		$tema_oscuro = false; // el script de <head> lo corrige antes de pintar
+		?>
+		<button type="button" class="cead-acad-theme-toggle"
+		        aria-pressed="<?php echo $tema_oscuro ? 'true' : 'false'; ?>"
+		        aria-label="<?php esc_attr_e( 'Modo oscuro', 'cead-acad' ); ?>"
+		        onclick="(function(d,b){var on=d.getAttribute('data-theme')==='dark';if(on){d.setAttribute('data-theme','light');}else{d.setAttribute('data-theme','dark');}b.setAttribute('aria-pressed',on?'false':'true');try{localStorage.setItem('cead_theme',on?'light':'dark');}catch(e){}})(document.documentElement,this)">
 			<span aria-hidden="true">🌗</span>
 		</button>
+		<script>
+		/* Sincroniza el estado del botón con el tema que ya se aplicó en <head>. */
+		(function(){var d=document.documentElement,b=document.currentScript.previousElementSibling;
+		if(b){b.setAttribute('aria-pressed',d.getAttribute('data-theme')==='dark'?'true':'false');}})();
+		</script>
 
 		<div class="cead-acad-notif">
 			<button type="button" class="cead-acad-bell" aria-label="<?php esc_attr_e( 'Notificaciones', 'cead-acad' ); ?>" aria-expanded="false" onclick="var w=this.closest('.cead-acad-notif');w.classList.toggle('is-open');this.setAttribute('aria-expanded',w.classList.contains('is-open'));">
@@ -94,7 +121,7 @@ $title  = isset( $page_title ) ? $page_title : __( 'Panel', 'cead-acad' );
 			<div class="cead-acad-user-menu-panel">
 				<a href="<?php echo esc_url( cead_acad_url( 'panel/perfil' ) ); ?>"><?php esc_html_e( 'Mi perfil', 'cead-acad' ); ?></a>
 				<a href="<?php echo esc_url( cead_acad_url( 'panel/carne' ) ); ?>"><?php esc_html_e( 'Mi carné', 'cead-acad' ); ?></a>
-				<a class="cead-acad-user-menu-out" href="<?php echo esc_url( cead_acad_url( 'salir' ) ); ?>"><?php esc_html_e( 'Cerrar sesión', 'cead-acad' ); ?></a>
+				<a class="cead-acad-user-menu-out" href="<?php echo esc_url( cead_acad_logout_url() ); ?>"><?php esc_html_e( 'Cerrar sesión', 'cead-acad' ); ?></a>
 			</div>
 		</details>
 	</div>

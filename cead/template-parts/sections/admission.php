@@ -5,6 +5,32 @@ $stats = [
     [get_theme_mod('cead_adm_stat2_n', '04'),   get_theme_mod('cead_adm_stat2_l', 'Bachilleratos')],
     [get_theme_mod('cead_adm_stat3_n', '2009'), get_theme_mod('cead_adm_stat3_l', 'Fundación')],
 ];
+
+/*
+ * Los dos botones de admisión salían con href="#": se veían clicables y no
+ * hacían nada más que saltar al tope de la página. Es el mismo problema que ya
+ * se corrigió en el buscador del nav («era un botón sin ningún listener»).
+ *
+ * Ahora "Inscribirse" apunta por defecto al formulario de contacto, que es un
+ * destino que el sitio SÍ sirve, y cualquier botón que siga sin destino real
+ * no se dibuja. Vale la misma regla que el resto del tema: mejor un botón
+ * menos que un botón muerto.
+ */
+$adm_botones = array_values( array_filter( [
+    [
+        'url'   => get_theme_mod( 'cead_adm_btn1_url', home_url( '/#Contacto' ) ),
+        'text'  => get_theme_mod( 'cead_adm_btn1_text', '→ Inscribirse' ),
+        'class' => 'cead-btn-light',
+    ],
+    [
+        'url'   => get_theme_mod( 'cead_adm_btn2_url', '' ),
+        'text'  => get_theme_mod( 'cead_adm_btn2_text', '→ Calendario' ),
+        'class' => 'cead-btn-outline-white',
+    ],
+], static function ( $b ) {
+    $u = trim( (string) $b['url'] );
+    return '' !== $u && '#' !== $u && '' !== trim( (string) $b['text'] );
+} ) );
 ?>
 <section id="admision" class="section section--admission">
   <div class="admission-bg grain">
@@ -18,10 +44,13 @@ $stats = [
 
     <div class="admission-foot">
       <p class="admission-body"><?php echo wp_kses_post(get_theme_mod('cead_adm_body', 'El proceso de admisión 2026 está abierto. Cuatro divisiones técnicas, evaluación académica, entrevista con familia y carta de compromiso al Honor Code.')); ?></p>
-      <div class="admission-buttons">
-        <a href="<?php echo esc_url(get_theme_mod('cead_adm_btn1_url', '#')); ?>" class="cead-btn cead-btn-light"><?php echo esc_html(get_theme_mod('cead_adm_btn1_text', '→ Inscribirse')); ?></a>
-        <a href="<?php echo esc_url(get_theme_mod('cead_adm_btn2_url', '#')); ?>" class="cead-btn cead-btn-outline-white"><?php echo esc_html(get_theme_mod('cead_adm_btn2_text', '→ Calendario')); ?></a>
-      </div>
+      <?php if ( $adm_botones ) : ?>
+        <div class="admission-buttons">
+          <?php foreach ( $adm_botones as $b ) : ?>
+            <a href="<?php echo esc_url( $b['url'] ); ?>" class="cead-btn <?php echo esc_attr( $b['class'] ); ?>"><?php echo esc_html( $b['text'] ); ?></a>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
     </div>
 
     <div class="admission-stats">

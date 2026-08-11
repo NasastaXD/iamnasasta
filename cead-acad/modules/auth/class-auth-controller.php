@@ -148,10 +148,27 @@ class Cead_Acad_Auth_Controller {
 		update_user_meta( $user_id, '_cead_acad_phone', $phone );
 		update_user_meta( $user_id, '_cead_acad_invited_via', (int) $invitation['id'] );
 		if ( $course_id ) {
-			update_user_meta( $user_id, '_cead_acad_current_course_id', $course_id );
 			$role_in_course = ( $invitation['role'] === 'cead_acad_delegate' ) ? 'delegate' : 'student';
-			if ( class_exists( 'Cead_Acad_Courses_Roster' ) ) {
-				Cead_Acad_Courses_Roster::add( (int) $user_id, $course_id, $role_in_course );
+			$inscripto      = Cead_Acad_Courses_Roster::add( (int) $user_id, $course_id, $role_in_course );
+			if ( $inscripto ) {
+				update_user_meta( $user_id, '_cead_acad_current_course_id', $course_id );
+			} else {
+				/*
+				 * Acá no se puede abortar: la cuenta ya está creada y el uso de la
+				 * invitación ya se consumió, así que cancelar dejaría a la persona
+				 * sin cuenta y sin invitación. Se la deja entrar y queda registrado
+				 * para que secretaría la inscriba a mano.
+				 *
+				 * El meta del curso NO se escribe: apuntaría a un curso donde no
+				 * está, y el panel mostraría un horario que no le corresponde.
+				 */
+				error_log( '[CeadAcad][Registro] usuario ' . (int) $user_id . ' creado pero NO inscripto en el curso ' . (int) $course_id );
+				Cead_Acad_Audit::log( 'user_registered_without_course', [
+					'user_id'     => $user_id,
+					'entity_type' => 'user',
+					'entity_id'   => $user_id,
+					'payload'     => [ 'course_id' => (int) $course_id, 'role_in_course' => $role_in_course ],
+				] );
 			}
 		}
 

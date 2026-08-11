@@ -1,11 +1,32 @@
 # 📘 CEAD Académico — Wiki del usuario
 
 > Guía completa del sistema del **Centro Educativo de Alto Desempeño "Félix de Guarania"**.
-> Versión del plugin: **0.44.1**.
+
+<!-- El número de versión NO va escrito acá: lo imprime el pie de /wiki desde
+     CEAD_ACAD_VERSION. Estuvo a mano un tiempo y se quedó en 0.44.1 mientras el
+     pie de la misma página ya decía 0.59.0 — la wiki se contradecía a sí misma
+     en pantalla. Un solo lugar, y ese lugar es el código. -->
 
 Esta wiki explica **todo lo que tiene el sistema** en lenguaje simple: el panel web, la app, el bot de WhatsApp (CEADI) y la parte de administración. Está pensada para alumnado, familias, docentes, delegados, secretaría, consejo y dirección.
 
-> 📍 Esta wiki se puede leer online en **`/wiki`** del sitio. ¿Buscás la parte técnica (arquitectura, módulos, base de datos, despliegue)? Está en **[Wiki técnica](WIKI-TECNICA.md)**.
+> 📍 Esta wiki se puede leer online en **`/wiki`** del sitio.
+> ¿Preferís algo más corto y visual? Está la **[página del proyecto](/proyecto)**, que lo explica todo en dos minutos con ilustraciones.
+> ¿Buscás la parte técnica (arquitectura, módulos, base de datos, despliegue)? Está en **[Wiki técnica](WIKI-TECNICA.md)**.
+
+---
+
+## Índice
+
+1. [¿Qué es?](#1-qué-es)
+2. [Acceso y cuentas](#2-acceso-y-cuentas)
+3. [La app (PWA) y preferencias](#3-la-app-pwa-y-preferencias)
+4. [Roles](#4-roles)
+5. [El panel web, sección por sección](#5-el-panel-web-sección-por-sección)
+6. [CEADI — el bot de WhatsApp](#6-ceadi--el-bot-de-whatsapp)
+7. [Administración (wp-admin)](#7-administración-wp-admin)
+8. [Familias](#8-familias)
+9. [Actualizaciones del sistema](#9-actualizaciones-del-sistema)
+10. [Preguntas frecuentes](#10-preguntas-frecuentes)
 
 ---
 
@@ -148,15 +169,20 @@ CEADI atiende por WhatsApp. **Solo responde a números registrados** en el panel
 
 ### Menú del alumnado
 ```
-1. Horarios            7. Sugerencias / escribir a un encargado
-2. Sitio web           8. Preguntas frecuentes
-3. Calendario          9. Consejo Estudiantil
-4. Contacto            10. Recordatorios de eventos
-5. Comunicados         11. Mi panel web
-6. Reportar algo       0. Salir
+ 1. Horarios            9. Consejo Estudiantil
+ 2. Sitio web          10. Recordatorios de eventos
+ 3. Calendario         11. Mi panel web
+ 4. Contacto           12. Mis ajustes
+ 5. Comunicados        13. Mis notas
+ 6. Reportar algo      14. Mis tareas
+ 7. Sugerencias        15. Mi carné
+ 8. Preguntas frecuentes
+                        0. Salir
 ```
 - **Reportar algo (6)**: anónimo o confidencial, con categoría; queda en el **buzón**.
 - **Escribir a un encargado (7)**: elegís **Administración / Consejo / Dirección** y tu mensaje cae en el **buzón**.
+- **Mis ajustes (12)**: ver tus datos, cambiar tu nombre para mostrar, pedir a Secretaría el cambio de número, y elegir si querés hablarle en **lenguaje natural** o con el **menú de números**.
+- **Mis notas (13)**, **Mis tareas (14)** y **Mi carné (15)**: lo mismo que ves en el panel, pero sin salir del chat.
 - Los reportes y mensajes **se gestionan solo en el panel** (no se reenvían a ningún WhatsApp de coordinación).
 
 ### Comandos útiles
@@ -186,6 +212,19 @@ CEADI la lee, se da cuenta de cómo está armada (qué columna tiene los nombres
 - **El archivo no se guarda**: se lee, se usa y se descarta. Queda disponible un rato solo para que puedas **preguntarle cosas** — *"¿cuántos aprobaron?"*, *"¿cuál es el promedio?"* — sin que nada se cargue al sistema.
 - Si tu planilla es un **Excel viejo (`.xls`)**, abrila y usá *Guardar como → `.xlsx`*.
 - Si el archivo tiene **varias hojas**, lee la primera y te avisa.
+
+### 📎 Mandarle un documento
+
+CEADI también puede **leer un archivo** que le mandes por WhatsApp y contestarte sobre su contenido: sirve para consultar un reglamento largo, una circular o un apunte sin tener que buscar a mano.
+
+- **Formatos**: PDF, Word (`.docx`), OpenDocument (`.odt`), texto (`.txt`, `.md`) y `.csv`. Hasta **8 MB**.
+- **Los PDF tienen que tener texto de verdad.** Si el PDF es una **foto escaneada** de una hoja, CEADI no lo puede leer: no reconoce letras dentro de una imagen.
+- De documentos muy largos toma los primeros ~12.000 caracteres, que alcanzan para la enorme mayoría de los casos.
+- **El archivo no se guarda.** Se lee, se usa para responderte y se descarta.
+
+> Esta función viene **apagada** de fábrica. Se prende desde *CEAD Académico → WhatsApp* en la administración.
+
+### Pedirle acciones en lenguaje natural
 
 Si usan el modo IA, pueden pedir estas acciones en lenguaje natural ("mandá un comunicado a todos avisando que…", "creá una invitación para un profe") y CEADI **pide confirmación antes de ejecutar** (aprobación humana). Cada acción respeta el permiso del rol.
 
