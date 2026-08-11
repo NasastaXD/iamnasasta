@@ -20,10 +20,8 @@ $pick = static function ( array $keys ) use ( $site ) {
 /*
  * Barra superior: pocas entradas, las que la gente busca de verdad.
  *
- * «La plataforma» va justo antes de Bachilleratos: es lo que hay que mostrar
- * cuando alguien entra a ver el proyecto, y desde ahí cuelga la wiki. Queda
- * segunda si algún día se escribe «Sobre CEAD», y primera mientras esa página
- * siga vacía — que es exactamente el orden de importancia que buscamos.
+ * «La plataforma» va en segundo lugar, después de Sobre CEAD y antes de
+ * Bachilleratos, en el mismo orden que el mega menú.
  */
 $nav_top = $pick( [ 'sobre-cead', 'proyecto', 'bachilleratos', 'admision', 'noticias' ] );
 
@@ -36,10 +34,16 @@ if ( class_exists( 'Cead_Acad_Wiki' ) ) {
 	];
 }
 
-// Mega menú: agrupado, y cada grupo se saltea si quedó vacío.
+/*
+ * Mega menú: agrupado, y cada grupo se saltea si quedó vacío.
+ *
+ * «La plataforma» va SEGUNDA, después de Institucional y empujando a
+ * Bachilleratos al tercer lugar. Primero quién es el colegio, después qué
+ * construyó, y recién ahí la oferta académica.
+ */
 $nav_groups = array_values( array_filter( [
-	[ 'label' => __( 'La plataforma', 'cead' ), 'items' => array_merge( $pick( [ 'proyecto' ] ), $wiki_links ) ],
 	[ 'label' => __( 'Institucional', 'cead' ), 'items' => $pick( [ 'sobre-cead', 'historia', 'honor-code', 'autoridades' ] ) ],
+	[ 'label' => __( 'La plataforma', 'cead' ), 'items' => array_merge( $pick( [ 'proyecto' ] ), $wiki_links ) ],
 	[ 'label' => __( 'Bachilleratos', 'cead' ), 'items' => $divs ?: $pick( [ 'bachilleratos' ] ) ],
 	[ 'label' => __( 'Admisión', 'cead' ),      'items' => $pick( [ 'admision' ] ) ],
 	[ 'label' => __( 'Explorá', 'cead' ),       'items' => array_merge(
