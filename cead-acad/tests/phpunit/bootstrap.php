@@ -250,9 +250,9 @@ class Cead_Test_WPDB {
 }
 
 /*
- * Store de términos de taxonomía, en memoria. Alcanza para probar
- * ensure_subject_term() y la limpieza de purge(): crear, buscar por nombre,
- * marcar con meta, contar y borrar — sin necesitar WordPress real.
+ * Store de términos de taxonomía (`cead_acad_subject`), en memoria: crear,
+ * buscar por nombre, marcar con meta, contar y borrar — sin necesitar
+ * WordPress real.
  */
 $GLOBALS['cead_test_terms']        = []; // term_id => [ 'name', 'taxonomy', 'count' ]
 $GLOBALS['cead_test_term_meta']    = []; // term_id => [ key => value ]
@@ -262,13 +262,6 @@ function cead_test_reset_terms() {
 	$GLOBALS['cead_test_terms']        = [];
 	$GLOBALS['cead_test_term_meta']    = [];
 	$GLOBALS['cead_test_next_term_id'] = 1;
-}
-
-/** Para simular contenido real que sigue usando un término (fuera de la demo). */
-function cead_test_set_term_count( $term_id, $count ) {
-	if ( isset( $GLOBALS['cead_test_terms'][ $term_id ] ) ) {
-		$GLOBALS['cead_test_terms'][ $term_id ]['count'] = (int) $count;
-	}
 }
 
 if ( ! function_exists( 'get_term_by' ) ) {
@@ -362,7 +355,6 @@ if ( ! function_exists( 'wp_set_object_terms' ) ) {
 // ---- Código bajo test ----
 require_once dirname( __DIR__, 2 ) . '/includes/helpers.php';
 require_once dirname( __DIR__, 2 ) . '/modules/courses/class-courses-roster.php';
-require_once dirname( __DIR__, 2 ) . '/modules/demo/class-demo-seeder.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-identity.php';
 require_once dirname( __DIR__, 2 ) . '/modules/auth/class-invitations.php';
 require_once dirname( __DIR__, 2 ) . '/modules/broadcasts/class-broadcasts-audiences.php';
