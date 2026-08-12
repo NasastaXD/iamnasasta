@@ -91,16 +91,36 @@ class Cead_Acad_WA_Instagram {
 		self::anotar_error( '' );
 		if ( ! $posts ) { return; }
 
-		$estado = self::separar_nuevas( $posts, (array) get_option( self::OPT_VISTAS, [] ) );
-		update_option( self::OPT_VISTAS, $estado['vistas'], false );
+		$vistas = (array) get_option( self::OPT_VISTAS, [] );
+		$estado = self::separar_nuevas( $posts, $vistas );
 
 		if ( $estado['primera'] ) {
+			update_option( self::OPT_VISTAS, $estado['vistas'], false );
 			error_log( '[CeadAcadWA][IG] primera corrida: ' . count( $estado['vistas'] ) . ' publicaciones tomadas como ya vistas.' );
 			return;
 		}
 
+		/*
+		 * Se anota como vista SOLO la publicación que efectivamente salió.
+		 *
+		 * Antes se guardaba la lista entera antes de mandar nada: si el bridge
+		 * estaba caído, o si todavía no había número de dirección cargado, el
+		 * borrador se perdía para siempre —la corrida siguiente ya veía esos ids
+		 * como conocidos y los salteaba—. Guardando después de cada envío, lo que
+		 * no salió se vuelve a intentar dentro de media hora.
+		 */
+		$enviadas = 0;
 		foreach ( $estado['nuevas'] as $p ) {
-			$this->avisar( $p );
+			if ( ! $this->avisar( $p ) ) { break; }
+			$vistas[] = (string) ( $p['id'] ?? '' );
+			$enviadas++;
+		}
+
+		if ( $enviadas ) {
+			if ( count( $vistas ) > self::RECORDAR ) {
+				$vistas = array_slice( $vistas, -self::RECORDAR );
+			}
+			update_option( self::OPT_VISTAS, array_values( $vistas ), false );
 		}
 	}
 
@@ -146,12 +166,14 @@ class Cead_Acad_WA_Instagram {
 	 * El borrador NO se publica: se manda como texto para que lo lea, lo
 	 * corrija si hace falta y lo publique él. Es el mismo criterio que el resto
 	 * del bot — la IA propone, la persona decide.
+	 *
+	 * @return bool true si el mensaje realmente salió.
 	 */
 	protected function avisar( $post ) {
 		$telefono = (string) get_option( 'cead_acad_wa_director_phone', '' );
 		if ( '' === trim( $telefono ) ) {
 			self::anotar_error( 'Hay publicaciones nuevas pero no está configurado el número de dirección.' );
-			return;
+			return false;
 		}
 
 		$pie   = trim( (string) ( $post['caption'] ?? '' ) );
@@ -163,9 +185,19 @@ class Cead_Acad_WA_Instagram {
 		$msg .= "\n" . $borrador;
 		$msg .= "\n\n_Borrador hecho por mí a partir del pie de foto. Si te sirve, decime «publicá esto» y lo subimos al sitio; si no, corregilo y mandámelo._";
 
-		$store  = new Cead_Acad_WA_Store();
-		$bridge = new Cead_Acad_WA_Bridge_Client( $store );
-		$bridge->send_message( $telefono, $msg );
+		/*
+		 * `notify()` es el envío suelto que ya usa el panel: normaliza el número,
+		 * descarta los que no tienen largo de teléfono, mira si el bridge dijo
+		 * que salió y deja el mensaje en el registro de salientes. Armar acá el
+		 * Store y el Bridge_Client a mano repetía la mitad de eso y se perdía la
+		 * otra mitad: los borradores de Instagram no aparecían en el historial ni
+		 * en los reportes, y un envío fallido pasaba en silencio.
+		 */
+		$ok = Cead_Acad_WA_Module::notify( $telefono, $msg );
+		if ( ! $ok ) {
+			self::anotar_error( 'No se pudo mandar el borrador al número de dirección; se reintenta en la próxima corrida.' );
+		}
+		return $ok;
 	}
 
 	/**

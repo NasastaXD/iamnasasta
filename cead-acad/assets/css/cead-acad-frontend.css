@@ -1592,6 +1592,13 @@ body,
 	z-index: 900;
 }
 
+/* La barra está fija encima de todo, así que el contenido necesita lugar
+   reservado abajo: si no, la última fila de cualquier lista —o el último botón
+   de un formulario— queda tapada para siempre, sin forma de correrla. */
+body.cead-acad-con-ceadi .cead-acad-panel-content {
+	padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+}
+
 /* ---- Cerrada ---- */
 .cead-ceadi-barra {
 	display: flex;

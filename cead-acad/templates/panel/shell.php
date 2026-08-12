@@ -6,6 +6,13 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 $page_title = $page_title ?? __( 'Panel', 'cead-acad' );
+
+/*
+ * ¿Va la barra de CEADI? Se resuelve una sola vez, acá arriba, porque la
+ * respuesta se necesita en dos lugares: la clase del <body> (que le reserva
+ * lugar abajo al contenido) y el include del final.
+ */
+$cead_ceadi_on = class_exists( 'Cead_Acad_Ceadi_Panel' ) && Cead_Acad_Ceadi_Panel::disponible();
 ?>
 <!DOCTYPE html>
 <html <?php language_attributes(); ?>>
@@ -52,7 +59,7 @@ $page_title = $page_title ?? __( 'Panel', 'cead-acad' );
 	<link rel="icon" type="image/png" href="<?php echo esc_url( home_url( '/cead-icon-192.png' ) ); ?>">
 	<?php wp_head(); ?>
 </head>
-<body class="cead-acad-panel">
+<body class="cead-acad-panel<?php echo $cead_ceadi_on ? ' cead-acad-con-ceadi' : ''; ?>">
 	<?php
 	/*
 	 * Saltar al contenido. El sitio público lo tiene desde hace rato; el panel
@@ -103,7 +110,7 @@ $page_title = $page_title ?? __( 'Panel', 'cead-acad' );
 	 * el router de navegación suave, que solo cambia el <main>, no la toque
 	 * nunca: la conversación sobrevive al cambio de pantalla.
 	 */
-	if ( class_exists( 'Cead_Acad_Ceadi_Panel' ) && Cead_Acad_Ceadi_Panel::disponible() ) {
+	if ( $cead_ceadi_on ) {
 		include CEAD_ACAD_DIR . 'templates/panel/partials/ceadi-bar.php';
 	}
 	?>

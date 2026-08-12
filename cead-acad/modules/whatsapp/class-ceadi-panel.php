@@ -101,12 +101,21 @@ class Cead_Acad_Ceadi_Panel {
 		$texto = trim( (string) ( $respuesta['reply'] ?? '' ) );
 
 		/*
-		 * Si el modelo intentó una acción de gestión, acá no se ejecuta: no hay
+		 * Si el modelo intentó una acción de GESTIÓN, acá no se ejecuta: no hay
 		 * paso de aprobación en la web. Se le dice a la persona dónde sí puede
 		 * hacerlo, en vez de fallar en silencio o —peor— hacerlo sin confirmar.
+		 *
+		 * Se pregunta por gestión y no «¿no es consulta?». Las consultas nunca
+		 * llegan hasta acá —`parse_tools_mode()` ya las vació, porque las
+		 * resuelve el bucle—, así que preguntar por ellas era preguntar por algo
+		 * imposible: cualquier intención caía en el mensaje de WhatsApp. Y las
+		 * intenciones informativas del menú (horario, notas, comunicados, faq…)
+		 * siguen viniendo del catálogo base: mandar a alguien a WhatsApp «para
+		 * confirmar antes de ejecutarlo» porque preguntó su horario no tiene
+		 * ningún sentido. Esas caen abajo, en el pedido de reformular.
 		 */
 		$intent = (string) ( $respuesta['intent'] ?? '' );
-		if ( '' !== $intent && ( ! class_exists( 'Cead_Acad_WA_Tools' ) || ! Cead_Acad_WA_Tools::es_consulta( $intent ) ) ) {
+		if ( '' !== $intent && class_exists( 'Cead_Acad_WA_Tools' ) && Cead_Acad_WA_Tools::es_gestion( $intent ) ) {
 			$texto = trim( $texto . "\n\n" . __( 'Eso se confirma por WhatsApp: escribime por ahí y te muestro el resumen antes de ejecutarlo.', 'cead-acad' ) );
 		}
 
@@ -117,12 +126,22 @@ class Cead_Acad_Ceadi_Panel {
 		return rest_ensure_response( [ 'respuesta' => $texto ] );
 	}
 
-	/** Ventana simple por usuario: cuenta mensajes del último minuto. */
+	/**
+	 * Ventana simple por usuario: cuenta mensajes del último minuto.
+	 *
+	 * La clave lleva el minuto adentro en vez de apoyarse en el vencimiento del
+	 * transient. Con `set_transient(..., MINUTE_IN_SECONDS)` en cada mensaje, la
+	 * cuenta se refrescaba el reloj a sí misma y la ventana no cerraba nunca:
+	 * quien preguntaba una cosa cada cuarenta segundos quedaba bloqueado al
+	 * noveno mensaje, cinco minutos después de haber empezado, con un cartel que
+	 * le decía «esperá unos segundos». Con el minuto en la clave, cada minuto
+	 * calendario arranca de cero, que es lo que el tope dice hacer.
+	 */
 	protected function dentro_del_tope( $uid ) {
-		$clave = 'cead_acad_ceadi_panel_' . (int) $uid;
+		$clave = 'cead_acad_ceadi_panel_' . (int) $uid . '_' . (int) floor( time() / MINUTE_IN_SECONDS );
 		$n     = (int) get_transient( $clave );
 		if ( $n >= self::TOPE_MINUTO ) { return false; }
-		set_transient( $clave, $n + 1, MINUTE_IN_SECONDS );
+		set_transient( $clave, $n + 1, 2 * MINUTE_IN_SECONDS );
 		return true;
 	}
 

@@ -511,7 +511,15 @@ TXT;
 			. "Las que tenés disponibles ya están filtradas por el rol de quien te escribe. Si una acción no aparece entre tus herramientas, esa persona no tiene permiso: no la ofrezcas, no prometas hacerla y no sugieras rodeos para conseguirla.\n"
 			. "Nunca llames a una herramienta con datos inventados para «probar». Si te falta un dato obligatorio, pedilo en una línea.\n"
 			. "\n## Consultas: podés encadenarlas\n"
-			. "Las herramientas de CONSULTA (consultar_metricas, listar_cursos, ver_curso, ver_horario_curso, buscar_persona, agenda_institucional, buscar_noticias) se ejecutan al momento y te devuelven el resultado a vos. Podés llamar una, leer lo que vuelve, y llamar otra con ese dato. Aprovechalo:\n"
+			/*
+			 * No se enumeran los nombres acá. Dos motivos: la lista real depende
+			 * del rol (nombrarlas todas le enseña a un alumno que existe
+			 * `buscar_persona`, justo lo contrario de lo que dice el párrafo de
+			 * arriba), y `buscar_noticias` NO es de este grupo — la resuelve el
+			 * motor y cierra el turno, así que prometer que su resultado vuelve
+			 * al modelo era mentira.
+			 */
+			. "Las herramientas de CONSULTA (las que solo LEEN datos: métricas, cursos, horarios, personas, agenda) se ejecutan al momento y te devuelven el resultado a vos. Podés llamar una, leer lo que vuelve, y llamar otra con ese dato. Aprovechalo:\n"
 			. "- Si te nombran un curso y no sabés el título exacto, listá los cursos primero y después consultá el que corresponda. No adivines nombres.\n"
 			. "- Si te preguntan algo que se responde con datos, MIRALOS antes de contestar. Vale más una consulta de más que una afirmación inventada.\n"
 			. "- Si el resultado te contradice, corregite sin drama y seguí con el dato bueno.\n"
@@ -802,8 +810,21 @@ TXT;
 		$conversacion = $messages( 'tools' );
 		$modo_json    = false;
 		$arranque     = microtime( true );
+		/*
+		 * Lo último que el modelo alcanzó a DECIR, vuelta a vuelta.
+		 *
+		 * El bucle puede terminar con una respuesta que es pura pedida de
+		 * herramienta y sin texto (se acabó el reloj, o se agotaron las
+		 * vueltas). Si eso se parsea tal cual, el intent se descarta por ser
+		 * una consulta y queda `reply` vacío → «Respuesta vacía del modelo» →
+		 * el motor cae al menú y la persona no recibe nada, habiendo datos ya
+		 * consultados. Guardando lo último dicho se cierra con eso.
+		 */
+		$ultimo_texto = '';
 
-		for ( $ronda = 0; $ronda <= self::MAX_RONDAS; $ronda++ ) {
+		// Una vuelta más que las consultas permitidas: la extra NO ejecuta nada,
+		// es la que el modelo usa para redactar la respuesta final.
+		for ( $ronda = 0; $ronda <= self::MAX_RONDAS + 1; $ronda++ ) {
 
 			/*
 			 * A partir de la segunda vuelta se mira el reloj. Entrar a una
@@ -859,47 +880,85 @@ TXT;
 				return $out;
 			}
 
-			$msg    = $r['data']['choices'][0]['message'] ?? [];
-			$llamada = $msg['tool_calls'][0] ?? null;
-			$nombre  = (string) ( $llamada['function']['name'] ?? '' );
+			$msg      = $r['data']['choices'][0]['message'] ?? [];
+			$llamadas = ( isset( $msg['tool_calls'] ) && is_array( $msg['tool_calls'] ) ) ? $msg['tool_calls'] : [];
+
+			$dicho = trim( (string) ( $msg['content'] ?? '' ) );
+			if ( '' !== $dicho ) { $ultimo_texto = $dicho; }
+
+			/*
+			 * El bucle solo sigue si TODAS las llamadas de este mensaje son
+			 * consultas. Con una sola de gestión adentro se corta y contesta el
+			 * motor, que pide aprobación humana; y si se mezclan, ejecutar las
+			 * consultas sin poder responder la de gestión dejaría el mensaje del
+			 * asistente con ids de herramienta sin contestar, que es justo lo que
+			 * el proveedor rechaza con un 400 en la vuelta siguiente.
+			 */
+			$todas_consulta = ( [] !== $llamadas ) && class_exists( 'Cead_Acad_WA_Tools' );
+			foreach ( $llamadas as $l ) {
+				if ( ! Cead_Acad_WA_Tools::es_consulta( (string) ( $l['function']['name'] ?? '' ) ) ) {
+					$todas_consulta = false;
+					break;
+				}
+			}
 
 			// Sin herramienta, o con una de gestión: se termina acá y contesta el
 			// motor (mostrando el resumen para aprobar, si corresponde).
-			if ( '' === $nombre || ! class_exists( 'Cead_Acad_WA_Tools' ) || ! Cead_Acad_WA_Tools::es_consulta( $nombre ) ) {
+			if ( ! $todas_consulta ) {
 				break;
 			}
 
-			// Consulta: se ejecuta y el resultado vuelve al modelo.
-			if ( $ronda === self::MAX_RONDAS ) {
-				// Se agotaron las vueltas. Se le avisa para que cierre con lo que
-				// tiene en vez de quedarse colgado pidiendo una herramienta más.
-				$conversacion[] = $msg;
+			$conversacion[] = $msg;
+
+			/*
+			 * Se responde CADA tool_call del mensaje, no solo la primera. Los
+			 * modelos actuales piden varias herramientas de una sola vez
+			 * («listá los cursos y traeme la agenda»), y la API exige un mensaje
+			 * `tool` por cada `tool_call_id`: contestar una sola tira un 400 en
+			 * la vuelta siguiente y se pierde el turno entero.
+			 */
+			$limite = ( $ronda >= self::MAX_RONDAS );
+			foreach ( $llamadas as $llamada ) {
+				$nombre = (string) ( $llamada['function']['name'] ?? '' );
+
+				if ( $limite ) {
+					// Se agotaron las vueltas. Se le avisa para que cierre con lo
+					// que tiene en vez de quedarse pidiendo una herramienta más.
+					$contenido = 'Se alcanzó el límite de consultas seguidas. Respondé con lo que ya averiguaste.';
+				} else {
+					$args_tool = [];
+					if ( isset( $llamada['function']['arguments'] ) ) {
+						$raw_args  = $llamada['function']['arguments'];
+						$args_tool = is_array( $raw_args ) ? $raw_args : (array) json_decode( (string) $raw_args, true );
+					}
+					$contenido = mb_substr( (string) Cead_Acad_WA_Tools::run( $nombre, $args_tool, $user_id ), 0, 4000 );
+					self::$last_tools[] = $nombre;
+				}
+
 				$conversacion[] = [
 					'role'         => 'tool',
 					'tool_call_id' => (string) ( $llamada['id'] ?? '' ),
-					'content'      => 'Se alcanzó el límite de consultas seguidas. Respondé con lo que ya averiguaste.',
+					'content'      => $contenido,
 				];
-				continue;
 			}
-
-			$args_tool = [];
-			if ( isset( $llamada['function']['arguments'] ) ) {
-				$raw_args  = $llamada['function']['arguments'];
-				$args_tool = is_array( $raw_args ) ? $raw_args : (array) json_decode( (string) $raw_args, true );
-			}
-			$resultado = Cead_Acad_WA_Tools::run( $nombre, $args_tool, $user_id );
-
-			$conversacion[] = $msg;
-			$conversacion[] = [
-				'role'         => 'tool',
-				'tool_call_id' => (string) ( $llamada['id'] ?? '' ),
-				'content'      => mb_substr( (string) $resultado, 0, 4000 ),
-			];
-			self::$last_tools[] = $nombre;
 		}
 
 		if ( $modo_json ) { return self::parse_json_mode( $r, $out, $allowed ); }
-		return self::parse_tools_mode( $r, $out, $allowed );
+
+		$parsed = self::parse_tools_mode( $r, $out, $allowed );
+		/*
+		 * Se cortó con una pedida a medio camino y sin texto: en vez de dar el
+		 * turno por perdido, se contesta con lo último que el modelo dijo.
+		 */
+		if ( ! $parsed['ok'] && '' !== $ultimo_texto ) {
+			$parsed['ok']      = true;
+			$parsed['error']   = '';
+			$parsed['intent']  = '';
+			$parsed['args']    = [];
+			$parsed['reply']   = sanitize_textarea_field( $ultimo_texto );
+			$parsed['content'] = $ultimo_texto;
+		}
+		return $parsed;
 	}
 
 	/** Qué consultas resolvió el sistema en el último turno (para diagnóstico). */

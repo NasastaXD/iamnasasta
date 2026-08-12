@@ -721,7 +721,10 @@ class Cead_Acad_WA_Engine {
 		// Acciones de gestión del staff: NO se ejecutan; se proponen y el menú aprueba.
 		// `recordar` y `olvidar` entran acá por lo mismo: tocan la memoria que
 		// condiciona todas las respuestas, así que se confirman antes.
-		if ( in_array( $action, [ 'enviar_comunicado', 'crear_evento', 'crear_invitacion', 'cargar_nota', 'crear_articulo', 'recordar', 'olvidar' ], true ) ) {
+		// La lista vive en `Cead_Acad_WA_Tools::GESTION`, una sola vez: el panel
+		// web decide con la misma, y dos copias que se desincronicen significan
+		// ejecutar sin aprobación de un lado o pedirla de más del otro.
+		if ( Cead_Acad_WA_Tools::es_gestion( $action ) ) {
 			return $this->propose_staff_action( $phone, $action, $args, $reply, $identity, $media );
 		}
 

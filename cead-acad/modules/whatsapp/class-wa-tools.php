@@ -29,6 +29,41 @@ class Cead_Acad_WA_Tools {
 	const TOPE_FILAS = 25;
 
 	/**
+	 * Los nombres de las consultas, sueltos.
+	 *
+	 * `es_consulta()` se llama una vez por vuelta del bucle de la IA, otra en
+	 * `parse_tools_mode()` y otra en el panel: armar el catálogo entero —seis
+	 * specs anidadas con sus descripciones traducidas— para mirar una clave era
+	 * pagar todo eso cada vez.
+	 */
+	const CONSULTAS = [
+		'consultar_metricas',
+		'listar_cursos',
+		'ver_curso',
+		'ver_horario_curso',
+		'buscar_persona',
+		'agenda_institucional',
+	];
+
+	/**
+	 * Las acciones que ESCRIBEN en el sistema.
+	 *
+	 * Vive acá, y no repetida en cada quien la necesita, porque el motor y el
+	 * panel web tienen que estar de acuerdo sobre qué exige aprobación humana:
+	 * si una lista se desactualiza respecto de la otra, o se ejecuta algo sin
+	 * confirmar o se manda a WhatsApp una consulta que no lo necesita.
+	 */
+	const GESTION = [
+		'enviar_comunicado',
+		'crear_evento',
+		'crear_invitacion',
+		'cargar_nota',
+		'crear_articulo',
+		'recordar',
+		'olvidar',
+	];
+
+	/**
 	 * Catálogo: nombre => [ cap, spec para el modelo ].
 	 *
 	 * `cap` null = alcanza con estar identificado. El resto se chequea contra
@@ -119,7 +154,12 @@ class Cead_Acad_WA_Tools {
 
 	/** ¿Esta herramienta la resuelve el sistema en el momento (lectura)? */
 	public static function es_consulta( $nombre ) {
-		return array_key_exists( (string) $nombre, self::catalogo() );
+		return in_array( (string) $nombre, self::CONSULTAS, true );
+	}
+
+	/** ¿Esta acción escribe y por lo tanto necesita que una persona la apruebe? */
+	public static function es_gestion( $nombre ) {
+		return in_array( (string) $nombre, self::GESTION, true );
 	}
 
 	/**
@@ -183,9 +223,18 @@ class Cead_Acad_WA_Tools {
 			'cead_acad_secretary' => 'Secretaría',
 			'cead_acad_direction' => 'Dirección',
 		];
+		/*
+		 * `count_users()` devuelve la cuenta de TODOS los roles en una sola
+		 * consulta agrupada (y cacheada). Antes esto eran seis `get_users()` sin
+		 * límite, cada una recorriendo la tabla entera y trayéndose los IDs a PHP
+		 * nada más que para contarlos.
+		 */
+		$conteo = count_users();
+		$porrol = isset( $conteo['avail_roles'] ) && is_array( $conteo['avail_roles'] ) ? $conteo['avail_roles'] : [];
+
 		$lineas = [];
 		foreach ( $roles as $slug => $label ) {
-			$n = count( get_users( [ 'role' => $slug, 'fields' => 'ID', 'number' => -1 ] ) );
+			$n = (int) ( $porrol[ $slug ] ?? 0 );
 			$lineas[] = "- {$label}: {$n}";
 		}
 
@@ -389,6 +438,20 @@ class Cead_Acad_WA_Tools {
 			'order'       => 'ASC',
 			'meta_query'  => [
 				[ 'key' => '_cead_acad_event_start', 'value' => [ $ahora, $hasta ], 'compare' => 'BETWEEN', 'type' => 'DATETIME' ],
+				/*
+				 * Fuera las clases, igual que en el calendario del panel y en el
+				 * público (`Cead_Acad_Schedule_Feed::query()`). El horario semanal
+				 * también vive en este CPT: sin este filtro, las 25 filas del tope
+				 * se llenaban con «07:30 · Matemática (Clase)» y los eventos de
+				 * verdad —reuniones, actos, exámenes— no entraban nunca. Justo lo
+				 * contrario de para lo que existe la herramienta, que es ver qué
+				 * hay cargado antes de agregar algo.
+				 */
+				[
+					'relation' => 'OR',
+					[ 'key' => '_cead_acad_event_type', 'value' => 'clase', 'compare' => '!=' ],
+					[ 'key' => '_cead_acad_event_type', 'compare' => 'NOT EXISTS' ],
+				],
 			],
 		] );
 		if ( ! $posts ) { return 'No hay eventos cargados en los próximos ' . $dias . ' días.'; }

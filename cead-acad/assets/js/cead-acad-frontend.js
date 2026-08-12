@@ -79,10 +79,29 @@
 	var CACHE_TTL = 30000;
 	var pedidoActual = 0;        // descarta respuestas de clics ya superados
 
+	/*
+	 * El prefijo del panel sale de la URL que ya localiza PHP, no de un '/panel'
+	 * escrito a mano. Con WordPress instalado en un subdirectorio el panel vive
+	 * en `/sitio/panel/…`, y comparando contra '/panel' pelado ningún enlace
+	 * pasaba el filtro: el router se apagaba entero, en silencio. Al revés,
+	 * cualquier página que empezara con esas letras —`/paneles-solares`— entraba
+	 * como si fuera del panel. La barra final es la que cierra las dos puertas.
+	 */
+	var BASE = (function () {
+		try {
+			var p = new URL(window.CeadAcad && CeadAcad.urls && CeadAcad.urls.panel, location.href).pathname;
+			return p.replace(/\/+$/, '') + '/';
+		} catch (e) { return '/panel/'; }
+	})();
+
+	function enElPanel(pathname) {
+		return pathname === BASE.slice(0, -1) || pathname.indexOf(BASE) === 0;
+	}
+
 	function mismaBase(url) {
 		try {
 			var u = new URL(url, location.href);
-			return u.origin === location.origin && u.pathname.indexOf('/panel') === 0;
+			return u.origin === location.origin && enElPanel(u.pathname);
 		} catch (e) { return false; }
 	}
 
@@ -96,7 +115,7 @@
 			// Un redirect a login, un 403 o un 500 se dejan al navegador: que
 			// haga la navegación de verdad en vez de que intentemos adivinar.
 			if (!r.ok) { throw new Error('HTTP ' + r.status); }
-			if (new URL(r.url, location.href).pathname.indexOf('/panel') !== 0) {
+			if (!enElPanel(new URL(r.url, location.href).pathname)) {
 				throw new Error('redirect fuera del panel');
 			}
 			return r.text();
@@ -130,6 +149,16 @@
 
 		actual.innerHTML = nuevo.innerHTML;
 		if (doc.title) { document.title = doc.title; }
+
+		/*
+		 * El título VISIBLE de la topbar, no solo el de la pestaña. Sin esto se
+		 * cambiaba de pantalla y el encabezado seguía diciendo el nombre de la
+		 * anterior —«Horarios» sobre la lista de comunicados— hasta la próxima
+		 * recarga completa, que con el router ya no llega nunca.
+		 */
+		var h1Nuevo = doc.querySelector('.cead-acad-panel-topbar-title');
+		var h1Ahora = document.querySelector('.cead-acad-panel-topbar-title');
+		if (h1Nuevo && h1Ahora) { h1Ahora.textContent = h1Nuevo.textContent; }
 
 		// Ítem activo del menú lateral.
 		var linksNuevos = doc.querySelectorAll('.cead-acad-panel-sidebar a');
@@ -275,6 +304,12 @@
 	 * había que bajar otra vez hasta el selector para ver el resultado que
 	 * acabás de pedir. Acá se mantiene el scroll exactamente donde estaba.
 	 *
+	 * Pero solo cuando el formulario filtra la pantalla en la que ya estás: se
+	 * compara el destino con la ruta actual. El buscador de la topbar también es
+	 * un GET, y manda a `/panel/buscar`, que es OTRA pantalla — dejarlo con el
+	 * scroll viejo aterrizaba a media página de los resultados, mirando lo que
+	 * hubiera a esa altura, y sin mover el foco al contenido nuevo.
+	 *
 	 * Los POST no se tocan: mandan datos, y un envío a medias por un problema
 	 * de red es mucho peor que un parpadeo.
 	 */
@@ -292,7 +327,7 @@
 		url.search = params.toString();
 
 		e.preventDefault();
-		navegar(url.toString(), { mantenerScroll: true });
+		navegar(url.toString(), { mantenerScroll: url.pathname === location.pathname });
 	});
 
 	/* ------------------------------------------------------ atrás/adelante */

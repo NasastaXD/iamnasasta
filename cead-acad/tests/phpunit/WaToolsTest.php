@@ -107,6 +107,38 @@ final class WaToolsTest extends TestCase {
 		}
 	}
 
+	/**
+	 * `es_consulta()` mira una lista de nombres suelta, no el catálogo entero
+	 * —armarlo para chequear una clave costaba seis specs traducidas por vuelta
+	 * del bucle—. El precio es que ahora hay dos lugares que pueden divergir: si
+	 * se agrega una consulta al catálogo y no a la lista, el bucle no la
+	 * ejecutaría y la devolvería al motor como si fuera una pantalla del menú.
+	 */
+	public function test_la_lista_de_consultas_no_se_desincroniza_del_catalogo(): void {
+		cead_test_set_caps( 9, [
+			'cead_acad_view_metrics'         => true,
+			'cead_acad_manage_courses'       => true,
+			'cead_acad_view_other_schedules' => true,
+			'cead_acad_manage_roles'         => true,
+			'cead_acad_manage_schedule'      => true,
+		] );
+
+		$delCatalogo = $this->nombres( 9 );
+		sort( $delCatalogo );
+		$deLaLista = Cead_Acad_WA_Tools::CONSULTAS;
+		sort( $deLaLista );
+
+		$this->assertSame( $deLaLista, $delCatalogo );
+	}
+
+	/** Ninguna acción que escribe puede figurar además como consulta. */
+	public function test_gestion_y_consulta_no_se_pisan(): void {
+		$this->assertSame(
+			[],
+			array_intersect( Cead_Acad_WA_Tools::GESTION, Cead_Acad_WA_Tools::CONSULTAS )
+		);
+	}
+
 	/* ------------------------------------- el bucle no filtra al motor ---- */
 
 	/**
