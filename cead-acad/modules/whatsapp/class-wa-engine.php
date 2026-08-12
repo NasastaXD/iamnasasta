@@ -708,7 +708,8 @@ class Cead_Acad_WA_Engine {
 			$phone,
 			$this->ai_staff_tools( $identity, $phone ),
 			$this->ai_context_with_sheet( $identity, $phone ),
-			$ai_image
+			$ai_image,
+			(int) ( $identity['user_id'] ?? 0 )
 		);
 		if ( ! is_array( $res ) ) {
 			return false;
@@ -720,7 +721,10 @@ class Cead_Acad_WA_Engine {
 		// Acciones de gestión del staff: NO se ejecutan; se proponen y el menú aprueba.
 		// `recordar` y `olvidar` entran acá por lo mismo: tocan la memoria que
 		// condiciona todas las respuestas, así que se confirman antes.
-		if ( in_array( $action, [ 'enviar_comunicado', 'crear_evento', 'crear_invitacion', 'cargar_nota', 'crear_articulo', 'recordar', 'olvidar' ], true ) ) {
+		// La lista vive en `Cead_Acad_WA_Tools::GESTION`, una sola vez: el panel
+		// web decide con la misma, y dos copias que se desincronicen significan
+		// ejecutar sin aprobación de un lado o pedirla de más del otro.
+		if ( Cead_Acad_WA_Tools::es_gestion( $action ) ) {
 			return $this->propose_staff_action( $phone, $action, $args, $reply, $identity, $media );
 		}
 
@@ -1071,7 +1075,9 @@ class Cead_Acad_WA_Engine {
 				'name'        => 'buscar_noticias',
 				'description' => 'Buscar entre las notas publicadas en el sitio, sin límite de fecha. '
 					. 'Usalo cuando te pregunten por algo que no figura en lo publicado últimamente, o cuando pidan una nota vieja. '
-					. 'No lo uses para comunicados ni para datos del alumno: eso tiene sus propias funciones.',
+					. 'No lo uses para comunicados ni para datos del alumno: eso tiene sus propias funciones. '
+					. 'Tampoco para fechas: si la pregunta es CUÁNDO pasa algo, eso está en el calendario, no en las notas — '
+					. 'que un evento no tenga artículo publicado no significa que no exista.',
 				'parameters'  => [
 					'type'       => 'object',
 					'properties' => [
@@ -1086,6 +1092,18 @@ class Cead_Acad_WA_Engine {
 		];
 
 		if ( ! $uid ) { return $tools; }
+
+		/*
+		 * Consultas de solo lectura. A diferencia de las de gestión que siguen
+		 * abajo, estas las ejecuta el propio bucle de `Cead_Acad_WA_AI` y le
+		 * devuelve el resultado al modelo, que puede encadenarlas y contestar
+		 * con datos verificados en vez de con lo que recuerda del prompt.
+		 * Cada una trae su permiso: lo que la persona no puede ver, no aparece.
+		 */
+		if ( class_exists( 'Cead_Acad_WA_Tools' ) ) {
+			$tools = array_merge( $tools, Cead_Acad_WA_Tools::specs( $uid ) );
+		}
+
 		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast' ) ) {
 			$aud = Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast_all' )
 				? 'students=alumnado, staff=personal, all=todos'

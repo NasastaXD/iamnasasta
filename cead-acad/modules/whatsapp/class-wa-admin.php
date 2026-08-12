@@ -103,6 +103,14 @@ class Cead_Acad_WA_Admin {
 				update_option( 'cead_acad_wa_country_code', preg_replace( '/[^0-9]/', '', (string) ( $_POST['country_code'] ?? '595' ) ) ?: '595', false );
 				update_option( 'cead_acad_wa_bot_number', preg_replace( '/[^0-9]/', '', (string) ( $_POST['bot_number'] ?? '' ) ), false );
 				update_option( 'cead_acad_wa_director_phone', preg_replace( '/[^0-9]/', '', (string) ( $_POST['director_phone'] ?? '' ) ), false );
+
+				$ig_modo = sanitize_key( wp_unslash( $_POST['ig_modo'] ?? '' ) );
+				update_option( 'cead_acad_wa_ig_modo', in_array( $ig_modo, [ 'graph', 'proveedor' ], true ) ? $ig_modo : 'off', false );
+				update_option( 'cead_acad_wa_ig_usuario', sanitize_text_field( wp_unslash( $_POST['ig_usuario'] ?? '' ) ), false );
+				update_option( 'cead_acad_wa_ig_cuenta_id', sanitize_text_field( wp_unslash( $_POST['ig_cuenta_id'] ?? '' ) ), false );
+				update_option( 'cead_acad_wa_ig_token', sanitize_text_field( wp_unslash( $_POST['ig_token'] ?? '' ) ), false );
+				update_option( 'cead_acad_wa_ig_proveedor_url', esc_url_raw( wp_unslash( $_POST['ig_proveedor_url'] ?? '' ) ), false );
+				update_option( 'cead_acad_wa_ig_proveedor_key', sanitize_text_field( wp_unslash( $_POST['ig_proveedor_key'] ?? '' ) ), false );
 				update_option( 'cead_acad_wa_social_category', sanitize_title( wp_unslash( $_POST['social_category'] ?? '' ) ) ?: 'redes-sociales', false );
 				update_option( 'cead_acad_wa_registered_only', ! empty( $_POST['registered_only'] ) ? 1 : 0, false );
 				update_option( 'cead_acad_panel_intro', sanitize_textarea_field( wp_unslash( $_POST['panel_intro'] ?? '' ) ), false );
@@ -349,6 +357,41 @@ class Cead_Acad_WA_Admin {
 			echo '<p class="description">' . esc_html__( 'Slug de la categoría que el plugin Bit Social tiene configurada para auto-publicar. Al aprobar un artículo «con redes», se le asigna esta categoría y Bit Social se encarga del resto. Si la categoría no existe, se crea sola.', 'cead-acad' ) . '</p>';
 			echo '</td></tr>';
 
+			// Instagram → borrador de nota.
+			$ig_modo = Cead_Acad_WA_Instagram::modo();
+			echo '<tr><th scope="row">' . esc_html__( 'Instagram → borrador', 'cead-acad' ) . '</th><td>';
+			echo '<p><label>' . esc_html__( 'Origen de las publicaciones', 'cead-acad' ) . '<br><select name="ig_modo">';
+			foreach ( [
+				'off'       => __( 'Desactivado', 'cead-acad' ),
+				'graph'     => __( 'API oficial de Instagram (necesita acceso a la cuenta)', 'cead-acad' ),
+				'proveedor' => __( 'Servicio externo (JSON)', 'cead-acad' ),
+			] as $val => $label ) {
+				echo '<option value="' . esc_attr( $val ) . '" ' . selected( $ig_modo, $val, false ) . '>' . esc_html( $label ) . '</option>';
+			}
+			echo '</select></label></p>';
+			echo '<p class="description">' . esc_html__(
+				'Cada media hora revisa la cuenta del colegio; cuando hay algo nuevo, CEADI redacta un borrador de nota a partir del pie de foto y te lo manda al número de Dirección de arriba. El borrador NO se publica solo: lo leés, lo corregís si hace falta y lo subís vos.',
+				'cead-acad'
+			) . '</p>';
+			echo '<p class="description"><strong>' . esc_html__( 'Sobre de dónde salen los datos:', 'cead-acad' ) . '</strong> ' . esc_html__(
+				'Instagram no deja leer una cuenta sin autenticación, así que no hay forma de rastrearla "gratis y sin permisos" que se mantenga andando: los endpoints públicos se cerraron y raspar la web termina en bloqueos. La opción confiable es la API oficial, que pide acceso a la cuenta del colegio. Mientras tanto se puede usar un servicio externo que haga esa lectura (varios son pagos). Con "Desactivado" no se consulta nada.',
+				'cead-acad'
+			) . '</p>';
+			$this->field( 'ig_usuario', __( 'Cuenta de Instagram', 'cead-acad' ), Cead_Acad_WA_Instagram::usuario(), 'cead_felix_de_guarania' );
+			if ( 'graph' === $ig_modo ) {
+				$this->field( 'ig_cuenta_id', __( 'ID de la cuenta (Graph)', 'cead-acad' ), get_option( 'cead_acad_wa_ig_cuenta_id', '' ), '1784...' );
+				$this->field( 'ig_token', __( 'Token de acceso', 'cead-acad' ), get_option( 'cead_acad_wa_ig_token', '' ), '', 'password' );
+			} elseif ( 'proveedor' === $ig_modo ) {
+				$this->field( 'ig_proveedor_url', __( 'URL del servicio', 'cead-acad' ), get_option( 'cead_acad_wa_ig_proveedor_url', '' ), 'https://…/posts?user={usuario}' );
+				echo '<tr><th></th><td><p class="description">' . esc_html__( 'Se reemplaza {usuario} por la cuenta de arriba. Tiene que devolver JSON con una lista de publicaciones (id, caption, url).', 'cead-acad' ) . '</p></td></tr>';
+				$this->field( 'ig_proveedor_key', __( 'Clave del servicio', 'cead-acad' ), get_option( 'cead_acad_wa_ig_proveedor_key', '' ), '', 'password' );
+			}
+			$ig_err = Cead_Acad_WA_Instagram::ultimo_error();
+			if ( '' !== $ig_err ) {
+				echo '<p class="description" style="color:#b32d2e"><strong>' . esc_html__( 'Último error:', 'cead-acad' ) . '</strong> ' . esc_html( $ig_err ) . '</p>';
+			}
+			echo '</td></tr>';
+
 			// Acceso: a quién atiende CEADI.
 			echo '<tr><th scope="row">' . esc_html__( 'Acceso', 'cead-acad' ) . '</th><td>';
 			echo '<label><input type="checkbox" name="registered_only" value="1" ' . checked( get_option( 'cead_acad_wa_registered_only', 1 ), 1, false ) . '> ' . esc_html__( 'Atender solo a números registrados en el panel', 'cead-acad' ) . '</label>';
@@ -388,6 +431,8 @@ class Cead_Acad_WA_Admin {
 			update_option( 'cead_acad_wa_ai_endpoint', esc_url_raw( wp_unslash( $_POST['ai_endpoint'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai_endpoint_is_base', ! empty( $_POST['ai_endpoint_is_base'] ) ? 1 : 0, false );
 			update_option( 'cead_acad_wa_ai_temp', is_numeric( $_POST['ai_temp'] ?? '' ) ? (float) $_POST['ai_temp'] : 0.2, false );
+			$razona_in = sanitize_key( wp_unslash( $_POST['ai_reasoning'] ?? '' ) );
+			update_option( 'cead_acad_wa_ai_reasoning', in_array( $razona_in, [ 'low', 'medium', 'high' ], true ) ? $razona_in : '', false );
 			update_option( 'cead_acad_wa_ai_maxtokens', max( 50, (int) ( $_POST['ai_maxtokens'] ?? 500 ) ), false );
 			update_option( 'cead_acad_wa_ai_prompt', sanitize_textarea_field( wp_unslash( $_POST['ai_prompt'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai_knowledge', sanitize_textarea_field( wp_unslash( $_POST['ai_knowledge'] ?? '' ) ), false );
@@ -521,6 +566,19 @@ class Cead_Acad_WA_Admin {
 		}
 		$this->field( 'ai_temp', __( 'Temperatura (0–1)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_temp', '0.5' ), '0.5', 'text' );
 		echo '<tr><th></th><td><p class="description">' . esc_html__( '0.5 (recomendado) = respuestas naturales y con criterio. Más bajo = más rígido; más alto = más creativo.', 'cead-acad' ) . '</p></td></tr>';
+		$razona = Cead_Acad_WA_AI::reasoning();
+		echo '<tr><th scope="row"><label for="ai_reasoning">' . esc_html__( 'Razonamiento', 'cead-acad' ) . '</label></th><td>';
+		echo '<select name="ai_reasoning" id="ai_reasoning">';
+		foreach ( [
+			''       => __( 'Desactivado', 'cead-acad' ),
+			'low'    => __( 'Bajo', 'cead-acad' ),
+			'medium' => __( 'Medio', 'cead-acad' ),
+			'high'   => __( 'Alto', 'cead-acad' ),
+		] as $val => $label ) {
+			echo '<option value="' . esc_attr( $val ) . '" ' . selected( $razona, $val, false ) . '>' . esc_html( $label ) . '</option>';
+		}
+		echo '</select>';
+		echo '<p class="description">' . esc_html__( 'Hace que el modelo piense antes de contestar: mejora bastante cuando tiene que encadenar consultas o decidir entre varias opciones. Dejalo desactivado si no estás seguro — es un parámetro que varios proveedores todavía no aceptan, y ahí devuelven error en TODOS los mensajes. Si al prenderlo CEADI deja de responder, volvé a "Desactivado". También hace que tarde más.', 'cead-acad' ) . '</p></td></tr>';
 		$this->field( 'ai_maxtokens', __( 'Máx. tokens de respuesta', 'cead-acad' ), get_option( 'cead_acad_wa_ai_maxtokens', 800 ), '800', 'number' );
 		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Cuánto puede escribir CEADI de una. 800 alcanza para responder consultas; para que escriba artículos largos conviene 4000–8000. Ojo: cada modelo tiene su techo (DeepSeek corta en 8192) — si ponés más del que acepta, se reintenta solo con 8192 en vez de fallar. Valores altos también hacen que tarde más en contestar.', 'cead-acad' ) . '</p></td></tr>';
 		$this->field_textarea( 'ai_prompt', __( 'System prompt (personalidad / instrucciones)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_prompt', '' ) ?: Cead_Acad_WA_AI::default_persona(), 6 );

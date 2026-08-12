@@ -65,7 +65,7 @@ $lead = count( $tiles ) >= 3;
     <div class="section-head section-head--split">
       <div>
         <div class="eyebrow"><?php echo esc_html( get_theme_mod( 'cead_galeria_eyebrow', '— Galería' ) ); ?></div>
-        <h2 class="display-h2 display-h2--narrow"><?php echo wp_kses_post( get_theme_mod( 'cead_galeria_home_title', 'El campus, desde adentro<br>y desde el aire.' ) ); ?></h2>
+        <h2 class="display-h2 display-h2--narrow" data-split><?php echo wp_kses_post( get_theme_mod( 'cead_galeria_home_title', 'El campus, desde adentro<br>y desde el aire.' ) ); ?></h2>
       </div>
       <p class="section-intro section-intro--right"><?php echo wp_kses_post( get_theme_mod( 'cead_galeria_intro', 'Actos, competencias, aulas y proyectos. Un vistazo a lo que se vive todos los días en el CEAD.' ) ); ?></p>
     </div>

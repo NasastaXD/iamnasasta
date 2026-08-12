@@ -14,7 +14,7 @@ for ($i = 1; $i <= 4; $i++) {
   <div class="container">
     <div class="section-head section-head--center">
       <div class="eyebrow"><?php echo esc_html(get_theme_mod('cead_values_eyebrow', '— Creemos')); ?></div>
-      <h2 class="display-h2"><?php echo wp_kses_post(get_theme_mod('cead_values_title', 'Cuatro valores.<br>Una sola institución.')); ?></h2>
+      <h2 class="display-h2" data-split><?php echo wp_kses_post(get_theme_mod('cead_values_title', 'Cuatro valores.<br>Una sola institución.')); ?></h2>
       <p class="section-intro"><?php echo wp_kses_post(get_theme_mod('cead_values_intro', 'Toda la cultura de CEAD descansa sobre estos cuatro pilares. No son aspiraciones: son criterios diarios de admisión, evaluación y graduación.')); ?></p>
     </div>
 

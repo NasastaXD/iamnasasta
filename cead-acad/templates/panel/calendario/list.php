@@ -38,38 +38,31 @@ $grid_end   = $grid_start + ( $weeks * 7 - 1 ) * DAY_IN_SECONDS;
 $prev = date( 'Y-m', mktime( 0, 0, 0, $n - 1, 1, $y ) );
 $next = date( 'Y-m', mktime( 0, 0, 0, $n + 1, 1, $y ) );
 
-// Eventos del rango visible.
+/*
+ * Eventos que CRUZAN el mes visible, no solo los que empiezan en él (de ahí el
+ * último `true`): unas vacaciones que arrancaron el 6 de julio y terminan el 24
+ * tienen que verse también al abrir julio a mitad de mes, y asomar en agosto si
+ * llegan hasta ahí. Filtrando por fecha de inicio, un período largo se volvía
+ * invisible justo en los días en que está pasando.
+ */
 $from   = date( 'Y-m-d 00:00:00', $grid_start );
 $to     = date( 'Y-m-d 23:59:59', $grid_end );
-$events = Cead_Acad_Schedule_Feed::for_user( $user->ID, $from, $to, 300 );
+$events = Cead_Acad_Schedule_Feed::for_user( $user->ID, $from, $to, 300, true, true );
 
-/*
- * Un evento se agrega a TODOS los días que abarca, no solo al de inicio.
- * Antes solo se agregaba al día de `_cead_acad_event_start`, así que un
- * período de varios días ("cierre": vacaciones, exámenes) solo se veía en
- * la grilla el primer día y desaparecía el resto — quedaba invisible
- * justo donde más hacía falta verlo.
- */
-$by_date = [];
-foreach ( $events as $e ) {
-	$st = (string) get_post_meta( $e->ID, '_cead_acad_event_start', true );
-	if ( ! $st ) { continue; }
-	$start_ts = strtotime( $st );
-	if ( ! $start_ts ) { continue; }
-	$en = (string) get_post_meta( $e->ID, '_cead_acad_event_end', true );
-	$end_ts = $en ? strtotime( $en ) : $start_ts;
-	if ( ! $end_ts || $end_ts < $start_ts ) { $end_ts = $start_ts; }
+// Un evento se dibuja en todos los días que abarca, sabiendo en cuál empieza y
+// en cuál termina: eso es lo que permite pintarlo como una banda continua.
+$by_date = Cead_Acad_Schedule_Feed::expand_by_day( $events, $grid_start, $grid_end );
 
-	$day_ts = strtotime( date( 'Y-m-d', $start_ts ) );
-	$last_day_ts = strtotime( date( 'Y-m-d', $end_ts ) );
-	// Tope de 366 días: una fecha de fin mal tipeada (año equivocado) no
-	// tiene por qué colgar la página rellenando la grilla entera.
-	$last_day_ts = min( $last_day_ts, $day_ts + 366 * DAY_IN_SECONDS );
-	while ( $day_ts <= $last_day_ts ) {
-		$by_date[ date( 'Y-m-d', $day_ts ) ][] = $e;
-		$day_ts += DAY_IN_SECONDS;
+// Tipos presentes en el mes, para la leyenda: sin ella los colores son
+// decoración; con ella son información.
+$tipos_mes = [];
+foreach ( $by_date as $filas ) {
+	foreach ( $filas as $f ) {
+		$t = (string) get_post_meta( $f['post']->ID, '_cead_acad_event_type', true ) ?: 'evento';
+		$tipos_mes[ $t ] = true;
 	}
 }
+ksort( $tipos_mes );
 
 // Para la vista agenda (próximos 60 días).
 $ag_from = current_time( 'Y-m-d 00:00:00' );
@@ -85,7 +78,7 @@ $gcal_url    = 'https://calendar.google.com/calendar/r?cid=' . rawurlencode( $fe
 
 $page_title = __( 'Calendario', 'cead-acad' );
 
-$body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, $by_date, $prev, $next, $cur_ts, $by_day, $ag_events, $feed_https, $feed_webcal, $gcal_url ) {
+$body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, $by_date, $tipos_mes, $prev, $next, $cur_ts, $by_day, $ag_events, $feed_https, $feed_webcal, $gcal_url ) {
 	$today_key = date( 'Y-m-d', $cur_ts );
 	$wd = [ __( 'Lun', 'cead-acad' ), __( 'Mar', 'cead-acad' ), __( 'Mié', 'cead-acad' ), __( 'Jue', 'cead-acad' ), __( 'Vie', 'cead-acad' ), __( 'Sáb', 'cead-acad' ), __( 'Dom', 'cead-acad' ) ];
 	$base = cead_acad_url( 'panel/calendario' );
@@ -94,12 +87,14 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 		<div class="cead-acad-cal-head">
 			<div>
 				<span class="cead-acad-eyebrow"><?php esc_html_e( 'Calendario', 'cead-acad' ); ?></span>
-				<h2 class="cead-acad-panel-h"><?php echo esc_html( ucfirst( date_i18n( 'F Y', $first ) ) ); ?></h2>
+				<h2 class="cead-acad-panel-h cead-acad-cal-month">
+					<?php echo esc_html( ucfirst( date_i18n( 'F', $first ) ) ); ?><span class="cead-acad-cal-year"><?php echo esc_html( date_i18n( 'Y', $first ) ); ?></span>
+				</h2>
 			</div>
 			<div class="cead-acad-cal-tools">
-				<div class="cead-acad-cal-toggle">
-					<a class="<?php echo 'mes' === $view ? 'is-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'periodo' => $y . '-' . str_pad( $n, 2, '0', STR_PAD_LEFT ) ], $base ) ); ?>"><?php esc_html_e( 'Mes', 'cead-acad' ); ?></a>
-					<a class="<?php echo 'agenda' === $view ? 'is-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( 'vista', 'agenda', $base ) ); ?>"><?php esc_html_e( 'Agenda', 'cead-acad' ); ?></a>
+				<div class="cead-acad-cal-toggle" role="group" aria-label="<?php esc_attr_e( 'Forma de ver el calendario', 'cead-acad' ); ?>">
+					<a class="<?php echo 'mes' === $view ? 'is-active' : ''; ?>" <?php echo 'mes' === $view ? 'aria-current="true"' : ''; ?> href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'periodo' => $y . '-' . str_pad( $n, 2, '0', STR_PAD_LEFT ) ], $base ) ); ?>"><?php esc_html_e( 'Mes', 'cead-acad' ); ?></a>
+					<a class="<?php echo 'agenda' === $view ? 'is-active' : ''; ?>" <?php echo 'agenda' === $view ? 'aria-current="true"' : ''; ?> href="<?php echo esc_url( add_query_arg( 'vista', 'agenda', $base ) ); ?>"><?php esc_html_e( 'Agenda', 'cead-acad' ); ?></a>
 				</div>
 				<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=cead_acad_event_ical' ), 'cead_acad_event_ical' ) ); ?>"><?php esc_html_e( 'iCal', 'cead-acad' ); ?></a>
 			</div>
@@ -123,14 +118,22 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 
 		<?php if ( 'mes' === $view ) : ?>
 			<div class="cead-acad-cal-nav">
-				<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'periodo' => $prev ], $base ) ); ?>">← <?php esc_html_e( 'Anterior', 'cead-acad' ); ?></a>
-				<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( add_query_arg( 'vista', 'mes', $base ) ); ?>"><?php esc_html_e( 'Hoy', 'cead-acad' ); ?></a>
-				<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'periodo' => $next ], $base ) ); ?>"><?php esc_html_e( 'Siguiente', 'cead-acad' ); ?> →</a>
+				<a class="cead-acad-calnav-arrow" href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'periodo' => $prev ], $base ) ); ?>" aria-label="<?php esc_attr_e( 'Mes anterior', 'cead-acad' ); ?>"><span aria-hidden="true">←</span></a>
+				<a class="cead-acad-calnav-hoy" href="<?php echo esc_url( add_query_arg( 'vista', 'mes', $base ) ); ?>"><?php esc_html_e( 'Hoy', 'cead-acad' ); ?></a>
+				<a class="cead-acad-calnav-arrow" href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'periodo' => $next ], $base ) ); ?>" aria-label="<?php esc_attr_e( 'Mes siguiente', 'cead-acad' ); ?>"><span aria-hidden="true">→</span></a>
+
+				<?php if ( $tipos_mes ) : ?>
+					<ul class="cead-acad-cal-legend" aria-label="<?php esc_attr_e( 'Referencias de color', 'cead-acad' ); ?>">
+						<?php foreach ( array_keys( $tipos_mes ) as $t ) : ?>
+							<li><span class="cead-acad-cal-legend-dot" style="--ev:<?php echo esc_attr( Cead_Acad_Schedule_CPT::default_color( $t ) ); ?>"></span><?php echo esc_html( Cead_Acad_Schedule_CPT::type_label( $t ) ); ?></li>
+						<?php endforeach; ?>
+					</ul>
+				<?php endif; ?>
 			</div>
 
 			<div class="cead-acad-cal" role="grid">
 				<div class="cead-acad-cal-row cead-acad-cal-row--head" role="row">
-					<?php foreach ( $wd as $d ) : ?><div class="cead-acad-cal-wd" role="columnheader"><?php echo esc_html( $d ); ?></div><?php endforeach; ?>
+					<?php foreach ( $wd as $i => $d ) : ?><div class="cead-acad-cal-wd<?php echo $i >= 5 ? ' is-finde' : ''; ?>" role="columnheader"><?php echo esc_html( $d ); ?></div><?php endforeach; ?>
 				</div>
 				<?php for ( $w = 0; $w < $weeks; $w++ ) : ?>
 					<div class="cead-acad-cal-row" role="row">
@@ -139,30 +142,64 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 							$key = date( 'Y-m-d', $ts );
 							$out = ( (int) date( 'n', $ts ) !== $n );
 							$evs = $by_date[ $key ] ?? [];
+							$cls = 'cead-acad-cal-cell';
+							if ( $out )              { $cls .= ' is-out'; }
+							if ( $d >= 5 )           { $cls .= ' is-finde'; }
+							if ( $key === $today_key ) { $cls .= ' is-today'; }
 						?>
-							<div class="cead-acad-cal-cell<?php echo $out ? ' is-out' : ''; ?><?php echo $key === $today_key ? ' is-today' : ''; ?>" role="gridcell">
+							<div class="<?php echo esc_attr( $cls ); ?>" role="gridcell">
 								<span class="cead-acad-cal-day"><?php echo esc_html( (int) date( 'j', $ts ) ); ?></span>
+								<div class="cead-acad-cal-evs">
 								<?php
-								$shown = array_slice( $evs, 0, 3 );
-								foreach ( $shown as $e ) :
+								foreach ( array_slice( $evs, 0, 3 ) as $f ) :
+									$e    = $f['post'];
 									$type = (string) get_post_meta( $e->ID, '_cead_acad_event_type', true ) ?: 'evento';
 									$st   = (string) get_post_meta( $e->ID, '_cead_acad_event_start', true );
 									$col  = Cead_Acad_Schedule_CPT::event_color( $e->ID );
-									$is_span = 'cierre' === $type;
+
+									/*
+									 * Una banda solo lleva etiqueta donde empieza —o al
+									 * reentrar por el lunes, si viene de la semana pasada—.
+									 * Repetirla en cada celda es lo que hacía que un
+									 * período de dos semanas se leyera como catorce
+									 * eventos distintos en vez de uno solo largo.
+									 */
+									$rotula = ! $f['span'] || $f['ini'] || 0 === $d;
+
+									$cls_ev = 'cead-acad-cal-ev';
+									if ( $f['span'] ) {
+										$cls_ev .= ' cead-acad-cal-ev--span';
+										if ( $f['ini'] ) { $cls_ev .= ' is-ini'; }
+										if ( $f['fin'] ) { $cls_ev .= ' is-fin'; }
+									}
 								?>
-									<a class="cead-acad-cal-ev<?php echo $is_span ? ' cead-acad-cal-ev--span' : ''; ?>" href="<?php echo esc_url( cead_acad_url( 'panel/calendario/' . $e->ID ) ); ?>" title="<?php echo esc_attr( get_the_title( $e ) ); ?>" style="<?php echo $is_span ? 'background:' . esc_attr( $col ) . '22;border-left:3px solid ' . esc_attr( $col ) : ''; ?>">
-										<?php if ( ! $is_span ) : ?><span class="cead-acad-cal-dot" style="background:<?php echo esc_attr( $col ); ?>"></span><?php endif; ?>
-										<span class="cead-acad-cal-ev-t"><?php echo ( $st && ! $is_span ) ? esc_html( date_i18n( 'H:i', strtotime( $st ) ) . ' ' ) : ''; ?><?php echo esc_html( get_the_title( $e ) ); ?></span>
+									<a class="<?php echo esc_attr( $cls_ev ); ?>" style="--ev:<?php echo esc_attr( $col ); ?>" href="<?php echo esc_url( cead_acad_url( 'panel/calendario/' . $e->ID ) ); ?>" title="<?php echo esc_attr( get_the_title( $e ) ); ?>">
+										<?php if ( ! $f['span'] ) : ?><span class="cead-acad-cal-dot" aria-hidden="true"></span><?php endif; ?>
+										<span class="cead-acad-cal-ev-t<?php echo $rotula ? '' : ' cead-acad-sr-only'; ?>">
+											<?php if ( ! $f['span'] && $st && '00:00' !== substr( $st, 11, 5 ) ) : ?><b><?php echo esc_html( date_i18n( 'H:i', strtotime( $st ) ) ); ?></b> <?php endif; ?>
+											<?php echo esc_html( get_the_title( $e ) ); ?>
+										</span>
 									</a>
 								<?php endforeach; ?>
 								<?php if ( count( $evs ) > 3 ) : ?>
 									<span class="cead-acad-cal-more"><?php /* translators: %d: cantidad de eventos adicionales del día */ printf( esc_html__( '+%d más', 'cead-acad' ), count( $evs ) - 3 ); ?></span>
 								<?php endif; ?>
+								</div>
 							</div>
 						<?php endfor; ?>
 					</div>
 				<?php endfor; ?>
 			</div>
+
+			<?php
+			/*
+			 * Solo se ve en celular (lo esconde el CSS de 640px para arriba). Ahí
+			 * la grilla muestra barras de color sin nombre, porque a ~50px de
+			 * ancho por celda no entra texto legible; decirlo es mejor que dejar
+			 * a alguien tocando cuadraditos a ver qué pasa.
+			 */
+			?>
+			<p class="cead-acad-cal-hint"><?php esc_html_e( 'Tocá una barra para abrir el evento. Para verlos con nombre y hora, usá la vista Agenda.', 'cead-acad' ); ?></p>
 
 		<?php else : /* ===== Agenda ===== */ ?>
 			<?php if ( ! $ag_events ) : ?>
@@ -173,14 +210,21 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 				</div>
 			<?php else : ?>
 				<div class="cead-acad-agenda">
-					<?php foreach ( $by_day as $day => $items ) :
+					<?php
+					$manana_key = date( 'Y-m-d', $cur_ts + DAY_IN_SECONDS );
+					foreach ( $by_day as $day => $items ) :
 						$ts = strtotime( $day );
+						// «Hoy» y «Mañana» en vez de una fecha: es lo que la persona
+						// está buscando de verdad al abrir la agenda.
+						$rel = '';
+						if ( $day === $today_key )       { $rel = __( 'Hoy', 'cead-acad' ); }
+						elseif ( $day === $manana_key )  { $rel = __( 'Mañana', 'cead-acad' ); }
 					?>
-						<div class="cead-acad-agenda-day">
+						<div class="cead-acad-agenda-day<?php echo $day === $today_key ? ' is-today' : ''; ?>">
 							<div class="cead-acad-agenda-daykey">
 								<span class="cead-acad-agenda-num"><?php echo $ts ? esc_html( date_i18n( 'd', $ts ) ) : '—'; ?></span>
 								<span class="cead-acad-agenda-month"><?php echo $ts ? esc_html( date_i18n( 'M', $ts ) ) : ''; ?></span>
-								<span class="cead-acad-agenda-weekday"><?php echo $ts ? esc_html( date_i18n( 'l', $ts ) ) : ''; ?></span>
+								<span class="cead-acad-agenda-weekday"><?php echo $rel ? esc_html( $rel ) : ( $ts ? esc_html( date_i18n( 'l', $ts ) ) : '' ); ?></span>
 							</div>
 							<div class="cead-acad-agenda-items">
 								<?php foreach ( $items as $e ) :
@@ -190,10 +234,17 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 									$type  = (string) get_post_meta( $e->ID, '_cead_acad_event_type',     true );
 									$all   = (bool)   get_post_meta( $e->ID, '_cead_acad_event_all_day',  true );
 									$col   = Cead_Acad_Schedule_CPT::event_color( $e->ID );
+									// Un período se dice como período: la hora de fin de
+									// unas vacaciones de dos semanas no le importa a nadie,
+									// pero el día en que terminan sí.
+									$largo = $end && substr( $end, 0, 10 ) !== substr( $start, 0, 10 );
 								?>
-									<a class="cead-acad-agenda-item" style="border-left-color:<?php echo esc_attr( $col ); ?>" href="<?php echo esc_url( cead_acad_url( 'panel/calendario/' . $e->ID ) ); ?>">
+									<a class="cead-acad-agenda-item" style="--ev:<?php echo esc_attr( $col ); ?>" href="<?php echo esc_url( cead_acad_url( 'panel/calendario/' . $e->ID ) ); ?>">
 										<div class="cead-acad-agenda-time">
-											<?php if ( $all ) : ?>
+											<?php if ( $largo ) : ?>
+												<span><?php esc_html_e( 'Hasta el', 'cead-acad' ); ?></span>
+												<span class="cead-acad-agenda-time-end"><?php echo esc_html( date_i18n( 'j M', strtotime( $end ) ) ); ?></span>
+											<?php elseif ( $all ) : ?>
 												<span><?php esc_html_e( 'Todo el día', 'cead-acad' ); ?></span>
 											<?php else : ?>
 												<span><?php echo $start ? esc_html( date_i18n( 'H:i', strtotime( $start ) ) ) : '—'; ?></span>
@@ -201,7 +252,7 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 											<?php endif; ?>
 										</div>
 										<div class="cead-acad-agenda-body">
-											<span class="cead-acad-eyebrow"><?php echo esc_html( Cead_Acad_Schedule_CPT::type_label( $type ?: 'evento' ) ); ?></span>
+											<span class="cead-acad-agenda-tipo"><?php echo esc_html( Cead_Acad_Schedule_CPT::type_label( $type ?: 'evento' ) ); ?></span>
 											<h3 class="cead-acad-agenda-title"><?php echo esc_html( get_the_title( $e ) ); ?></h3>
 											<?php if ( $loc ) : ?><p class="cead-acad-agenda-loc">📍 <?php echo esc_html( $loc ); ?></p><?php endif; ?>
 										</div>

@@ -58,7 +58,16 @@ class ContextBudgetTest extends TestCase {
 	 */
 	public function test_lo_primero_que_se_recorta_son_las_noticias() {
 		$this->cargar( 500 );
-		cead_test_set_option( 'cead_acad_wa_ai_context_budget', 4000 );
+		/*
+		 * El presupuesto se fija en relación al prompt base, no en un número
+		 * suelto: lo que se prueba acá es el ORDEN del recorte con un exceso
+		 * CHICO, y el tamaño del base cambia cada vez que se ajustan las
+		 * instrucciones. Con un valor fijo, escribir dos párrafos más en el
+		 * prompt hacía fallar un test que no tiene nada que ver con eso.
+		 */
+		cead_test_set_option( 'cead_acad_wa_ai_context_budget', 120000 );
+		$base = mb_strlen( $this->build( '', '' ) );
+		cead_test_set_option( 'cead_acad_wa_ai_context_budget', $base + 1200 );
 
 		$p     = $this->build( str_repeat( 'F', 500 ), 'Nombre: Alguien' );
 		$fuera = Cead_Acad_WA_AI::last_trimmed();

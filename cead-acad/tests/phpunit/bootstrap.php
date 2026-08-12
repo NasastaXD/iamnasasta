@@ -89,6 +89,25 @@ if ( ! function_exists( 'delete_post_meta' ) ) {
 		return true;
 	}
 }
+/*
+ * Permisos de mentira: user_id => [ cap => true ]. Lo usa el filtro de
+ * herramientas de CEADI, que decide qué consultas ve el modelo según el rol
+ * real de quien escribe.
+ */
+$GLOBALS['cead_test_caps'] = [];
+
+function cead_test_set_caps( $user_id, array $caps ) {
+	$GLOBALS['cead_test_caps'][ (int) $user_id ] = $caps;
+}
+function cead_test_reset_caps() {
+	$GLOBALS['cead_test_caps'] = [];
+}
+if ( ! function_exists( 'user_can' ) ) {
+	function user_can( $user_id, $cap ) {
+		return ! empty( $GLOBALS['cead_test_caps'][ (int) $user_id ][ $cap ] );
+	}
+}
+
 if ( ! function_exists( 'sanitize_hex_color' ) ) {
 	function sanitize_hex_color( $color ) {
 		$color = trim( (string) $color );
@@ -434,6 +453,7 @@ require_once dirname( __DIR__, 2 ) . '/modules/broadcasts/class-broadcasts-audie
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-csv-reader.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-base.php';
 require_once dirname( __DIR__, 2 ) . '/modules/schedule/class-schedule-cpt.php';
+require_once dirname( __DIR__, 2 ) . '/modules/schedule/class-schedule-feed.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-events.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-horarios.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-admin.php';
@@ -443,5 +463,7 @@ require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-ai.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-docs.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-memory.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-news.php';
+require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-tools.php';
+require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-instagram.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-article-format.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-engine.php';

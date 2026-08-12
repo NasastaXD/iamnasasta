@@ -50,6 +50,18 @@ class Cead_Acad_Assets {
 		);
 		wp_localize_script( 'cead-acad-frontend', 'CeadAcad', [
 			'nonce'  => wp_create_nonce( 'cead_acad_frontend' ),
+			/*
+			 * El chat de CEADI usa la REST API, que valida con su propio nonce
+			 * (`wp_rest`) — no el del formulario de arriba. Solo se manda si el
+			 * chat está realmente disponible: sin esto el JS dibujaría la barra
+			 * y al escribir daría error.
+			 */
+			'rest'   => ( class_exists( 'Cead_Acad_Ceadi_Panel' ) && Cead_Acad_Ceadi_Panel::disponible() )
+				? [
+					'ceadi' => esc_url_raw( rest_url( Cead_Acad_Ceadi_Panel::NS . Cead_Acad_Ceadi_Panel::RUTA ) ),
+					'nonce' => wp_create_nonce( 'wp_rest' ),
+				]
+				: null,
 			'urls'   => [
 				'login'    => cead_acad_url( 'login' ),
 				'register' => cead_acad_url( 'registro' ),

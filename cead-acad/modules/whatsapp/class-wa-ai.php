@@ -95,6 +95,20 @@ class Cead_Acad_WA_AI {
 	public static function endpoint_is_base() {
 		return (bool) get_option( 'cead_acad_wa_ai_endpoint_is_base', 0 );
 	}
+	/**
+	 * Esfuerzo de razonamiento, para modelos que lo soportan ('' = apagado).
+	 *
+	 * Va APAGADO por defecto y es opt-in a propósito: `reasoning_effort` es un
+	 * parámetro que varios proveedores compatibles con OpenAI todavía no
+	 * conocen, y mandarlo a uno que no lo entiende devuelve un 400 que tiraría
+	 * abajo TODOS los mensajes. Quien sabe que su proveedor lo acepta lo
+	 * prende desde Ajustes; el resto no se entera de que existe.
+	 */
+	public static function reasoning() {
+		$r = (string) get_option( 'cead_acad_wa_ai_reasoning', '' );
+		return in_array( $r, [ 'low', 'medium', 'high' ], true ) ? $r : '';
+	}
+
 	public static function temperature() {
 		$t = get_option( 'cead_acad_wa_ai_temp', '' );
 		return ( $t === '' ) ? 0.5 : (float) $t;
@@ -109,6 +123,25 @@ class Cead_Acad_WA_AI {
 	 * entre otros) y alcanza de sobra para un artículo largo.
 	 */
 	const MAX_TOKENS_SAFE = 8192;
+
+	/**
+	 * Cuántas consultas seguidas puede encadenar el modelo en un mismo turno.
+	 *
+	 * Cuatro alcanza de sobra para lo que se le pide de verdad («buscá el curso,
+	 * después decime quiénes están y si alguno está suspendido») y pone un techo
+	 * duro a un modelo que se quede pidiendo herramientas en círculo.
+	 */
+	const MAX_RONDAS = 4;
+
+	/**
+	 * Segundos totales que puede durar el turno completo, con todas sus vueltas.
+	 *
+	 * El bridge espera como mucho 45s una respuesta de WordPress. Si el bucle se
+	 * pasa de ahí, el usuario no ve NADA: el bridge ya cortó. Por eso el bucle
+	 * mira el reloj antes de cada vuelta nueva y prefiere cerrar con lo que
+	 * tiene antes que arriesgar el turno entero.
+	 */
+	const PRESUPUESTO_SEG = 38;
 
 	/** ¿El 400 del proveedor se queja justamente del max_tokens? */
 	protected static function rejects_max_tokens( $r ) {
@@ -477,7 +510,32 @@ TXT;
 			. "Las herramientas son tu única vía a los datos reales. Usalas cuando el pedido necesite información del sistema (horario, notas, comunicados, eventos, tareas) o inicie un trámite. Lo demás —saludos, dudas generales, explicaciones de cómo funciona algo— resolvelo vos, sin llamar a nada.\n"
 			. "Las que tenés disponibles ya están filtradas por el rol de quien te escribe. Si una acción no aparece entre tus herramientas, esa persona no tiene permiso: no la ofrezcas, no prometas hacerla y no sugieras rodeos para conseguirla.\n"
 			. "Nunca llames a una herramienta con datos inventados para «probar». Si te falta un dato obligatorio, pedilo en una línea.\n"
-			. "Las herramientas de gestión (comunicados, eventos, invitaciones, notas) NO ejecutan al instante: el sistema le muestra a la persona un resumen con Aceptar / Editar / Cancelar. Proponelas con todo lo que ya tengas y no pidas confirmación vos: sería preguntar dos veces.\n"
+			. "\n## Consultas: podés encadenarlas\n"
+			/*
+			 * No se enumeran los nombres acá. Dos motivos: la lista real depende
+			 * del rol (nombrarlas todas le enseña a un alumno que existe
+			 * `buscar_persona`, justo lo contrario de lo que dice el párrafo de
+			 * arriba), y `buscar_noticias` NO es de este grupo — la resuelve el
+			 * motor y cierra el turno, así que prometer que su resultado vuelve
+			 * al modelo era mentira.
+			 */
+			. "Las herramientas de CONSULTA (las que solo LEEN datos: métricas, cursos, horarios, personas, calendario) se ejecutan al momento y te devuelven el resultado a vos. Podés llamar una, leer lo que vuelve, y llamar otra con ese dato. Aprovechalo:\n"
+			. "- Si te nombran un curso y no sabés el título exacto, listá los cursos primero y después consultá el que corresponda. No adivines nombres.\n"
+			. "- Si te preguntan algo que se responde con datos, MIRALOS antes de contestar. Vale más una consulta de más que una afirmación inventada.\n"
+			/*
+			 * Esta línea nació de un caso real: preguntaron cuándo era la Feria de
+			 * las Naciones, el modelo no reconoció el nombre, buscó entre los
+			 * artículos publicados y contestó «no encontré ninguna nota sobre eso»
+			 * con el evento cargado en el calendario. Un evento no tiene por qué
+			 * tener nota: son dos cosas distintas y hay que decirlo.
+			 */
+			. "- CUÁNDO pasa algo se responde SIEMPRE mirando el calendario, aunque el nombre del evento no te suene de nada. No lo busques entre las notas del sitio: un evento del colegio no tiene por qué tener un artículo publicado, y no encontrar la nota no prueba que la fecha no exista.\n"
+			. "- Si el resultado te contradice, corregite sin drama y seguí con el dato bueno.\n"
+			. "- Cuando ya tenés lo que hace falta, respondé. No encadenes consultas de puro trámite.\n"
+			. "Si una consulta vuelve vacía o dice que no encontró nada, decilo tal cual. Nunca rellenes con datos plausibles.\n"
+			. "\n## Gestión: siempre pasa por aprobación\n"
+			. "Las herramientas de gestión (comunicados, artículos, eventos, invitaciones, notas) NO ejecutan al instante: el sistema le muestra a la persona un resumen con Aceptar / Editar / Cancelar. Proponelas con todo lo que ya tengas y no pidas confirmación vos: sería preguntar dos veces.\n"
+			. "Podés consultar ANTES de proponer una gestión —por ejemplo, revisar la agenda para no duplicar un evento—, y eso normalmente hace mejor la propuesta.\n"
 			. "Si llamás a una herramienta, acompañala como mucho con una frase corta de transición. Nada de explicar el procedimiento interno.";
 	}
 
@@ -666,7 +724,8 @@ TXT;
 	 * (HTTP 400), cae automáticamente al modo JSON. Devuelve un array de depuración:
 	 * [ ok, code, error, intent, reply, content ].
 	 */
-	public static function call( $message, $faq_context = '', $key = null, $endpoint = null, $model = null, $history = [], $extra_tools = [], $user_context = '', $image = null ) {
+	public static function call( $message, $faq_context = '', $key = null, $endpoint = null, $model = null, $history = [], $extra_tools = [], $user_context = '', $image = null, $user_id = 0 ) {
+		self::$last_tools = [];
 		$key      = $key !== null ? $key : self::key();
 		$endpoint = $endpoint !== null && $endpoint !== '' ? $endpoint : self::endpoint();
 		$forced_model = ( $model !== null && $model !== '' );
@@ -736,39 +795,184 @@ TXT;
 			} else {
 				$p['response_format'] = [ 'type' => 'json_object' ];
 			}
+			$razona = self::reasoning();
+			if ( '' !== $razona ) { $p['reasoning_effort'] = $razona; }
 			return $p;
 		};
 
-		// 1) Tool calling — el modelo habla con libertad y llama función si quiere.
-		$r = self::http( $endpoint, $key, $payload( 'tools', $max_tokens ), $timeout, $retry );
+		/*
+		 * Bucle de herramientas.
+		 *
+		 * Antes esto era UNA sola llamada: el modelo nombraba una función y ahí
+		 * terminaba su turno, sin ver nunca el resultado. No podía encadenar
+		 * («fijate qué cursos hay y después decime quiénes están en 3ro»), ni
+		 * verificar un dato antes de afirmarlo, ni corregirse. Por eso parecía
+		 * mucho menos capaz de lo que el modelo es.
+		 *
+		 * Ahora, cuando llama a una herramienta de CONSULTA (`Cead_Acad_WA_Tools`),
+		 * el sistema la ejecuta, le devuelve el resultado y el modelo sigue
+		 * pensando con ese dato en la mano. Las de GESTIÓN —las que escriben—
+		 * cortan el bucle y vuelven al motor, que sigue pidiendo aprobación
+		 * humana antes de ejecutar nada. Esa parte no cambia a propósito.
+		 */
+		$conversacion = $messages( 'tools' );
+		$modo_json    = false;
+		$arranque     = microtime( true );
+		/*
+		 * Lo último que el modelo alcanzó a DECIR, vuelta a vuelta.
+		 *
+		 * El bucle puede terminar con una respuesta que es pura pedida de
+		 * herramienta y sin texto (se acabó el reloj, o se agotaron las
+		 * vueltas). Si eso se parsea tal cual, el intent se descarta por ser
+		 * una consulta y queda `reply` vacío → «Respuesta vacía del modelo» →
+		 * el motor cae al menú y la persona no recibe nada, habiendo datos ya
+		 * consultados. Guardando lo último dicho se cierra con eso.
+		 */
+		$ultimo_texto = '';
 
-		// 2) Si el proveedor rechaza el max_tokens pedido (cada modelo tiene su
-		// techo; DeepSeek corta en 8192), se reintenta con un valor prudente.
-		// Antes, subir «máx. tokens de respuesta» para poder escribir artículos
-		// largos rompía TODOS los mensajes con un HTTP 400 imposible de leer.
-		if ( 400 === $r['code'] && $max_tokens > self::MAX_TOKENS_SAFE && self::rejects_max_tokens( $r ) ) {
-			error_log( '[CeadAcadWA][AI] max_tokens=' . $max_tokens . ' rechazado por el proveedor; reintento con ' . self::MAX_TOKENS_SAFE . '.' );
-			$max_tokens = self::MAX_TOKENS_SAFE;
-			$r          = self::http( $endpoint, $key, $payload( 'tools', $max_tokens ), $timeout, $retry );
-		}
+		// Una vuelta más que las consultas permitidas: la extra NO ejecuta nada,
+		// es la que el modelo usa para redactar la respuesta final.
+		for ( $ronda = 0; $ronda <= self::MAX_RONDAS + 1; $ronda++ ) {
 
-		// 3) Fallback: si el proveedor rechaza las herramientas (400), modo JSON.
-		if ( $r['code'] === 400 ) {
-			$rj = self::http( $endpoint, $key, $payload( 'json', $max_tokens ), $timeout, $retry );
-			if ( $rj['code'] === 200 ) {
-				return self::parse_json_mode( $rj, $out, $allowed );
+			/*
+			 * A partir de la segunda vuelta se mira el reloj. Entrar a una
+			 * llamada nueva sin tiempo para terminarla es peor que cortar: si
+			 * el bridge deja de esperar, la persona no recibe absolutamente
+			 * nada. El tope de la última vuelta se le dice al modelo abajo.
+			 */
+			if ( $ronda > 0 ) {
+				$gastado = microtime( true ) - $arranque;
+				if ( $gastado + $timeout > self::PRESUPUESTO_SEG ) {
+					$timeout = max( 8, (int) floor( self::PRESUPUESTO_SEG - $gastado ) );
+					$retry   = false;
+				}
+				if ( $gastado > self::PRESUPUESTO_SEG - 8 ) {
+					// Sin margen ni para una llamada corta: se cierra con lo último.
+					break;
+				}
 			}
-			$r = ( $rj['code'] !== 0 ) ? $rj : $r;
+
+			$p = $payload( 'tools', $max_tokens );
+			$p['messages'] = $conversacion;
+			$r = self::http( $endpoint, $key, $p, $timeout, $retry );
+
+			// Si el proveedor rechaza el max_tokens pedido (cada modelo tiene su
+			// techo; DeepSeek corta en 8192), se reintenta con un valor prudente.
+			// Antes, subir «máx. tokens de respuesta» para poder escribir artículos
+			// largos rompía TODOS los mensajes con un HTTP 400 imposible de leer.
+			if ( 400 === $r['code'] && $max_tokens > self::MAX_TOKENS_SAFE && self::rejects_max_tokens( $r ) ) {
+				error_log( '[CeadAcadWA][AI] max_tokens=' . $max_tokens . ' rechazado por el proveedor; reintento con ' . self::MAX_TOKENS_SAFE . '.' );
+				$max_tokens    = self::MAX_TOKENS_SAFE;
+				$p             = $payload( 'tools', $max_tokens );
+				$p['messages'] = $conversacion;
+				$r             = self::http( $endpoint, $key, $p, $timeout, $retry );
+			}
+
+			// Fallback: si el proveedor rechaza las herramientas (400), modo JSON.
+			// Solo tiene sentido en la primera vuelta: si ya veníamos encadenando
+			// herramientas, es que el proveedor las soporta.
+			if ( 400 === $r['code'] && 0 === $ronda ) {
+				$rj = self::http( $endpoint, $key, $payload( 'json', $max_tokens ), $timeout, $retry );
+				if ( 200 === $rj['code'] ) {
+					$modo_json = true;
+					$r         = $rj;
+					break;
+				}
+				$r = ( 0 !== $rj['code'] ) ? $rj : $r;
+			}
+
+			if ( '' !== $r['error'] ) { $out['error'] = $r['error']; $out['code'] = $r['code']; return $out; }
+			$out['code'] = $r['code'];
+			if ( 200 !== $r['code'] ) {
+				$out['error'] = 'HTTP ' . $r['code'] . ' — ' . mb_substr( wp_strip_all_tags( (string) $r['bodyraw'] ), 0, 300 );
+				return $out;
+			}
+
+			$msg      = $r['data']['choices'][0]['message'] ?? [];
+			$llamadas = ( isset( $msg['tool_calls'] ) && is_array( $msg['tool_calls'] ) ) ? $msg['tool_calls'] : [];
+
+			$dicho = trim( (string) ( $msg['content'] ?? '' ) );
+			if ( '' !== $dicho ) { $ultimo_texto = $dicho; }
+
+			/*
+			 * El bucle solo sigue si TODAS las llamadas de este mensaje son
+			 * consultas. Con una sola de gestión adentro se corta y contesta el
+			 * motor, que pide aprobación humana; y si se mezclan, ejecutar las
+			 * consultas sin poder responder la de gestión dejaría el mensaje del
+			 * asistente con ids de herramienta sin contestar, que es justo lo que
+			 * el proveedor rechaza con un 400 en la vuelta siguiente.
+			 */
+			$todas_consulta = ( [] !== $llamadas ) && class_exists( 'Cead_Acad_WA_Tools' );
+			foreach ( $llamadas as $l ) {
+				if ( ! Cead_Acad_WA_Tools::es_consulta( (string) ( $l['function']['name'] ?? '' ) ) ) {
+					$todas_consulta = false;
+					break;
+				}
+			}
+
+			// Sin herramienta, o con una de gestión: se termina acá y contesta el
+			// motor (mostrando el resumen para aprobar, si corresponde).
+			if ( ! $todas_consulta ) {
+				break;
+			}
+
+			$conversacion[] = $msg;
+
+			/*
+			 * Se responde CADA tool_call del mensaje, no solo la primera. Los
+			 * modelos actuales piden varias herramientas de una sola vez
+			 * («listá los cursos y traeme la agenda»), y la API exige un mensaje
+			 * `tool` por cada `tool_call_id`: contestar una sola tira un 400 en
+			 * la vuelta siguiente y se pierde el turno entero.
+			 */
+			$limite = ( $ronda >= self::MAX_RONDAS );
+			foreach ( $llamadas as $llamada ) {
+				$nombre = (string) ( $llamada['function']['name'] ?? '' );
+
+				if ( $limite ) {
+					// Se agotaron las vueltas. Se le avisa para que cierre con lo
+					// que tiene en vez de quedarse pidiendo una herramienta más.
+					$contenido = 'Se alcanzó el límite de consultas seguidas. Respondé con lo que ya averiguaste.';
+				} else {
+					$args_tool = [];
+					if ( isset( $llamada['function']['arguments'] ) ) {
+						$raw_args  = $llamada['function']['arguments'];
+						$args_tool = is_array( $raw_args ) ? $raw_args : (array) json_decode( (string) $raw_args, true );
+					}
+					$contenido = mb_substr( (string) Cead_Acad_WA_Tools::run( $nombre, $args_tool, $user_id ), 0, 4000 );
+					self::$last_tools[] = $nombre;
+				}
+
+				$conversacion[] = [
+					'role'         => 'tool',
+					'tool_call_id' => (string) ( $llamada['id'] ?? '' ),
+					'content'      => $contenido,
+				];
+			}
 		}
 
-		if ( $r['error'] !== '' ) { $out['error'] = $r['error']; $out['code'] = $r['code']; return $out; }
-		$out['code'] = $r['code'];
-		if ( $r['code'] !== 200 ) {
-			$out['error'] = 'HTTP ' . $r['code'] . ' — ' . mb_substr( wp_strip_all_tags( (string) $r['bodyraw'] ), 0, 300 );
-			return $out;
+		if ( $modo_json ) { return self::parse_json_mode( $r, $out, $allowed ); }
+
+		$parsed = self::parse_tools_mode( $r, $out, $allowed );
+		/*
+		 * Se cortó con una pedida a medio camino y sin texto: en vez de dar el
+		 * turno por perdido, se contesta con lo último que el modelo dijo.
+		 */
+		if ( ! $parsed['ok'] && '' !== $ultimo_texto ) {
+			$parsed['ok']      = true;
+			$parsed['error']   = '';
+			$parsed['intent']  = '';
+			$parsed['args']    = [];
+			$parsed['reply']   = sanitize_textarea_field( $ultimo_texto );
+			$parsed['content'] = $ultimo_texto;
 		}
-		return self::parse_tools_mode( $r, $out, $allowed );
+		return $parsed;
 	}
+
+	/** Qué consultas resolvió el sistema en el último turno (para diagnóstico). */
+	protected static $last_tools = [];
+
+	public static function last_tools() { return self::$last_tools; }
 
 	/** POST al endpoint compatible OpenAI. Devuelve [ code, error, bodyraw, data ]. */
 	/**
@@ -845,6 +1049,16 @@ TXT;
 			$action = '';
 			$args   = [];
 		}
+		/*
+		 * Las consultas las resuelve el bucle, no el motor. Si una llega hasta
+		 * acá es porque el bucle cortó por tiempo con una pedida a medio
+		 * camino: devolverla como intención haría que el motor buscara una
+		 * pantalla llamada «listar_cursos», que no existe.
+		 */
+		if ( $action !== '' && class_exists( 'Cead_Acad_WA_Tools' ) && Cead_Acad_WA_Tools::es_consulta( $action ) ) {
+			$action = '';
+			$args   = [];
+		}
 
 		if ( $reply === '' && $action === '' ) { $out['error'] = 'Respuesta vacía del modelo.'; return $out; }
 		$out['ok']      = true;
@@ -900,9 +1114,9 @@ TXT;
 	 * está activa y hay $phone. `$user_context` describe a quién atiende (nombre,
 	 * rol, cursos, fecha de hoy) para que responda con datos y no a ciegas.
 	 */
-	public static function route( $message, $faq_context = '', $phone = '', $extra_tools = [], $user_context = '', $image = null ) {
+	public static function route( $message, $faq_context = '', $phone = '', $extra_tools = [], $user_context = '', $image = null, $user_id = 0 ) {
 		$history = ( $phone !== '' ) ? self::load_memory( $phone ) : [];
-		$r = self::call( $message, $faq_context, null, null, null, $history, $extra_tools, $user_context, $image );
+		$r = self::call( $message, $faq_context, null, null, null, $history, $extra_tools, $user_context, $image, $user_id );
 		if ( ! $r['ok'] ) {
 			// Fallo TÉCNICO (no «no entendí»): registrarlo para diagnóstico. El
 			// motor lo usa para caer al menú, y el admin lo muestra en CEADI · IA.

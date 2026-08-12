@@ -25,7 +25,7 @@ $btn1_url = $anclas_rotas[ $btn1_url ] ?? $btn1_url;
 $btn2_url = $anclas_rotas[ $btn2_url ] ?? $btn2_url;
 ?>
 <section class="hero">
-  <div class="hero-bg">
+  <div class="hero-bg" data-parallax="0.12">
     <div class="hero-bg-image ken-burns" style="background-image:url('<?php echo esc_url($hero_image); ?>')"></div>
     <div class="hero-bg-gradient"></div>
   </div>

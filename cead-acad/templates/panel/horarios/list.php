@@ -124,12 +124,21 @@ $body = function () use ( $by_day, $days, $course_title, $course_id, $can_view_o
 	</section>
 
 	<?php if ( $can_view_others && $other_courses ) : ?>
-	<section class="cead-acad-panel-section" style="margin-top:2rem">
+	<section id="otros-cursos" class="cead-acad-panel-section" style="margin-top:2rem">
 		<span class="cead-acad-eyebrow"><?php esc_html_e( 'Consulta', 'cead-acad' ); ?></span>
 		<h2 class="cead-acad-panel-h"><?php esc_html_e( 'Horario de otros cursos', 'cead-acad' ); ?></h2>
 		<p class="cead-acad-panel-sub"><?php esc_html_e( 'Para repasar el horario de un curso que no es el tuyo.', 'cead-acad' ); ?></p>
 
-		<form method="get" action="<?php echo esc_url( cead_acad_url( 'panel/horarios' ) ); ?>" style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+		<?php
+		/*
+		 * El `#otros-cursos` del action es el respaldo para cuando no hay
+		 * JavaScript: al enviarse, el navegador recarga y aterriza en esta
+		 * sección en vez de al tope de la página, que era justo lo molesto
+		 * (elegías un curso y tenías que volver a bajar para ver el resultado).
+		 * Con JS, el router ni siquiera recarga: cambia el contenido sin moverte.
+		 */
+		?>
+		<form method="get" action="<?php echo esc_url( cead_acad_url( 'panel/horarios' ) ); ?>#otros-cursos" style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
 			<label for="cead_acad_otro_curso" class="screen-reader-text"><?php esc_html_e( 'Elegir curso', 'cead-acad' ); ?></label>
 			<select id="cead_acad_otro_curso" name="curso_id">
 				<option value="0"><?php esc_html_e( '— elegí un curso —', 'cead-acad' ); ?></option>
