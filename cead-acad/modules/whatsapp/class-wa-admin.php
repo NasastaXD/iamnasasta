@@ -388,6 +388,8 @@ class Cead_Acad_WA_Admin {
 			update_option( 'cead_acad_wa_ai_endpoint', esc_url_raw( wp_unslash( $_POST['ai_endpoint'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai_endpoint_is_base', ! empty( $_POST['ai_endpoint_is_base'] ) ? 1 : 0, false );
 			update_option( 'cead_acad_wa_ai_temp', is_numeric( $_POST['ai_temp'] ?? '' ) ? (float) $_POST['ai_temp'] : 0.2, false );
+			$razona_in = sanitize_key( wp_unslash( $_POST['ai_reasoning'] ?? '' ) );
+			update_option( 'cead_acad_wa_ai_reasoning', in_array( $razona_in, [ 'low', 'medium', 'high' ], true ) ? $razona_in : '', false );
 			update_option( 'cead_acad_wa_ai_maxtokens', max( 50, (int) ( $_POST['ai_maxtokens'] ?? 500 ) ), false );
 			update_option( 'cead_acad_wa_ai_prompt', sanitize_textarea_field( wp_unslash( $_POST['ai_prompt'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai_knowledge', sanitize_textarea_field( wp_unslash( $_POST['ai_knowledge'] ?? '' ) ), false );
@@ -521,6 +523,19 @@ class Cead_Acad_WA_Admin {
 		}
 		$this->field( 'ai_temp', __( 'Temperatura (0–1)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_temp', '0.5' ), '0.5', 'text' );
 		echo '<tr><th></th><td><p class="description">' . esc_html__( '0.5 (recomendado) = respuestas naturales y con criterio. Más bajo = más rígido; más alto = más creativo.', 'cead-acad' ) . '</p></td></tr>';
+		$razona = Cead_Acad_WA_AI::reasoning();
+		echo '<tr><th scope="row"><label for="ai_reasoning">' . esc_html__( 'Razonamiento', 'cead-acad' ) . '</label></th><td>';
+		echo '<select name="ai_reasoning" id="ai_reasoning">';
+		foreach ( [
+			''       => __( 'Desactivado', 'cead-acad' ),
+			'low'    => __( 'Bajo', 'cead-acad' ),
+			'medium' => __( 'Medio', 'cead-acad' ),
+			'high'   => __( 'Alto', 'cead-acad' ),
+		] as $val => $label ) {
+			echo '<option value="' . esc_attr( $val ) . '" ' . selected( $razona, $val, false ) . '>' . esc_html( $label ) . '</option>';
+		}
+		echo '</select>';
+		echo '<p class="description">' . esc_html__( 'Hace que el modelo piense antes de contestar: mejora bastante cuando tiene que encadenar consultas o decidir entre varias opciones. Dejalo desactivado si no estás seguro — es un parámetro que varios proveedores todavía no aceptan, y ahí devuelven error en TODOS los mensajes. Si al prenderlo CEADI deja de responder, volvé a "Desactivado". También hace que tarde más.', 'cead-acad' ) . '</p></td></tr>';
 		$this->field( 'ai_maxtokens', __( 'Máx. tokens de respuesta', 'cead-acad' ), get_option( 'cead_acad_wa_ai_maxtokens', 800 ), '800', 'number' );
 		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Cuánto puede escribir CEADI de una. 800 alcanza para responder consultas; para que escriba artículos largos conviene 4000–8000. Ojo: cada modelo tiene su techo (DeepSeek corta en 8192) — si ponés más del que acepta, se reintenta solo con 8192 en vez de fallar. Valores altos también hacen que tarde más en contestar.', 'cead-acad' ) . '</p></td></tr>';
 		$this->field_textarea( 'ai_prompt', __( 'System prompt (personalidad / instrucciones)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_prompt', '' ) ?: Cead_Acad_WA_AI::default_persona(), 6 );

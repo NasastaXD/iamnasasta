@@ -54,6 +54,7 @@ $options = [
 	'cead_acad_wa_ai_key',
 	'cead_acad_wa_ai_model',
 	'cead_acad_wa_ai_temp',
+	'cead_acad_wa_ai_reasoning',
 	'cead_acad_wa_ai_maxtokens',
 	'cead_acad_wa_ai_prompt',
 	'cead_acad_wa_ai_knowledge',

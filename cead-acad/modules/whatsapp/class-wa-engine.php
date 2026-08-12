@@ -708,7 +708,8 @@ class Cead_Acad_WA_Engine {
 			$phone,
 			$this->ai_staff_tools( $identity, $phone ),
 			$this->ai_context_with_sheet( $identity, $phone ),
-			$ai_image
+			$ai_image,
+			(int) ( $identity['user_id'] ?? 0 )
 		);
 		if ( ! is_array( $res ) ) {
 			return false;
@@ -1086,6 +1087,18 @@ class Cead_Acad_WA_Engine {
 		];
 
 		if ( ! $uid ) { return $tools; }
+
+		/*
+		 * Consultas de solo lectura. A diferencia de las de gestión que siguen
+		 * abajo, estas las ejecuta el propio bucle de `Cead_Acad_WA_AI` y le
+		 * devuelve el resultado al modelo, que puede encadenarlas y contestar
+		 * con datos verificados en vez de con lo que recuerda del prompt.
+		 * Cada una trae su permiso: lo que la persona no puede ver, no aparece.
+		 */
+		if ( class_exists( 'Cead_Acad_WA_Tools' ) ) {
+			$tools = array_merge( $tools, Cead_Acad_WA_Tools::specs( $uid ) );
+		}
+
 		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast' ) ) {
 			$aud = Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast_all' )
 				? 'students=alumnado, staff=personal, all=todos'
