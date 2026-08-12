@@ -453,6 +453,7 @@ require_once dirname( __DIR__, 2 ) . '/modules/broadcasts/class-broadcasts-audie
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-csv-reader.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-base.php';
 require_once dirname( __DIR__, 2 ) . '/modules/schedule/class-schedule-cpt.php';
+require_once dirname( __DIR__, 2 ) . '/modules/schedule/class-schedule-feed.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-events.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-horarios.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-admin.php';

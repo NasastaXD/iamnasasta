@@ -44,28 +44,15 @@ if ( $disponible ) {
 	$prev = date( 'Y-m', mktime( 0, 0, 0, $n - 1, 1, $y ) );
 	$next = date( 'Y-m', mktime( 0, 0, 0, $n + 1, 1, $y ) );
 
+	// Mismo criterio que el panel: se piden los eventos que CRUZAN el mes, no
+	// solo los que empiezan en él, para que unas vacaciones a mitad de camino se
+	// vean igual; y el reparto por día lo hace el plugin, así el calendario
+	// público y el del panel no pueden divergir.
 	$from   = date( 'Y-m-d 00:00:00', $grid_start );
 	$to     = date( 'Y-m-d 23:59:59', $grid_end );
-	$events = Cead_Acad_Schedule_Feed::public_events( $from, $to, 300 );
+	$events = Cead_Acad_Schedule_Feed::public_events( $from, $to, 300, true, true );
 
-	// Mismo criterio que el panel: un evento aparece en TODOS los días que
-	// abarca, no solo el de inicio, para que un período largo se vea entero.
-	$by_date = [];
-	foreach ( $events as $e ) {
-		$st = (string) get_post_meta( $e->ID, '_cead_acad_event_start', true );
-		if ( ! $st ) { continue; }
-		$start_ts = strtotime( $st );
-		if ( ! $start_ts ) { continue; }
-		$en = (string) get_post_meta( $e->ID, '_cead_acad_event_end', true );
-		$end_ts = $en ? strtotime( $en ) : $start_ts;
-		if ( ! $end_ts || $end_ts < $start_ts ) { $end_ts = $start_ts; }
-		$day_ts = strtotime( date( 'Y-m-d', $start_ts ) );
-		$last_day_ts = min( strtotime( date( 'Y-m-d', $end_ts ) ), $day_ts + 366 * DAY_IN_SECONDS );
-		while ( $day_ts <= $last_day_ts ) {
-			$by_date[ date( 'Y-m-d', $day_ts ) ][] = $e;
-			$day_ts += DAY_IN_SECONDS;
-		}
-	}
+	$by_date = Cead_Acad_Schedule_Feed::expand_by_day( $events, $grid_start, $grid_end );
 
 	// Próximos eventos (agenda), para quien prefiere una lista a una grilla.
 	$ag_from   = current_time( 'Y-m-d 00:00:00' );
@@ -77,6 +64,7 @@ if ( $disponible ) {
 		$t = (string) get_post_meta( $e->ID, '_cead_acad_event_type', true ) ?: 'evento';
 		$tipos_presentes[ $t ] = true;
 	}
+	ksort( $tipos_presentes );
 }
 ?>
 <main id="contenido" class="cal-pub">
@@ -98,7 +86,7 @@ if ( $disponible ) {
 				<?php if ( $tipos_presentes ) : ?>
 					<ul class="cal-legend" aria-label="<?php esc_attr_e( 'Referencias', 'cead' ); ?>">
 						<?php foreach ( array_keys( $tipos_presentes ) as $t ) : ?>
-							<li><span class="cal-legend-dot" style="background:<?php echo esc_attr( Cead_Acad_Schedule_CPT::default_color( $t ) ); ?>"></span><?php echo esc_html( Cead_Acad_Schedule_CPT::type_label( $t ) ); ?></li>
+							<li><span class="cal-legend-dot" style="--ev:<?php echo esc_attr( Cead_Acad_Schedule_CPT::default_color( $t ) ); ?>"></span><?php echo esc_html( Cead_Acad_Schedule_CPT::type_label( $t ) ); ?></li>
 						<?php endforeach; ?>
 					</ul>
 				<?php endif; ?>
@@ -111,8 +99,8 @@ if ( $disponible ) {
 
 				<div class="cal-grid" role="grid">
 					<div class="cal-row cal-row--head" role="row">
-						<?php foreach ( [ 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom' ] as $wd ) : ?>
-							<div class="cal-wd" role="columnheader"><?php echo esc_html( $wd ); ?></div>
+						<?php foreach ( [ 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom' ] as $i => $wd ) : ?>
+							<div class="cal-wd<?php echo $i >= 5 ? ' is-finde' : ''; ?>" role="columnheader"><?php echo esc_html( $wd ); ?></div>
 						<?php endforeach; ?>
 					</div>
 					<?php $today_key = date( 'Y-m-d', $cur_ts ); ?>
@@ -123,15 +111,30 @@ if ( $disponible ) {
 								$key = date( 'Y-m-d', $ts );
 								$out = ( (int) date( 'n', $ts ) !== $n );
 								$evs = $by_date[ $key ] ?? [];
+								$cls = 'cal-cell';
+								if ( $out )                { $cls .= ' is-out'; }
+								if ( $d >= 5 )             { $cls .= ' is-finde'; }
+								if ( $key === $today_key ) { $cls .= ' is-today'; }
 							?>
-								<div class="cal-cell<?php echo $out ? ' is-out' : ''; ?><?php echo $key === $today_key ? ' is-today' : ''; ?>" role="gridcell">
+								<div class="<?php echo esc_attr( $cls ); ?>" role="gridcell">
 									<span class="cal-day"><?php echo esc_html( (int) date( 'j', $ts ) ); ?></span>
-									<?php foreach ( array_slice( $evs, 0, 3 ) as $e ) :
+									<?php foreach ( array_slice( $evs, 0, 3 ) as $f ) :
+										$e   = $f['post'];
 										$col = Cead_Acad_Schedule_CPT::event_color( $e->ID );
+										// Un período se rotula donde empieza y al reentrar por
+										// el lunes; en el medio es una banda sin texto, que es
+										// como se lee «del 3 al 18» de un vistazo.
+										$rotula = ! $f['span'] || $f['ini'] || 0 === $d;
+										$cls_ev = 'cal-ev';
+										if ( $f['span'] ) {
+											$cls_ev .= ' cal-ev--span';
+											if ( $f['ini'] ) { $cls_ev .= ' is-ini'; }
+											if ( $f['fin'] ) { $cls_ev .= ' is-fin'; }
+										}
 									?>
-										<span class="cal-ev" title="<?php echo esc_attr( get_the_title( $e ) ); ?>">
-											<span class="cal-ev-dot" style="background:<?php echo esc_attr( $col ); ?>"></span>
-											<span class="cal-ev-t"><?php echo esc_html( get_the_title( $e ) ); ?></span>
+										<span class="<?php echo esc_attr( $cls_ev ); ?>" style="--ev:<?php echo esc_attr( $col ); ?>" title="<?php echo esc_attr( get_the_title( $e ) ); ?>">
+											<?php if ( ! $f['span'] ) : ?><span class="cal-ev-dot" aria-hidden="true"></span><?php endif; ?>
+											<span class="cal-ev-t<?php echo $rotula ? '' : ' sr-only'; ?>"><?php echo esc_html( get_the_title( $e ) ); ?></span>
 										</span>
 									<?php endforeach; ?>
 									<?php if ( count( $evs ) > 3 ) : ?>
@@ -156,7 +159,7 @@ if ( $disponible ) {
 							$type  = (string) get_post_meta( $e->ID, '_cead_acad_event_type', true ) ?: 'evento';
 							$col   = Cead_Acad_Schedule_CPT::event_color( $e->ID );
 						?>
-							<li class="cal-agenda-item" style="border-left-color:<?php echo esc_attr( $col ); ?>">
+							<li class="cal-agenda-item" style="--ev:<?php echo esc_attr( $col ); ?>">
 								<span class="cal-agenda-date"><?php echo $start ? esc_html( date_i18n( 'j \d\e F', strtotime( $start ) ) ) : ''; ?></span>
 								<span class="cal-agenda-title"><?php echo esc_html( get_the_title( $e ) ); ?></span>
 								<span class="cal-agenda-type"><?php echo esc_html( Cead_Acad_Schedule_CPT::type_label( $type ) ); ?><?php echo $all ? ' · ' . esc_html__( 'todo el día', 'cead' ) : ''; ?></span>

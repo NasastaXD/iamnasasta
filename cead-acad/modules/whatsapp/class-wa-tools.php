@@ -42,7 +42,7 @@ class Cead_Acad_WA_Tools {
 		'ver_curso',
 		'ver_horario_curso',
 		'buscar_persona',
-		'agenda_institucional',
+		'consultar_calendario',
 	];
 
 	/**
@@ -135,16 +135,42 @@ class Cead_Acad_WA_Tools {
 					],
 				],
 			],
-			'agenda_institucional' => [
-				'cap'  => 'cead_acad_manage_schedule',
+			/*
+			 * El calendario NO pide permiso, y ese es el punto.
+			 *
+			 * Antes esta consulta se llamaba `agenda_institucional` y estaba detrás
+			 * de `cead_acad_manage_schedule`, así que para el 99% de la gente
+			 * simplemente no existía: al preguntar «¿cuándo es la Feria de las
+			 * Naciones?» el modelo no tenía ninguna herramienta de fechas, caía en
+			 * buscar_noticias y contestaba «no encontré ninguna nota publicada sobre
+			 * eso» — con el evento cargado en el calendario.
+			 *
+			 * Las fechas del colegio son justo lo que todo el mundo pregunta. Lo que
+			 * sigue dependiendo del permiso es el ALCANCE, no el acceso: ver
+			 * `calendario()`.
+			 */
+			'consultar_calendario' => [
+				'cap'  => null,
 				'spec' => [
-					'name'        => 'agenda_institucional',
-					'description' => 'Los eventos del calendario que vienen, con su tipo y a quién están dirigidos. '
-						. 'Sirve para revisar qué hay cargado antes de agregar algo y no duplicar.',
+					'name'        => 'consultar_calendario',
+					'description' => 'El calendario del colegio: feriados, actos, exámenes, entregas, excursiones, reuniones '
+						. 'y períodos largos como vacaciones o cierre de etapa. Usalo SIEMPRE que la pregunta tenga que ver '
+						. 'con una fecha —«cuándo es tal cosa», «qué hay esta semana», «hay clases el lunes», «cuándo empiezan '
+						. 'las vacaciones»—, incluso si el evento no te suena: que vos no lo sepas no quiere decir que no esté '
+						. 'cargado. Para buscar algo puntual pasá su nombre en «texto»; sin texto te devuelve lo que viene por '
+						. 'orden de fecha. No confundas esto con buscar_noticias, que busca artículos publicados, no fechas.',
 					'parameters'  => [
 						'type'       => 'object',
 						'properties' => [
-							'dias' => [ 'type' => 'integer', 'description' => 'Cuántos días hacia adelante mirar (por defecto 30).' ],
+							'texto' => [
+								'type'        => 'string',
+								'description' => 'Nombre del evento o una parte («feria de las naciones», «vacaciones», «examen»). '
+									. 'Vacío = lista lo que viene.',
+							],
+							'dias'  => [
+								'type'        => 'integer',
+								'description' => 'Cuántos días hacia adelante mirar cuando no buscás por nombre (por defecto 60).',
+							],
 						],
 					],
 				],
@@ -207,7 +233,7 @@ class Cead_Acad_WA_Tools {
 			case 'ver_curso':            return self::curso( (string) ( $args['curso'] ?? '' ) );
 			case 'ver_horario_curso':    return self::horario( (string) ( $args['curso'] ?? '' ) );
 			case 'buscar_persona':       return self::persona( (string) ( $args['texto'] ?? '' ) );
-			case 'agenda_institucional': return self::agenda( (int) ( $args['dias'] ?? 30 ) );
+			case 'consultar_calendario': return self::calendario( (string) ( $args['texto'] ?? '' ), (int) ( $args['dias'] ?? 60 ), (int) $user_id );
 		}
 		return 'Esa consulta no existe.';
 	}
@@ -424,50 +450,180 @@ class Cead_Acad_WA_Tools {
 		return "Coincidencias:\n" . implode( "\n", $out );
 	}
 
-	protected static function agenda( $dias ) {
-		$dias  = max( 1, min( 365, (int) $dias ?: 30 ) );
-		$ahora = current_time( 'Y-m-d H:i:s' );
-		$hasta = gmdate( 'Y-m-d H:i:s', strtotime( '+' . $dias . ' days', current_time( 'timestamp' ) ) );
+	/**
+	 * El calendario, contestado en texto.
+	 *
+	 * Dos modos en una sola herramienta, porque para el modelo son la misma
+	 * pregunta con distinto grado de precisión: con `texto` busca un evento por
+	 * nombre en TODO el calendario (incluido lo que ya pasó, que también es una
+	 * respuesta válida: «la feria fue el 12 de agosto»), y sin `texto` lista lo
+	 * que viene.
+	 */
+	protected static function calendario( $texto, $dias, $user_id ) {
+		$texto = trim( (string) $texto );
+		$dias  = max( 1, min( 365, (int) $dias ?: 60 ) );
+		$hoy   = substr( (string) current_time( 'Y-m-d H:i:s' ), 0, 10 );
 
-		$posts = get_posts( [
-			'post_type'   => Cead_Acad_Schedule_CPT::POST_TYPE,
-			'post_status' => 'publish',
-			'numberposts' => self::TOPE_FILAS,
-			'orderby'     => 'meta_value',
-			'meta_key'    => '_cead_acad_event_start',
-			'order'       => 'ASC',
-			'meta_query'  => [
-				[ 'key' => '_cead_acad_event_start', 'value' => [ $ahora, $hasta ], 'compare' => 'BETWEEN', 'type' => 'DATETIME' ],
-				/*
-				 * Fuera las clases, igual que en el calendario del panel y en el
-				 * público (`Cead_Acad_Schedule_Feed::query()`). El horario semanal
-				 * también vive en este CPT: sin este filtro, las 25 filas del tope
-				 * se llenaban con «07:30 · Matemática (Clase)» y los eventos de
-				 * verdad —reuniones, actos, exámenes— no entraban nunca. Justo lo
-				 * contrario de para lo que existe la herramienta, que es ver qué
-				 * hay cargado antes de agregar algo.
-				 */
-				[
-					'relation' => 'OR',
-					[ 'key' => '_cead_acad_event_type', 'value' => 'clase', 'compare' => '!=' ],
-					[ 'key' => '_cead_acad_event_type', 'compare' => 'NOT EXISTS' ],
-				],
-			],
-		] );
-		if ( ! $posts ) { return 'No hay eventos cargados en los próximos ' . $dias . ' días.'; }
+		/*
+		 * Acceso para todos, alcance según el permiso.
+		 *
+		 * Quien administra el calendario ve TODO lo cargado, incluido lo dirigido
+		 * a un curso al que no pertenece: lo necesita para no duplicar un evento
+		 * antes de crear otro. El resto ve lo que le fue dirigido —lo mismo que
+		 * ya ve en su calendario del panel—, ni un evento más.
+		 */
+		$manda = user_can( (int) $user_id, 'cead_acad_manage_schedule' );
+		$ids   = $manda ? null : Cead_Acad_Audiences::subjects_for_user( 'event', (int) $user_id );
 
-		$out = [ 'Eventos en los próximos ' . $dias . ' días:' ];
-		foreach ( $posts as $p ) {
-			$ini  = (string) get_post_meta( $p->ID, '_cead_acad_event_start', true );
-			$tipo = (string) get_post_meta( $p->ID, '_cead_acad_event_type', true ) ?: 'evento';
-			$aud  = class_exists( 'Cead_Acad_Audiences' )
-				? Cead_Acad_Audiences::describe( Cead_Acad_Audiences::get( 'event', $p->ID ) )
-				: '';
-			$out[] = '- ' . ( $ini ? gmdate( 'd/m H:i', strtotime( $ini ) ) : 's/f' )
-				. ' · ' . $p->post_title
-				. ' (' . Cead_Acad_Schedule_CPT::type_label( $tipo ) . ')'
-				. ( $aud ? ' → ' . $aud : '' );
+		if ( '' !== $texto ) {
+			$found = self::eventos( $ids, null, null, self::TOPE_FILAS, 'ASC', $texto );
+			if ( ! $found ) {
+				return 'No hay ningún evento en el calendario que se llame «' . $texto . '» ni se le parezca. '
+					. 'Puede que todavía no esté cargado: decilo así, no deduzcas una fecha.';
+			}
+			return "Calendario — lo que coincide con «{$texto}»:\n"
+				. implode( "\n", array_map( static function ( $p ) use ( $hoy, $manda ) {
+					return self::linea_evento( $p, $hoy, $manda );
+				}, $found ) );
 		}
-		return implode( "\n", $out );
+
+		/*
+		 * Un período largo que ya arrancó pero no terminó —las vacaciones de
+		 * julio, mientras transcurren— empieza ANTES de hoy, así que un filtro
+		 * por fecha de inicio lo dejaba afuera justo los días en que preguntar
+		 * por él tiene más sentido. Por eso se busca hacia atrás también y se
+		 * filtra por fecha de FIN.
+		 */
+		$ahora    = (string) current_time( 'Y-m-d H:i:s' );
+		$hasta    = gmdate( 'Y-m-d H:i:s', strtotime( '+' . $dias . ' days', current_time( 'timestamp' ) ) );
+		$desde    = gmdate( 'Y-m-d H:i:s', strtotime( '-1 year', current_time( 'timestamp' ) ) );
+		$en_curso = [];
+		foreach ( self::eventos( $ids, $desde, $ahora, self::TOPE_FILAS, 'DESC' ) as $p ) {
+			$fin = (string) get_post_meta( $p->ID, '_cead_acad_event_end', true );
+			if ( substr( $fin, 0, 10 ) >= $hoy ) { $en_curso[] = $p; }
+		}
+		$en_curso  = array_reverse( $en_curso );
+		$proximos  = self::eventos( $ids, $ahora, $hasta, self::TOPE_FILAS, 'ASC' );
+
+		if ( ! $en_curso && ! $proximos ) {
+			return 'No hay nada cargado en el calendario para los próximos ' . $dias . ' días.';
+		}
+
+		$out = [];
+		foreach ( array_merge( $en_curso, $proximos ) as $p ) {
+			$out[] = self::linea_evento( $p, $hoy, $manda );
+		}
+		return 'Calendario, próximos ' . $dias . " días:\n" . implode( "\n", array_slice( $out, 0, self::TOPE_FILAS ) );
+	}
+
+	/**
+	 * Consulta cruda de eventos del calendario, sin las clases.
+	 *
+	 * El horario semanal vive en el mismo CPT que los eventos. Sin este filtro
+	 * las filas se llenan con «07:30 · Matemática (Clase)» y lo que de verdad se
+	 * preguntó —el acto, el feriado, el examen— no entra nunca. Es el mismo
+	 * criterio que aplica el calendario del panel en `Schedule_Feed::query()`.
+	 *
+	 * `$ids === null` significa sin restricción de audiencia. Un array VACÍO es
+	 * lo contrario —esta persona no tiene ningún evento dirigido— y se corta
+	 * acá: `post__in` vacío en WordPress no filtra nada y devolvería el
+	 * calendario entero, que es exactamente el bug que no queremos.
+	 *
+	 * @return WP_Post[]
+	 */
+	protected static function eventos( $ids, $from, $to, $limit, $order = 'ASC', $texto = '' ) {
+		if ( is_array( $ids ) && ! $ids ) { return []; }
+
+		$meta = [
+			[
+				'relation' => 'OR',
+				[ 'key' => '_cead_acad_event_type', 'value' => 'clase', 'compare' => '!=' ],
+				[ 'key' => '_cead_acad_event_type', 'compare' => 'NOT EXISTS' ],
+			],
+		];
+		if ( $from ) { $meta[] = [ 'key' => '_cead_acad_event_start', 'value' => $from, 'compare' => '>=', 'type' => 'DATETIME' ]; }
+		if ( $to )   { $meta[] = [ 'key' => '_cead_acad_event_start', 'value' => $to,   'compare' => '<=', 'type' => 'DATETIME' ]; }
+
+		$args = [
+			'post_type'      => Cead_Acad_Schedule_CPT::POST_TYPE,
+			'post_status'    => 'publish',
+			'posts_per_page' => (int) $limit,
+			'orderby'        => 'meta_value',
+			'meta_key'       => '_cead_acad_event_start',
+			'order'          => $order,
+			'no_found_rows'  => true,
+			'meta_query'     => $meta,
+		];
+		if ( is_array( $ids ) ) { $args['post__in'] = $ids; }
+		if ( '' !== $texto )    { $args['s'] = $texto; }
+
+		return get_posts( $args );
+	}
+
+	/** Una línea de calendario, tal como la va a leer el modelo. */
+	protected static function linea_evento( $p, $hoy, $con_audiencia ) {
+		$ini   = (string) get_post_meta( $p->ID, '_cead_acad_event_start', true );
+		$fin   = (string) get_post_meta( $p->ID, '_cead_acad_event_end', true );
+		$tipo  = (string) get_post_meta( $p->ID, '_cead_acad_event_type', true ) ?: 'evento';
+		$lugar = (string) get_post_meta( $p->ID, '_cead_acad_event_location', true );
+
+		$fecha = self::fecha_legible( $ini );
+		// Un período de varios días se dice como período; repetir el día de fin
+		// cuando empieza y termina el mismo día solo agrega ruido.
+		if ( $fin && substr( $fin, 0, 10 ) !== substr( $ini, 0, 10 ) ) {
+			$fecha = 'del ' . self::fecha_legible( $ini, false ) . ' al ' . self::fecha_legible( $fin, false );
+		}
+
+		$cuando = self::cuando( $ini, $fin, $hoy );
+		$linea  = '- ' . ( $fecha ?: 'sin fecha' )
+			. ( $cuando ? ' (' . $cuando . ')' : '' )
+			. ' · ' . $p->post_title
+			. ' [' . Cead_Acad_Schedule_CPT::type_label( $tipo ) . ']';
+		if ( $lugar ) { $linea .= ' · ' . $lugar; }
+
+		if ( $con_audiencia && class_exists( 'Cead_Acad_Audiences' ) ) {
+			$aud = Cead_Acad_Audiences::describe( Cead_Acad_Audiences::get( 'event', $p->ID ) );
+			if ( $aud ) { $linea .= ' → ' . $aud; }
+		}
+		return $linea;
+	}
+
+	/**
+	 * «2026-08-12 08:30:00» → «12/08/2026 08:30».
+	 *
+	 * Se corta la cadena en vez de pasar por strtotime()/date(): el dato ya está
+	 * guardado en hora local del colegio, así que convertirlo lo único que puede
+	 * hacer es correrlo unas horas. La medianoche se toma como «sin hora», que
+	 * es lo que significa en la práctica para un feriado o un período.
+	 */
+	protected static function fecha_legible( $sql, $con_hora = true ) {
+		$sql = (string) $sql;
+		if ( strlen( $sql ) < 10 ) { return ''; }
+		$fecha = substr( $sql, 8, 2 ) . '/' . substr( $sql, 5, 2 ) . '/' . substr( $sql, 0, 4 );
+		$hora  = substr( $sql, 11, 5 );
+		if ( $con_hora && $hora && '00:00' !== $hora ) { $fecha .= ' ' . $hora; }
+		return $fecha;
+	}
+
+	/**
+	 * A cuánto está: «hoy», «mañana», «faltan 9 días», «EN CURSO ahora», «ya pasó».
+	 *
+	 * Sin esto el modelo tiene que hacer la aritmética de fechas él, y ahí es
+	 * donde se equivoca: dice «el viernes» mirando un 2026 con la cabeza puesta
+	 * en otro año. Que el dato venga masticado es la diferencia entre contestar
+	 * bien y contestar convencido.
+	 */
+	protected static function cuando( $ini_sql, $fin_sql, $hoy ) {
+		$ini = substr( (string) $ini_sql, 0, 10 );
+		if ( '' === $ini ) { return ''; }
+		$fin = substr( (string) $fin_sql, 0, 10 );
+		if ( '' === $fin || $fin < $ini ) { $fin = $ini; }
+
+		if ( $fin < $hoy )                  { return 'ya pasó'; }
+		if ( $ini <= $hoy && $fin >= $hoy ) { return $ini === $fin ? 'HOY' : 'EN CURSO ahora'; }
+
+		$dias = (int) round( ( strtotime( $ini ) - strtotime( $hoy ) ) / DAY_IN_SECONDS );
+		if ( $dias <= 1 ) { return 'mañana'; }
+		return 'faltan ' . $dias . ' días';
 	}
 }

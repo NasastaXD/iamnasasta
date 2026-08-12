@@ -519,9 +519,17 @@ TXT;
 			 * motor y cierra el turno, así que prometer que su resultado vuelve
 			 * al modelo era mentira.
 			 */
-			. "Las herramientas de CONSULTA (las que solo LEEN datos: métricas, cursos, horarios, personas, agenda) se ejecutan al momento y te devuelven el resultado a vos. Podés llamar una, leer lo que vuelve, y llamar otra con ese dato. Aprovechalo:\n"
+			. "Las herramientas de CONSULTA (las que solo LEEN datos: métricas, cursos, horarios, personas, calendario) se ejecutan al momento y te devuelven el resultado a vos. Podés llamar una, leer lo que vuelve, y llamar otra con ese dato. Aprovechalo:\n"
 			. "- Si te nombran un curso y no sabés el título exacto, listá los cursos primero y después consultá el que corresponda. No adivines nombres.\n"
 			. "- Si te preguntan algo que se responde con datos, MIRALOS antes de contestar. Vale más una consulta de más que una afirmación inventada.\n"
+			/*
+			 * Esta línea nació de un caso real: preguntaron cuándo era la Feria de
+			 * las Naciones, el modelo no reconoció el nombre, buscó entre los
+			 * artículos publicados y contestó «no encontré ninguna nota sobre eso»
+			 * con el evento cargado en el calendario. Un evento no tiene por qué
+			 * tener nota: son dos cosas distintas y hay que decirlo.
+			 */
+			. "- CUÁNDO pasa algo se responde SIEMPRE mirando el calendario, aunque el nombre del evento no te suene de nada. No lo busques entre las notas del sitio: un evento del colegio no tiene por qué tener un artículo publicado, y no encontrar la nota no prueba que la fecha no exista.\n"
 			. "- Si el resultado te contradice, corregite sin drama y seguí con el dato bueno.\n"
 			. "- Cuando ya tenés lo que hace falta, respondé. No encadenes consultas de puro trámite.\n"
 			. "Si una consulta vuelve vacía o dice que no encontró nada, decilo tal cual. Nunca rellenes con datos plausibles.\n"

@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 		<div class="cead-ceadi-hilo" id="cead-ceadi-hilo" role="log" aria-live="polite" aria-atomic="false">
 			<div class="cead-ceadi-msg cead-ceadi-msg--bot">
-				<?php esc_html_e( '¡Hola! Preguntame por tu horario, tus notas, los comunicados o cualquier duda del colegio.', 'cead-acad' ); ?>
+				<?php esc_html_e( '¡Hola! Preguntame por tu horario, tus notas, las fechas del calendario, los comunicados o cualquier duda del colegio.', 'cead-acad' ); ?>
 			</div>
 		</div>
 

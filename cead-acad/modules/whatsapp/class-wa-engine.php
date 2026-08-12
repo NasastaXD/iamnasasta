@@ -1075,7 +1075,9 @@ class Cead_Acad_WA_Engine {
 				'name'        => 'buscar_noticias',
 				'description' => 'Buscar entre las notas publicadas en el sitio, sin límite de fecha. '
 					. 'Usalo cuando te pregunten por algo que no figura en lo publicado últimamente, o cuando pidan una nota vieja. '
-					. 'No lo uses para comunicados ni para datos del alumno: eso tiene sus propias funciones.',
+					. 'No lo uses para comunicados ni para datos del alumno: eso tiene sus propias funciones. '
+					. 'Tampoco para fechas: si la pregunta es CUÁNDO pasa algo, eso está en el calendario, no en las notas — '
+					. 'que un evento no tenga artículo publicado no significa que no exista.',
 				'parameters'  => [
 					'type'       => 'object',
 					'properties' => [

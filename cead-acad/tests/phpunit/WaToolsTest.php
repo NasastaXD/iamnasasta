@@ -45,6 +45,21 @@ final class WaToolsTest extends TestCase {
 		$this->assertNotContains( 'ver_curso', $n );
 	}
 
+	/**
+	 * El calendario lo consulta CUALQUIERA.
+	 *
+	 * Estaba detrás del permiso de gestionar el calendario, así que para casi
+	 * todo el mundo la herramienta no existía: al preguntar por la fecha de un
+	 * acto, el modelo se quedaba sin ninguna forma de mirar el calendario, caía
+	 * en buscar entre las notas del sitio y contestaba que no había nada
+	 * publicado sobre eso —con el evento cargado—. Las fechas del colegio son
+	 * justo lo que todo el mundo pregunta.
+	 */
+	public function test_el_calendario_lo_puede_consultar_cualquiera(): void {
+		cead_test_set_caps( 7, [] );
+		$this->assertContains( 'consultar_calendario', $this->nombres( 7 ) );
+	}
+
 	public function test_direccion_ve_todo_el_catalogo(): void {
 		cead_test_set_caps( 9, [
 			'cead_acad_view_metrics'         => true,
@@ -55,7 +70,7 @@ final class WaToolsTest extends TestCase {
 		] );
 		$n = $this->nombres( 9 );
 
-		foreach ( [ 'consultar_metricas', 'listar_cursos', 'ver_curso', 'ver_horario_curso', 'buscar_persona', 'agenda_institucional' ] as $esperada ) {
+		foreach ( [ 'consultar_metricas', 'listar_cursos', 'ver_curso', 'ver_horario_curso', 'buscar_persona', 'consultar_calendario' ] as $esperada ) {
 			$this->assertContains( $esperada, $n );
 		}
 	}
@@ -102,9 +117,70 @@ final class WaToolsTest extends TestCase {
 	}
 
 	public function test_las_consultas_se_reconocen_como_tales(): void {
-		foreach ( [ 'consultar_metricas', 'listar_cursos', 'ver_curso', 'buscar_persona' ] as $c ) {
+		foreach ( [ 'consultar_metricas', 'listar_cursos', 'ver_curso', 'buscar_persona', 'consultar_calendario' ] as $c ) {
 			$this->assertTrue( Cead_Acad_WA_Tools::es_consulta( $c ) );
 		}
+	}
+
+	/* ------------------------------------------ cómo se lee una fecha ------ */
+
+	/** @return mixed */
+	private function priv( $metodo, ...$args ) {
+		$m = new ReflectionMethod( 'Cead_Acad_WA_Tools', $metodo );
+		$m->setAccessible( true );
+		return $m->invokeArgs( null, $args );
+	}
+
+	/**
+	 * La fecha se corta de la cadena, no se pasa por strtotime()/date(): el dato
+	 * ya está guardado en hora local del colegio y convertirlo lo único que
+	 * puede hacer es correrlo unas horas.
+	 */
+	public function test_la_fecha_se_lee_como_la_diria_una_persona(): void {
+		$this->assertSame( '12/08/2026 08:30', $this->priv( 'fecha_legible', '2026-08-12 08:30:00' ) );
+	}
+
+	/** Medianoche es «sin hora»: un feriado no empieza a las 00:00, dura todo el día. */
+	public function test_la_medianoche_no_se_imprime_como_hora(): void {
+		$this->assertSame( '12/08/2026', $this->priv( 'fecha_legible', '2026-08-12 00:00:00' ) );
+	}
+
+	public function test_una_fecha_vacia_no_inventa_nada(): void {
+		$this->assertSame( '', $this->priv( 'fecha_legible', '' ) );
+	}
+
+	/**
+	 * Que el «a cuánto está» venga masticado es la diferencia entre contestar
+	 * bien y contestar convencido: si el modelo tiene que hacer la aritmética de
+	 * fechas solo, dice «el viernes» mirando un año que no es.
+	 */
+	public function test_a_cuanto_esta_cada_evento(): void {
+		$hoy = '2026-08-12';
+
+		$this->assertSame( 'HOY',      $this->priv( 'cuando', '2026-08-12 09:00:00', '', $hoy ) );
+		$this->assertSame( 'mañana',   $this->priv( 'cuando', '2026-08-13 09:00:00', '', $hoy ) );
+		$this->assertSame( 'faltan 9 días', $this->priv( 'cuando', '2026-08-21 09:00:00', '', $hoy ) );
+		$this->assertSame( 'ya pasó',  $this->priv( 'cuando', '2026-08-01 09:00:00', '', $hoy ) );
+	}
+
+	/**
+	 * El caso de las vacaciones: un período que ya arrancó y todavía no terminó.
+	 * Decir «ya pasó» porque empezó antes de hoy sería exactamente al revés.
+	 */
+	public function test_un_periodo_en_marcha_esta_en_curso_no_pasado(): void {
+		$this->assertSame(
+			'EN CURSO ahora',
+			$this->priv( 'cuando', '2026-07-06 00:00:00', '2026-07-24 00:00:00', '2026-07-15' )
+		);
+	}
+
+	public function test_un_periodo_terminado_si_es_pasado(): void {
+		$this->assertSame( 'ya pasó', $this->priv( 'cuando', '2026-07-06 00:00:00', '2026-07-24 00:00:00', '2026-08-12' ) );
+	}
+
+	/** Una fecha de fin corrupta (anterior al inicio) no puede volver pasado un evento futuro. */
+	public function test_un_fin_anterior_al_inicio_se_ignora(): void {
+		$this->assertSame( 'faltan 9 días', $this->priv( 'cuando', '2026-08-21 09:00:00', '2020-01-01 00:00:00', '2026-08-12' ) );
 	}
 
 	/**

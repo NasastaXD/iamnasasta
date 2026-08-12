@@ -7,6 +7,14 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class Cead_Acad_Schedule_Feed {
 
+	/**
+	 * Tope de días que puede ocupar un solo evento en la grilla.
+	 *
+	 * Una fecha de fin mal tipeada —el año equivocado, que en un importador de
+	 * planilla pasa— no puede colgar la página rellenando celdas para siempre.
+	 */
+	const TOPE_DIAS = 366;
+
 	public function boot() {
 		add_action( 'admin_post_cead_acad_event_ical',        [ $this, 'handle_ical_export' ] );
 		add_action( 'admin_post_nopriv_cead_acad_event_ical', [ $this, 'handle_ical_export' ] );
@@ -17,12 +25,12 @@ class Cead_Acad_Schedule_Feed {
 	 *
 	 * @return WP_Post[]
 	 */
-	public static function for_user( $user_id, $from = null, $to = null, $limit = 200, $exclude_classes = true ) {
+	public static function for_user( $user_id, $from = null, $to = null, $limit = 200, $exclude_classes = true, $overlap = false ) {
 		$ids = Cead_Acad_Audiences::subjects_for_user( 'event', $user_id );
 		if ( ! $ids ) {
 			return [];
 		}
-		return self::query( $ids, $from, $to, $limit, $exclude_classes );
+		return self::query( $ids, $from, $to, $limit, $exclude_classes, $overlap );
 	}
 
 	/**
@@ -33,7 +41,7 @@ class Cead_Acad_Schedule_Feed {
 	 *
 	 * @return WP_Post[]
 	 */
-	public static function public_events( $from = null, $to = null, $limit = 200, $exclude_classes = true ) {
+	public static function public_events( $from = null, $to = null, $limit = 200, $exclude_classes = true, $overlap = false ) {
 		global $wpdb;
 		$table = cead_acad_table( 'audiences' );
 		$ids = $wpdb->get_col( $wpdb->prepare(
@@ -44,11 +52,11 @@ class Cead_Acad_Schedule_Feed {
 		if ( ! $ids ) {
 			return [];
 		}
-		return self::query( $ids, $from, $to, $limit, $exclude_classes );
+		return self::query( $ids, $from, $to, $limit, $exclude_classes, $overlap );
 	}
 
 	/** Consulta compartida por for_user() y public_events(): mismo filtro de fecha/tipo, distinta lista de IDs. */
-	protected static function query( $ids, $from, $to, $limit, $exclude_classes ) {
+	protected static function query( $ids, $from, $to, $limit, $exclude_classes, $overlap = false ) {
 		$meta_query = [];
 
 		// El calendario muestra solo eventos; las clases (horario semanal) viven en
@@ -60,21 +68,51 @@ class Cead_Acad_Schedule_Feed {
 				[ 'key' => '_cead_acad_event_type', 'compare' => 'NOT EXISTS' ],
 			];
 		}
-		if ( $from ) {
-			$meta_query[] = [
-				'key'     => '_cead_acad_event_start',
-				'value'   => $from,
-				'compare' => '>=',
-				'type'    => 'DATETIME',
-			];
-		}
-		if ( $to ) {
+		/*
+		 * Dos formas de entender "los eventos de este mes".
+		 *
+		 * La de siempre mira la fecha de INICIO, y para una lista de próximas
+		 * fechas es la correcta. Pero para dibujar una grilla deja afuera lo que
+		 * más importa ver: las vacaciones que empezaron el 6 de julio y terminan
+		 * el 24 no aparecían en el mes de julio si la grilla arrancaba después,
+		 * ni asomaban en agosto aunque siguieran corriendo. Un período largo se
+		 * volvía invisible justo en los días en que está pasando.
+		 *
+		 * Con `$overlap` la condición pasa a ser "se cruza con el rango": empieza
+		 * antes de que termine el rango, y termina después de que el rango empieza.
+		 * La segunda rama del OR cubre a los eventos sin fecha de fin —o con una
+		 * vacía, que al comparar como DATETIME da 0000-00-00—, que se filtran por
+		 * su inicio como antes.
+		 */
+		if ( $overlap && $from && $to ) {
 			$meta_query[] = [
 				'key'     => '_cead_acad_event_start',
 				'value'   => $to,
 				'compare' => '<=',
 				'type'    => 'DATETIME',
 			];
+			$meta_query[] = [
+				'relation' => 'OR',
+				[ 'key' => '_cead_acad_event_end',   'value' => $from, 'compare' => '>=', 'type' => 'DATETIME' ],
+				[ 'key' => '_cead_acad_event_start', 'value' => $from, 'compare' => '>=', 'type' => 'DATETIME' ],
+			];
+		} else {
+			if ( $from ) {
+				$meta_query[] = [
+					'key'     => '_cead_acad_event_start',
+					'value'   => $from,
+					'compare' => '>=',
+					'type'    => 'DATETIME',
+				];
+			}
+			if ( $to ) {
+				$meta_query[] = [
+					'key'     => '_cead_acad_event_start',
+					'value'   => $to,
+					'compare' => '<=',
+					'type'    => 'DATETIME',
+				];
+			}
 		}
 
 		$args = [
@@ -91,6 +129,79 @@ class Cead_Acad_Schedule_Feed {
 			$args['meta_query'] = $meta_query;
 		}
 		return get_posts( $args );
+	}
+
+	/**
+	 * Reparte los eventos por día, marcando dónde EMPIEZA y dónde TERMINA cada uno.
+	 *
+	 * Un evento aparece en todos los días que abarca, no solo en el de inicio.
+	 * Pero saber además si ese día es el primero, el último o uno del medio es
+	 * lo que permite dibujar un período como una BANDA continua —una barra que
+	 * cruza la semana— en vez de repetir la misma etiqueta siete veces. Es la
+	 * diferencia entre ver "del 3 al 18 hay exámenes" y ver dieciséis rectángulos
+	 * sueltos que dicen lo mismo.
+	 *
+	 * Vive acá y no en cada plantilla porque el calendario del panel y el público
+	 * tienen que repartir los días igual: si divergen, un mismo evento se ve de
+	 * dos formas distintas según dónde lo mires.
+	 *
+	 * @param WP_Post[] $events
+	 * @param int       $desde_ts Recorte opcional: no emitir días anteriores a este.
+	 * @param int       $hasta_ts Recorte opcional: no emitir días posteriores a este.
+	 * @return array<string,array<int,array<string,mixed>>> 'Y-m-d' => filas
+	 */
+	public static function expand_by_day( $events, $desde_ts = 0, $hasta_ts = 0 ) {
+		$out = [];
+
+		foreach ( $events as $e ) {
+			$st = (string) get_post_meta( $e->ID, '_cead_acad_event_start', true );
+			if ( ! $st ) { continue; }
+			$start_ts = strtotime( $st );
+			if ( ! $start_ts ) { continue; }
+
+			$en     = (string) get_post_meta( $e->ID, '_cead_acad_event_end', true );
+			$end_ts = $en ? strtotime( $en ) : $start_ts;
+			if ( ! $end_ts || $end_ts < $start_ts ) { $end_ts = $start_ts; }
+
+			$primero = strtotime( date( 'Y-m-d', $start_ts ) );
+			$ultimo  = min( strtotime( date( 'Y-m-d', $end_ts ) ), $primero + self::TOPE_DIAS * DAY_IN_SECONDS );
+			$span    = $ultimo > $primero;
+
+			// Recorte a la ventana visible: un período de tres meses no tiene por
+			// qué generar noventa filas para dibujar cinco semanas.
+			$day_ts = $desde_ts ? max( $primero, strtotime( date( 'Y-m-d', $desde_ts ) ) ) : $primero;
+			$fin_ts = $hasta_ts ? min( $ultimo,  strtotime( date( 'Y-m-d', $hasta_ts ) ) ) : $ultimo;
+
+			while ( $day_ts <= $fin_ts ) {
+				$out[ date( 'Y-m-d', $day_ts ) ][] = [
+					'post' => $e,
+					'ini'  => $day_ts === $primero,
+					'fin'  => $day_ts === $ultimo,
+					'span' => $span,
+					// Solo para ordenar: un período no tiene hora que valga.
+					'hora' => $span ? '' : substr( $st, 11, 5 ),
+				];
+				$day_ts += DAY_IN_SECONDS;
+			}
+		}
+
+		/*
+		 * Los períodos arriba y el resto por hora.
+		 *
+		 * No es cosmético: si un período de una semana quedara debajo de una
+		 * charla de las 9 solo los días que hay charla, la banda cambiaría de
+		 * altura de una celda a la otra y dejaría de leerse como una sola cosa.
+		 * Arriba de todo, se mantiene alineada de lunes a domingo.
+		 */
+		foreach ( $out as $day => $filas ) {
+			usort( $filas, static function ( $a, $b ) {
+				if ( $a['span'] !== $b['span'] ) { return $a['span'] ? -1 : 1; }
+				return strcmp( (string) $a['hora'], (string) $b['hora'] );
+			} );
+			$out[ $day ] = $filas;
+		}
+
+		return $out;
 	}
 
 	public static function group_by_day( $events ) {

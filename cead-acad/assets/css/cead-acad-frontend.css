@@ -801,11 +801,14 @@ body.cead-acad-panel {
 	padding: 0.9rem 1rem;
 	background: #fff;
 	border: 1px solid var(--cead-acad-border);
-	border-left: 4px solid var(--cead-acad-brand);
+	/* El color del tipo de evento llega inline en `--ev`, igual que en la
+	   grilla del mes, para que la agenda y el calendario digan lo mismo. */
+	border-left: 4px solid var(--ev, var(--cead-acad-brand));
 	text-decoration: none;
 	color: inherit;
-	transition: background .2s ease;
+	transition: background .2s ease, transform .16s ease, box-shadow .16s ease;
 }
+.cead-acad-agenda-item:hover { transform: translateX(2px); box-shadow: 0 8px 22px rgba(0,0,0,.07); }
 /* Ídem: la columna fija de la hora dejaba el título en un canal angosto. En
    celular la hora va arriba, en una línea, y el título usa todo el ancho. */
 @media (min-width: 640px) {
@@ -817,9 +820,24 @@ body.cead-acad-panel {
 }
 .cead-acad-agenda-item:hover { background: var(--cead-acad-canvas); }
 .cead-acad-agenda-item--clase   { border-left-color: var(--cead-acad-acc-blue); }
-.cead-acad-agenda-item--reunion { border-left-color: var(--cead-acad-brand); }
-.cead-acad-agenda-item--examen  { border-left-color: var(--cead-acad-acc-orange); }
-.cead-acad-agenda-item--evento  { border-left-color: var(--cead-acad-acc-yellow); }
+/* Etiqueta del tipo, en el color del tipo: es lo que conecta la palabra
+   («Feriado», «Examen») con la banda de ese color en la grilla del mes. */
+.cead-acad-agenda-tipo {
+	font-family: var(--cead-acad-font-display);
+	text-transform: uppercase;
+	letter-spacing: 0.18em;
+	font-size: 0.64rem;
+	color: var(--ev, var(--cead-acad-brand-deep));
+}
+/* El día de hoy se marca en la agenda igual que en la grilla: con la marca,
+   no con un color más. */
+.cead-acad-agenda-day.is-today .cead-acad-agenda-num { position: relative; }
+.cead-acad-agenda-day.is-today .cead-acad-agenda-weekday {
+	background: var(--cead-acad-brand);
+	color: #fff;
+	padding: 0.12rem 0.4rem;
+	align-self: center;
+}
 .cead-acad-agenda-time {
 	display: flex;
 	flex-direction: column;
@@ -1111,29 +1129,148 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 .cead-acad-profile-avatar { display:flex; align-items:center; gap:1.25rem; flex-wrap:wrap; }
 .cead-acad-profile-actions { display:flex; gap:.75rem; flex-wrap:wrap; margin-top:.5rem; }
 
-/* ===================== Calendario mensual ===================== */
-.cead-acad-cal-head { display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
+/* ===================== Calendario mensual =====================
+   El color del evento llega en UNA sola propiedad, `--ev`, que la plantilla
+   pone inline; el relleno tenue, la barra de acento, el punto y la banda de un
+   período se derivan de ahí. Antes ese color viajaba en tres atributos `style`
+   distintos por evento y terminaba reducido a un punto de 7px sobre un chip
+   gris: el sistema de categorías existía y no se veía.
+   ============================================================== */
+
+/* ---- Cabecera ---- */
+.cead-acad-cal-head { display:flex; justify-content:space-between; align-items:flex-end; gap:1rem 1.5rem; flex-wrap:wrap; margin-bottom:1.25rem; }
+.cead-acad-cal-month { display:flex; align-items:baseline; gap:.55rem; margin:0; }
+.cead-acad-cal-year { font-size:.46em; letter-spacing:.16em; color:var(--cead-acad-text-muted); }
 .cead-acad-cal-tools { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; }
-.cead-acad-cal-toggle { display:inline-flex; border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); overflow:hidden; }
-.cead-acad-cal-toggle a { padding:.42rem .9rem; text-decoration:none; color:var(--cead-acad-ink); font-family:var(--cead-acad-font-display); text-transform:uppercase; font-size:.82rem; }
+
+/* Segmentado Mes / Agenda */
+.cead-acad-cal-toggle { display:inline-flex; border:1px solid var(--cead-acad-ink); border-radius:var(--cead-acad-radius); overflow:hidden; }
+.cead-acad-cal-toggle a { padding:.52rem 1.05rem; text-decoration:none; color:var(--cead-acad-ink); font-family:var(--cead-acad-font-display); text-transform:uppercase; letter-spacing:.14em; font-size:.72rem; transition:background .18s ease, color .18s ease; }
+.cead-acad-cal-toggle a + a { border-left:1px solid var(--cead-acad-ink); }
+.cead-acad-cal-toggle a:hover { background:var(--cead-acad-canvas); }
 .cead-acad-cal-toggle a.is-active { background:var(--cead-acad-ink); color:#fff; }
-.cead-acad-cal-nav { display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; }
-.cead-acad-cal { border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); overflow:hidden; background:#fff; }
+
+/* ---- Navegación del mes + leyenda ----
+   La leyenda va acá arriba y no al pie: si el color es el que dice de qué se
+   trata cada banda, la referencia tiene que leerse ANTES de mirar la grilla. */
+.cead-acad-cal-nav { display:flex; gap:.5rem; align-items:center; margin-bottom:1rem; flex-wrap:wrap; }
+.cead-acad-calnav-arrow,
+.cead-acad-calnav-hoy {
+	display:inline-flex; align-items:center; justify-content:center;
+	min-height:40px; padding:0 1rem;
+	border:1px solid var(--cead-acad-border); background:#fff; color:var(--cead-acad-ink);
+	text-decoration:none;
+	font-family:var(--cead-acad-font-display); text-transform:uppercase; letter-spacing:.14em; font-size:.72rem;
+	transition:background .18s ease, border-color .18s ease, color .18s ease, transform .14s ease;
+}
+.cead-acad-calnav-arrow { width:40px; padding:0; font-size:1.05rem; letter-spacing:0; }
+.cead-acad-calnav-arrow:hover,
+.cead-acad-calnav-hoy:hover { background:var(--cead-acad-ink); border-color:var(--cead-acad-ink); color:#fff; }
+.cead-acad-calnav-arrow:active,
+.cead-acad-calnav-hoy:active { transform:scale(.94); }
+
+.cead-acad-cal-legend { display:flex; flex-wrap:wrap; align-items:center; gap:.3rem .9rem; list-style:none; margin:0 0 0 auto; padding:0; }
+.cead-acad-cal-legend li { display:inline-flex; align-items:center; gap:.4rem; font-size:.72rem; color:var(--cead-acad-text-soft); }
+.cead-acad-cal-legend-dot { width:11px; height:11px; flex:0 0 auto; background:var(--ev,var(--cead-acad-border)); }
+
+/* ---- Grilla ---- */
+.cead-acad-cal { border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); overflow:hidden; background:#fff; box-shadow:0 12px 36px rgba(0,0,0,.06); }
 .cead-acad-cal-row { display:grid; grid-template-columns:repeat(7,1fr); }
-.cead-acad-cal-row--head { background:var(--cead-acad-canvas); }
-.cead-acad-cal-wd { padding:.5rem; text-align:center; font-family:var(--cead-acad-font-display); text-transform:uppercase; font-size:.74rem; color:var(--cead-acad-text-muted); border-bottom:1px solid var(--cead-acad-border); }
-.cead-acad-cal-cell { min-height:96px; border-right:1px solid var(--cead-acad-border); border-bottom:1px solid var(--cead-acad-border); padding:.35rem; display:flex; flex-direction:column; gap:.2rem; }
+.cead-acad-cal-row--head { background:var(--cead-acad-ink); }
+.cead-acad-cal-wd { padding:.62rem .4rem; text-align:center; font-family:var(--cead-acad-font-display); text-transform:uppercase; letter-spacing:.16em; font-size:.68rem; color:rgba(255,255,255,.76); }
+.cead-acad-cal-wd.is-finde { color:rgba(255,255,255,.42); }
+
+.cead-acad-cal-cell { position:relative; min-height:120px; border-right:1px solid var(--cead-acad-border); border-bottom:1px solid var(--cead-acad-border); padding:.3rem; display:flex; flex-direction:column; gap:.25rem; }
 .cead-acad-cal-row .cead-acad-cal-cell:last-child { border-right:0; }
+.cead-acad-cal-row:last-child .cead-acad-cal-cell { border-bottom:0; }
+/* Tres niveles de superficie: día del mes, fin de semana, día de otro mes.
+   Antes el fin de semana no se distinguía y contar «el martes que viene» era
+   ir pisando cuadrados con el dedo. */
 .cead-acad-cal-cell.is-out { background:var(--cead-acad-canvas); }
-.cead-acad-cal-cell.is-today { box-shadow:inset 0 0 0 2px var(--cead-acad-brand); }
-.cead-acad-cal-day { font-weight:700; font-size:.85rem; }
-.cead-acad-cal-cell.is-out .cead-acad-cal-day { opacity:.45; }
-.cead-acad-cal-ev { display:flex; align-items:center; gap:.3rem; text-decoration:none; color:var(--cead-acad-ink); font-size:.74rem; line-height:1.15; background:var(--cead-acad-canvas); border-radius:var(--cead-acad-radius); padding:.12rem .3rem; overflow:hidden; }
-.cead-acad-cal-ev:hover { background:var(--cead-acad-brand-tint); }
-.cead-acad-cal-dot { width:7px; height:7px; border-radius:50%; flex:0 0 auto; }
-.cead-acad-cal-ev-t { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.cead-acad-cal-more { font-size:.7rem; color:var(--cead-acad-text-muted); }
-@media (max-width:640px){ .cead-acad-cal-cell{ min-height:62px; } .cead-acad-cal-ev-t{ display:none; } .cead-acad-cal-ev{ justify-content:center; padding:.18rem; } }
+.cead-acad-cal-cell.is-out .cead-acad-cal-day { opacity:.34; }
+.cead-acad-cal-cell.is-out .cead-acad-cal-ev { opacity:.5; }
+
+.cead-acad-cal-day {
+	display:inline-flex; align-items:center; justify-content:center;
+	align-self:flex-start; min-width:26px; height:26px;
+	font-family:var(--cead-acad-font-display); font-size:.92rem; line-height:1;
+	color:var(--cead-acad-ink);
+}
+.cead-acad-cal-cell.is-today { box-shadow:inset 0 0 0 2px var(--cead-acad-brand); z-index:1; }
+.cead-acad-cal-cell.is-today .cead-acad-cal-day { background:var(--cead-acad-brand); color:#fff; border-radius:50%; }
+
+.cead-acad-cal-evs { display:flex; flex-direction:column; gap:.2rem; min-width:0; }
+
+.cead-acad-cal-ev {
+	position:relative; display:flex; align-items:center; gap:.34rem; min-width:0;
+	text-decoration:none; color:var(--cead-acad-ink);
+	font-size:.72rem; line-height:1.25;
+	padding:.18rem .32rem .18rem .42rem;
+	background:var(--cead-acad-canvas);
+	border-left:3px solid var(--ev,var(--cead-acad-border));
+	transition:background .16s ease, transform .16s ease;
+}
+.cead-acad-cal-ev:hover { transform:translateX(1px); }
+.cead-acad-cal-dot { width:6px; height:6px; border-radius:50%; flex:0 0 auto; background:var(--ev,var(--cead-acad-ink)); }
+.cead-acad-cal-ev-t { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.cead-acad-cal-ev-t b { font-weight:700; font-variant-numeric:tabular-nums; }
+.cead-acad-cal-more { font-family:var(--cead-acad-font-display); font-size:.66rem; letter-spacing:.08em; color:var(--cead-acad-text-muted); padding-left:.42rem; }
+/* Solo aplica al modo compacto de celular; en pantalla grande la grilla ya
+   dice el nombre y la hora, así que la aclaración sobraría. */
+.cead-acad-cal-hint { display:none; }
+
+/* ---- Períodos: una banda, no un evento repetido por día ----
+   Las vacaciones o dos semanas de exámenes son UNA cosa larga. La celda tiene
+   .3rem de padding, así que la banda se sale de él por los dos lados para
+   tocar el borde y continuar en la celda siguiente; los topes de color marcan
+   dónde empieza y dónde termina de verdad, y la etiqueta se imprime solo ahí
+   (y al reentrar por el lunes). Repetir el nombre en cada celda es lo que hacía
+   que un período de dos semanas se leyera como catorce eventos distintos. */
+.cead-acad-cal-ev--span {
+	margin-inline:-.3rem;
+	padding-inline:.42rem;
+	border-left:0;
+	font-weight:600;
+	background:var(--cead-acad-canvas);
+}
+.cead-acad-cal-ev--span.is-ini { border-left:3px solid var(--ev); padding-left:.3rem; }
+.cead-acad-cal-ev--span.is-fin { border-right:3px solid var(--ev); padding-right:.3rem; }
+.cead-acad-cal-ev--span:hover { transform:none; }
+
+/* El tinte se deriva del color del evento. Va aparte porque sin `color-mix` la
+   declaración cae entera, y sin este bloque el chip se queda con el fondo
+   neutro de arriba —que también funciona—. */
+@supports (background: color-mix(in srgb, red 10%, transparent)) {
+	.cead-acad-cal-ev              { background:color-mix(in srgb, var(--ev) 12%, transparent); }
+	.cead-acad-cal-ev:hover        { background:color-mix(in srgb, var(--ev) 26%, transparent); }
+	.cead-acad-cal-ev--span        { background:color-mix(in srgb, var(--ev) 20%, transparent); }
+	.cead-acad-cal-ev--span:hover  { background:color-mix(in srgb, var(--ev) 32%, transparent); }
+	.cead-acad-cal-cell.is-finde:not(.is-out) { background:color-mix(in srgb, var(--cead-acad-canvas) 55%, #fff); }
+}
+
+@media (max-width:640px){
+	/* A ~50px de ancho por celda no entra texto legible, así que el nombre se
+	   oculta. Pero antes lo que quedaba era un punto de 7px sobre un chip gris:
+	   el color de la categoría —lo único que se podía leer a ese tamaño— se
+	   perdía. Ahora cada evento es una BARRA de su color, se ve de un vistazo
+	   cuántas cosas hay y de qué tipo, la leyenda está justo arriba, y la barra
+	   sigue siendo el enlace al evento. El detalle con nombre y hora vive en la
+	   vista Agenda, que es la que sirve en un celular. */
+	.cead-acad-cal-cell { min-height:84px; padding:.2rem; gap:.2rem; }
+	.cead-acad-cal-day { min-width:22px; height:22px; font-size:.8rem; }
+	.cead-acad-cal-evs { gap:.14rem; }
+	.cead-acad-cal-ev { height:9px; padding:0; border-left:0; background:var(--ev,var(--cead-acad-border)); }
+	.cead-acad-cal-ev:hover { transform:none; }
+	.cead-acad-cal-ev-t, .cead-acad-cal-dot { display:none; }
+	.cead-acad-cal-ev--span { margin-inline:-.2rem; padding-inline:0; }
+	.cead-acad-cal-ev--span.is-ini,
+	.cead-acad-cal-ev--span.is-fin { border:0; }
+	.cead-acad-cal-wd { font-size:.6rem; letter-spacing:.06em; padding:.5rem .15rem; }
+	.cead-acad-cal-more { font-size:.6rem; padding-left:.2rem; }
+	.cead-acad-cal-legend { margin-left:0; width:100%; }
+	.cead-acad-cal-toggle a { padding:.5rem .8rem; }
+	.cead-acad-cal-hint { display:block; margin:.7rem 0 0; font-size:.78rem; line-height:1.45; color:var(--cead-acad-text-muted); }
+}
 
 /* ===================== Carné digital ===================== */
 .cead-acad-carne { max-width:560px; border-radius:var(--cead-acad-radius); overflow:hidden; border:1px solid var(--cead-acad-border); background:#fff; box-shadow:0 18px 50px rgba(0,0,0,.10); margin-top:1.5rem; }
@@ -1313,9 +1450,17 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 [data-theme="dark"] .cead-acad-cats a.is-active,
 [data-theme="dark"] .cead-acad-cal-toggle a.is-active { background:var(--cead-acad-brand); border-color:var(--cead-acad-brand); color:#fff; }
 
-/* Detalles del calendario y hovers */
-[data-theme="dark"] .cead-acad-cal-ev { background:#262a32; }
+/* Detalles del calendario y hovers.
+   El chip del evento NO se pisa acá: su fondo es el color del tipo mezclado
+   con `transparent`, así que se apoya solo sobre la celda oscura y sigue
+   diciendo de qué tipo es. Poniéndole un gris fijo se perdía justo eso. */
 [data-theme="dark"] .cead-acad-cal-cell.is-out { background:#101216; }
+[data-theme="dark"] .cead-acad-cal-cell.is-finde:not(.is-out) { background:#181b21; }
+[data-theme="dark"] .cead-acad-cal-row--head { background:#0f1115; }
+[data-theme="dark"] .cead-acad-calnav-arrow,
+[data-theme="dark"] .cead-acad-calnav-hoy { background:#1d2027; border-color:#2b2f37; }
+[data-theme="dark"] .cead-acad-calnav-arrow:hover,
+[data-theme="dark"] .cead-acad-calnav-hoy:hover { background:var(--cead-acad-brand); border-color:var(--cead-acad-brand); color:#fff; }
 [data-theme="dark"] .cead-acad-notif-item:hover,
 [data-theme="dark"] .cead-acad-feed-item:hover,
 [data-theme="dark"] .cead-acad-agenda-item:hover { background:#262a32; }
@@ -1340,6 +1485,15 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 .cead-acad-grid > *:nth-child(5),  .cead-acad-quick > *:nth-child(5)  { animation-delay:.19s; }
 .cead-acad-grid > *:nth-child(6),  .cead-acad-quick > *:nth-child(6)  { animation-delay:.23s; }
 .cead-acad-grid > *:nth-child(n+7) { animation-delay:.27s; }
+
+/* La grilla del mes entra semana por semana: el mes se arma en vez de
+   aparecer de golpe. La cabecera de días queda quieta, que es la referencia. */
+.cead-acad-cal-row:not(.cead-acad-cal-row--head) { animation: cead-fade-up .4s cubic-bezier(0.34,1.56,0.64,1) both; }
+.cead-acad-cal-row:nth-child(2) { animation-delay:.04s; }
+.cead-acad-cal-row:nth-child(3) { animation-delay:.08s; }
+.cead-acad-cal-row:nth-child(4) { animation-delay:.12s; }
+.cead-acad-cal-row:nth-child(5) { animation-delay:.16s; }
+.cead-acad-cal-row:nth-child(n+6) { animation-delay:.2s; }
 
 /* Tarjetas-enlace: elevación al pasar el cursor */
 .cead-acad-card--link { transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }

@@ -2785,37 +2785,99 @@ p { margin: 0; }
 
 .cal-body { padding: 0 0 4rem; }
 
+/* El color del tipo de evento llega en una sola propiedad, `--ev`, puesta
+   inline por la plantilla; el punto, el tinte y la banda de un período se
+   derivan de ahí. Mismo modelo que el calendario del panel: si los dos
+   calendarios pintaran distinto, el mismo feriado se vería de dos formas. */
 .cal-legend { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; margin: 0 0 1.75rem; }
 .cal-legend li { display: flex; align-items: center; gap: .4rem; font-size: .85rem; color: var(--text-secondary); }
-.cal-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.cal-legend-dot { width: 11px; height: 11px; flex: 0 0 auto; background: var(--ev, var(--border-cead)); }
 
 .cal-nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
 .cal-nav-month { font-family: var(--font-display); text-transform: uppercase; font-size: 1.3rem; color: var(--ink); }
 
-.cal-grid { border: 1px solid var(--border-cead); border-radius: 4px; overflow: hidden; }
+.cal-grid { border: 1px solid var(--border-cead); border-radius: 4px; overflow: hidden; background: #fff; box-shadow: 0 14px 40px rgba(0, 0, 0, .06); }
 .cal-row { display: grid; grid-template-columns: repeat(7, 1fr); }
-.cal-row--head { background: var(--canvas-soft); }
-.cal-wd { padding: .6rem .4rem; text-align: center; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+.cal-row--head { background: var(--ink); }
+.cal-wd { padding: .65rem .4rem; text-align: center; font-family: var(--font-display); font-size: .7rem; text-transform: uppercase; letter-spacing: .16em; color: rgba(255, 255, 255, .78); }
+.cal-wd.is-finde { color: rgba(255, 255, 255, .44); }
 .cal-cell {
-  min-height: 96px;
-  padding: .4rem;
+  min-height: 118px;
+  padding: .35rem;
   border-top: 1px solid var(--border-cead);
   border-left: 1px solid var(--border-cead);
   display: flex;
   flex-direction: column;
-  gap: .2rem;
+  gap: .22rem;
 }
 .cal-row .cal-cell:first-child { border-left: 0; }
-.cal-cell.is-out { background: var(--canvas-soft); opacity: .55; }
-.cal-cell.is-today { background: var(--brand-tint); }
-.cal-day { font-size: .8rem; font-weight: 700; color: var(--ink); }
-.cal-ev { display: flex; align-items: center; gap: .3rem; font-size: .7rem; line-height: 1.15; overflow: hidden; }
-.cal-ev-dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; }
-.cal-ev-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cal-more { font-size: .68rem; color: var(--text-muted); }
+/* Tres superficies: día del mes, fin de semana, día de otro mes. */
+.cal-cell.is-out { background: var(--canvas-soft); }
+.cal-cell.is-out .cal-day { opacity: .34; }
+.cal-cell.is-out .cal-ev { opacity: .5; }
+.cal-day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  min-width: 26px;
+  height: 26px;
+  font-family: var(--font-display);
+  font-size: .9rem;
+  line-height: 1;
+  color: var(--ink);
+}
+.cal-cell.is-today { box-shadow: inset 0 0 0 2px var(--brand); }
+.cal-cell.is-today .cal-day { background: var(--brand); color: #fff; border-radius: 50%; }
+
+.cal-ev {
+  display: flex;
+  align-items: center;
+  gap: .34rem;
+  min-width: 0;
+  font-size: .7rem;
+  line-height: 1.25;
+  padding: .16rem .3rem .16rem .4rem;
+  background: var(--canvas-soft);
+  border-left: 3px solid var(--ev, var(--border-cead));
+  color: var(--ink);
+}
+.cal-ev-dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; background: var(--ev, var(--ink)); }
+.cal-ev-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.cal-more { font-size: .68rem; color: var(--text-muted); padding-left: .4rem; }
+
+/* Un período (vacaciones, semana de exámenes) es UNA banda que cruza la
+   semana, no el mismo evento repetido siete veces: se sale del padding de la
+   celda para tocar el borde y seguir en la siguiente, y los topes de color
+   marcan dónde empieza y dónde termina de verdad. */
+.cal-ev--span {
+  margin-inline: -.35rem;
+  padding-inline: .4rem;
+  border-left: 0;
+  font-weight: 600;
+}
+.cal-ev--span.is-ini { border-left: 3px solid var(--ev); padding-left: .3rem; }
+.cal-ev--span.is-fin { border-right: 3px solid var(--ev); padding-right: .3rem; }
+
+@supports (background: color-mix(in srgb, red 10%, transparent)) {
+  .cal-ev { background: color-mix(in srgb, var(--ev) 12%, transparent); }
+  .cal-ev--span { background: color-mix(in srgb, var(--ev) 20%, transparent); }
+  .cal-cell.is-finde:not(.is-out) { background: color-mix(in srgb, var(--canvas-soft) 55%, #fff); }
+}
+
 @media (max-width: 640px) {
-  .cal-cell { min-height: 60px; }
-  .cal-ev-t { display: none; }
+  /* A ~50px de ancho por celda no entra texto legible. Antes lo que quedaba era
+     un punto de 6px y nada más; ahora cada evento es una barra de su color, con
+     la leyenda justo arriba, y el detalle con nombre y fecha está en «Próximas
+     fechas», debajo de la grilla. */
+  .cal-cell { min-height: 78px; padding: .22rem; gap: .16rem; }
+  .cal-day { min-width: 22px; height: 22px; font-size: .78rem; }
+  .cal-ev { height: 9px; padding: 0; border-left: 0; background: var(--ev, var(--border-cead)); }
+  .cal-ev-t, .cal-ev-dot { display: none; }
+  .cal-ev--span { margin-inline: -.22rem; padding-inline: 0; }
+  .cal-ev--span.is-ini, .cal-ev--span.is-fin { border: 0; }
+  .cal-wd { font-size: .6rem; letter-spacing: .06em; padding: .5rem .15rem; }
+  .cal-more { font-size: .6rem; padding-left: .22rem; }
 }
 
 .cal-agenda-section { padding: 0 0 6rem; }
@@ -2828,7 +2890,7 @@ p { margin: 0; }
   gap: .3rem .75rem;
   padding: .75rem 1rem;
   background: var(--canvas-soft);
-  border-left: 3px solid var(--brand);
+  border-left: 3px solid var(--ev, var(--brand));
   border-radius: 2px;
 }
 .cal-agenda-date { font-weight: 700; color: var(--ink); }
