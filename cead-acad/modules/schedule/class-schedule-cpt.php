@@ -9,7 +9,31 @@ class Cead_Acad_Schedule_CPT {
 
 	const POST_TYPE = 'cead_acad_event';
 
-	const TYPES = [ 'clase', 'reunion', 'examen', 'evento' ];
+	/*
+	 * Variedad a propósito: un colegio real tiene eventos de naturaleza muy
+	 * distinta —académicos, administrativos, sociales, de descanso— y
+	 * mientras más específico el tipo, menos eventos caen en el cajón
+	 * genérico "evento" (que es donde se pierden en el calendario).
+	 */
+	const TYPES = [ 'clase', 'reunion', 'examen', 'entrega', 'feriado', 'acto', 'excursion', 'cierre', 'evento' ];
+
+	/**
+	 * Color por defecto de cada tipo, para cuando el evento no trae uno
+	 * propio (`_cead_acad_event_color`). "cierre" es el único pensado para
+	 * períodos largos (vacaciones, período de exámenes) — un color apagado
+	 * a propósito, porque se dibuja como franja de fondo, no como punto.
+	 */
+	const DEFAULT_COLORS = [
+		'clase'     => '#8A8F98',
+		'reunion'   => '#49A3C8',
+		'examen'    => '#E93B3C',
+		'entrega'   => '#F4B74C',
+		'feriado'   => '#5FAE6B',
+		'acto'      => '#9B6FB0',
+		'excursion' => '#2AAFA0',
+		'cierre'    => '#B08968',
+		'evento'    => '#EDDF58',
+	];
 
 	public function boot() {
 		add_action( 'init',          [ $this, 'register' ], 10 );
@@ -73,15 +97,58 @@ class Cead_Acad_Schedule_CPT {
 				'auth_callback'     => static function () { return current_user_can( 'cead_acad_manage_schedule' ); },
 			] );
 		}
+
+		// Color propio (opcional): vacío = usar el color por defecto del tipo.
+		register_post_meta( self::POST_TYPE, '_cead_acad_event_color', [
+			'type'              => 'string',
+			'single'            => true,
+			'show_in_rest'      => true,
+			'sanitize_callback' => static function ( $value ) { return (string) ( sanitize_hex_color( $value ) ?? '' ); },
+			'auth_callback'     => static function () { return current_user_can( 'cead_acad_manage_schedule' ); },
+		] );
 	}
 
 	public static function type_label( $type ) {
 		$labels = [
-			'clase'   => __( 'Clase', 'cead-acad' ),
-			'reunion' => __( 'Reunión', 'cead-acad' ),
-			'examen'  => __( 'Examen', 'cead-acad' ),
-			'evento'  => __( 'Evento', 'cead-acad' ),
+			'clase'     => __( 'Clase', 'cead-acad' ),
+			'reunion'   => __( 'Reunión', 'cead-acad' ),
+			'examen'    => __( 'Examen', 'cead-acad' ),
+			'entrega'   => __( 'Entrega de trabajo', 'cead-acad' ),
+			'feriado'   => __( 'Feriado', 'cead-acad' ),
+			'acto'      => __( 'Acto', 'cead-acad' ),
+			'excursion' => __( 'Excursión / salida', 'cead-acad' ),
+			'cierre'    => __( 'Fecha de cierre (período largo)', 'cead-acad' ),
+			'evento'    => __( 'Evento', 'cead-acad' ),
 		];
 		return $labels[ $type ] ?? $type;
+	}
+
+	/** Color por defecto del tipo. 'evento' si el tipo no se reconoce. */
+	public static function default_color( $type ) {
+		return self::DEFAULT_COLORS[ $type ] ?? self::DEFAULT_COLORS['evento'];
+	}
+
+	/**
+	 * El color efectivo de un evento: el propio si cargó uno válido, si no el
+	 * de su tipo. Centralizado acá para que el calendario, la agenda y
+	 * cualquier vista nueva se vean siempre consistentes entre sí.
+	 *
+	 * Siempre devuelve 6 dígitos: `sanitize_hex_color()` también acepta la
+	 * forma corta (#abc), y quien pinta con este color a veces le suma un
+	 * sufijo de transparencia (#rrggbbAA) — sobre 3 dígitos eso da una
+	 * cadena inválida que el navegador simplemente ignora.
+	 */
+	public static function event_color( $post_id ) {
+		$own = (string) get_post_meta( (int) $post_id, '_cead_acad_event_color', true );
+		$color = $own !== '' ? $own : self::default_color( (string) get_post_meta( (int) $post_id, '_cead_acad_event_type', true ) ?: 'evento' );
+		return self::to_six_digit_hex( $color );
+	}
+
+	/** #abc → #aabbcc. Cualquier otra cosa se devuelve tal cual. */
+	protected static function to_six_digit_hex( $hex ) {
+		if ( 1 === preg_match( '/^#([0-9A-Fa-f])([0-9A-Fa-f])([0-9A-Fa-f])$/', $hex, $m ) ) {
+			return '#' . $m[1] . $m[1] . $m[2] . $m[2] . $m[3] . $m[3];
+		}
+		return $hex;
 	}
 }

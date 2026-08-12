@@ -1,4 +1,6 @@
-titulo,inicio,fin,tipo,lugar,todo_el_dia,curso,descripcion
-Examen final Matemática,2026-12-10 08:00,2026-12-10 10:00,examen,Aula 12,0,1ro A Ciencias Básicas,
-Reunión de padres,2026-08-20 19:00,2026-08-20 20:30,reunion,Auditorio,0,,
-Acto patrio,2026-05-14 09:00,,evento,Patio,1,,Acto del día de la Independencia
+titulo,inicio,fin,tipo,lugar,todo_el_dia,curso,color,descripcion
+Examen final Matemática,2026-12-10 08:00,2026-12-10 10:00,examen,Aula 12,0,1ro A Ciencias Básicas,,
+Reunión de padres,2026-08-20 19:00,2026-08-20 20:30,reunion,Auditorio,0,,,
+Fundación de Asunción,15/08/2026,,feriado,,1,,,
+Acto patrio,14/05/2026,,acto,Patio,1,,,Acto del día de la Independencia
+Vacaciones de invierno,2026-07-13,2026-07-24,cierre,,1,,#B08968,

@@ -42,6 +42,7 @@ class Cead_Acad_Schedule_Admin {
 		$all   = (bool)   get_post_meta( $post->ID, '_cead_acad_event_all_day',  true );
 		$loc   = (string) get_post_meta( $post->ID, '_cead_acad_event_location', true );
 		$type  = (string) get_post_meta( $post->ID, '_cead_acad_event_type',     true ) ?: 'evento';
+		$color = (string) get_post_meta( $post->ID, '_cead_acad_event_color',    true );
 		?>
 		<table class="form-table">
 			<tr>
@@ -54,6 +55,9 @@ class Cead_Acad_Schedule_Admin {
 							</option>
 						<?php endforeach; ?>
 					</select>
+					<?php if ( 'cierre' === $type ) : ?>
+						<p class="description"><?php esc_html_e( 'Para períodos largos (vacaciones, período de exámenes): se dibuja como franja a lo largo de los días entre Comienzo y Fin, no como un punto. Los días puntuales dentro del período (un examen específico, por ejemplo) se cargan como eventos aparte, del tipo que corresponda.', 'cead-acad' ); ?></p>
+					<?php endif; ?>
 				</td>
 			</tr>
 			<tr>
@@ -71,6 +75,22 @@ class Cead_Acad_Schedule_Admin {
 			<tr>
 				<th><label><?php esc_html_e( 'Lugar', 'cead-acad' ); ?></label></th>
 				<td><input type="text" name="_cead_acad_event_location" value="<?php echo esc_attr( $loc ); ?>" class="regular-text" placeholder="<?php esc_attr_e( 'Aula 12 / Auditorio / Online', 'cead-acad' ); ?>"></td>
+			</tr>
+			<tr>
+				<th><label><?php esc_html_e( 'Color', 'cead-acad' ); ?></label></th>
+				<td>
+					<input type="text" name="_cead_acad_event_color" value="<?php echo esc_attr( $color ); ?>" class="regular-text" placeholder="#RRGGBB" pattern="^#?[0-9A-Fa-f]{6}$" style="max-width:140px">
+					<span style="display:inline-block;width:1.3em;height:1.3em;vertical-align:middle;margin-left:.4em;border:1px solid #dcdcde;background:<?php echo esc_attr( $color ?: Cead_Acad_Schedule_CPT::default_color( $type ) ); ?>"></span>
+					<p class="description">
+						<?php
+						printf(
+							/* translators: %s: color por defecto del tipo, en hex */
+							esc_html__( 'Opcional. Vacío = el color del tipo elegido arriba (ahora mismo: %s).', 'cead-acad' ),
+							'<code>' . esc_html( Cead_Acad_Schedule_CPT::default_color( $type ) ) . '</code>'
+						);
+						?>
+					</p>
+				</td>
 			</tr>
 		</table>
 		<?php
@@ -122,6 +142,11 @@ class Cead_Acad_Schedule_Admin {
 			update_post_meta( $post_id, $key, sanitize_text_field( wp_unslash( $_POST[ $key ] ?? '' ) ) );
 		}
 		update_post_meta( $post_id, '_cead_acad_event_all_day', ! empty( $_POST['_cead_acad_event_all_day'] ) ? 1 : 0 );
+
+		// Color propio: vacío o inválido = usar el del tipo (sanitize_hex_color
+		// devuelve null si no matchea #RRGGBB o #RGB).
+		$color_hex = sanitize_hex_color( wp_unslash( $_POST['_cead_acad_event_color'] ?? '' ) );
+		update_post_meta( $post_id, '_cead_acad_event_color', (string) ( $color_hex ?? '' ) );
 
 		// Audiencias (mismo patrón que broadcasts/surveys).
 		$keep_types  = (array) ( $_POST['audiences']['type']  ?? [] );

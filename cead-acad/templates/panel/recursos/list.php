@@ -8,7 +8,9 @@ $user    = wp_get_current_user();
 $subject = isset( $_GET['materia'] ) ? sanitize_title( wp_unslash( $_GET['materia'] ) ) : '';
 $type    = isset( $_GET['tipo'] )    ? sanitize_title( wp_unslash( $_GET['tipo'] ) )    : '';
 $search  = isset( $_GET['q'] )       ? sanitize_text_field( wp_unslash( $_GET['q'] ) )  : '';
-$paged   = max( 1, (int) ( $_GET['p'] ?? 1 ) );
+// No usar `p`: WordPress lo reserva para "post ID" y redirige al permalink
+// de ese post (ver la nota en panel/comunicados/feed.php).
+$paged   = max( 1, (int) ( $_GET['pag'] ?? 1 ) );
 $per_page = 12;
 
 $only_fav = isset( $_GET['fav'] ) && '1' === (string) $_GET['fav'];
@@ -105,10 +107,10 @@ $body = function () use ( $resources, $subjects, $types, $subject, $type, $searc
 			<?php if ( $paged > 1 || $has_more ) : ?>
 				<nav class="cead-acad-pager">
 					<?php if ( $paged > 1 ) : ?>
-						<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( add_query_arg( 'p', $paged - 1 ) ); ?>">← <?php esc_html_e( 'Anterior', 'cead-acad' ); ?></a>
+						<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( add_query_arg( 'pag', $paged - 1 ) ); ?>">← <?php esc_html_e( 'Anterior', 'cead-acad' ); ?></a>
 					<?php endif; ?>
 					<?php if ( $has_more ) : ?>
-						<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( add_query_arg( 'p', $paged + 1 ) ); ?>"><?php esc_html_e( 'Siguiente', 'cead-acad' ); ?> →</a>
+						<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( add_query_arg( 'pag', $paged + 1 ) ); ?>"><?php esc_html_e( 'Siguiente', 'cead-acad' ); ?> →</a>
 					<?php endif; ?>
 				</nav>
 			<?php endif; ?>

@@ -150,6 +150,13 @@ function cead_site_links() {
 		$links['proyecto'] = [ 'label' => __( 'La plataforma', 'cead' ), 'url' => get_permalink( $proyecto ) ];
 	}
 
+	// Calendario institucional público: mismo criterio que "proyecto", su
+	// contenido sale de la plantilla (eventos del plugin), no del post.
+	$calendario = get_page_by_path( CEAD_CALENDARIO_SLUG );
+	if ( $calendario ) {
+		$links['calendario'] = [ 'label' => __( 'Calendario', 'cead' ), 'url' => get_permalink( $calendario ) ];
+	}
+
 	return $links;
 }
 
@@ -173,6 +180,10 @@ function cead_division_links() {
 /** Slug y plantilla de la página que explica la plataforma. */
 const CEAD_PROYECTO_SLUG     = 'proyecto';
 const CEAD_PROYECTO_TEMPLATE = 'template-proyecto.php';
+
+/** Slug y plantilla del calendario institucional público. */
+const CEAD_CALENDARIO_SLUG     = 'calendario';
+const CEAD_CALENDARIO_TEMPLATE = 'template-calendario.php';
 
 /** Crea las páginas que falten. Idempotente: nunca pisa contenido existente. */
 function cead_seed_pages() {
@@ -210,6 +221,29 @@ function cead_seed_pages() {
 		// sin esto se vería en blanco, que es peor que no existir.
 		update_post_meta( $proyecto->ID, '_wp_page_template', CEAD_PROYECTO_TEMPLATE );
 	}
+
+	/*
+	 * Calendario institucional público. Mismo criterio que la plataforma: se
+	 * siembra en blanco, con la plantilla ya asignada — lo que se ve sale de
+	 * `template-calendario.php`, leyendo los eventos con audiencia "todos"
+	 * del plugin (feriados, actos, períodos de cierre; nunca uno dirigido a
+	 * un curso en particular).
+	 */
+	$calendario = get_page_by_path( CEAD_CALENDARIO_SLUG );
+	if ( ! $calendario ) {
+		$id = wp_insert_post( [
+			'post_title'   => __( 'Calendario', 'cead' ),
+			'post_name'    => CEAD_CALENDARIO_SLUG,
+			'post_status'  => 'publish',
+			'post_type'    => 'page',
+			'post_content' => '',
+		] );
+		if ( $id && ! is_wp_error( $id ) ) {
+			update_post_meta( $id, '_wp_page_template', CEAD_CALENDARIO_TEMPLATE );
+		}
+	} elseif ( get_post_meta( $calendario->ID, '_wp_page_template', true ) !== CEAD_CALENDARIO_TEMPLATE ) {
+		update_post_meta( $calendario->ID, '_wp_page_template', CEAD_CALENDARIO_TEMPLATE );
+	}
 }
 
 /**
@@ -217,7 +251,7 @@ function cead_seed_pages() {
  * se crean solo las nuevas. Sin esto, un sitio ya sembrado nunca recibiría las
  * páginas agregadas después.
  */
-const CEAD_PAGES_SEED_VERSION = '3';
+const CEAD_PAGES_SEED_VERSION = '4';
 
 add_action( 'init', function () {
 	if ( (string) get_option( 'cead_pages_seeded' ) === CEAD_PAGES_SEED_VERSION ) { return; }
