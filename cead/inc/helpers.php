@@ -137,17 +137,28 @@ function cead_audio_button( $texto, $audio = '' ) {
  *
  * @return array<string,array<string,string>> slug => datos de la red
  */
-function cead_social_links() {
-    $redes = [
-        'ig' => [ 'n' => 1, 'name' => 'Instagram', 'handle' => '@cead_felix_de_guarania', 'color' => '#E1306C' ],
-        'fb' => [ 'n' => 2, 'name' => 'Facebook',  'handle' => 'CEAD Félix de Guarania',  'color' => '#1877F2' ],
+function cead_social_defaults() {
+    return [
+        'ig' => [ 'n' => 1, 'name' => 'Instagram', 'handle' => '@cead_felix_de_guarania', 'color' => '#E1306C', 'url' => 'https://www.instagram.com/cead_felix_de_guarania' ],
+        'fb' => [ 'n' => 2, 'name' => 'Facebook',  'handle' => 'CEAD Félix de Guarania',  'color' => '#1877F2', 'url' => 'https://www.facebook.com/100010029333535/' ],
     ];
+}
 
+function cead_social_links() {
     $out = [];
-    foreach ( $redes as $slug => $d ) {
+    foreach ( cead_social_defaults() as $slug => $d ) {
+        /*
+         * El default va acá y no solo en el Customizer, y eso arregla algo que
+         * no se veía: `add_setting()` declara el valor por defecto para el
+         * CONTROL, pero las plantillas leían con `get_theme_mod($id, '')`, o
+         * sea pasando cadena vacía como respaldo. Resultado: abrías el
+         * Customizer, veías la URL de Instagram cargada, y en el sitio no
+         * aparecía ningún botón hasta que alguien entrara a guardar sin
+         * cambiar nada.
+         */
         $url = trim( (string) get_theme_mod( "cead_redes_{$d['n']}_url", '' ) );
         if ( '' === $url || '#' === $url ) {
-            $url = trim( (string) get_theme_mod( "cead_social_{$slug}_url", '' ) );
+            $url = trim( (string) get_theme_mod( "cead_social_{$slug}_url", $d['url'] ) );
         }
         if ( '' === $url || '#' === $url ) { continue; }
 

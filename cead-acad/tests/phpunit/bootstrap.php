@@ -32,6 +32,33 @@ function cead_test_reset_options() {
 	$GLOBALS['cead_test_transients'] = [];
 }
 
+/*
+ * ---- Opciones de TEMA (theme_mod) ----
+ *
+ * El tema guarda sus ajustes acá y no en opciones normales. Se falsean aparte
+ * porque la diferencia importa: `get_theme_mod()` devuelve el respaldo que le
+ * pasa QUIEN LLAMA, no el que declaró el Customizer — que es exactamente el
+ * agujero por el que la URL de Instagram se veía cargada en el Customizer y no
+ * salía en el sitio.
+ */
+$GLOBALS['cead_test_thememods'] = [];
+
+function cead_test_set_theme_mod( $key, $value ) {
+	$GLOBALS['cead_test_thememods'][ $key ] = $value;
+}
+
+function cead_test_reset_theme_mods() {
+	$GLOBALS['cead_test_thememods'] = [];
+}
+
+if ( ! function_exists( 'get_theme_mod' ) ) {
+	function get_theme_mod( $key, $default = false ) {
+		return array_key_exists( $key, $GLOBALS['cead_test_thememods'] )
+			? $GLOBALS['cead_test_thememods'][ $key ]
+			: $default;
+	}
+}
+
 // ---- Store de user meta controlable desde los tests ----
 $GLOBALS['cead_test_usermeta'] = []; // user_id => [ key => value ]
 
@@ -444,6 +471,13 @@ if ( ! function_exists( 'wp_set_object_terms' ) ) {
 
 // ---- Código bajo test ----
 require_once dirname( __DIR__, 2 ) . '/includes/helpers.php';
+/*
+ * Los helpers del TEMA, que es un proyecto hermano en el mismo repositorio.
+ * Entra solo este archivo, y solo porque `cead_social_links()` no necesita nada
+ * de WordPress más allá de `get_theme_mod()`: probar la función de verdad vale
+ * más que reimplementar su criterio en el test y que después se separen.
+ */
+require_once dirname( __DIR__, 3 ) . '/cead/inc/helpers.php';
 require_once dirname( __DIR__, 2 ) . '/modules/courses/class-courses-roster.php';
 require_once dirname( __DIR__, 2 ) . '/modules/courses/class-courses-admin.php';
 require_once dirname( __DIR__, 2 ) . '/admin/class-admin-menu.php';

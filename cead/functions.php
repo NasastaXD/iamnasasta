@@ -101,6 +101,7 @@ require_once CEAD_DIR . '/inc/elementor.php';
 require_once CEAD_DIR . '/inc/public.php';
 require_once CEAD_DIR . '/inc/updates.php';
 require_once CEAD_DIR . '/inc/pages.php';
+require_once CEAD_DIR . '/inc/admin-web.php';
 
 /* ---------- Seeders al activar el tema ----------
  * Marca un flag al activar, e inserta los CPT en el siguiente `init`
