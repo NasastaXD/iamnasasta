@@ -19,6 +19,22 @@
   var openBtn  = document.getElementById('menu-open');
   var closeBtn = document.getElementById('menu-close');
   if (menu && openBtn && closeBtn) {
+    /*
+     * Cuánto tarda el barrido del panel en irse, leído del MISMO token que lo
+     * anima (`--dur-menu` en styles.css).
+     *
+     * Acá había un `700` escrito a mano que replicaba ese token. El día que se
+     * acelerara la transición sin acordarse de esta línea, el overlay quedaba
+     * con `display:block` —invisible pero presente, tapando los clics— 700ms
+     * de más después de cerrarse. Leyéndolo no se puede desincronizar.
+     */
+    var duracionMenu = (function () {
+      var v = getComputedStyle(document.documentElement).getPropertyValue('--dur-menu').trim();
+      var n = parseFloat(v);
+      if (!n) { return 420; }
+      return /ms$/.test(v) ? n : n * 1000;
+    })();
+
     var openMenu = function () {
       menu.classList.remove('hidden');
       requestAnimationFrame(function () { menu.classList.add('is-open'); });
@@ -32,7 +48,7 @@
       menu.classList.remove('is-open');
       document.body.style.overflow = '';
       openBtn.setAttribute('aria-expanded', 'false');
-      setTimeout(function () { menu.classList.add('hidden'); }, 700);
+      setTimeout(function () { menu.classList.add('hidden'); }, duracionMenu);
       if (devolverFoco === true) { openBtn.focus(); }
     };
     openBtn.addEventListener('click', openMenu);

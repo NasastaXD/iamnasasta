@@ -1137,10 +1137,8 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
    gris: el sistema de categorías existía y no se veía.
    ============================================================== */
 
-/* ---- Cabecera ---- */
+/* ---- Cabecera de la pantalla ---- */
 .cead-acad-cal-head { display:flex; justify-content:space-between; align-items:flex-end; gap:1rem 1.5rem; flex-wrap:wrap; margin-bottom:1.25rem; }
-.cead-acad-cal-month { display:flex; align-items:baseline; gap:.55rem; margin:0; }
-.cead-acad-cal-year { font-size:.46em; letter-spacing:.16em; color:var(--cead-acad-text-muted); }
 .cead-acad-cal-tools { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; }
 
 /* Segmentado Mes / Agenda */
@@ -1150,51 +1148,88 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 .cead-acad-cal-toggle a:hover { background:var(--cead-acad-canvas); }
 .cead-acad-cal-toggle a.is-active { background:var(--cead-acad-ink); color:#fff; }
 
-/* ---- Navegación del mes + leyenda ----
-   La leyenda va acá arriba y no al pie: si el color es el que dice de qué se
+/* ---- Leyenda ----
+   Va arriba de la tarjeta y no al pie: si el color es el que dice de qué se
    trata cada banda, la referencia tiene que leerse ANTES de mirar la grilla. */
-.cead-acad-cal-nav { display:flex; gap:.5rem; align-items:center; margin-bottom:1rem; flex-wrap:wrap; }
-.cead-acad-calnav-arrow,
-.cead-acad-calnav-hoy {
-	display:inline-flex; align-items:center; justify-content:center;
-	min-height:40px; padding:0 1rem;
-	border:1px solid var(--cead-acad-border); background:#fff; color:var(--cead-acad-ink);
-	text-decoration:none;
-	font-family:var(--cead-acad-font-display); text-transform:uppercase; letter-spacing:.14em; font-size:.72rem;
-	transition:background .18s ease, border-color .18s ease, color .18s ease, transform .14s ease;
-}
-.cead-acad-calnav-arrow { width:40px; padding:0; font-size:1.05rem; letter-spacing:0; }
-.cead-acad-calnav-arrow:hover,
-.cead-acad-calnav-hoy:hover { background:var(--cead-acad-ink); border-color:var(--cead-acad-ink); color:#fff; }
-.cead-acad-calnav-arrow:active,
-.cead-acad-calnav-hoy:active { transform:scale(.94); }
-
-.cead-acad-cal-legend { display:flex; flex-wrap:wrap; align-items:center; gap:.3rem .9rem; list-style:none; margin:0 0 0 auto; padding:0; }
+.cead-acad-cal-legend { display:flex; flex-wrap:wrap; align-items:center; gap:.3rem .9rem; list-style:none; margin:0 0 1rem; padding:0; }
 .cead-acad-cal-legend li { display:inline-flex; align-items:center; gap:.4rem; font-size:.72rem; color:var(--cead-acad-text-soft); }
 .cead-acad-cal-legend-dot { width:11px; height:11px; flex:0 0 auto; background:var(--ev,var(--cead-acad-border)); }
 
-/* ---- Grilla ---- */
+/* ---- La tarjeta: mes arriba, grilla al medio, navegación abajo ---- */
 .cead-acad-cal { border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); overflow:hidden; background:#fff; box-shadow:0 12px 36px rgba(0,0,0,.06); }
-.cead-acad-cal-row { display:grid; grid-template-columns:repeat(7,1fr); }
-.cead-acad-cal-row--head { background:var(--cead-acad-ink); }
-.cead-acad-cal-wd { padding:.62rem .4rem; text-align:center; font-family:var(--cead-acad-font-display); text-transform:uppercase; letter-spacing:.16em; font-size:.68rem; color:rgba(255,255,255,.76); }
-.cead-acad-cal-wd.is-finde { color:rgba(255,255,255,.42); }
 
-.cead-acad-cal-cell { position:relative; min-height:120px; border-right:1px solid var(--cead-acad-border); border-bottom:1px solid var(--cead-acad-border); padding:.3rem; display:flex; flex-direction:column; gap:.25rem; }
+.cead-acad-cal-topo {
+	display:flex; align-items:center; justify-content:space-between; gap:.75rem;
+	padding:.9rem 1rem;
+	border-bottom:1px solid var(--cead-acad-border);
+}
+.cead-acad-cal-topo-mes {
+	margin:0; flex:1; text-align:center;
+	font-family:var(--cead-acad-font-display); text-transform:uppercase;
+	letter-spacing:.04em; font-size:1.15rem; line-height:1; color:var(--cead-acad-ink);
+}
+.cead-acad-calnav-arrow {
+	display:inline-flex; align-items:center; justify-content:center;
+	width:38px; height:38px; flex:0 0 auto;
+	border:1px solid var(--cead-acad-border); background:#fff; color:var(--cead-acad-ink);
+	text-decoration:none; font-size:1.3rem; line-height:1;
+	transition:background .18s ease, border-color .18s ease, color .18s ease, transform .14s ease;
+}
+.cead-acad-calnav-arrow:hover { background:var(--cead-acad-ink); border-color:var(--cead-acad-ink); color:#fff; }
+.cead-acad-calnav-arrow:active { transform:scale(.92); }
+
+/* Pie: las tres formas de moverse por el calendario, con el mismo peso, como
+   en cualquier selector de fechas. */
+.cead-acad-cal-pie {
+	display:grid; grid-template-columns:repeat(3,1fr);
+	border-top:1px solid var(--cead-acad-border);
+	background:var(--cead-acad-canvas);
+}
+.cead-acad-cal-pie a {
+	padding:.7rem .5rem; text-align:center; text-decoration:none;
+	font-family:var(--cead-acad-font-display); text-transform:uppercase;
+	letter-spacing:.12em; font-size:.68rem; color:var(--cead-acad-text-soft);
+	transition:background .16s ease, color .16s ease;
+}
+.cead-acad-cal-pie a + a { border-left:1px solid var(--cead-acad-border); }
+.cead-acad-cal-pie a:hover { background:#fff; color:var(--cead-acad-ink); }
+.cead-acad-cal-pie a.is-hoy { color:var(--cead-acad-brand-deep); }
+
+/* ---- Grilla ---- */
+.cead-acad-cal-row { display:grid; grid-template-columns:repeat(7,1fr); }
+/* La cabecera de días pasa a ser clara. Con los números del día ahora grandes
+   y oscuros, la barra negra que había arriba peleaba con ellos en vez de
+   ubicarlos. */
+.cead-acad-cal-row--head { background:var(--cead-acad-canvas); }
+.cead-acad-cal-wd { padding:.6rem .4rem; text-align:center; font-family:var(--cead-acad-font-display); text-transform:uppercase; letter-spacing:.16em; font-size:.68rem; color:var(--cead-acad-text-muted); border-bottom:1px solid var(--cead-acad-border); }
+.cead-acad-cal-wd.is-finde { color:var(--cead-acad-text-muted); opacity:.6; }
+
+.cead-acad-cal-cell { position:relative; min-height:128px; border-right:1px solid var(--cead-acad-border); border-bottom:1px solid var(--cead-acad-border); padding:.45rem .35rem; display:flex; flex-direction:column; gap:.3rem; }
 .cead-acad-cal-row .cead-acad-cal-cell:last-child { border-right:0; }
 .cead-acad-cal-row:last-child .cead-acad-cal-cell { border-bottom:0; }
 /* Tres niveles de superficie: día del mes, fin de semana, día de otro mes.
    Antes el fin de semana no se distinguía y contar «el martes que viene» era
    ir pisando cuadrados con el dedo. */
 .cead-acad-cal-cell.is-out { background:var(--cead-acad-canvas); }
-.cead-acad-cal-cell.is-out .cead-acad-cal-day { opacity:.34; }
+.cead-acad-cal-cell.is-out .cead-acad-cal-day { opacity:.45; }
 .cead-acad-cal-cell.is-out .cead-acad-cal-ev { opacity:.5; }
 
+/*
+ * El número del día: la queja concreta era que no se veía.
+ *
+ * Estaba en la display font —una condensada de titular— a .92rem y pegado a la
+ * esquina de la celda: a ese tamaño los dígitos se cierran entre sí y hay que
+ * fijar la vista para leer un 18. Ahora va en la fuente de cuerpo, con cifras
+ * de ancho fijo, más grande y centrado arriba de la celda, que es donde lo
+ * ponen tanto los selectores de fecha como los calendarios de verdad.
+ */
 .cead-acad-cal-day {
 	display:inline-flex; align-items:center; justify-content:center;
-	align-self:flex-start; min-width:26px; height:26px;
-	font-family:var(--cead-acad-font-display); font-size:.92rem; line-height:1;
-	color:var(--cead-acad-ink);
+	align-self:center;
+	min-width:30px; height:30px;
+	font-family:var(--cead-acad-font-body);
+	font-size:1.05rem; font-weight:700; font-variant-numeric:tabular-nums;
+	line-height:1; color:var(--cead-acad-ink);
 }
 .cead-acad-cal-cell.is-today { box-shadow:inset 0 0 0 2px var(--cead-acad-brand); z-index:1; }
 .cead-acad-cal-cell.is-today .cead-acad-cal-day { background:var(--cead-acad-brand); color:#fff; border-radius:50%; }
@@ -1256,18 +1291,22 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 	   cuántas cosas hay y de qué tipo, la leyenda está justo arriba, y la barra
 	   sigue siendo el enlace al evento. El detalle con nombre y hora vive en la
 	   vista Agenda, que es la que sirve en un celular. */
-	.cead-acad-cal-cell { min-height:84px; padding:.2rem; gap:.2rem; }
-	.cead-acad-cal-day { min-width:22px; height:22px; font-size:.8rem; }
+	.cead-acad-cal-cell { min-height:92px; padding:.25rem .18rem; gap:.25rem; }
+	/* El número NO se achica al mismo ritmo que el resto: es lo que se viene a
+	   leer, y en un celular es lo único legible de la celda. */
+	.cead-acad-cal-day { min-width:26px; height:26px; font-size:.98rem; }
 	.cead-acad-cal-evs { gap:.14rem; }
 	.cead-acad-cal-ev { height:9px; padding:0; border-left:0; background:var(--ev,var(--cead-acad-border)); }
 	.cead-acad-cal-ev:hover { transform:none; }
 	.cead-acad-cal-ev-t, .cead-acad-cal-dot { display:none; }
-	.cead-acad-cal-ev--span { margin-inline:-.2rem; padding-inline:0; }
+	.cead-acad-cal-ev--span { margin-inline:-.18rem; padding-inline:0; }
 	.cead-acad-cal-ev--span.is-ini,
 	.cead-acad-cal-ev--span.is-fin { border:0; }
 	.cead-acad-cal-wd { font-size:.6rem; letter-spacing:.06em; padding:.5rem .15rem; }
 	.cead-acad-cal-more { font-size:.6rem; padding-left:.2rem; }
-	.cead-acad-cal-legend { margin-left:0; width:100%; }
+	.cead-acad-cal-topo { padding:.7rem .6rem; }
+	.cead-acad-cal-topo-mes { font-size:1rem; }
+	.cead-acad-cal-pie a { padding:.65rem .3rem; font-size:.62rem; letter-spacing:.06em; }
 	.cead-acad-cal-toggle a { padding:.5rem .8rem; }
 	.cead-acad-cal-hint { display:block; margin:.7rem 0 0; font-size:.78rem; line-height:1.45; color:var(--cead-acad-text-muted); }
 }
@@ -1456,11 +1495,11 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
    diciendo de qué tipo es. Poniéndole un gris fijo se perdía justo eso. */
 [data-theme="dark"] .cead-acad-cal-cell.is-out { background:#101216; }
 [data-theme="dark"] .cead-acad-cal-cell.is-finde:not(.is-out) { background:#181b21; }
-[data-theme="dark"] .cead-acad-cal-row--head { background:#0f1115; }
-[data-theme="dark"] .cead-acad-calnav-arrow,
-[data-theme="dark"] .cead-acad-calnav-hoy { background:#1d2027; border-color:#2b2f37; }
-[data-theme="dark"] .cead-acad-calnav-arrow:hover,
-[data-theme="dark"] .cead-acad-calnav-hoy:hover { background:var(--cead-acad-brand); border-color:var(--cead-acad-brand); color:#fff; }
+[data-theme="dark"] .cead-acad-cal-row--head,
+[data-theme="dark"] .cead-acad-cal-pie { background:#16191f; }
+[data-theme="dark"] .cead-acad-cal-pie a:hover { background:#22262e; }
+[data-theme="dark"] .cead-acad-calnav-arrow { background:#1d2027; border-color:#2b2f37; }
+[data-theme="dark"] .cead-acad-calnav-arrow:hover { background:var(--cead-acad-brand); border-color:var(--cead-acad-brand); color:#fff; }
 [data-theme="dark"] .cead-acad-notif-item:hover,
 [data-theme="dark"] .cead-acad-feed-item:hover,
 [data-theme="dark"] .cead-acad-agenda-item:hover { background:#262a32; }
@@ -1733,49 +1772,96 @@ body,
 }
 
 /* ===================== CEADI en el panel =====================
-   Cerrada es una barra fina abajo; abierta, un panel de chat. La transición
-   entre los dos estados es el gesto que pidieron: la barra "crece" hasta
-   volverse la ventana, no aparece una ventana nueva encima. */
+   Cerrado es un punto abajo a la derecha; tocarlo despliega un menú con las
+   dos formas de hablarle, y de ahí se abre el chat.
+
+   Antes era una barra de 560px anclada abajo al centro. Se veía, pero le
+   cruzaba una franja a todas las pantallas del panel y obligaba a reservarle
+   casi 90px de aire al contenido para no taparlo. */
+
+/* El tamaño del punto vive en un token porque lo necesitan DOS lugares: el
+   botón, y el hueco que hay que dejarle abajo al contenido. Antes ese hueco era
+   un `5.5rem` calculado a ojo desde la altura implícita de la barra: cualquier
+   cambio de padding lo desincronizaba en silencio. */
+:root { --ceadi-punto: 3.5rem; }
 
 .cead-ceadi {
 	position: fixed;
-	left: 50%;
+	right: max(1rem, env(safe-area-inset-right));
 	bottom: max(1rem, env(safe-area-inset-bottom));
-	transform: translateX(-50%);
-	width: min(560px, calc(100vw - 2rem));
 	z-index: 900;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: .6rem;
 }
 
-/* La barra está fija encima de todo, así que el contenido necesita lugar
+/* El punto está fijo encima de todo, así que el contenido necesita lugar
    reservado abajo: si no, la última fila de cualquier lista —o el último botón
    de un formulario— queda tapada para siempre, sin forma de correrla. */
 body.cead-acad-con-ceadi .cead-acad-panel-content {
-	padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+	padding-bottom: calc(var(--ceadi-punto) + 2rem + env(safe-area-inset-bottom));
 }
 
-/* ---- Cerrada ---- */
-.cead-ceadi-barra {
+/* ---- Cerrado: el punto ---- */
+.cead-ceadi-punto {
+	order: 2; /* el menú se despliega ARRIBA del punto, no debajo */
+	width: var(--ceadi-punto);
+	height: var(--ceadi-punto);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+	border: 0;
+	border-radius: 50%;
+	background: var(--cead-acad-brand);
+	color: #fff;
+	cursor: pointer;
+	box-shadow: 0 10px 28px rgba(0,0,0,.24);
+	transition: transform .24s cubic-bezier(.34,1.56,.64,1), box-shadow .24s ease;
+}
+.cead-ceadi-punto:hover  { transform: translateY(-3px) scale(1.04); box-shadow: 0 16px 38px rgba(0,0,0,.3); }
+.cead-ceadi-punto:active { transform: translateY(0) scale(.95); }
+.cead-ceadi-punto-ico { position: relative; z-index: 1; }
+/* Abierto el chat, el punto sobra: el panel ya tiene su ✕. */
+.cead-ceadi[data-estado="abierto"] .cead-ceadi-punto { display: none; }
+
+/* ---- El menú ---- */
+.cead-ceadi-menu {
+	order: 1;
+	width: min(19rem, calc(100vw - 2rem));
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	border: 1px solid var(--cead-acad-border);
+	border-radius: 14px;
+	background: var(--cead-acad-surface, #fff);
+	box-shadow: 0 20px 54px rgba(0,0,0,.24);
+	transform-origin: bottom right;
+	animation: cead-ceadi-abrir .2s cubic-bezier(.2,.9,.25,1) both;
+}
+.cead-ceadi-opcion {
 	display: flex;
 	align-items: center;
-	gap: .7rem;
-	width: 100%;
-	padding: .85rem 1.1rem;
-	border: 1px solid var(--cead-acad-border);
-	border-radius: 999px;
-	background: var(--cead-acad-surface, #fff);
-	box-shadow: 0 10px 34px rgba(0,0,0,.14);
-	cursor: pointer;
-	text-align: left;
+	gap: .75rem;
+	padding: .85rem 1rem;
+	border: 0;
+	background: none;
 	font: inherit;
-	color: var(--cead-acad-text);
-	transition: transform .28s cubic-bezier(.34,1.56,.64,1), box-shadow .28s ease, border-color .2s ease;
+	color: var(--cead-acad-ink);
+	text-align: left;
+	text-decoration: none;
+	cursor: pointer;
+	transition: background .16s ease;
 }
-.cead-ceadi-barra:hover { transform: translateY(-3px); box-shadow: 0 18px 44px rgba(0,0,0,.2); border-color: var(--cead-acad-brand); }
-.cead-ceadi-barra:active { transform: translateY(0) scale(.99); }
-.cead-ceadi-barra-txt { flex: 1; font-weight: 600; }
-.cead-ceadi-barra-hint { opacity: .45; font-size: .9rem; }
+.cead-ceadi-opcion + .cead-ceadi-opcion { border-top: 1px solid var(--cead-acad-border); }
+.cead-ceadi-opcion:hover { background: var(--cead-acad-canvas); }
+.cead-ceadi-opcion-ico { font-size: 1.15rem; flex: 0 0 auto; }
+.cead-ceadi-opcion strong { display: block; font-size: .92rem; }
+.cead-ceadi-opcion small  { display: block; font-size: .76rem; color: var(--cead-acad-text-muted); margin-top: .1rem; }
 
-/* La chispa: late despacio, para que se note que hay algo vivo ahí abajo. */
+/* La chispa: late despacio, para que se note que hay algo vivo ahí abajo.
+   Sobre el punto es un halo alrededor del botón entero. */
 .cead-ceadi-chispa {
 	width: 10px; height: 10px;
 	border-radius: 50%;
@@ -1783,6 +1869,13 @@ body.cead-acad-con-ceadi .cead-acad-panel-content {
 	background: var(--cead-acad-brand);
 	box-shadow: 0 0 0 0 rgba(233,59,60,.5);
 	animation: cead-ceadi-latido 2.6s ease-out infinite;
+}
+.cead-ceadi-punto .cead-ceadi-chispa {
+	position: absolute;
+	inset: 0;
+	width: auto; height: auto;
+	background: none;
+	border-radius: 50%;
 }
 @keyframes cead-ceadi-latido {
 	0%   { box-shadow: 0 0 0 0 rgba(233,59,60,.45); }
@@ -1794,21 +1887,21 @@ body.cead-acad-con-ceadi .cead-acad-panel-content {
 .cead-ceadi-panel {
 	display: flex;
 	flex-direction: column;
+	width: min(23rem, calc(100vw - 2rem));
 	max-height: min(70vh, 560px);
 	border: 1px solid var(--cead-acad-border);
 	border-radius: 18px;
 	background: var(--cead-acad-surface, #fff);
 	box-shadow: 0 24px 70px rgba(0,0,0,.26);
 	overflow: hidden;
-	transform-origin: bottom center;
+	transform-origin: bottom right;
 }
-/* Crece desde la barra: arranca aplastada contra abajo y se despliega. */
-.cead-ceadi[data-estado="abierto"] .cead-ceadi-panel { animation: cead-ceadi-abrir .34s cubic-bezier(.2,.9,.25,1) both; }
+/* Crece desde el punto: arranca aplastado contra la esquina y se despliega. */
+.cead-ceadi[data-estado="abierto"] .cead-ceadi-panel { animation: cead-ceadi-abrir .28s cubic-bezier(.2,.9,.25,1) both; }
 @keyframes cead-ceadi-abrir {
-	from { opacity: 0; transform: translateY(14px) scaleY(.82); }
+	from { opacity: 0; transform: translateY(14px) scale(.9); }
 	to   { opacity: 1; transform: none; }
 }
-.cead-ceadi[data-estado="abierto"] .cead-ceadi-barra { display: none; }
 
 .cead-ceadi-head {
 	display: flex; align-items: center; gap: .7rem;
@@ -1878,21 +1971,26 @@ body.cead-acad-con-ceadi .cead-acad-panel-content {
 .cead-ceadi-form button:hover { transform: scale(1.08); }
 .cead-ceadi-form button:disabled { opacity: .5; cursor: default; transform: none; }
 
-[data-theme="dark"] .cead-ceadi-barra,
+[data-theme="dark"] .cead-ceadi-menu,
 [data-theme="dark"] .cead-ceadi-panel { background: #1d2027; }
+[data-theme="dark"] .cead-ceadi-opcion:hover { background: #262a32; }
 [data-theme="dark"] .cead-ceadi-msg--bot { background: #262a32; }
 [data-theme="dark"] .cead-ceadi-form input { background: #262a32; }
 [data-theme="dark"] .cead-ceadi-msg--error { background: #3a2224; color: #ffb4b5; }
 
-/* En celular ocupa el ancho completo y el chat se hace más alto. */
+/* En celular el chat se hace más alto y usa casi todo el ancho; el punto se
+   queda del mismo tamaño, que es cómodo para el pulgar. */
 @media (max-width: 640px) {
-	.cead-ceadi { width: calc(100vw - 1.5rem); bottom: max(.75rem, env(safe-area-inset-bottom)); }
-	.cead-ceadi-panel { max-height: 76vh; }
+	.cead-ceadi { right: max(.75rem, env(safe-area-inset-right)); bottom: max(.75rem, env(safe-area-inset-bottom)); }
+	.cead-ceadi-panel { width: calc(100vw - 1.5rem); max-height: 76vh; }
+	.cead-ceadi-menu  { width: calc(100vw - 1.5rem); }
 }
 
 @media (prefers-reduced-motion: reduce) {
 	.cead-ceadi-chispa { animation: none; }
 	.cead-ceadi[data-estado="abierto"] .cead-ceadi-panel { animation: none; }
+	.cead-ceadi-menu { animation: none; }
+	.cead-ceadi-punto { transition: none; }
 	.cead-ceadi-msg { animation: none; }
 	.cead-ceadi-pensando span { animation: none; opacity: .6; }
 }

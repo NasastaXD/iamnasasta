@@ -91,11 +91,20 @@ if ( $disponible ) {
 					</ul>
 				<?php endif; ?>
 
-				<div class="cal-nav">
-					<a class="cead-btn cead-btn-light" href="<?php echo esc_url( add_query_arg( 'periodo', $prev ) ); ?>">← <?php esc_html_e( 'Anterior', 'cead' ); ?></a>
-					<h2 class="cal-nav-month"><?php echo esc_html( ucfirst( date_i18n( 'F Y', $first ) ) ); ?></h2>
-					<a class="cead-btn cead-btn-light" href="<?php echo esc_url( add_query_arg( 'periodo', $next ) ); ?>"><?php esc_html_e( 'Siguiente', 'cead' ); ?> →</a>
-				</div>
+				<?php
+				/*
+				 * La navegación vive dentro de la tarjeta —el mes con sus flechas
+				 * arriba, la fila de meses abajo—, igual que en el calendario del
+				 * panel: si los dos se dibujaran distinto, el mismo feriado se
+				 * vería de dos formas según dónde lo mires.
+				 */
+				?>
+				<div class="cal-card">
+					<div class="cal-topo">
+						<a class="cal-arrow" href="<?php echo esc_url( add_query_arg( 'periodo', $prev ) ); ?>" aria-label="<?php esc_attr_e( 'Mes anterior', 'cead' ); ?>"><span aria-hidden="true">‹</span></a>
+						<h2 class="cal-topo-mes"><?php echo esc_html( ucfirst( date_i18n( 'F Y', $first ) ) ); ?></h2>
+						<a class="cal-arrow" href="<?php echo esc_url( add_query_arg( 'periodo', $next ) ); ?>" aria-label="<?php esc_attr_e( 'Mes siguiente', 'cead' ); ?>"><span aria-hidden="true">›</span></a>
+					</div>
 
 				<div class="cal-grid" role="grid">
 					<div class="cal-row cal-row--head" role="row">
@@ -144,6 +153,13 @@ if ( $disponible ) {
 							<?php endfor; ?>
 						</div>
 					<?php endfor; ?>
+				</div>
+
+					<div class="cal-pie">
+						<a href="<?php echo esc_url( add_query_arg( 'periodo', $prev ) ); ?>"><?php esc_html_e( 'Mes anterior', 'cead' ); ?></a>
+						<a class="is-hoy" href="<?php echo esc_url( remove_query_arg( 'periodo' ) ); ?>"><?php esc_html_e( 'Hoy', 'cead' ); ?></a>
+						<a href="<?php echo esc_url( add_query_arg( 'periodo', $next ) ); ?>"><?php esc_html_e( 'Mes siguiente', 'cead' ); ?></a>
+					</div>
 				</div>
 			</div>
 		</section>

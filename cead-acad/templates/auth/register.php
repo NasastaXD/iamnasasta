@@ -25,7 +25,7 @@ $role_display = $invitation && isset( $roles[ $invitation['role'] ] ) ? $roles[ 
 // Textos editables (wp-admin → WhatsApp) que explican el panel y el bot.
 $panel_intro  = (string) get_option( 'cead_acad_panel_intro', __( 'El panel del CEAD es el espacio web donde alumnado y personal gestionan las cosas del colegio: comunicados, horarios, eventos, materiales y más, todo en un solo lugar.', 'cead-acad' ) );
 $ceadi_intro  = (string) get_option( 'cead_acad_ceadi_intro', __( 'CEADI es el asistente del colegio en WhatsApp. Te acerca comunicados, horarios y novedades, y te deja hacer consultas rápidas cuando las necesites.', 'cead-acad' ) );
-$ceadi_number = preg_replace( '/[^0-9]/', '', (string) get_option( 'cead_acad_wa_bot_number', '' ) );
+$ceadi_wa     = cead_acad_wa_link();
 
 // Para links de Alumno/a o Delegado/a SIN curso fijo, el usuario elige su curso.
 $needs_course = ( 'valid' === $status )
@@ -79,9 +79,9 @@ $body  = function () use ( $token, $invitation, $status, $err, $role_display, $p
 			<h2 class="cead-acad-auth-h2"><?php esc_html_e( 'CEADI · el bot del colegio', 'cead-acad' ); ?></h2>
 			<p><?php echo esc_html( $ceadi_intro ); ?></p>
 		<?php endif; ?>
-		<?php if ( $ceadi_number !== '' ) : ?>
+		<?php if ( $ceadi_wa !== '' ) : ?>
 			<p>
-				<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( 'https://wa.me/' . $ceadi_number ); ?>" target="_blank" rel="noopener">
+				<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( $ceadi_wa ); ?>" target="_blank" rel="noopener">
 					<?php esc_html_e( 'Agregar a CEADI', 'cead-acad' ); ?>
 				</a>
 			</p>

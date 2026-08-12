@@ -86,10 +86,9 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 	<section class="cead-acad-panel-section">
 		<div class="cead-acad-cal-head">
 			<div>
-				<span class="cead-acad-eyebrow"><?php esc_html_e( 'Calendario', 'cead-acad' ); ?></span>
-				<h2 class="cead-acad-panel-h cead-acad-cal-month">
-					<?php echo esc_html( ucfirst( date_i18n( 'F', $first ) ) ); ?><span class="cead-acad-cal-year"><?php echo esc_html( date_i18n( 'Y', $first ) ); ?></span>
-				</h2>
+				<span class="cead-acad-eyebrow"><?php esc_html_e( 'CEAD', 'cead-acad' ); ?></span>
+				<?php // El mes lo dice la tarjeta, junto a las flechas que lo cambian. ?>
+				<h2 class="cead-acad-panel-h"><?php esc_html_e( 'Calendario', 'cead-acad' ); ?></h2>
 			</div>
 			<div class="cead-acad-cal-tools">
 				<div class="cead-acad-cal-toggle" role="group" aria-label="<?php esc_attr_e( 'Forma de ver el calendario', 'cead-acad' ); ?>">
@@ -117,21 +116,32 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 		</details>
 
 		<?php if ( 'mes' === $view ) : ?>
-			<div class="cead-acad-cal-nav">
-				<a class="cead-acad-calnav-arrow" href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'periodo' => $prev ], $base ) ); ?>" aria-label="<?php esc_attr_e( 'Mes anterior', 'cead-acad' ); ?>"><span aria-hidden="true">←</span></a>
-				<a class="cead-acad-calnav-hoy" href="<?php echo esc_url( add_query_arg( 'vista', 'mes', $base ) ); ?>"><?php esc_html_e( 'Hoy', 'cead-acad' ); ?></a>
-				<a class="cead-acad-calnav-arrow" href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'periodo' => $next ], $base ) ); ?>" aria-label="<?php esc_attr_e( 'Mes siguiente', 'cead-acad' ); ?>"><span aria-hidden="true">→</span></a>
+			<?php if ( $tipos_mes ) : ?>
+				<ul class="cead-acad-cal-legend" aria-label="<?php esc_attr_e( 'Referencias de color', 'cead-acad' ); ?>">
+					<?php foreach ( array_keys( $tipos_mes ) as $t ) : ?>
+						<li><span class="cead-acad-cal-legend-dot" style="--ev:<?php echo esc_attr( Cead_Acad_Schedule_CPT::default_color( $t ) ); ?>"></span><?php echo esc_html( Cead_Acad_Schedule_CPT::type_label( $t ) ); ?></li>
+					<?php endforeach; ?>
+				</ul>
+			<?php endif; ?>
 
-				<?php if ( $tipos_mes ) : ?>
-					<ul class="cead-acad-cal-legend" aria-label="<?php esc_attr_e( 'Referencias de color', 'cead-acad' ); ?>">
-						<?php foreach ( array_keys( $tipos_mes ) as $t ) : ?>
-							<li><span class="cead-acad-cal-legend-dot" style="--ev:<?php echo esc_attr( Cead_Acad_Schedule_CPT::default_color( $t ) ); ?>"></span><?php echo esc_html( Cead_Acad_Schedule_CPT::type_label( $t ) ); ?></li>
-						<?php endforeach; ?>
-					</ul>
-				<?php endif; ?>
-			</div>
+			<?php
+			/*
+			 * La navegación vive DENTRO de la tarjeta: el mes con sus flechas
+			 * arriba, y abajo la fila de Anterior · Hoy · Siguiente.
+			 *
+			 * Antes eran tres barras apiladas —la cabecera de la página, una fila
+			 * suelta de botones y recién ahí la grilla—, y ninguna de las tres
+			 * decía con fuerza qué mes se estaba mirando.
+			 */
+			?>
+			<div class="cead-acad-cal">
+				<div class="cead-acad-cal-topo">
+					<a class="cead-acad-calnav-arrow" href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'periodo' => $prev ], $base ) ); ?>" aria-label="<?php esc_attr_e( 'Mes anterior', 'cead-acad' ); ?>"><span aria-hidden="true">‹</span></a>
+					<h3 class="cead-acad-cal-topo-mes"><?php echo esc_html( ucfirst( date_i18n( 'F Y', $first ) ) ); ?></h3>
+					<a class="cead-acad-calnav-arrow" href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'periodo' => $next ], $base ) ); ?>" aria-label="<?php esc_attr_e( 'Mes siguiente', 'cead-acad' ); ?>"><span aria-hidden="true">›</span></a>
+				</div>
 
-			<div class="cead-acad-cal" role="grid">
+				<div class="cead-acad-cal-grid" role="grid">
 				<div class="cead-acad-cal-row cead-acad-cal-row--head" role="row">
 					<?php foreach ( $wd as $i => $d ) : ?><div class="cead-acad-cal-wd<?php echo $i >= 5 ? ' is-finde' : ''; ?>" role="columnheader"><?php echo esc_html( $d ); ?></div><?php endforeach; ?>
 				</div>
@@ -189,6 +199,13 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 						<?php endfor; ?>
 					</div>
 				<?php endfor; ?>
+				</div>
+
+				<div class="cead-acad-cal-pie">
+					<a href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'periodo' => $prev ], $base ) ); ?>"><?php esc_html_e( 'Mes anterior', 'cead-acad' ); ?></a>
+					<a class="is-hoy" href="<?php echo esc_url( add_query_arg( 'vista', 'mes', $base ) ); ?>"><?php esc_html_e( 'Hoy', 'cead-acad' ); ?></a>
+					<a href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'periodo' => $next ], $base ) ); ?>"><?php esc_html_e( 'Mes siguiente', 'cead-acad' ); ?></a>
+				</div>
 			</div>
 
 			<?php
