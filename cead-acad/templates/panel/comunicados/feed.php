@@ -4,8 +4,15 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+/*
+ * La paginación NO usa `p`: es el query var que WordPress reserva para "post
+ * ID" (`?p=123` = mostrar ESE post). Con `p` acá, el `WP_Query` principal
+ * podía resolverlo como "mostrar el post con ese ID" y `redirect_canonical()`
+ * mandaba al visitante al permalink de ese post — un comunicado cualquiera,
+ * en vez de la página siguiente del feed.
+ */
 $user      = wp_get_current_user();
-$paged     = max( 1, (int) ( $_GET['p'] ?? 1 ) );
+$paged     = max( 1, (int) ( $_GET['pag'] ?? 1 ) );
 $category  = isset( $_GET['cat'] ) ? sanitize_title( wp_unslash( $_GET['cat'] ) ) : '';
 $per_page  = 10;
 
@@ -67,10 +74,10 @@ $body = function () use ( $posts, $read_ids, $categories, $category, $paged, $pe
 			if ( $paged > 1 || $has_more ) : ?>
 				<nav class="cead-acad-pager">
 					<?php if ( $paged > 1 ) : ?>
-						<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( add_query_arg( [ 'p' => $paged - 1, 'cat' => $category ?: null ], cead_acad_url( 'panel/comunicados' ) ) ); ?>">← <?php esc_html_e( 'Anterior', 'cead-acad' ); ?></a>
+						<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( add_query_arg( [ 'pag' => $paged - 1, 'cat' => $category ?: null ], cead_acad_url( 'panel/comunicados' ) ) ); ?>">← <?php esc_html_e( 'Anterior', 'cead-acad' ); ?></a>
 					<?php endif; ?>
 					<?php if ( $has_more ) : ?>
-						<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( add_query_arg( [ 'p' => $paged + 1, 'cat' => $category ?: null ], cead_acad_url( 'panel/comunicados' ) ) ); ?>"><?php esc_html_e( 'Siguiente', 'cead-acad' ); ?> →</a>
+						<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( add_query_arg( [ 'pag' => $paged + 1, 'cat' => $category ?: null ], cead_acad_url( 'panel/comunicados' ) ) ); ?>"><?php esc_html_e( 'Siguiente', 'cead-acad' ); ?> →</a>
 					<?php endif; ?>
 				</nav>
 			<?php endif; ?>

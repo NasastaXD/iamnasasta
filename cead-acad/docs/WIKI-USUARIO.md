@@ -113,10 +113,13 @@ Tu **horario semanal de clases** (materias, horas, docentes y aula) según tu cu
 Si sos **delegado/a, docente, secretaría o dirección**, además tenés una sección aparte para **consultar el horario de otros cursos** (de solo lectura) — no reemplaza el tuyo, es una consulta extra.
 
 ### 📅 Calendario
-**Eventos** (reuniones, exámenes, actos…) en **vista mensual** o **agenda**. Incluye:
-- Navegación por mes y colores por tipo de evento.
+**Eventos** (reuniones, exámenes, feriados, actos, excursiones, entregas, períodos de cierre…) en **vista mensual** o **agenda**. Incluye:
+- Navegación por mes y colores por tipo de evento (cada tipo tiene un color por defecto; un evento puede tener uno propio).
+- Los eventos de varios días (**fecha de cierre**: vacaciones, período de exámenes) se ven en TODOS los días que abarcan, no solo el primero.
 - **Sincronizar con el celular**: botón para **Google Calendar** y **Apple/iPhone** (suscripción iCal) — los eventos aparecen y se actualizan solos en tu calendario.
 > Los horarios de clases **no** se mezclan acá; están en "Horarios".
+
+Los eventos institucionales (sin curso asignado: feriados, actos, períodos de cierre) también se ven, sin necesidad de iniciar sesión, en `/calendario` — la página pública del sitio.
 
 ### 📝 Mis tareas
 Tareas de tu curso con **fecha de vencimiento** (resalta "vence hoy/vencida"), prioridad, **marcar como hecha** y **subir tu entrega** (archivo).
@@ -249,7 +252,7 @@ Acceso para dirección/secretaría desde `wp-admin`. El **Escritorio** tiene est
 | **Eventos** | Reuniones, exámenes, actos del calendario. |
 | **Recursos** | Subir materiales pedagógicos. |
 | **Tareas (delegado)** | Tareas asignadas a cursos. |
-| **Importadores** | Cargar por archivo CSV/Excel: **Alumnado, Calificaciones, Cursos, Horario de clases, Horarios/eventos**. El "Horario de clases" carga la grilla semanal de todos los cursos de una vez — pensado para una planilla real de secretaría, no para tipear fila por fila. Funciona desde cualquier dispositivo; en pantalla chica, la tabla de mapeo se desplaza de costado. Cada import ya hecho tiene un botón **"Borrar lo importado"** para deshacerlo en masa (por ejemplo, al empezar un año nuevo). |
+| **Importadores** | Cargar por archivo CSV/Excel: **Alumnado, Calificaciones, Cursos, Horario de clases, Horarios/eventos**. El "Horario de clases" carga la grilla semanal de todos los cursos de una vez — pensado para una planilla real de secretaría, no para tipear fila por fila. "Horarios/eventos" acepta fechas en formato **AAAA-MM-DD o DD/MM/AAAA** (feriados y fechas célebres, sin curso asignado, quedan visibles para todo el mundo) y un **color propio opcional** por fila (#RRGGBB; vacío = el color del tipo). Funciona desde cualquier dispositivo; en pantalla chica, la tabla de mapeo se desplaza de costado. Cada import ya hecho tiene un botón **"Borrar lo importado"** para deshacerlo en masa (por ejemplo, al empezar un año nuevo). |
 | **WhatsApp** | Estado del bridge, comunicados por WA, reportes, métricas, mensaje directo y **perfil de CEADI**. |
 | **Actualizaciones** | Ver/actualizar la versión del plugin (ver §9). |
 

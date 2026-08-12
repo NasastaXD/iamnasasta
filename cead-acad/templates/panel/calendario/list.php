@@ -1,6 +1,15 @@
 <?php
 /**
- * /panel/calendario: vista mensual (grilla) o agenda. ?vista=mes|agenda, ?m=YYYY-MM
+ * /panel/calendario: vista mensual (grilla) o agenda. ?vista=mes|agenda, ?periodo=YYYY-MM
+ *
+ * El parámetro de mes NO se llama `m`: es el query var que WordPress usa para
+ * archivos por fecha (`?m=YYYYMM`). Con `m` en la URL, el `WP_Query` principal
+ * detectaba un archivo de fecha antes de que este router propio llegara a
+ * correr, y `redirect_canonical()` mandaba al visitante a la URL "canónica"
+ * de ese archivo — la página de posts normales de ese mes, que es lo que se
+ * veía como "te redirige a los artículos". Aparte de este: cualquier query
+ * var propio en el panel tiene que evitar los reservados de WordPress (m, p,
+ * cat, s, page, ...), no solo este.
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
@@ -9,7 +18,7 @@ $user = wp_get_current_user();
 $view = isset( $_GET['vista'] ) && 'agenda' === $_GET['vista'] ? 'agenda' : 'mes';
 
 // Mes solicitado (YYYY-MM), con fallback al actual.
-$month_param = isset( $_GET['m'] ) ? preg_replace( '/[^0-9\-]/', '', (string) $_GET['m'] ) : '';
+$month_param = isset( $_GET['periodo'] ) ? preg_replace( '/[^0-9\-]/', '', (string) $_GET['periodo'] ) : '';
 $cur_ts = current_time( 'timestamp' );
 $first  = false;
 if ( $month_param && preg_match( '/^(\d{4})-(\d{1,2})$/', $month_param, $mm ) ) {
@@ -34,11 +43,32 @@ $from   = date( 'Y-m-d 00:00:00', $grid_start );
 $to     = date( 'Y-m-d 23:59:59', $grid_end );
 $events = Cead_Acad_Schedule_Feed::for_user( $user->ID, $from, $to, 300 );
 
+/*
+ * Un evento se agrega a TODOS los días que abarca, no solo al de inicio.
+ * Antes solo se agregaba al día de `_cead_acad_event_start`, así que un
+ * período de varios días ("cierre": vacaciones, exámenes) solo se veía en
+ * la grilla el primer día y desaparecía el resto — quedaba invisible
+ * justo donde más hacía falta verlo.
+ */
 $by_date = [];
 foreach ( $events as $e ) {
 	$st = (string) get_post_meta( $e->ID, '_cead_acad_event_start', true );
-	$k  = $st ? date( 'Y-m-d', strtotime( $st ) ) : '';
-	if ( $k ) { $by_date[ $k ][] = $e; }
+	if ( ! $st ) { continue; }
+	$start_ts = strtotime( $st );
+	if ( ! $start_ts ) { continue; }
+	$en = (string) get_post_meta( $e->ID, '_cead_acad_event_end', true );
+	$end_ts = $en ? strtotime( $en ) : $start_ts;
+	if ( ! $end_ts || $end_ts < $start_ts ) { $end_ts = $start_ts; }
+
+	$day_ts = strtotime( date( 'Y-m-d', $start_ts ) );
+	$last_day_ts = strtotime( date( 'Y-m-d', $end_ts ) );
+	// Tope de 366 días: una fecha de fin mal tipeada (año equivocado) no
+	// tiene por qué colgar la página rellenando la grilla entera.
+	$last_day_ts = min( $last_day_ts, $day_ts + 366 * DAY_IN_SECONDS );
+	while ( $day_ts <= $last_day_ts ) {
+		$by_date[ date( 'Y-m-d', $day_ts ) ][] = $e;
+		$day_ts += DAY_IN_SECONDS;
+	}
 }
 
 // Para la vista agenda (próximos 60 días).
@@ -46,15 +76,6 @@ $ag_from = current_time( 'Y-m-d 00:00:00' );
 $ag_to   = date( 'Y-m-d 23:59:59', strtotime( '+60 days', $cur_ts ) );
 $ag_events = 'agenda' === $view ? Cead_Acad_Schedule_Feed::for_user( $user->ID, $ag_from, $ag_to, 200 ) : [];
 $by_day    = 'agenda' === $view ? Cead_Acad_Schedule_Feed::group_by_day( $ag_events ) : [];
-
-$type_color = [
-	'examen'   => '#E93B3C',
-	'entrega'  => '#F4B74C',
-	'reunion'  => '#49A3C8',
-	'feriado'  => '#5FAE6B',
-	'acto'     => '#9B6FB0',
-	'evento'   => '#EDDF58',
-];
 
 // Feed iCal suscribible.
 $feed_token  = Cead_Acad_Account::feed_token( $user->ID );
@@ -64,7 +85,7 @@ $gcal_url    = 'https://calendar.google.com/calendar/r?cid=' . rawurlencode( $fe
 
 $page_title = __( 'Calendario', 'cead-acad' );
 
-$body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, $by_date, $prev, $next, $cur_ts, $type_color, $by_day, $ag_events, $feed_https, $feed_webcal, $gcal_url ) {
+$body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, $by_date, $prev, $next, $cur_ts, $by_day, $ag_events, $feed_https, $feed_webcal, $gcal_url ) {
 	$today_key = date( 'Y-m-d', $cur_ts );
 	$wd = [ __( 'Lun', 'cead-acad' ), __( 'Mar', 'cead-acad' ), __( 'Mié', 'cead-acad' ), __( 'Jue', 'cead-acad' ), __( 'Vie', 'cead-acad' ), __( 'Sáb', 'cead-acad' ), __( 'Dom', 'cead-acad' ) ];
 	$base = cead_acad_url( 'panel/calendario' );
@@ -77,7 +98,7 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 			</div>
 			<div class="cead-acad-cal-tools">
 				<div class="cead-acad-cal-toggle">
-					<a class="<?php echo 'mes' === $view ? 'is-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'm' => $y . '-' . str_pad( $n, 2, '0', STR_PAD_LEFT ) ], $base ) ); ?>"><?php esc_html_e( 'Mes', 'cead-acad' ); ?></a>
+					<a class="<?php echo 'mes' === $view ? 'is-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'periodo' => $y . '-' . str_pad( $n, 2, '0', STR_PAD_LEFT ) ], $base ) ); ?>"><?php esc_html_e( 'Mes', 'cead-acad' ); ?></a>
 					<a class="<?php echo 'agenda' === $view ? 'is-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( 'vista', 'agenda', $base ) ); ?>"><?php esc_html_e( 'Agenda', 'cead-acad' ); ?></a>
 				</div>
 				<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=cead_acad_event_ical' ), 'cead_acad_event_ical' ) ); ?>"><?php esc_html_e( 'iCal', 'cead-acad' ); ?></a>
@@ -102,9 +123,9 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 
 		<?php if ( 'mes' === $view ) : ?>
 			<div class="cead-acad-cal-nav">
-				<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'm' => $prev ], $base ) ); ?>">← <?php esc_html_e( 'Anterior', 'cead-acad' ); ?></a>
+				<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'periodo' => $prev ], $base ) ); ?>">← <?php esc_html_e( 'Anterior', 'cead-acad' ); ?></a>
 				<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( add_query_arg( 'vista', 'mes', $base ) ); ?>"><?php esc_html_e( 'Hoy', 'cead-acad' ); ?></a>
-				<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'm' => $next ], $base ) ); ?>"><?php esc_html_e( 'Siguiente', 'cead-acad' ); ?> →</a>
+				<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( add_query_arg( [ 'vista' => 'mes', 'periodo' => $next ], $base ) ); ?>"><?php esc_html_e( 'Siguiente', 'cead-acad' ); ?> →</a>
 			</div>
 
 			<div class="cead-acad-cal" role="grid">
@@ -126,11 +147,12 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 								foreach ( $shown as $e ) :
 									$type = (string) get_post_meta( $e->ID, '_cead_acad_event_type', true ) ?: 'evento';
 									$st   = (string) get_post_meta( $e->ID, '_cead_acad_event_start', true );
-									$col  = $type_color[ $type ] ?? 'var(--cead-acad-brand)';
+									$col  = Cead_Acad_Schedule_CPT::event_color( $e->ID );
+									$is_span = 'cierre' === $type;
 								?>
-									<a class="cead-acad-cal-ev" href="<?php echo esc_url( cead_acad_url( 'panel/calendario/' . $e->ID ) ); ?>" title="<?php echo esc_attr( get_the_title( $e ) ); ?>">
-										<span class="cead-acad-cal-dot" style="background:<?php echo esc_attr( $col ); ?>"></span>
-										<span class="cead-acad-cal-ev-t"><?php echo $st ? esc_html( date_i18n( 'H:i', strtotime( $st ) ) . ' ' ) : ''; ?><?php echo esc_html( get_the_title( $e ) ); ?></span>
+									<a class="cead-acad-cal-ev<?php echo $is_span ? ' cead-acad-cal-ev--span' : ''; ?>" href="<?php echo esc_url( cead_acad_url( 'panel/calendario/' . $e->ID ) ); ?>" title="<?php echo esc_attr( get_the_title( $e ) ); ?>" style="<?php echo $is_span ? 'background:' . esc_attr( $col ) . '22;border-left:3px solid ' . esc_attr( $col ) : ''; ?>">
+										<?php if ( ! $is_span ) : ?><span class="cead-acad-cal-dot" style="background:<?php echo esc_attr( $col ); ?>"></span><?php endif; ?>
+										<span class="cead-acad-cal-ev-t"><?php echo ( $st && ! $is_span ) ? esc_html( date_i18n( 'H:i', strtotime( $st ) ) . ' ' ) : ''; ?><?php echo esc_html( get_the_title( $e ) ); ?></span>
 									</a>
 								<?php endforeach; ?>
 								<?php if ( count( $evs ) > 3 ) : ?>
@@ -167,8 +189,9 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 									$loc   = (string) get_post_meta( $e->ID, '_cead_acad_event_location', true );
 									$type  = (string) get_post_meta( $e->ID, '_cead_acad_event_type',     true );
 									$all   = (bool)   get_post_meta( $e->ID, '_cead_acad_event_all_day',  true );
+									$col   = Cead_Acad_Schedule_CPT::event_color( $e->ID );
 								?>
-									<a class="cead-acad-agenda-item cead-acad-agenda-item--<?php echo esc_attr( $type ?: 'evento' ); ?>" href="<?php echo esc_url( cead_acad_url( 'panel/calendario/' . $e->ID ) ); ?>">
+									<a class="cead-acad-agenda-item" style="border-left-color:<?php echo esc_attr( $col ); ?>" href="<?php echo esc_url( cead_acad_url( 'panel/calendario/' . $e->ID ) ); ?>">
 										<div class="cead-acad-agenda-time">
 											<?php if ( $all ) : ?>
 												<span><?php esc_html_e( 'Todo el día', 'cead-acad' ); ?></span>

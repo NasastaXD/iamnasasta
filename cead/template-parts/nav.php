@@ -47,7 +47,7 @@ $nav_groups = array_values( array_filter( [
 	[ 'label' => __( 'Bachilleratos', 'cead' ), 'items' => $divs ?: $pick( [ 'bachilleratos' ] ) ],
 	[ 'label' => __( 'Admisión', 'cead' ),      'items' => $pick( [ 'admision' ] ) ],
 	[ 'label' => __( 'Explorá', 'cead' ),       'items' => array_merge(
-		$pick( [ 'noticias', 'galeria', 'recursos' ] ),
+		$pick( [ 'noticias', 'galeria', 'recursos', 'calendario' ] ),
 		[ [ 'label' => __( 'Contacto', 'cead' ), 'url' => home_url( '/#Contacto' ) ] ]
 	) ],
 ], static function ( $g ) { return ! empty( $g['items'] ); } ) );

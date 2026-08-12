@@ -22,7 +22,33 @@ class Cead_Acad_Schedule_Feed {
 		if ( ! $ids ) {
 			return [];
 		}
+		return self::query( $ids, $from, $to, $limit, $exclude_classes );
+	}
 
+	/**
+	 * Eventos institucionales: audiencia "todos" únicamente (feriados, actos,
+	 * períodos de cierre) — nunca uno dirigido a un curso, rol o persona en
+	 * particular. Es la lista que se puede mostrar en una página PÚBLICA, sin
+	 * login: no depende de quién esté mirando.
+	 *
+	 * @return WP_Post[]
+	 */
+	public static function public_events( $from = null, $to = null, $limit = 200, $exclude_classes = true ) {
+		global $wpdb;
+		$table = cead_acad_table( 'audiences' );
+		$ids = $wpdb->get_col( $wpdb->prepare(
+			"SELECT subject_id FROM {$table} WHERE subject_type = %s AND audience_type = 'all'",
+			'event'
+		) );
+		$ids = array_map( 'intval', $ids ?: [] );
+		if ( ! $ids ) {
+			return [];
+		}
+		return self::query( $ids, $from, $to, $limit, $exclude_classes );
+	}
+
+	/** Consulta compartida por for_user() y public_events(): mismo filtro de fecha/tipo, distinta lista de IDs. */
+	protected static function query( $ids, $from, $to, $limit, $exclude_classes ) {
 		$meta_query = [];
 
 		// El calendario muestra solo eventos; las clases (horario semanal) viven en

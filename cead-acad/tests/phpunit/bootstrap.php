@@ -61,6 +61,43 @@ if ( ! function_exists( 'delete_user_meta' ) ) {
 	}
 }
 
+// ---- Store de post meta controlable desde los tests ----
+$GLOBALS['cead_test_postmeta'] = []; // post_id => [ key => value ]
+
+function cead_test_reset_postmeta() {
+	$GLOBALS['cead_test_postmeta'] = [];
+}
+
+if ( ! function_exists( 'get_post_meta' ) ) {
+	function get_post_meta( $post_id, $key = '', $single = false ) {
+		if ( '' === $key ) {
+			return $GLOBALS['cead_test_postmeta'][ $post_id ] ?? [];
+		}
+		$value = $GLOBALS['cead_test_postmeta'][ $post_id ][ $key ] ?? '';
+		return $single ? $value : [ $value ];
+	}
+}
+if ( ! function_exists( 'update_post_meta' ) ) {
+	function update_post_meta( $post_id, $key, $value ) {
+		$GLOBALS['cead_test_postmeta'][ $post_id ][ $key ] = $value;
+		return true;
+	}
+}
+if ( ! function_exists( 'delete_post_meta' ) ) {
+	function delete_post_meta( $post_id, $key ) {
+		unset( $GLOBALS['cead_test_postmeta'][ $post_id ][ $key ] );
+		return true;
+	}
+}
+if ( ! function_exists( 'sanitize_hex_color' ) ) {
+	function sanitize_hex_color( $color ) {
+		$color = trim( (string) $color );
+		if ( '' === $color ) { return ''; }
+		if ( preg_match( '/^#([A-Fa-f0-9]{3}){1,2}$/', $color ) ) { return $color; }
+		return null;
+	}
+}
+
 // ---- Stubs de WordPress ----
 if ( ! function_exists( 'get_option' ) ) {
 	function get_option( $key, $default = false ) {
@@ -396,6 +433,8 @@ require_once dirname( __DIR__, 2 ) . '/modules/auth/class-invitations.php';
 require_once dirname( __DIR__, 2 ) . '/modules/broadcasts/class-broadcasts-audiences.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-csv-reader.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-base.php';
+require_once dirname( __DIR__, 2 ) . '/modules/schedule/class-schedule-cpt.php';
+require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-events.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-horarios.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-admin.php';
 require_once dirname( __DIR__, 2 ) . '/modules/grades/class-grades-writer.php';
