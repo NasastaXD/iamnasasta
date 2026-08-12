@@ -229,3 +229,21 @@ function cead_acad_rate_limit( $action, $max = 5, $window = 60 ) {
 	set_transient( $key, $count + 1, $window );
 	return true;
 }
+
+/**
+ * El enlace de WhatsApp para agendar a CEADI, o cadena vacía si no hay número.
+ *
+ * El número lo carga la dirección en wp-admin → WhatsApp (opción
+ * `cead_acad_wa_bot_number`) y se guarda como dígitos sueltos, pero nadie
+ * garantiza que quede limpio: alguien lo pega como «+595 991 123-456» y
+ * `wa.me` con espacios no abre nada. Por eso se vuelve a limpiar acá, del lado
+ * de la lectura, que es donde importa.
+ *
+ * Devolver cadena vacía es parte del contrato: quien llama tiene que decidir
+ * qué hacer sin número —esconder el botón, abrir el chat directo— en vez de
+ * imprimir un enlace a `https://wa.me/` que no lleva a ningún lado.
+ */
+function cead_acad_wa_link() {
+	$numero = preg_replace( '/[^0-9]/', '', (string) get_option( 'cead_acad_wa_bot_number', '' ) );
+	return $numero === '' ? '' : 'https://wa.me/' . $numero;
+}

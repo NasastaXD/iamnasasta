@@ -10,30 +10,10 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-$defaults = [
-	1 => [ 'Instagram', '@cead_felix_de_guarania', 'cead_social_ig_url', '#E1306C' ],
-	2 => [ 'Facebook',  'CEAD Félix de Guarania',  'cead_social_fb_url', '#1877F2' ],
-];
-
-$cards = [];
-foreach ( $defaults as $n => $d ) {
-	$url = trim( (string) get_theme_mod( "cead_redes_{$n}_url", '' ) );
-	if ( '' === $url || '#' === $url ) {
-		$url = trim( (string) get_theme_mod( $d[2], '' ) );
-	}
-	if ( '' === $url || '#' === $url ) { continue; }
-
-	// cead_sanitize_hex() devuelve '' si el valor no valida; un custom property
-	// vacío no dispara el fallback de var(), así que se repone acá.
-	$color = trim( (string) get_theme_mod( "cead_redes_{$n}_color", $d[3] ) );
-
-	$cards[] = [
-		'name'   => get_theme_mod( "cead_redes_{$n}_name",   $d[0] ),
-		'handle' => get_theme_mod( "cead_redes_{$n}_handle", $d[1] ),
-		'color'  => '' !== $color ? $color : $d[3],
-		'url'    => $url,
-	];
-}
+// La lista y la resolución de URLs viven en cead_social_links() (inc/helpers.php),
+// compartidas con el footer: antes cada plantilla la armaba por su cuenta y
+// cargar la URL en un lado la mostraba solo en uno de los dos.
+$cards = cead_social_links();
 
 if ( ! $cards ) { return; }
 ?>

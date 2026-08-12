@@ -34,7 +34,10 @@ function cead_setup() {
         'mega'     => __('Mega menú', 'cead'),
         'footer_1' => __('Footer — Institucional', 'cead'),
         'footer_2' => __('Footer — Bachilleratos', 'cead'),
-        'footer_3' => __('Footer — Contacto', 'cead'),
+        // El nombre tiene que ser el de la columna que pinta: se llamaba
+        // «Contacto» y en pantalla el título dice «Comunidad», así que desde el
+        // Customizer no había forma de saber cuál se estaba editando.
+        'footer_3' => __('Footer — Comunidad', 'cead'),
     ]);
 }
 add_action('after_setup_theme', 'cead_setup');

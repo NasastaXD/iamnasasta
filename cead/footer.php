@@ -23,12 +23,38 @@
           }
           ?>
           <a class="footer-address" href="<?php echo esc_url($cead_map); ?>" target="_blank" rel="noopener noreferrer">
-            <span aria-hidden="true">📍</span> <?php echo esc_html($cead_addr); ?>
+            <?php // Un pin dibujado, no el emoji: el emoji cambia de forma y de color en cada sistema. ?>
+            <svg class="footer-address-pin" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span><?php echo esc_html($cead_addr); ?></span>
           </a>
         <?php endif; ?>
         <a href="<?php echo esc_url(get_theme_mod('cead_footer_site_url', 'https://cead.caaguazu.net')); ?>" class="footer-site-link underline-brand">
           <?php echo esc_html(get_theme_mod('cead_footer_site_label', 'cead.caaguazú.net →')); ?>
         </a>
+
+        <?php
+        /*
+         * Las redes van acá, con la marca, y no en una columna propia arrastrada
+         * al borde derecho: son dos, y solas ocupaban una doceava parte del
+         * ancho para dos pastillas que decían «IG» y «FB» en texto.
+         */
+        $cead_redes = cead_social_links();
+        if ($cead_redes): ?>
+          <ul class="footer-socials">
+            <?php foreach ($cead_redes as $r): ?>
+              <li>
+                <a href="<?php echo esc_url($r['url']); ?>" class="footer-social"
+                   target="_blank" rel="noopener noreferrer"
+                   style="--red: <?php echo esc_attr($r['color']); ?>"
+                   aria-label="<?php echo esc_attr($r['name']); ?>">
+                  <?php echo cead_social_icon($r['slug']); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+                </a>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
       </div>
 
       <?php
@@ -47,10 +73,20 @@
           return $out;
       };
 
+      /*
+       * La cuarta posición es la figura de la marca que abre la columna
+       * —cuadrado rojo, rombo azul, círculo naranja, las mismas del logo—. Va
+       * declarada acá y no con un `:nth-of-type` en el CSS porque una columna
+       * sin destinos se saltea: con el conteo del CSS, esconder «Bachilleratos»
+       * le pasaba su forma a «Comunidad».
+       */
       $cols = [
-          [ 'Institucional', 'footer_1', $pick( ['sobre-cead', 'historia', 'honor-code', 'autoridades'] ) ],
-          [ 'Bachilleratos', 'footer_2', cead_division_links() ],
-          [ 'Comunidad',     'footer_3', $pick( ['proyecto', 'admision', 'noticias', 'galeria', 'recursos'] ) ],
+          [ 'Institucional', 'footer_1', $pick( ['sobre-cead', 'historia', 'honor-code', 'autoridades'] ), 'cuadrado' ],
+          [ 'Bachilleratos', 'footer_2', cead_division_links(), 'rombo' ],
+          // `calendario` ya lo devuelve cead_site_links() y el nav lo usa, pero
+          // el footer lo ignoraba: la página pública de fechas no tenía ni una
+          // entrada acá abajo.
+          [ 'Comunidad',     'footer_3', $pick( ['proyecto', 'calendario', 'admision', 'noticias', 'galeria', 'recursos'] ), 'circulo' ],
       ];
 
       foreach ($cols as $c):
@@ -59,7 +95,7 @@
         if (!$tiene_menu && empty($c[2])) { continue; }
         ?>
         <div class="footer-col">
-          <div class="footer-col-title"><?php echo esc_html($c[0]); ?></div>
+          <div class="footer-col-title footer-col-title--<?php echo esc_attr($c[3]); ?>"><?php echo esc_html($c[0]); ?></div>
           <?php if ($tiene_menu): ?>
             <?php wp_nav_menu([
                 'theme_location' => $c[1],
@@ -77,24 +113,6 @@
           <?php endif; ?>
         </div>
       <?php endforeach; ?>
-
-      <div class="footer-socials">
-        <?php
-        // El CEAD solo tiene Instagram y Facebook. Si alguna queda sin URL, esa
-        // pastilla no se imprime (mejor nada que un enlace que no lleva a ningún lado).
-        $socials = [
-            ['cead_social_ig_label', 'cead_social_ig_url', 'IG'],
-            ['cead_social_fb_label', 'cead_social_fb_url', 'FB'],
-        ];
-        foreach ($socials as $s):
-          $s_url = trim((string) get_theme_mod($s[1], ''));
-          if ($s_url === '' || $s_url === '#') { continue; }
-          ?>
-          <a href="<?php echo esc_url($s_url); ?>" class="footer-social-pill" target="_blank" rel="noopener noreferrer" aria-label="<?php echo esc_attr(get_theme_mod($s[0], $s[2])); ?>">
-            <?php echo esc_html(get_theme_mod($s[0], $s[2])); ?>
-          </a>
-        <?php endforeach; ?>
-      </div>
     </div>
 
     <!-- Formulario de contacto -->
@@ -167,9 +185,26 @@
       </form>
     </div>
 
-    <div class="footer-bottom">
-      <div class="text-muted"><?php echo esc_html( get_theme_mod( 'cead_footer_note', 'Caaguazú, Paraguay' ) ); ?></div>
-      <div class="text-muted">© <?php echo esc_html(date('Y')); ?> CEAD Félix de Guarania</div>
+  </div>
+
+  <?php
+  /*
+   * La barra de cierre va oscura y a sangre completa, fuera del `.container`.
+   *
+   * El footer entero en oscuro no servía: la sección que viene justo antes
+   * (`.section--admission`) ya es oscura, y los dos bloques se fundían en una
+   * mancha negra sin principio ni final. Una franja delgada al pie cierra la
+   * página sin pelearse con ella.
+   */
+  ?>
+  <div class="footer-bottom">
+    <div class="container footer-bottom-inner">
+      <div><?php echo esc_html( get_theme_mod( 'cead_footer_note', 'Caaguazú, Paraguay' ) ); ?></div>
+      <div>© <?php echo esc_html(date('Y')); ?> CEAD Félix de Guarania</div>
+      <a class="footer-top-link" href="#site-nav">
+        <?php esc_html_e( 'Volver arriba', 'cead' ); ?>
+        <span aria-hidden="true">↑</span>
+      </a>
     </div>
   </div>
 </footer>
