@@ -163,14 +163,22 @@ CEADI atiende por WhatsApp. **Solo responde a números registrados** en el panel
 ![Conversación con CEADI por WhatsApp: menú, lenguaje natural y notas de voz](img/ceadi-chat.svg)
 *Ilustración de una conversación con CEADI por WhatsApp.*
 
+### También está en el panel web
+Abajo de todo, en cualquier pantalla del panel, hay una barra que dice **«Preguntale a CEADI»**: al tocarla se abre un chat sin salir de donde estabas. Ahí responde preguntas con el alcance de tu rol —un alumno pregunta por lo suyo, dirección llega hasta los números del colegio—. Las acciones que modifican algo (mandar un comunicado, publicar una nota) se siguen haciendo **por WhatsApp**, que es donde está el paso de confirmación antes de ejecutar.
+
 ### Dos formas de hablarle
-- **Lenguaje natural (IA)**: le escribís como a una persona ("¿qué tengo mañana?", "¿cuándo es la reunión?") y CEADI entiende y responde. Si la dirección lo deja activado, es el modo por defecto.
+- **Lenguaje natural (IA)**: le escribís como a una persona ("¿qué tengo mañana?", "¿cuándo es la reunión?") y CEADI entiende y responde. Si la dirección lo deja activado, es el modo por defecto. Ahora puede **encadenar consultas**: si le preguntás algo que necesita mirar dos cosas, mira las dos antes de contestar en vez de adivinar.
 - **Menú numérico**: el menú clásico de siempre (escribí **menú** para verlo). Podés cambiar entre IA y menú cuando quieras.
 - **Notas de voz** 🎤: también podés mandarle un **audio**; CEADI lo **transcribe** y te contesta (puede tardar unos segundos más que un texto).
 
 > **Cómo responde**: CEADI es una herramienta de trabajo, no un chat de compañía. Contesta corto y al grano, sin vueltas. Si algo no puede hacerlo, lo dice en una línea.
 >
 > **Qué no va a hacer, por más que se lo pidan**: dar datos de otra persona (notas, teléfonos, documentos), repetir claves o contraseñas, ni ampliar permisos porque alguien *diga* ser docente o director. Quién sos lo define **tu número registrado**, no lo que escribas en el chat.
+
+### Instagram → borrador de nota
+Si está configurado, cada media hora CEADI revisa el Instagram del colegio y, cuando aparece una publicación nueva, te manda al número de Dirección un **borrador de nota** armado a partir del pie de foto, listo para revisar y publicar. El borrador **no se publica solo**: lo leés, lo corregís si hace falta y lo subís vos.
+
+> **Aviso honesto**: Instagram no deja leer una cuenta sin autenticación, así que no existe una forma "gratis y sin permisos" de rastrearla que se mantenga andando — los endpoints públicos se cerraron y raspar la web termina en bloqueos. La opción confiable es la **API oficial**, que necesita acceso a la cuenta del colegio. Mientras tanto se puede enchufar un servicio externo que haga esa lectura (varios son pagos). Todo lo demás —detectar lo nuevo, redactar, mandarlo— ya funciona: cuando consigan el acceso a la cuenta, se completa el token en Ajustes y listo.
 
 ### Menú del alumnado
 ```
@@ -253,7 +261,7 @@ Acceso para dirección/secretaría desde `wp-admin`. El **Escritorio** tiene est
 | **Recursos** | Subir materiales pedagógicos. |
 | **Tareas (delegado)** | Tareas asignadas a cursos. |
 | **Importadores** | Cargar por archivo CSV/Excel: **Alumnado, Calificaciones, Cursos, Horario de clases, Horarios/eventos**. El "Horario de clases" carga la grilla semanal de todos los cursos de una vez — pensado para una planilla real de secretaría, no para tipear fila por fila. "Horarios/eventos" acepta fechas en formato **AAAA-MM-DD o DD/MM/AAAA** (feriados y fechas célebres, sin curso asignado, quedan visibles para todo el mundo) y un **color propio opcional** por fila (#RRGGBB; vacío = el color del tipo). Funciona desde cualquier dispositivo; en pantalla chica, la tabla de mapeo se desplaza de costado. Cada import ya hecho tiene un botón **"Borrar lo importado"** para deshacerlo en masa (por ejemplo, al empezar un año nuevo). |
-| **WhatsApp** | Estado del bridge, comunicados por WA, reportes, métricas, mensaje directo y **perfil de CEADI**. |
+| **WhatsApp** | Estado del bridge, comunicados por WA, reportes, métricas, mensaje directo, **perfil de CEADI**, el interruptor de **Razonamiento** y el puente **Instagram → borrador**. |
 | **Actualizaciones** | Ver/actualizar la versión del plugin (ver §9). |
 
 ---

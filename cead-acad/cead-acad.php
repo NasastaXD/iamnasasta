@@ -3,7 +3,7 @@
  * Plugin Name:       CEAD Académico
  * Plugin URI:        https://github.com/nasastaxd/iamnasasta
  * Description:       Módulo académico-administrativo para CEAD: invitaciones, login estilizado, comunicados, encuestas, horarios, recursos, importadores e importación masiva.
- * Version:           0.64.0
+ * Version:           0.65.0
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            CEAD
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CEAD_ACAD_VERSION',    '0.64.0' );
+define( 'CEAD_ACAD_VERSION',    '0.65.0' );
 define( 'CEAD_ACAD_DB_VERSION', '18' );
 define( 'CEAD_ACAD_FILE',       __FILE__ );
 define( 'CEAD_ACAD_DIR',        plugin_dir_path( __FILE__ ) );
@@ -86,7 +86,9 @@ require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-article-format.php';
 require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-engine.php';
 require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-rest.php';
 require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-cron.php';
+require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-instagram.php';
 require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-admin.php';
+require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-ceadi-panel.php';
 require_once CEAD_ACAD_DIR . 'modules/whatsapp/class-wa-module.php';
 require_once CEAD_ACAD_DIR . 'modules/account/class-account.php';
 require_once CEAD_ACAD_DIR . 'modules/pwa/class-pwa.php';

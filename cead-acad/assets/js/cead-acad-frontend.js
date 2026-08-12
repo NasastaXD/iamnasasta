@@ -308,4 +308,104 @@
 	if (!history.state || !history.state.ceadPanel) {
 		history.replaceState({ ceadPanel: true }, '', location.href);
 	}
+
+	/* ============================================================ CEADI ==
+	 * La barra de abajo. Cerrada es una línea; al tocarla se expande al
+	 * panel de chat. Vive fuera del <main>, así que el router no la toca y
+	 * la conversación sobrevive al cambio de pantalla.
+	 * ==================================================================== */
+	(function ceadi() {
+		var caja = document.getElementById('cead-ceadi');
+		if (!caja || !window.CeadAcad || !CeadAcad.rest) { return; }
+
+		var panel   = document.getElementById('cead-ceadi-panel');
+		var abrir   = document.getElementById('cead-ceadi-abrir');
+		var cerrar  = document.getElementById('cead-ceadi-cerrar');
+		var hilo    = document.getElementById('cead-ceadi-hilo');
+		var form    = document.getElementById('cead-ceadi-form');
+		var input   = document.getElementById('cead-ceadi-input');
+		var enviarB = form ? form.querySelector('button[type=submit]') : null;
+		var ocupado = false;
+
+		function estaAbierto() { return caja.dataset.estado === 'abierto'; }
+
+		function abrirChat() {
+			caja.dataset.estado = 'abierto';
+			panel.hidden = false;
+			abrir.setAttribute('aria-expanded', 'true');
+			focusSinSaltar(input);
+			hilo.scrollTop = hilo.scrollHeight;
+		}
+		function cerrarChat(devolverFoco) {
+			caja.dataset.estado = 'cerrado';
+			panel.hidden = true;
+			abrir.setAttribute('aria-expanded', 'false');
+			if (devolverFoco) { focusSinSaltar(abrir); }
+		}
+
+		abrir.addEventListener('click', abrirChat);
+		cerrar.addEventListener('click', function () { cerrarChat(true); });
+		document.addEventListener('keydown', function (e) {
+			if ((e.key === 'Escape' || e.keyCode === 27) && estaAbierto()) { cerrarChat(true); }
+		});
+
+		function burbuja(texto, quien) {
+			var d = document.createElement('div');
+			d.className = 'cead-ceadi-msg cead-ceadi-msg--' + quien;
+			d.textContent = texto;
+			hilo.appendChild(d);
+			hilo.scrollTop = hilo.scrollHeight;
+			return d;
+		}
+
+		function pensando() {
+			var d = document.createElement('div');
+			d.className = 'cead-ceadi-pensando';
+			d.innerHTML = '<span></span><span></span><span></span>';
+			hilo.appendChild(d);
+			hilo.scrollTop = hilo.scrollHeight;
+			return d;
+		}
+
+		form.addEventListener('submit', function (e) {
+			e.preventDefault();
+			if (ocupado) { return; }
+			var texto = (input.value || '').trim();
+			if (!texto) { return; }
+
+			burbuja(texto, 'yo');
+			input.value = '';
+			ocupado = true;
+			if (enviarB) { enviarB.disabled = true; }
+			var puntos = pensando();
+
+			fetch(CeadAcad.rest.ceadi, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-WP-Nonce': CeadAcad.rest.nonce
+				},
+				body: JSON.stringify({ mensaje: texto })
+			}).then(function (r) {
+				return r.json().then(function (data) { return { ok: r.ok, data: data }; });
+			}).then(function (res) {
+				puntos.remove();
+				if (res.ok && res.data && res.data.respuesta) {
+					burbuja(res.data.respuesta, 'bot');
+				} else {
+					// El mensaje del servidor es más útil que uno genérico: distingue
+					// "esperá unos segundos" de "CEADI no está disponible".
+					burbuja((res.data && res.data.message) || CeadAcad.i18n.genericError, 'error');
+				}
+			}).catch(function () {
+				puntos.remove();
+				burbuja(CeadAcad.i18n.genericError, 'error');
+			}).then(function () {
+				ocupado = false;
+				if (enviarB) { enviarB.disabled = false; }
+				focusSinSaltar(input);
+			});
+		});
+	})();
 })();

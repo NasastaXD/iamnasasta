@@ -43,6 +43,11 @@ class Cead_Acad_WA_Cron {
 		if ( ! isset( $schedules['cead_acad_wa_5min'] ) ) {
 			$schedules['cead_acad_wa_5min'] = [ 'interval' => 300, 'display' => __( 'Cada 5 minutos (CEAD WA)', 'cead-acad' ) ];
 		}
+		// Lo usa el revisor de Instagram: una cuenta de colegio no publica más
+		// seguido que esto, y consultar de más gasta cuota del proveedor.
+		if ( ! isset( $schedules['cead_acad_wa_30min'] ) ) {
+			$schedules['cead_acad_wa_30min'] = [ 'interval' => 1800, 'display' => __( 'Cada 30 minutos (CEAD WA)', 'cead-acad' ) ];
+		}
 		return $schedules;
 	}
 
@@ -65,7 +70,11 @@ class Cead_Acad_WA_Cron {
 	}
 
 	public static function clear_all() {
-		foreach ( [ self::HEARTBEAT_EVENT, self::BROADCAST_EVENT, self::SCHEDULED_EVENT, self::REMINDERS_EVENT, self::ACADEMIC_EVENT, self::GC_EVENT ] as $hook ) {
+		$hooks = [ self::HEARTBEAT_EVENT, self::BROADCAST_EVENT, self::SCHEDULED_EVENT, self::REMINDERS_EVENT, self::ACADEMIC_EVENT, self::GC_EVENT ];
+		if ( class_exists( 'Cead_Acad_WA_Instagram' ) ) {
+			$hooks[] = Cead_Acad_WA_Instagram::EVENTO;
+		}
+		foreach ( $hooks as $hook ) {
 			wp_clear_scheduled_hook( $hook );
 		}
 	}

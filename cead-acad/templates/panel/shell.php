@@ -96,6 +96,17 @@ $page_title = $page_title ?? __( 'Panel', 'cead-acad' );
 			</main>
 		</div>
 	</div>
+	<?php
+	/*
+	 * CEADI, siempre a mano. Va fuera del shell del panel (no adentro de
+	 * `.cead-acad-panel-main`) para que quede fija sobre todo el contenido y
+	 * el router de navegación suave, que solo cambia el <main>, no la toque
+	 * nunca: la conversación sobrevive al cambio de pantalla.
+	 */
+	if ( class_exists( 'Cead_Acad_Ceadi_Panel' ) && Cead_Acad_Ceadi_Panel::disponible() ) {
+		include CEAD_ACAD_DIR . 'templates/panel/partials/ceadi-bar.php';
+	}
+	?>
 	<?php wp_footer(); ?>
 	<script>
 	(function () {
