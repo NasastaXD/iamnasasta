@@ -2834,3 +2834,137 @@ p { margin: 0; }
 .cal-agenda-date { font-weight: 700; color: var(--ink); }
 .cal-agenda-title { color: var(--ink); }
 .cal-agenda-type { font-size: .78rem; color: var(--text-muted); margin-left: auto; }
+
+/* =====================================================
+   Capa de movimiento — segunda vuelta.
+
+   La primera vuelta dejó el revelado, el escalonado y la hamburguesa. Esto
+   suma lo que faltaba para que el sitio se sienta VIVO y no solamente
+   correcto: títulos que se descubren palabra por palabra, profundidad al
+   scrollear, y superficies que responden a la mano.
+
+   Todo lo de acá abajo es decoración pura: el bloque de `prefers-reduced-motion`
+   del final lo apaga entero, y sin JavaScript nada de esto se activa.
+   ===================================================== */
+
+/* ---------- Barra de progreso de lectura ---------- */
+.cead-scroll-progress {
+  position: fixed;
+  top: 0; left: 0;
+  height: 2px;
+  width: 100%;
+  z-index: 1200;
+  background: linear-gradient(90deg, var(--brand), var(--acc-orange));
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  will-change: transform;
+  pointer-events: none;
+}
+
+/* ---------- Títulos partidos en palabras ---------- */
+/* Cada palabra vive en un contenedor que la recorta; adentro, la palabra sube
+   desde abajo. El resultado es que el título se "arma" de izquierda a derecha. */
+.split-w {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  /* El descuelgue de las letras con cola (g, y, p) se comería el recorte:
+     un poco de aire abajo y se compensa con el mismo margen en negativo. */
+  padding-bottom: .12em;
+  margin-bottom: -.12em;
+}
+.split-w > span {
+  display: inline-block;
+  transform: translateY(105%);
+  transition: transform var(--dur-lento) var(--ease-corte);
+  transition-delay: calc(var(--i, 0) * 55ms);
+}
+.js .reveal.is-in .split-w > span,
+.js [data-split].is-in .split-w > span { transform: none; }
+/* Sin JS el título tiene que verse igual: nada de palabras escondidas. */
+html:not(.js) .split-w > span { transform: none; }
+
+/* ---------- Paralaje ---------- */
+[data-parallax] { will-change: transform; }
+
+/*
+ * El fondo del hero se mueve más lento que la página, así que necesita tela de
+ * más arriba y abajo: sin este margen, al scrollear se descubriría una franja
+ * blanca donde el fondo ya no llega. El `.hero` recorta con overflow:hidden,
+ * así que el excedente no se ve nunca.
+ *
+ * Se le da al CONTENEDOR y no a `.hero-bg-image`, que ya tiene el ken-burns
+ * animándole el `transform`: una animación CSS le gana a un transform inline,
+ * así que el paralaje ahí no se vería.
+ */
+.hero-bg[data-parallax] { top: -20%; bottom: -20%; height: auto; }
+
+/* ---------- Botones magnéticos ---------- */
+/* El desplazamiento lo escribe el JS en --mx/--my; acá solo se aplica, para
+   que el JS nunca toque estilos de apariencia. */
+.cead-btn {
+  transform: translate3d(var(--mx, 0), var(--my, 0), 0);
+  transition: transform var(--dur-medio) var(--ease-cead),
+              background var(--dur-rapido) ease,
+              color var(--dur-rapido) ease,
+              border-color var(--dur-rapido) ease;
+}
+.cead-btn:active { transform: translate3d(var(--mx, 0), var(--my, 0), 0) scale(.97); }
+
+/* ---------- Reflejo que sigue al cursor ---------- */
+.values-card, .division-card, .cead-news-card, [data-spotlight] { position: relative; }
+.values-card::after,
+.division-card::after,
+.cead-news-card::after,
+[data-spotlight]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-medio) ease;
+  background: radial-gradient(
+    22rem circle at var(--px, 50%) var(--py, 50%),
+    rgba(255, 255, 255, .16),
+    transparent 42%
+  );
+}
+.values-card:hover::after,
+.division-card:hover::after,
+.cead-news-card:hover::after,
+[data-spotlight]:hover::after { opacity: 1; }
+
+/* Sobre fondo claro el blanco no se ve: ahí el reflejo va con el rojo de marca,
+   muy diluido, que sí levanta contra el crema. */
+.cead-news-card::after {
+  background: radial-gradient(
+    22rem circle at var(--px, 50%) var(--py, 50%),
+    rgba(233, 59, 60, .10),
+    transparent 45%
+  );
+}
+
+/* ---------- Enlaces con subrayado que se dibuja ---------- */
+.underline-brand {
+  background-image: linear-gradient(var(--brand), var(--brand));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 2px;
+  transition: background-size var(--dur-medio) var(--ease-corte);
+}
+.underline-brand:hover,
+.underline-brand:focus-visible { background-size: 100% 2px; }
+
+/* ---------- Apagón total para quien pidió menos movimiento ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .cead-scroll-progress { display: none; }
+  .split-w > span { transform: none !important; transition: none !important; }
+  [data-parallax] { transform: none !important; }
+  .cead-btn { transform: none !important; }
+  .values-card::after,
+  .division-card::after,
+  .cead-news-card::after,
+  [data-spotlight]::after { display: none; }
+  .underline-brand { transition: none; }
+}

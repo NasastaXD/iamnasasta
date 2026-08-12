@@ -1533,3 +1533,47 @@ body,
 .cead-acad-faq-a { padding:0 1.1rem 1.2rem; color:var(--cead-acad-text-soft); }
 .cead-acad-faq-a p { margin:0 0 .6rem; }
 [data-theme="dark"] .cead-acad-faq-item { background:#1d2027; }
+
+/* ===================== Navegación suave del panel =====================
+   Acompañan al router de `cead-acad-frontend.js`: mientras se pide la
+   pantalla nueva hay una barra de progreso arriba, y el cambio de contenido
+   entra con un fundido corto en vez de un salto seco. */
+
+.cead-acad-progress {
+	position: fixed;
+	top: 0; left: 0;
+	height: 3px;
+	width: 100%;
+	transform: scaleX(0);
+	transform-origin: 0 50%;
+	background: linear-gradient(90deg, var(--cead-acad-brand), #F4B74C, var(--cead-acad-brand));
+	z-index: 9999;
+	opacity: 0;
+	pointer-events: none;
+}
+/* Sube rápido hasta el 80% y ahí se queda: no sabemos cuánto falta, así que
+   fingir precisión sería mentir. El salto al 100% lo da `is-done`. */
+.cead-acad-progress.is-loading { opacity: 1; animation: cead-progress 1.4s cubic-bezier(.15,.85,.3,1) forwards; }
+.cead-acad-progress.is-done    { opacity: 0; transform: scaleX(1); transition: transform .18s ease, opacity .3s ease .12s; animation: none; }
+@keyframes cead-progress { 0% { transform: scaleX(0); } 60% { transform: scaleX(.7); } 100% { transform: scaleX(.85); } }
+
+/* El contenido nuevo entra desde abajo, apenas. Lo suficiente para que se lea
+   como "esto es otra pantalla" sin que haya que esperarlo. */
+@media (prefers-reduced-motion: no-preference) {
+	::view-transition-old(root) { animation: cead-vt-out .18s cubic-bezier(.4,0,1,1) both; }
+	::view-transition-new(root) { animation: cead-vt-in  .28s cubic-bezier(0,0,.2,1) both; }
+}
+@keyframes cead-vt-out { to { opacity: 0; transform: translateY(-6px); } }
+@keyframes cead-vt-in  { from { opacity: 0; transform: translateY(10px); } }
+
+/* Solo para lectores de pantalla: lo usa la región viva del router para
+   anunciar qué cambió sin mover el foco de donde está la persona. */
+.cead-acad-sr-only {
+	position: absolute;
+	width: 1px; height: 1px;
+	padding: 0; margin: -1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+	border: 0;
+}

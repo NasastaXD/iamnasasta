@@ -12,7 +12,7 @@ $default_colors = ['#E93B3C', '#49A3C8', '#EDDF58', '#F4B74C'];
     <div class="section-head section-head--split">
       <div>
         <div class="eyebrow"><?php echo esc_html(get_theme_mod('cead_divs_eyebrow', '— Bachilleratos')); ?></div>
-        <h2 class="display-h2 display-h2--narrow"><?php echo wp_kses_post(get_theme_mod('cead_divs_title', 'Cuatro caminos.<br>Una misma exigencia.')); ?></h2>
+        <h2 class="display-h2 display-h2--narrow" data-split><?php echo wp_kses_post(get_theme_mod('cead_divs_title', 'Cuatro caminos.<br>Una misma exigencia.')); ?></h2>
       </div>
       <p class="section-intro section-intro--right"><?php echo wp_kses_post(get_theme_mod('cead_divs_intro', 'Cada bachillerato tiene su propia identidad y currículum. Todos comparten el mismo estándar académico y el mismo Honor Code.')); ?></p>
     </div>
