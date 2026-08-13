@@ -1330,6 +1330,67 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 	.cead-acad-cal-hint { display:block; margin:.7rem 0 0; font-size:.78rem; line-height:1.45; color:var(--cead-acad-text-muted); }
 }
 
+/* ===================== Delegados ===================== */
+.cead-acad-deleg-grid {
+	display:grid;
+	grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));
+	gap:.9rem;
+	margin-top:1.5rem;
+}
+.cead-acad-deleg {
+	display:flex; flex-direction:column; gap:.75rem;
+	padding:1rem;
+	background:#fff;
+	border:1px solid var(--cead-acad-border);
+	border-radius:var(--cead-acad-radius);
+}
+.cead-acad-deleg.is-suspendido { opacity:.6; }
+.cead-acad-deleg-cab { display:flex; align-items:center; gap:.7rem; min-width:0; }
+/* Iniciales en vez de foto: el sistema no guarda avatares, y un círculo vacío
+   se ve peor que dos letras. */
+.cead-acad-deleg-ini {
+	display:inline-flex; align-items:center; justify-content:center;
+	width:42px; height:42px; flex:0 0 auto;
+	border-radius:50%;
+	background:var(--cead-acad-brand-tint);
+	color:var(--cead-acad-brand-deep);
+	font-family:var(--cead-acad-font-display); font-size:.9rem; letter-spacing:.04em;
+}
+.cead-acad-deleg-quien { min-width:0; }
+.cead-acad-deleg-nombre { margin:0; font-size:.98rem; line-height:1.25; display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; }
+.cead-acad-deleg-vos {
+	font-family:var(--cead-acad-font-display); text-transform:uppercase;
+	letter-spacing:.12em; font-size:.58rem;
+	padding:.1rem .35rem;
+	background:var(--cead-acad-canvas); color:var(--cead-acad-text-muted);
+}
+.cead-acad-deleg-curso { margin:.15rem 0 0; font-size:.82rem; color:var(--cead-acad-text-soft); }
+.cead-acad-deleg-turno { color:var(--cead-acad-text-muted); }
+.cead-acad-deleg-turno::before { content:" · "; }
+.cead-acad-deleg-aviso { margin:0; font-size:.76rem; color:var(--cead-acad-brand-deep); }
+
+/* El botón toma el verde de WhatsApp y no el rojo de marca: es un destino de
+   afuera, y conviene que se lea como tal antes de tocarlo. */
+.cead-acad-deleg-wa {
+	display:inline-flex; align-items:center; justify-content:center; gap:.45rem;
+	margin-top:auto;
+	padding:.6rem .8rem;
+	background:#25D366; color:#fff;
+	text-decoration:none;
+	font-family:var(--cead-acad-font-display); text-transform:uppercase;
+	letter-spacing:.1em; font-size:.66rem;
+	transition:background .16s ease, transform .16s ease;
+}
+.cead-acad-deleg-wa:hover { background:#1da851; transform:translateY(-1px); }
+.cead-acad-deleg-sintel { margin:auto 0 0; font-size:.76rem; color:var(--cead-acad-text-muted); }
+
+[data-theme="dark"] .cead-acad-deleg { background:#1d2027; }
+[data-theme="dark"] .cead-acad-deleg-vos { background:#262a32; }
+
+@media (hover: none) {
+	.cead-acad-deleg-wa:hover { background:#25D366 !important; transform:none !important; }
+}
+
 /* ===================== Carné digital ===================== */
 .cead-acad-carne { max-width:560px; border-radius:var(--cead-acad-radius); overflow:hidden; border:1px solid var(--cead-acad-border); background:#fff; box-shadow:0 18px 50px rgba(0,0,0,.10); margin-top:1.5rem; }
 .cead-acad-carne-top { background:var(--cead-acad-ink); color:#fff; display:flex; align-items:center; gap:.6rem; padding:.8rem 1.25rem; }
@@ -1707,7 +1768,20 @@ body,
 }
 
 /* ===================== Fixes táctiles ===================== */
-/* En pantallas táctiles el :hover queda "pegado" tras tocar: anular transforms. */
+/*
+ * En pantallas táctiles el `:hover` queda PEGADO después de tocar: iOS lo
+ * mantiene sobre el último elemento tocado hasta que tocás otra cosa. Todo lo
+ * que el hover pinte se queda pintado, y parece un elemento seleccionado o roto.
+ *
+ * Este bloque ya existía pero solo apagaba `transform` y `box-shadow`, más el
+ * borde de dos botones sueltos. Al resto de las superficies —las fichas de
+ * acceso rápido, entre otras— se les quedaba el borde ROJO encendido después de
+ * volver: la ficha que habías tocado aparecía marcada como si estuviera activa.
+ *
+ * Si agregás un `:hover` que cambie borde, fondo o color, apagalo también acá.
+ * Los valores se reponen con los MISMOS tokens que usa la regla base, así que
+ * no se desincronizan cuando cambia la paleta.
+ */
 @media (hover: none) {
 	.cead-acad-card--link:hover, .cead-acad-quick-item:hover, .cead-acad-carne:hover,
 	.cead-acad-theme-toggle:hover, .cead-acad-bell:hover, .cead-acad-fav:hover,
@@ -1715,8 +1789,49 @@ body,
 	.cead-acad-user-chip:hover .cead-acad-avatar,
 	.cead-acad-quick-item:hover .cead-acad-quick-ico,
 	.cead-acad-panel-nav a:hover .cead-acad-panel-nav-dot { transform: none !important; box-shadow: none; }
-	/* Que no quede el borde/realce "encendido" tras tocar (iOS mantiene :hover). */
-	.cead-acad-theme-toggle:hover, .cead-acad-bell:hover { border-color: var(--cead-acad-border); background: transparent; }
+
+	/*
+	 * Bordes y fondos que se quedaban encendidos.
+	 *
+	 * Van con `!important` por una razón concreta, no por costumbre: el modo
+	 * oscuro redefine varios de estos hovers con `[data-theme="dark"] X:hover`,
+	 * que tiene MÁS especificidad que cualquier cosa que se escriba acá. Sin
+	 * `!important`, todo este bloque no hacía nada justo en oscuro, que es como
+	 * se usa el panel de noche.
+	 */
+	.cead-acad-theme-toggle:hover,
+	.cead-acad-bell:hover { border-color: var(--cead-acad-border) !important; background: transparent !important; }
+	.cead-acad-quick-item:hover { border-color: var(--cead-acad-border) !important; }
+	.cead-acad-cats a:hover { border-color: var(--cead-acad-border) !important; color: var(--cead-acad-text-soft) !important; }
+	/* La flecha del mes se quedaba en negativo —fondo tinta, texto blanco—
+	   después de cambiar de mes, que es el gesto que MÁS se repite acá. */
+	.cead-acad-calnav-arrow:hover { background: transparent !important; border-color: var(--cead-acad-border) !important; color: inherit !important; }
+	.cead-acad-cal-pie a:hover,
+	.cead-acad-cal-toggle a:not(.is-active):hover { background: transparent !important; color: inherit !important; }
+
+	/* Los botones son el peor caso: el hover los pinta de rojo, así que
+	   CUALQUIER botón que tocaras quedaba encendido hasta tocar otra cosa — y en
+	   un formulario eso se lee como «quedó apretado» o «algo falló». Cada
+	   variante vuelve a sus propios valores, con los mismos tokens que su base. */
+	.cead-acad-btn:hover { background: var(--cead-acad-ink) !important; border-color: var(--cead-acad-ink) !important; color: #fff !important; }
+	.cead-acad-btn--primary:hover { background: var(--cead-acad-brand) !important; border-color: var(--cead-acad-brand) !important; }
+	.cead-acad-btn--ghost:hover { background: transparent !important; color: var(--cead-acad-ink) !important; }
+
+	/* Filas de lista: el tinte se quedaba en la que tocaste, marcándola como si
+	   estuviera seleccionada. `inherit` y no un color fijo, para que sirva en
+	   los dos temas sin repetir la paleta. */
+	.cead-acad-feed-item:hover,
+	.cead-acad-agenda-item:hover,
+	.cead-acad-notif-item:hover,
+	.cead-acad-user-menu-panel a:hover { background: inherit !important; }
+	.cead-ceadi-wa:hover { background: rgba(37, 211, 102, .12) !important; transform: none !important; }
+
+	/*
+	 * Los chips del calendario NO entran acá a propósito. Su tinte se calcula
+	 * con `color-mix()` sobre `--ev` y cambia entre claro y oscuro; repetir esos
+	 * valores sería duplicar la paleta en un tercer lugar. Y en el ancho donde
+	 * de verdad se toca, el CSS de celular ya les saca el fondo entero.
+	 */
 }
 /* Foco de teclado para TODO lo enfocable, no solo tres botones. El resto del
    panel dependía del outline por defecto del navegador, y los inputs ni eso:

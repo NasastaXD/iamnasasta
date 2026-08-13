@@ -33,6 +33,12 @@ if ( current_user_can( 'cead_acad_manage_reports' ) || current_user_can( 'cead_a
 	$base_items[] = [ 'href' => 'panel/buzon', 'label' => __( 'Buzón', 'cead-acad' ), 'icon' => 'email' ];
 }
 
+// Directorio de delegados: de delegado para arriba. Va por capacidad y no por
+// rol, así el día que alguien más la necesite alcanza con darle la cap.
+if ( current_user_can( 'cead_acad_view_delegates' ) ) {
+	$base_items[] = [ 'href' => 'panel/delegados', 'label' => __( 'Delegados', 'cead-acad' ), 'icon' => 'groups' ];
+}
+
 $by_role = [
 	'cead_acad_direction' => [
 		[ 'href' => 'panel/direccion',  'label' => __( 'Dirección', 'cead-acad' ),  'icon' => 'star' ],

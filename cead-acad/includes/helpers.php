@@ -231,19 +231,37 @@ function cead_acad_rate_limit( $action, $max = 5, $window = 60 ) {
 }
 
 /**
- * El enlace de WhatsApp para agendar a CEADI, o cadena vacía si no hay número.
+ * Un enlace de WhatsApp, o cadena vacía si no hay número que valga.
  *
- * El número lo carga la dirección en wp-admin → WhatsApp (opción
- * `cead_acad_wa_bot_number`) y se guarda como dígitos sueltos, pero nadie
- * garantiza que quede limpio: alguien lo pega como «+595 991 123-456» y
- * `wa.me` con espacios no abre nada. Por eso se vuelve a limpiar acá, del lado
- * de la lectura, que es donde importa.
+ * Sin argumentos devuelve el de CEADI: el número lo carga la dirección en
+ * wp-admin → WhatsApp (`cead_acad_wa_bot_number`) y se guarda como dígitos,
+ * pero nadie garantiza que quede limpio — alguien lo pega como
+ * «+595 991 123-456» y `wa.me` con espacios no abre nada.
  *
- * Devolver cadena vacía es parte del contrato: quien llama tiene que decidir
- * qué hacer sin número —esconder el botón, abrir el chat directo— en vez de
- * imprimir un enlace a `https://wa.me/` que no lleva a ningún lado.
+ * Con un número, sirve para escribirle a cualquiera (la sección de delegados).
+ * Ahí la limpieza no alcanza: los teléfonos de la gente se cargan en formato
+ * local («0991 123 456»), y `wa.me/0991123456` no existe — hace falta el
+ * código de país. Eso ya lo resuelve `Cead_Acad_WA_Identity::normalize_phone()`,
+ * que es la misma pieza con la que el bot reconoce a quien le escribe: usar
+ * otra sería tener dos ideas distintas de cuál es el número de una persona.
+ *
+ * Devolver cadena vacía es parte del contrato: quien llama decide qué hacer sin
+ * número —esconder el botón, abrir el chat directo— en vez de imprimir un
+ * enlace a `https://wa.me/` que no lleva a ningún lado.
+ *
+ * @param string|null $numero Teléfono a contactar. Null = el de CEADI.
  */
-function cead_acad_wa_link() {
-	$numero = preg_replace( '/[^0-9]/', '', (string) get_option( 'cead_acad_wa_bot_number', '' ) );
-	return $numero === '' ? '' : 'https://wa.me/' . $numero;
+function cead_acad_wa_link( $numero = null ) {
+	if ( null === $numero ) {
+		$numero = (string) get_option( 'cead_acad_wa_bot_number', '' );
+		// El del bot se carga ya en formato internacional, así que solo se limpia.
+		$digitos = preg_replace( '/[^0-9]/', '', $numero );
+		return '' === $digitos ? '' : 'https://wa.me/' . $digitos;
+	}
+
+	$digitos = class_exists( 'Cead_Acad_WA_Identity' )
+		? Cead_Acad_WA_Identity::normalize_phone( $numero )
+		: preg_replace( '/[^0-9]/', '', (string) $numero );
+
+	return '' === $digitos ? '' : 'https://wa.me/' . $digitos;
 }

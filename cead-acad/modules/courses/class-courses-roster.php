@@ -136,4 +136,57 @@ class Cead_Acad_Courses_Roster {
 			(int) $course_id
 		) );
 	}
+
+	/**
+	 * La lista de delegados del colegio, con su curso y su contacto.
+	 *
+	 * El delegado se guarda en el CURSO (`_cead_acad_delegate`), no en el
+	 * usuario: es un cargo que se ejerce sobre un curso concreto y puede cambiar
+	 * de manos sin tocar a la persona. Por eso se recorre desde los cursos y no
+	 * buscando usuarios con el rol — así aparece el curso al lado del nombre, que
+	 * es lo que hace útil la lista, y no se cuela alguien que quedó con el rol
+	 * puesto de un año anterior pero ya no es delegado de nada.
+	 *
+	 * Una persona puede ser delegada de más de un curso: aparece una vez por
+	 * cargo, que es lo que corresponde — el mensaje que le vas a mandar depende
+	 * de por cuál de los dos lo buscás.
+	 *
+	 * @return array<int,array<string,mixed>> Ordenada por título de curso.
+	 */
+	public static function delegates() {
+		$cursos = get_posts( [
+			'post_type'   => Cead_Acad_Courses_CPT::POST_TYPE,
+			'post_status' => 'publish',
+			'numberposts' => -1,
+			'orderby'     => 'title',
+			'order'       => 'ASC',
+		] );
+
+		$turnos = [ 'manana' => __( 'Mañana', 'cead-acad' ), 'tarde' => __( 'Tarde', 'cead-acad' ), 'noche' => __( 'Noche', 'cead-acad' ) ];
+		$out    = [];
+
+		foreach ( $cursos as $curso ) {
+			$uid = (int) get_post_meta( $curso->ID, '_cead_acad_delegate', true );
+			if ( ! $uid ) { continue; }
+
+			$u = get_userdata( $uid );
+			// Un curso puede apuntar a un usuario que ya se borró: la ficha sin
+			// persona no sirve para nada y romper la pantalla, menos.
+			if ( ! $u ) { continue; }
+
+			$turno = (string) get_post_meta( $curso->ID, '_cead_acad_turno', true );
+
+			$out[] = [
+				'user_id'   => $uid,
+				'nombre'    => $u->display_name,
+				'curso_id'  => $curso->ID,
+				'curso'     => $curso->post_title,
+				'turno'     => $turnos[ $turno ] ?? '',
+				'telefono'  => (string) get_user_meta( $uid, '_cead_acad_phone', true ),
+				'suspendido' => class_exists( 'Cead_Acad_User_Suspension' ) && Cead_Acad_User_Suspension::is_suspended( $uid ),
+			];
+		}
+
+		return $out;
+	}
 }
