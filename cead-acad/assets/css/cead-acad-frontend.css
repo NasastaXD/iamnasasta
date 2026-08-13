@@ -1707,7 +1707,20 @@ body,
 }
 
 /* ===================== Fixes táctiles ===================== */
-/* En pantallas táctiles el :hover queda "pegado" tras tocar: anular transforms. */
+/*
+ * En pantallas táctiles el `:hover` queda PEGADO después de tocar: iOS lo
+ * mantiene sobre el último elemento tocado hasta que tocás otra cosa. Todo lo
+ * que el hover pinte se queda pintado, y parece un elemento seleccionado o roto.
+ *
+ * Este bloque ya existía pero solo apagaba `transform` y `box-shadow`, más el
+ * borde de dos botones sueltos. Al resto de las superficies —las fichas de
+ * acceso rápido, entre otras— se les quedaba el borde ROJO encendido después de
+ * volver: la ficha que habías tocado aparecía marcada como si estuviera activa.
+ *
+ * Si agregás un `:hover` que cambie borde, fondo o color, apagalo también acá.
+ * Los valores se reponen con los MISMOS tokens que usa la regla base, así que
+ * no se desincronizan cuando cambia la paleta.
+ */
 @media (hover: none) {
 	.cead-acad-card--link:hover, .cead-acad-quick-item:hover, .cead-acad-carne:hover,
 	.cead-acad-theme-toggle:hover, .cead-acad-bell:hover, .cead-acad-fav:hover,
@@ -1715,8 +1728,49 @@ body,
 	.cead-acad-user-chip:hover .cead-acad-avatar,
 	.cead-acad-quick-item:hover .cead-acad-quick-ico,
 	.cead-acad-panel-nav a:hover .cead-acad-panel-nav-dot { transform: none !important; box-shadow: none; }
-	/* Que no quede el borde/realce "encendido" tras tocar (iOS mantiene :hover). */
-	.cead-acad-theme-toggle:hover, .cead-acad-bell:hover { border-color: var(--cead-acad-border); background: transparent; }
+
+	/*
+	 * Bordes y fondos que se quedaban encendidos.
+	 *
+	 * Van con `!important` por una razón concreta, no por costumbre: el modo
+	 * oscuro redefine varios de estos hovers con `[data-theme="dark"] X:hover`,
+	 * que tiene MÁS especificidad que cualquier cosa que se escriba acá. Sin
+	 * `!important`, todo este bloque no hacía nada justo en oscuro, que es como
+	 * se usa el panel de noche.
+	 */
+	.cead-acad-theme-toggle:hover,
+	.cead-acad-bell:hover { border-color: var(--cead-acad-border) !important; background: transparent !important; }
+	.cead-acad-quick-item:hover { border-color: var(--cead-acad-border) !important; }
+	.cead-acad-cats a:hover { border-color: var(--cead-acad-border) !important; color: var(--cead-acad-text-soft) !important; }
+	/* La flecha del mes se quedaba en negativo —fondo tinta, texto blanco—
+	   después de cambiar de mes, que es el gesto que MÁS se repite acá. */
+	.cead-acad-calnav-arrow:hover { background: transparent !important; border-color: var(--cead-acad-border) !important; color: inherit !important; }
+	.cead-acad-cal-pie a:hover,
+	.cead-acad-cal-toggle a:not(.is-active):hover { background: transparent !important; color: inherit !important; }
+
+	/* Los botones son el peor caso: el hover los pinta de rojo, así que
+	   CUALQUIER botón que tocaras quedaba encendido hasta tocar otra cosa — y en
+	   un formulario eso se lee como «quedó apretado» o «algo falló». Cada
+	   variante vuelve a sus propios valores, con los mismos tokens que su base. */
+	.cead-acad-btn:hover { background: var(--cead-acad-ink) !important; border-color: var(--cead-acad-ink) !important; color: #fff !important; }
+	.cead-acad-btn--primary:hover { background: var(--cead-acad-brand) !important; border-color: var(--cead-acad-brand) !important; }
+	.cead-acad-btn--ghost:hover { background: transparent !important; color: var(--cead-acad-ink) !important; }
+
+	/* Filas de lista: el tinte se quedaba en la que tocaste, marcándola como si
+	   estuviera seleccionada. `inherit` y no un color fijo, para que sirva en
+	   los dos temas sin repetir la paleta. */
+	.cead-acad-feed-item:hover,
+	.cead-acad-agenda-item:hover,
+	.cead-acad-notif-item:hover,
+	.cead-acad-user-menu-panel a:hover { background: inherit !important; }
+	.cead-ceadi-wa:hover { background: rgba(37, 211, 102, .12) !important; transform: none !important; }
+
+	/*
+	 * Los chips del calendario NO entran acá a propósito. Su tinte se calcula
+	 * con `color-mix()` sobre `--ev` y cambia entre claro y oscuro; repetir esos
+	 * valores sería duplicar la paleta en un tercer lugar. Y en el ancho donde
+	 * de verdad se toca, el CSS de celular ya les saca el fondo entero.
+	 */
 }
 /* Foco de teclado para TODO lo enfocable, no solo tres botones. El resto del
    panel dependía del outline por defecto del navegador, y los inputs ni eso:
