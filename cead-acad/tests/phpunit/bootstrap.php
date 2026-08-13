@@ -210,6 +210,12 @@ if ( ! function_exists( 'sanitize_title' ) ) {
 if ( ! function_exists( 'esc_html' ) ) {
 	function esc_html( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' ); }
 }
+if ( ! function_exists( 'esc_attr' ) ) {
+	function esc_attr( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' ); }
+}
+if ( ! function_exists( '_n' ) ) {
+	function _n( $single, $plural, $number, $domain = 'default' ) { return 1 === (int) $number ? $single : $plural; }
+}
 if ( ! function_exists( 'esc_url' ) ) {
 	function esc_url( $url ) { return filter_var( (string) $url, FILTER_SANITIZE_URL ); }
 }
@@ -478,6 +484,47 @@ require_once dirname( __DIR__, 2 ) . '/includes/helpers.php';
  * más que reimplementar su criterio en el test y que después se separen.
  */
 require_once dirname( __DIR__, 3 ) . '/cead/inc/helpers.php';
+
+/*
+ * ---- Hooks ----
+ *
+ * Mínimos y de verdad: `apply_filters` corre los callbacks registrados en orden.
+ * Hacen falta porque el catálogo de maquetas de nota viaja del TEMA al PLUGIN
+ * por el filtro `cead_nota_tipos`, y esa frontera es justo lo que hay que
+ * probar. Un stub que devolviera el valor sin llamar a nadie dejaría pasar el
+ * caso que importa: el plugin resolviendo contra un catálogo vacío.
+ *
+ * `add_action` se traga lo que reciba: los archivos del tema registran metabox
+ * y `init` al cargarse, y en esta suite nada de eso corre.
+ */
+$GLOBALS['cead_test_filters'] = [];
+if ( ! function_exists( 'add_filter' ) ) {
+	function add_filter( $hook, $cb, $prio = 10, $args = 1 ) {
+		$GLOBALS['cead_test_filters'][ $hook ][] = $cb;
+		return true;
+	}
+}
+if ( ! function_exists( 'apply_filters' ) ) {
+	function apply_filters( $hook, $value = null ) {
+		foreach ( $GLOBALS['cead_test_filters'][ $hook ] ?? [] as $cb ) {
+			$value = call_user_func( $cb, $value );
+		}
+		return $value;
+	}
+}
+if ( ! function_exists( 'add_action' ) )        { function add_action( ...$a ) { return true; } }
+if ( ! function_exists( 'do_action' ) )         { function do_action( ...$a ) { return null; } }
+if ( ! function_exists( 'add_meta_box' ) )      { function add_meta_box( ...$a ) { return null; } }
+if ( ! function_exists( 'register_post_meta' ) ) { function register_post_meta( ...$a ) { return true; } }
+
+/*
+ * El catálogo de maquetas del tema. Entra entero y no copiado: el test que
+ * importa es que los slugs que el tema ofrece tengan su archivo de plantilla, y
+ * una copia en el test dejaría de valer el día que alguien agregue una maqueta.
+ */
+require_once dirname( __DIR__, 3 ) . '/cead/inc/notas.php';
+
+require_once dirname( __DIR__, 2 ) . '/includes/class-article-kind.php';
 require_once dirname( __DIR__, 2 ) . '/includes/class-cead-acad-capabilities.php';
 require_once dirname( __DIR__, 2 ) . '/modules/courses/class-courses-roster.php';
 require_once dirname( __DIR__, 2 ) . '/modules/courses/class-courses-admin.php';

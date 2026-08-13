@@ -215,6 +215,22 @@ Dirección/Secretaría/Docente pueden, desde el bot: enviar **comunicados**, **a
 >
 > **No hace falta que saques la cuenta**: podés decirle el **porcentaje** (*"sacó 75%"*) o el **puntaje** (*"45 de 60"*) y CEADI convierte a la escala del colegio (1 a 5), mostrándote de dónde salió el número. Avisa si la nota deja **aplazado/a** al alumno, y rechaza los imposibles (más puntos que el total, o un porcentaje dictado como si fuera nota).
 
+### 🧩 Cómo se dibuja lo que se publica
+
+No todo lo que sale en la web se lee igual, así que no todo usa la misma maqueta. CEADI **elige** una según lo que escribiste, y te la dice en la propuesta antes de publicar — si se equivocó, se corrige con *"2. Editar"*.
+
+| Maqueta | Cuándo | Cómo se ve |
+|---|---|---|
+| **Noticia** | Algo que ya pasó, contado como crónica | La de siempre: titular, foto, texto. Es el formato por defecto |
+| **Evento** | Algo que va a pasar y a lo que hay que ir | El día en grande, la hora, el lugar y **cuánto falta** ya calculado |
+| **Aviso** | Urgente y corto: suspensión, cambio de horario | Banda roja y texto grande, sin foto arriba |
+| **Informe** | Documento largo con secciones: memoria, rendición | Índice navegable y secciones numeradas |
+| **Logro** | Un premio, un campeonato, una beca | La foto de portada con el título encima |
+
+- **Un evento sin fecha no es un evento.** Si CEADI elige «evento» pero no sabe cuándo es, la nota se publica como noticia común: es preferible a mostrar un cuadro de fecha vacío.
+- También se puede cambiar **a mano** desde wp-admin, en el recuadro *«Maqueta de la nota»* al costado del editor de la entrada — ahí mismo se cargan la fecha y el lugar.
+- En los listados, lo que **no** es noticia lleva un sello sobre la miniatura, para que un aviso no se confunda con una crónica.
+
 ### 📄 Docentes — mandar la planilla de notas
 
 No hace falta cambiar tu forma de trabajar: **mandale a CEADI por WhatsApp la misma planilla que ya usás** (`.xlsx` o `.csv`), si querés con un texto tipo *"notas de Matemática, 2º periodo"*.

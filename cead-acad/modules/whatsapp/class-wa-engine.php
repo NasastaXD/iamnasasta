@@ -1157,6 +1157,39 @@ class Cead_Acad_WA_Engine {
 						. implode( ', ', $cats ) . '. Si ninguna encaja, omitilo.',
 				];
 			}
+			/*
+			 * La maqueta. Es una decisión sobre el TEXTO —qué clase de cosa es lo
+			 * que se está publicando— y por eso la toma quien lo escribió, no un
+			 * clasificador de palabras clave corriendo después: una lista de
+			 * términos no distingue «se suspenden las clases del jueves» de «la
+			 * jornada del jueves fue un éxito», y las dos hablan de un jueves.
+			 *
+			 * Lo que sí es determinista es el veto: elegir «evento» sin dar fecha
+			 * no publica un evento, publica una noticia (ver Article_Kind).
+			 */
+			$maquetas = class_exists( 'Cead_Acad_Article_Kind' ) ? Cead_Acad_Article_Kind::catalogo() : [];
+			if ( $maquetas ) {
+				$pistas = [];
+				foreach ( $maquetas as $slug => $cfg ) {
+					$pistas[] = '«' . $slug . '»: ' . ( $cfg['pista'] ?? '' );
+				}
+				$props['formato'] = [
+					'type'        => 'string',
+					'enum'        => array_keys( $maquetas ),
+					'description' => 'Con qué maqueta se dibuja la nota en el sitio. Cada una cambia cómo se lee la página, '
+						. 'así que elegí por lo que ES el texto, no por el tema del que habla. '
+						. implode( ' ', $pistas ),
+				];
+				$props['fecha_evento'] = [
+					'type'        => 'string',
+					'description' => 'Solo para formato «evento»: cuándo es, en dd/mm/aaaa hh:mm o en lenguaje natural. '
+						. 'Sin esto la nota sale como noticia común, así que no elijas «evento» si no sabés la fecha.',
+				];
+				$props['lugar_evento'] = [
+					'type'        => 'string',
+					'description' => 'Solo para formato «evento»: dónde es (ej: "Patio central"). Opcional.',
+				];
+			}
 			if ( $es_dir ) {
 				$props['redes'] = [
 					'type'        => 'boolean',
@@ -1499,6 +1532,19 @@ class Cead_Acad_WA_Engine {
 			$image = $media ? $this->store_image( $media ) : null;
 			$cat   = $this->resolve_category( $args['categoria'] ?? '' );
 
+			/*
+			 * La fecha del evento se normaliza ACÁ, antes de decidir la maqueta.
+			 * Si el modelo mandó algo que no es una fecha, `parse_datetime()`
+			 * devuelve null y el formato «evento» se cae solo a noticia — que es
+			 * lo correcto: una fecha que no se pudo leer es lo mismo que no tener
+			 * fecha, y peor sería guardarla cruda para que el tema la muestre mal.
+			 */
+			$fecha_ev = $this->parse_datetime( (string) ( $args['fecha_evento'] ?? '' ) );
+			$lugar_ev = sanitize_text_field( (string) ( $args['lugar_evento'] ?? '' ) );
+			$formato  = class_exists( 'Cead_Acad_Article_Kind' )
+				? Cead_Acad_Article_Kind::resolver( (string) ( $args['formato'] ?? '' ), [ 'fecha' => $fecha_ev, 'lugar' => $lugar_ev ] )
+				: '';
+
 			if ( $reply !== '' ) { $this->send( $phone, $reply ); }
 			$this->store->set_state( $phone, 'ia_staff_confirm', [
 				'kind'      => 'articulo',
@@ -1507,6 +1553,9 @@ class Cead_Acad_WA_Engine {
 				'redes'     => $redes,
 				'image'     => $image,
 				'categoria' => $cat,
+				'formato'   => $formato,
+				'fecha_ev'  => $fecha_ev,
+				'lugar_ev'  => $lugar_ev,
 			] );
 			$extra = $redes
 				? "\n📣 " . __( 'Además se va a publicar en las redes del colegio.', 'cead-acad' )
@@ -1514,6 +1563,23 @@ class Cead_Acad_WA_Engine {
 			if ( $cat ) {
 				$cats   = $this->article_categories();
 				$extra .= "\n🏷️ " . sprintf( __( 'Categoría: %s', 'cead-acad' ), $cats[ $cat ] ?? '' );
+			}
+			/*
+			 * La maqueta se muestra antes de publicar porque es una decisión que
+			 * cambia la página entera y que la tomó el modelo. Sin decirla, la
+			 * única forma de enterarse de que eligió mal es entrar al sitio con la
+			 * nota ya publicada; dicha acá, se corrige con «2. Editar».
+			 */
+			if ( $formato ) {
+				$extra .= "\n🧩 " . sprintf(
+					/* translators: %s: nombre de la maqueta con la que se dibujará la nota */
+					__( 'Maqueta: %s', 'cead-acad' ),
+					Cead_Acad_Article_Kind::label( $formato )
+				);
+				if ( 'evento' === $formato && $fecha_ev ) {
+					$extra .= ' · ' . date_i18n( 'd/m/Y H:i', strtotime( $fecha_ev ) );
+					if ( $lugar_ev ) { $extra .= ' · ' . $lugar_ev; }
+				}
 			}
 			if ( $image )                    { $extra .= "\n📎 " . __( 'Con imagen destacada.', 'cead-acad' ); }
 			elseif ( $media && ! $image )    { $extra .= "\n" . $this->m( 'image_attach_failed' ); }
@@ -2009,6 +2075,20 @@ class Cead_Acad_WA_Engine {
 		if ( $image && ! empty( $image['attachment_id'] ) ) {
 			set_post_thumbnail( $pid, (int) $image['attachment_id'] );
 		}
+		/*
+		 * La maqueta se vuelve a resolver al publicar, no se copia del contexto.
+		 * Entre la propuesta y el «sí» puede haber pasado un rato y el tema pudo
+		 * cambiar; y sobre todo, es la misma razón por la que la categoría se
+		 * revalida acá: lo que se guarda tiene que ser válido AHORA, no cuando se
+		 * propuso.
+		 */
+		$formato = '';
+		if ( class_exists( 'Cead_Acad_Article_Kind' ) ) {
+			$formato = Cead_Acad_Article_Kind::guardar( $pid, (string) ( $context['formato'] ?? '' ), [
+				'fecha' => (string) ( $context['fecha_ev'] ?? '' ),
+				'lugar' => (string) ( $context['lugar_ev'] ?? '' ),
+			] );
+		}
 		// La categoría temática se revalida contra las que existen ahora: entre
 		// la propuesta y la aprobación pudieron borrarla.
 		$tema = (int) ( $context['categoria'] ?? 0 );
@@ -2027,7 +2107,7 @@ class Cead_Acad_WA_Engine {
 			'user_id'     => $uid ?: null,
 			'entity_type' => 'post',
 			'entity_id'   => $pid,
-			'payload'     => [ 'redes' => $redes, 'categoria' => $tema ?: null, 'con_imagen' => (bool) $image, 'via' => 'ia' ],
+			'payload'     => [ 'redes' => $redes, 'categoria' => $tema ?: null, 'con_imagen' => (bool) $image, 'formato' => $formato ?: null, 'via' => 'ia' ],
 		] );
 		$this->send(
 			$phone,
