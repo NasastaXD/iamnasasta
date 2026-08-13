@@ -1386,6 +1386,8 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 }
 .cead-acad-deleg-wa:hover { background:#1da851; transform:translateY(-1px); }
 .cead-acad-deleg-sintel { margin:auto 0 0; font-size:.76rem; color:var(--cead-acad-text-muted); }
+/* Dato de diagnóstico, no de lectura: se pone al alcance sin competir con el texto. */
+.cead-acad-deleg-version { margin:.9rem 0 0; font-size:.74rem; color:var(--cead-acad-text-muted); opacity:.75; font-variant-numeric:tabular-nums; }
 
 [data-theme="dark"] .cead-acad-deleg { background:#1d2027; }
 [data-theme="dark"] .cead-acad-deleg-vos { background:#262a32; }
