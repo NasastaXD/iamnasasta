@@ -50,7 +50,7 @@ if ( current_user_can( 'cead_acad_view_own_grades' ) ) {
 }
 $quick[] = [ 'href' => 'panel/encuestas', 'label' => __( 'Encuestas', 'cead-acad' ), 'icon' => '🗳️' ];
 if ( current_user_can( 'cead_acad_view_delegates' ) ) {
-	$quick[] = [ 'href' => 'panel/delegados', 'label' => __( 'Delegados', 'cead-acad' ), 'icon' => '🧑‍🤝‍🧑' ];
+	$quick[] = [ 'href' => 'panel/delegados', 'label' => __( 'Delegados', 'cead-acad' ), 'icon' => '📇' ];
 }
 if ( current_user_can( 'cead_acad_manage_reports' ) || current_user_can( 'cead_acad_manage_suggestions' ) ) {
 	$quick[] = [ 'href' => 'panel/buzon', 'label' => __( 'Buzón', 'cead-acad' ), 'icon' => '📨' ];
