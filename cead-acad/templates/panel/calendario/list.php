@@ -119,7 +119,10 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 			<?php if ( $tipos_mes ) : ?>
 				<ul class="cead-acad-cal-legend" aria-label="<?php esc_attr_e( 'Referencias de color', 'cead-acad' ); ?>">
 					<?php foreach ( array_keys( $tipos_mes ) as $t ) : ?>
-						<li><span class="cead-acad-cal-legend-dot" style="--ev:<?php echo esc_attr( Cead_Acad_Schedule_CPT::default_color( $t ) ); ?>"></span><?php echo esc_html( Cead_Acad_Schedule_CPT::type_label( $t ) ); ?></li>
+						<li style="--ev:<?php echo esc_attr( Cead_Acad_Schedule_CPT::default_color( $t ) ); ?>">
+							<span class="cead-acad-cal-legend-dot"><?php echo Cead_Acad_Schedule_CPT::type_icon( $t, 12 ); // phpcs:ignore WordPress.Security.EscapeOutput ?></span>
+							<?php echo esc_html( Cead_Acad_Schedule_CPT::type_label( $t ) ); ?>
+						</li>
 					<?php endforeach; ?>
 				</ul>
 			<?php endif; ?>
@@ -183,8 +186,19 @@ $body = function () use ( $view, $y, $n, $weeks, $grid_start, $first, $days_in, 
 										if ( $f['fin'] ) { $cls_ev .= ' is-fin'; }
 									}
 								?>
-									<a class="<?php echo esc_attr( $cls_ev ); ?>" style="--ev:<?php echo esc_attr( $col ); ?>" href="<?php echo esc_url( cead_acad_url( 'panel/calendario/' . $e->ID ) ); ?>" title="<?php echo esc_attr( get_the_title( $e ) ); ?>">
-										<?php if ( ! $f['span'] ) : ?><span class="cead-acad-cal-dot" aria-hidden="true"></span><?php endif; ?>
+									<a class="<?php echo esc_attr( $cls_ev ); ?>" style="--ev:<?php echo esc_attr( $col ); ?>"
+									   href="<?php echo esc_url( cead_acad_url( 'panel/calendario/' . $e->ID ) ); ?>"
+									   title="<?php echo esc_attr( Cead_Acad_Schedule_CPT::type_label( $type ) . ' · ' . get_the_title( $e ) ); ?>">
+										<?php
+										/*
+										 * La figura del tipo va SIEMPRE, también en la banda de
+										 * un período: es lo que dice de qué se trata cuando la
+										 * celda es tan angosta que no entra ni una palabra. El
+										 * color solo obligaba a ir a buscar la referencia y
+										 * contar cuál de los nueve tonos era.
+										 */
+										echo Cead_Acad_Schedule_CPT::type_icon( $type, 12 ); // phpcs:ignore WordPress.Security.EscapeOutput
+										?>
 										<span class="cead-acad-cal-ev-t<?php echo $rotula ? '' : ' cead-acad-sr-only'; ?>">
 											<?php if ( ! $f['span'] && $st && '00:00' !== substr( $st, 11, 5 ) ) : ?><b><?php echo esc_html( date_i18n( 'H:i', strtotime( $st ) ) ); ?></b> <?php endif; ?>
 											<?php echo esc_html( get_the_title( $e ) ); ?>
