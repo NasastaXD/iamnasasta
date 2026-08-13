@@ -1772,16 +1772,29 @@ body,
 }
 
 /* ===================== CEADI en el panel =====================
-   Cerrado es un punto abajo a la derecha; tocarlo despliega un menú con las
-   dos formas de hablarle, y de ahí se abre el chat.
+   Un botón abajo a la derecha que despliega el chat justo encima. Es un
+   desplegable anclado al botón, no una ventana suelta: el botón se queda donde
+   está y hace de abrir y de cerrar.
 
-   Antes era una barra de 560px anclada abajo al centro. Se veía, pero le
-   cruzaba una franja a todas las pantallas del panel y obligaba a reservarle
-   casi 90px de aire al contenido para no taparlo. */
+   ---- EL BUG QUE ESTUVO TODO ESTE TIEMPO ----
 
-/* El tamaño del punto vive en un token porque lo necesitan DOS lugares: el
+   El panel se dibujaba ABIERTO siempre, desde la primera carga y en todas las
+   pantallas del panel, tapando la mitad de abajo. La plantilla lo marcaba con
+   `hidden` y eso parecía suficiente, pero no lo es: `[hidden] { display:none }`
+   vive en la hoja de estilos del NAVEGADOR, y cualquier declaración de una hoja
+   de autor le gana sin importar la especificidad. Como acá se declaraba
+   `.cead-ceadi-panel { display:flex }`, el `hidden` no hacía absolutamente
+   nada.
+
+   La regla de abajo lo corta explícitamente. Va con `!important` a propósito:
+   cualquier `display` que se le agregue después a estos bloques volvería a
+   abrir el chat solo, y ese fallo es invisible en el código y evidente en la
+   pantalla. */
+.cead-ceadi [hidden] { display: none !important; }
+
+/* El tamaño del botón vive en un token porque lo necesitan DOS lugares: el
    botón, y el hueco que hay que dejarle abajo al contenido. Antes ese hueco era
-   un `5.5rem` calculado a ojo desde la altura implícita de la barra: cualquier
+   un `5.5rem` calculado a ojo desde la altura implícita de una barra: cualquier
    cambio de padding lo desincronizaba en silencio. */
 :root { --ceadi-punto: 3.5rem; }
 
@@ -1803,9 +1816,8 @@ body.cead-acad-con-ceadi .cead-acad-panel-content {
 	padding-bottom: calc(var(--ceadi-punto) + 2rem + env(safe-area-inset-bottom));
 }
 
-/* ---- Cerrado: el punto ---- */
+/* ---- El botón: abre y cierra ---- */
 .cead-ceadi-punto {
-	order: 2; /* el menú se despliega ARRIBA del punto, no debajo */
 	width: var(--ceadi-punto);
 	height: var(--ceadi-punto);
 	display: inline-flex;
@@ -1822,43 +1834,30 @@ body.cead-acad-con-ceadi .cead-acad-panel-content {
 }
 .cead-ceadi-punto:hover  { transform: translateY(-3px) scale(1.04); box-shadow: 0 16px 38px rgba(0,0,0,.3); }
 .cead-ceadi-punto:active { transform: translateY(0) scale(.95); }
-.cead-ceadi-punto-ico { position: relative; z-index: 1; }
-/* Abierto el chat, el punto sobra: el panel ya tiene su ✕. */
-.cead-ceadi[data-estado="abierto"] .cead-ceadi-punto { display: none; }
 
-/* ---- El menú ---- */
-.cead-ceadi-menu {
-	order: 1;
-	width: min(19rem, calc(100vw - 2rem));
-	display: flex;
-	flex-direction: column;
-	overflow: hidden;
-	border: 1px solid var(--cead-acad-border);
-	border-radius: 14px;
-	background: var(--cead-acad-surface, #fff);
-	box-shadow: 0 20px 54px rgba(0,0,0,.24);
-	transform-origin: bottom right;
-	animation: cead-ceadi-abrir .2s cubic-bezier(.2,.9,.25,1) both;
-}
-.cead-ceadi-opcion {
-	display: flex;
+/* Un solo botón para las dos cosas: el ícono cambia de globo a ✕ según el
+   estado. Que el control de cerrar esté SIEMPRE en el mismo lugar es la mitad
+   de por qué esto deja de sentirse invasivo. */
+.cead-ceadi-ico { position: relative; z-index: 1; }
+.cead-ceadi-ico--cerrar { display: none; }
+.cead-ceadi[data-estado="abierto"] .cead-ceadi-ico--abrir  { display: none; }
+.cead-ceadi[data-estado="abierto"] .cead-ceadi-ico--cerrar { display: block; }
+/* Con el chat abierto el latido sobra: ya estás mirando lo que anunciaba. */
+.cead-ceadi[data-estado="abierto"] .cead-ceadi-punto .cead-ceadi-chispa { animation: none; }
+
+/* Agendar el número: un ícono en la cabecera, no un paso previo. */
+.cead-ceadi-wa {
+	display: inline-flex;
 	align-items: center;
-	gap: .75rem;
-	padding: .85rem 1rem;
-	border: 0;
-	background: none;
-	font: inherit;
-	color: var(--cead-acad-ink);
-	text-align: left;
-	text-decoration: none;
-	cursor: pointer;
-	transition: background .16s ease;
+	justify-content: center;
+	width: 30px; height: 30px;
+	flex: 0 0 auto;
+	border-radius: 50%;
+	color: #25D366;
+	background: rgba(37, 211, 102, .12);
+	transition: background .16s ease, transform .16s ease;
 }
-.cead-ceadi-opcion + .cead-ceadi-opcion { border-top: 1px solid var(--cead-acad-border); }
-.cead-ceadi-opcion:hover { background: var(--cead-acad-canvas); }
-.cead-ceadi-opcion-ico { font-size: 1.15rem; flex: 0 0 auto; }
-.cead-ceadi-opcion strong { display: block; font-size: .92rem; }
-.cead-ceadi-opcion small  { display: block; font-size: .76rem; color: var(--cead-acad-text-muted); margin-top: .1rem; }
+.cead-ceadi-wa:hover { background: rgba(37, 211, 102, .22); transform: scale(1.06); }
 
 /* La chispa: late despacio, para que se note que hay algo vivo ahí abajo.
    Sobre el punto es un halo alrededor del botón entero. */
@@ -1883,35 +1882,37 @@ body.cead-acad-con-ceadi .cead-acad-panel-content {
 	100% { box-shadow: 0 0 0 0 rgba(233,59,60,0); }
 }
 
-/* ---- Abierta ---- */
+/* ---- El desplegable ----
+   Alto acotado a 26rem y no a 70vh: colgado del botón ocupa el rincón de abajo
+   a la derecha y deja ver la pantalla que hay detrás, que es de lo que se
+   trata. A 70vh tapaba dos tercios del panel y se sentía una ventana encima. */
 .cead-ceadi-panel {
 	display: flex;
 	flex-direction: column;
-	width: min(23rem, calc(100vw - 2rem));
-	max-height: min(70vh, 560px);
+	width: min(21rem, calc(100vw - 1.5rem));
+	max-height: min(26rem, calc(100vh - 8rem));
 	border: 1px solid var(--cead-acad-border);
-	border-radius: 18px;
+	border-radius: 16px;
 	background: var(--cead-acad-surface, #fff);
 	box-shadow: 0 24px 70px rgba(0,0,0,.26);
 	overflow: hidden;
 	transform-origin: bottom right;
 }
-/* Crece desde el punto: arranca aplastado contra la esquina y se despliega. */
-.cead-ceadi[data-estado="abierto"] .cead-ceadi-panel { animation: cead-ceadi-abrir .28s cubic-bezier(.2,.9,.25,1) both; }
+/* Se despliega desde el botón: arranca aplastado contra la esquina y crece. */
+.cead-ceadi[data-estado="abierto"] .cead-ceadi-panel { animation: cead-ceadi-abrir .22s cubic-bezier(.2,.9,.25,1) both; }
 @keyframes cead-ceadi-abrir {
-	from { opacity: 0; transform: translateY(14px) scale(.9); }
+	from { opacity: 0; transform: translateY(10px) scale(.94); }
 	to   { opacity: 1; transform: none; }
 }
 
 .cead-ceadi-head {
-	display: flex; align-items: center; gap: .7rem;
-	padding: .9rem 1.1rem;
+	display: flex; align-items: center; gap: .6rem;
+	padding: .7rem .9rem;
 	border-bottom: 1px solid var(--cead-acad-border);
 }
-.cead-ceadi-head-txt { display: flex; flex-direction: column; line-height: 1.2; flex: 1; }
-.cead-ceadi-head-txt span { font-size: .78rem; color: var(--cead-acad-text-muted, #6E6E6E); }
-.cead-ceadi-cerrar { background: none; border: 0; font-size: 1.1rem; cursor: pointer; color: inherit; padding: .2rem .4rem; border-radius: 6px; }
-.cead-ceadi-cerrar:hover { background: var(--cead-acad-canvas, #f3f3f3); }
+.cead-ceadi-head-txt { display: flex; flex-direction: column; line-height: 1.2; flex: 1; min-width: 0; }
+.cead-ceadi-head-txt strong { font-size: .92rem; }
+.cead-ceadi-head-txt span { font-size: .74rem; color: var(--cead-acad-text-muted, #6E6E6E); }
 
 .cead-ceadi-hilo {
 	flex: 1;
@@ -1971,25 +1972,22 @@ body.cead-acad-con-ceadi .cead-acad-panel-content {
 .cead-ceadi-form button:hover { transform: scale(1.08); }
 .cead-ceadi-form button:disabled { opacity: .5; cursor: default; transform: none; }
 
-[data-theme="dark"] .cead-ceadi-menu,
 [data-theme="dark"] .cead-ceadi-panel { background: #1d2027; }
-[data-theme="dark"] .cead-ceadi-opcion:hover { background: #262a32; }
 [data-theme="dark"] .cead-ceadi-msg--bot { background: #262a32; }
 [data-theme="dark"] .cead-ceadi-form input { background: #262a32; }
 [data-theme="dark"] .cead-ceadi-msg--error { background: #3a2224; color: #ffb4b5; }
 
-/* En celular el chat se hace más alto y usa casi todo el ancho; el punto se
-   queda del mismo tamaño, que es cómodo para el pulgar. */
+/* En celular usa casi todo el ancho, pero SIGUE sin ser pantalla completa:
+   se deja ver arriba la pantalla que está detrás para no perder el contexto de
+   lo que uno estaba mirando cuando le surgió la pregunta. */
 @media (max-width: 640px) {
 	.cead-ceadi { right: max(.75rem, env(safe-area-inset-right)); bottom: max(.75rem, env(safe-area-inset-bottom)); }
-	.cead-ceadi-panel { width: calc(100vw - 1.5rem); max-height: 76vh; }
-	.cead-ceadi-menu  { width: calc(100vw - 1.5rem); }
+	.cead-ceadi-panel { width: calc(100vw - 1.5rem); max-height: min(24rem, calc(100vh - 9rem)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
 	.cead-ceadi-chispa { animation: none; }
 	.cead-ceadi[data-estado="abierto"] .cead-ceadi-panel { animation: none; }
-	.cead-ceadi-menu { animation: none; }
 	.cead-ceadi-punto { transition: none; }
 	.cead-ceadi-msg { animation: none; }
 	.cead-ceadi-pensando span { animation: none; opacity: .6; }
