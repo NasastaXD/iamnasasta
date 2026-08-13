@@ -8,6 +8,17 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class Cead_Acad_Courses_Roster {
 
 	/**
+	 * El rol con el que se busca a los delegados.
+	 *
+	 * Va en una constante para poder verificarlo contra los roles que el plugin
+	 * registra de verdad. Una falta de tipeo acá no rompe nada visible: la
+	 * consulta devuelve cero usuarios y la pantalla dice «todavía no hay
+	 * delegados asignados», que es exactamente lo que se ve cuando SÍ los hay
+	 * pero se los busca mal. Un test lo cruza contra el catálogo de roles.
+	 */
+	const DELEGATE_ROLE = 'cead_acad_delegate';
+
+	/**
 	 * Agrega un usuario al curso. Idempotente por unique (user_id, course_id).
 	 *
 	 * Devuelve el id de la fila, o **0 si la escritura falló**.
@@ -140,50 +151,66 @@ class Cead_Acad_Courses_Roster {
 	/**
 	 * La lista de delegados del colegio, con su curso y su contacto.
 	 *
-	 * El delegado se guarda en el CURSO (`_cead_acad_delegate`), no en el
-	 * usuario: es un cargo que se ejerce sobre un curso concreto y puede cambiar
-	 * de manos sin tocar a la persona. Por eso se recorre desde los cursos y no
-	 * buscando usuarios con el rol — así aparece el curso al lado del nombre, que
-	 * es lo que hace útil la lista, y no se cuela alguien que quedó con el rol
-	 * puesto de un año anterior pero ya no es delegado de nada.
+	 * La fuente es el ROL de la persona, no el cargo cargado en el curso.
 	 *
-	 * Una persona puede ser delegada de más de un curso: aparece una vez por
-	 * cargo, que es lo que corresponde — el mensaje que le vas a mandar depende
-	 * de por cuál de los dos lo buscás.
+	 * La primera versión hacía al revés: recorría los cursos leyendo
+	 * `_cead_acad_delegate`. En el papel era más correcto —el delegado es un
+	 * cargo sobre un curso— pero en el colegio real los delegados están dados de
+	 * alta como usuarios con su rol y NADIE completó ese campo en las fichas de
+	 * curso. Resultado: la pantalla salía vacía teniendo delegados cargados. El
+	 * dato que existe manda sobre el dato que debería existir.
 	 *
-	 * @return array<int,array<string,mixed>> Ordenada por título de curso.
+	 * El curso se agrega si se lo puede averiguar, por dos caminos y en este
+	 * orden: el cargo en la ficha del curso (si alguien sí lo cargó, es el más
+	 * específico) y, si no, el curso en el que la persona está inscripta. Sin
+	 * ninguno de los dos, la ficha sale igual pero sin curso — que es mucho
+	 * mejor que no salir.
+	 *
+	 * @return array<int,array<string,mixed>> Ordenada por nombre.
 	 */
 	public static function delegates() {
-		$cursos = get_posts( [
+		$usuarios = get_users( [
+			'role'    => self::DELEGATE_ROLE,
+			'orderby' => 'display_name',
+			'order'   => 'ASC',
+		] );
+		if ( ! $usuarios ) { return []; }
+
+		// Cargo asignado en la ficha del curso: user_id => curso. Se arma de una
+		// sola pasada en vez de consultar por cada delegado.
+		$por_cargo = [];
+		foreach ( get_posts( [
 			'post_type'   => Cead_Acad_Courses_CPT::POST_TYPE,
 			'post_status' => 'publish',
 			'numberposts' => -1,
-			'orderby'     => 'title',
-			'order'       => 'ASC',
-		] );
+		] ) as $curso ) {
+			$uid = (int) get_post_meta( $curso->ID, '_cead_acad_delegate', true );
+			if ( $uid && ! isset( $por_cargo[ $uid ] ) ) { $por_cargo[ $uid ] = $curso; }
+		}
 
 		$turnos = [ 'manana' => __( 'Mañana', 'cead-acad' ), 'tarde' => __( 'Tarde', 'cead-acad' ), 'noche' => __( 'Noche', 'cead-acad' ) ];
 		$out    = [];
 
-		foreach ( $cursos as $curso ) {
-			$uid = (int) get_post_meta( $curso->ID, '_cead_acad_delegate', true );
-			if ( ! $uid ) { continue; }
+		foreach ( $usuarios as $u ) {
+			$curso = $por_cargo[ $u->ID ] ?? null;
 
-			$u = get_userdata( $uid );
-			// Un curso puede apuntar a un usuario que ya se borró: la ficha sin
-			// persona no sirve para nada y romper la pantalla, menos.
-			if ( ! $u ) { continue; }
+			if ( ! $curso ) {
+				// Sin cargo cargado, el curso en el que está inscripto alcanza para
+				// saber a quién representa.
+				$ids = self::courses_for_user( $u->ID );
+				if ( $ids ) { $curso = get_post( $ids[0] ); }
+			}
 
-			$turno = (string) get_post_meta( $curso->ID, '_cead_acad_turno', true );
+			$turno = $curso ? (string) get_post_meta( $curso->ID, '_cead_acad_turno', true ) : '';
 
 			$out[] = [
-				'user_id'   => $uid,
-				'nombre'    => $u->display_name,
-				'curso_id'  => $curso->ID,
-				'curso'     => $curso->post_title,
-				'turno'     => $turnos[ $turno ] ?? '',
-				'telefono'  => (string) get_user_meta( $uid, '_cead_acad_phone', true ),
-				'suspendido' => class_exists( 'Cead_Acad_User_Suspension' ) && Cead_Acad_User_Suspension::is_suspended( $uid ),
+				'user_id'    => (int) $u->ID,
+				'nombre'     => $u->display_name,
+				'curso_id'   => $curso ? (int) $curso->ID : 0,
+				'curso'      => $curso ? $curso->post_title : '',
+				'turno'      => $turnos[ $turno ] ?? '',
+				'telefono'   => (string) get_user_meta( $u->ID, '_cead_acad_phone', true ),
+				'suspendido' => class_exists( 'Cead_Acad_User_Suspension' ) && Cead_Acad_User_Suspension::is_suspended( $u->ID ),
 			];
 		}
 

@@ -77,6 +77,24 @@ final class DelegadosTest extends TestCase {
 	}
 
 	/**
+	 * El rol con el que se buscan los delegados tiene que EXISTIR.
+	 *
+	 * Este test nace de un error real: la primera versión armaba la lista
+	 * recorriendo los cursos, y como en el colegio nadie había completado ese
+	 * campo, la pantalla salía vacía teniendo delegados cargados. Un fallo así
+	 * no se ve en el código ni en los tests: se ve como «todavía no hay
+	 * delegados asignados», que es idéntico al estado legítimo de estar vacío.
+	 * Con el slug mal escrito pasaría exactamente lo mismo.
+	 */
+	public function test_el_rol_de_delegado_existe_de_verdad(): void {
+		$this->assertArrayHasKey(
+			Cead_Acad_Courses_Roster::DELEGATE_ROLE,
+			Cead_Acad_Capabilities::roles(),
+			'Se buscan delegados con un rol que el plugin no registra: la lista saldría siempre vacía.'
+		);
+	}
+
+	/**
 	 * La capacidad es lo único que abre la sección, y tiene que estar en los
 	 * cuatro roles de «delegado para arriba» — ni uno más. Si se le escapara al
 	 * alumnado, los teléfonos de los delegados quedarían a la vista de todo el

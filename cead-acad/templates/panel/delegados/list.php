@@ -18,6 +18,23 @@ if ( ! current_user_can( 'cead_acad_view_delegates' ) ) {
 $user       = wp_get_current_user();
 $delegados  = Cead_Acad_Courses_Roster::delegates();
 
+/*
+ * Queda registrado quién abrió el directorio.
+ *
+ * Es una pantalla que publica teléfonos de terceros: que se pueda reconstruir
+ * después quién los vio es lo que hace que dar este acceso sea defendible ante
+ * la familia de un delegado. Se anota el hecho de mirar la lista, no a quién se
+ * le escribió: eso pasa dentro de WhatsApp y el sistema no lo ve — anotarlo
+ * sería afirmar algo que no nos consta.
+ */
+if ( class_exists( 'Cead_Acad_Audit' ) ) {
+	Cead_Acad_Audit::log( 'delegates_viewed', [
+		'entity_type' => 'user',
+		'entity_id'   => $user->ID,
+		'payload'     => [ 'fichas' => count( $delegados ) ],
+	] );
+}
+
 // Buscador: con un delegado por curso la lista crece con el colegio, y a la
 // tercera pantalla de scroll ya no sirve para encontrar a nadie.
 $q = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( $_GET['q'] ) ) : '';
@@ -75,10 +92,16 @@ $body = function () use ( $delegados, $q, $user ) {
 									<?php echo esc_html( $d['nombre'] ); ?>
 									<?php if ( $soy_yo ) : ?><span class="cead-acad-deleg-vos"><?php esc_html_e( 'vos', 'cead-acad' ); ?></span><?php endif; ?>
 								</h3>
-								<p class="cead-acad-deleg-curso">
-									<?php echo esc_html( $d['curso'] ); ?>
-									<?php if ( $d['turno'] ) : ?><span class="cead-acad-deleg-turno"><?php echo esc_html( $d['turno'] ); ?></span><?php endif; ?>
-								</p>
+								<?php // Sin curso averiguable la ficha sale igual: el contacto sirve lo mismo. ?>
+								<?php if ( $d['curso'] ) : ?>
+									<p class="cead-acad-deleg-curso">
+										<?php echo esc_html( $d['curso'] ); ?>
+										<?php if ( $d['turno'] ) : ?><span class="cead-acad-deleg-turno"><?php echo esc_html( $d['turno'] ); ?></span><?php endif; ?>
+									</p>
+								<?php endif; ?>
+								<?php if ( $d['telefono'] ) : ?>
+									<p class="cead-acad-deleg-tel"><?php echo esc_html( $d['telefono'] ); ?></p>
+								<?php endif; ?>
 							</div>
 						</div>
 
