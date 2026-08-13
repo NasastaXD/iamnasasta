@@ -2865,7 +2865,19 @@ p { margin: 0; }
    calendarios pintaran distinto, el mismo feriado se vería de dos formas. */
 .cal-legend { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; margin: 0 0 1.75rem; }
 .cal-legend li { display: flex; align-items: center; gap: .4rem; font-size: .85rem; color: var(--text-secondary); }
-.cal-legend-dot { width: 11px; height: 11px; flex: 0 0 auto; background: var(--ev, var(--border-cead)); }
+/* La referencia muestra la MISMA figura que la celda: si no comparten el
+   símbolo, la referencia no sirve para leer el calendario. */
+.cal-legend-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  color: var(--ev, var(--ink));
+  background: color-mix(in srgb, var(--ev) 18%, transparent);
+  border-radius: 4px;
+}
 
 /* La tarjeta: mes con flechas arriba, grilla al medio, meses al pie. */
 .cal-card { border: 1px solid var(--border-cead); border-radius: 4px; overflow: hidden; background: #fff; box-shadow: 0 14px 40px rgba(0, 0, 0, .06); }
@@ -2980,7 +2992,8 @@ p { margin: 0; }
   border-left: 3px solid var(--ev, var(--border-cead));
   color: var(--ink);
 }
-.cal-ev-dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; background: var(--ev, var(--ink)); }
+/* La figura toma el color del evento: el color refuerza, no es la única pista. */
+.cead-acad-ev-ico { flex: 0 0 auto; color: var(--ev, var(--ink)); }
 .cal-ev-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .cal-more { font-size: .68rem; color: var(--text-muted); padding-left: .4rem; }
 
@@ -3012,8 +3025,26 @@ p { margin: 0; }
   /* El número no se achica al mismo ritmo que el resto: en un celular es lo
      único legible de la celda, así que es lo último que se sacrifica. */
   .cal-day { min-width: 26px; height: 26px; font-size: .98rem; }
-  .cal-ev { height: 9px; padding: 0; border-left: 0; background: var(--ev, var(--border-cead)); }
-  .cal-ev-t, .cal-ev-dot { display: none; }
+  /* A este ancho no entra texto: queda la figura del tipo con su barra debajo.
+     La figura dice QUÉ es; la barra, de dónde a dónde va. */
+  .cal-ev {
+    width: 100%;
+    padding: 0;
+    border-left: 0;
+    background: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .cal-ev::after {
+    content: "";
+    display: block;
+    width: 80%;
+    height: 3px;
+    background: var(--ev, var(--border-cead));
+  }
+  .cal-ev--span::after { width: 100%; }
+  .cal-ev-t { display: none; }
   .cal-ev--span { margin-inline: -.22rem; padding-inline: 0; }
   .cal-ev--span.is-ini, .cal-ev--span.is-fin { border: 0; }
   .cal-wd { font-size: .6rem; letter-spacing: .06em; padding: .5rem .15rem; }

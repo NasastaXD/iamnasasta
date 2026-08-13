@@ -129,6 +129,52 @@ class Cead_Acad_Schedule_CPT {
 	}
 
 	/**
+	 * El ícono de cada tipo, como SVG en línea.
+	 *
+	 * El color solo no alcanzaba. En una celda de calendario un evento es una
+	 * barrita de nueve píxeles, y nueve píxeles de color no dicen si eso es un
+	 * examen o un feriado: hay que ir a buscar la referencia, contar cuál de
+	 * los nueve tonos es, y para entonces ya perdiste el vistazo. Con una
+	 * figura encima se lee de una, y en el que no distingue bien los colores
+	 * —que en un colegio es uno de cada doce varones— pasa de adivinanza a
+	 * información.
+	 *
+	 * Trazo y no relleno, para que herede `currentColor` y sirva sobre claro y
+	 * sobre oscuro sin dos juegos de íconos.
+	 *
+	 * @param string $type Tipo de evento.
+	 * @param int    $px   Lado del cuadrado, en píxeles.
+	 */
+	public static function type_icon( $type, $px = 12 ) {
+		$trazos = [
+			// Birrete: una clase.
+			'clase'     => '<path d="M2 8 12 3l10 5-10 5Z"/><path d="M6 10.5V16c0 1.7 2.7 3 6 3s6-1.3 6-3v-5.5"/>',
+			// Dos personas: una reunión.
+			'reunion'   => '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 5.5a3 3 0 0 1 0 5.8"/><path d="M17.5 14.5A5.5 5.5 0 0 1 21 20"/>',
+			// Hoja con lápiz: un examen.
+			'examen'    => '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8"/><path d="M14 3v5h5"/><path d="m21 3-6 6"/>',
+			// Bandeja con flecha: una entrega.
+			'entrega'   => '<path d="M12 3v10"/><path d="m8 9 4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+			// Estrella: un feriado.
+			'feriado'   => '<path d="m12 3 2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.8 6.7 19.6l1.1-6L3.4 9.4l6-.8Z"/>',
+			// Banderín: un acto.
+			'acto'      => '<path d="M5 21V4"/><path d="M5 4h11l-2 3.5L16 11H5"/>',
+			// Montaña: una excursión.
+			'excursion' => '<path d="m3 19 6-10 4 6 2-3 6 7Z"/><circle cx="17" cy="6" r="2"/>',
+			// Llave de cierre: un período largo.
+			'cierre'    => '<path d="M4 5v14"/><path d="M20 5v14"/><path d="M4 12h16"/>',
+			// Punto marcado en el almanaque: cualquier otro evento.
+			'evento'    => '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.6" fill="currentColor" stroke="none"/>',
+		];
+		$d = $trazos[ $type ] ?? $trazos['evento'];
+
+		return '<svg class="cead-acad-ev-ico" width="' . (int) $px . '" height="' . (int) $px . '"'
+			. ' viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"'
+			. ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'
+			. $d . '</svg>';
+	}
+
+	/**
 	 * El color efectivo de un evento: el propio si cargó uno válido, si no el
 	 * de su tipo. Centralizado acá para que el calendario, la agenda y
 	 * cualquier vista nueva se vean siempre consistentes entre sí.

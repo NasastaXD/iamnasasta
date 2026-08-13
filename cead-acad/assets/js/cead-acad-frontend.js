@@ -203,6 +203,18 @@
 			// la pantalla: sin esto el foco se queda donde estaba.
 			focusSinSaltar(actual);
 		} else {
+			/*
+			 * Seguimos en la misma pantalla, así que las animaciones de entrada
+			 * NO se vuelven a correr: cambiar de mes en el calendario replayaba
+			 * el fundido de la sección y el escalonado de las semanas, y ese
+			 * parpadeo es exactamente lo que se lee como "se recargó la página".
+			 * La clase la saca el propio navegador en el frame siguiente.
+			 */
+			actual.classList.add('cead-acad-sin-entrada');
+			requestAnimationFrame(function () {
+				requestAnimationFrame(function () { actual.classList.remove('cead-acad-sin-entrada'); });
+			});
+
 			// Cambió el contenido pero NO movemos el foco (estaría sacando a la
 			// persona del filtro que acaba de usar): se anuncia y listo.
 			anunciar(document.title.split('·')[0].trim());
@@ -283,7 +295,19 @@
 		// En celular el menú queda abierto tapando todo: cerrarlo es parte de
 		// que la navegación se sienta terminada.
 		if (typeof window.ceadCerrarNav === 'function') { window.ceadCerrarNav(false); }
-		navegar(a.href);
+
+		/*
+		 * Mismo criterio que los formularios GET: si el enlace apunta a la
+		 * pantalla en la que ya estás y solo cambia la query, es un FILTRO, no
+		 * una navegación — el scroll se queda donde está.
+		 *
+		 * Sin esto, cambiar de mes en el calendario te tiraba al tope de la
+		 * página en cada clic. La navegación era suave por dentro, pero el salto
+		 * se veía igual que una recarga: te quedabas mirando el encabezado en
+		 * vez del mes que acabás de pedir.
+		 */
+		var destino = new URL(a.href, location.href);
+		navegar(a.href, { mantenerScroll: destino.pathname === location.pathname });
 	});
 
 	// Prefetch: al pasar el mouse por encima o al apoyar el dedo.
@@ -371,12 +395,23 @@
 
 		function estaAbierto() { return caja.dataset.estado === 'abierto'; }
 
+		/*
+		 * ¿Hay teclado físico? Se usa para decidir si enfocar el campo al abrir.
+		 *
+		 * En una computadora enfocar es una cortesía: abrís y escribís. En un
+		 * celular es lo contrario — te salta el teclado en la cara, se come la
+		 * mitad de la pantalla y tapa la respuesta que viniste a leer, todo
+		 * antes de que hayas decidido escribir algo. El teclado tiene que
+		 * aparecer cuando TOCÁS el campo, no cuando abrís el chat.
+		 */
+		var tienePuntero = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
 		function abrirChat() {
 			caja.dataset.estado = 'abierto';
 			panel.hidden = false;
 			abrir.setAttribute('aria-expanded', 'true');
 			abrir.setAttribute('aria-label', 'Cerrar CEADI');
-			focusSinSaltar(input);
+			if (tienePuntero) { focusSinSaltar(input); }
 			hilo.scrollTop = hilo.scrollHeight;
 		}
 		function cerrarChat(devolverFoco) {

@@ -1151,9 +1151,18 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 /* ---- Leyenda ----
    Va arriba de la tarjeta y no al pie: si el color es el que dice de qué se
    trata cada banda, la referencia tiene que leerse ANTES de mirar la grilla. */
-.cead-acad-cal-legend { display:flex; flex-wrap:wrap; align-items:center; gap:.3rem .9rem; list-style:none; margin:0 0 1rem; padding:0; }
+.cead-acad-cal-legend { display:flex; flex-wrap:wrap; align-items:center; gap:.4rem .9rem; list-style:none; margin:0 0 1rem; padding:0; }
 .cead-acad-cal-legend li { display:inline-flex; align-items:center; gap:.4rem; font-size:.72rem; color:var(--cead-acad-text-soft); }
-.cead-acad-cal-legend-dot { width:11px; height:11px; flex:0 0 auto; background:var(--ev,var(--cead-acad-border)); }
+/* La referencia muestra la MISMA figura que la celda, no un cuadradito de
+   color: si la leyenda y el calendario no comparten el símbolo, la leyenda no
+   sirve para leer el calendario. */
+.cead-acad-cal-legend-dot {
+	display:inline-flex; align-items:center; justify-content:center;
+	width:20px; height:20px; flex:0 0 auto;
+	color:var(--ev,var(--cead-acad-ink));
+	background:color-mix(in srgb, var(--ev) 18%, transparent);
+	border-radius:4px;
+}
 
 /* ---- La tarjeta: mes arriba, grilla al medio, navegación abajo ---- */
 .cead-acad-cal { border:1px solid var(--cead-acad-border); border-radius:var(--cead-acad-radius); overflow:hidden; background:#fff; box-shadow:0 12px 36px rgba(0,0,0,.06); }
@@ -1246,7 +1255,9 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 	transition:background .16s ease, transform .16s ease;
 }
 .cead-acad-cal-ev:hover { transform:translateX(1px); }
-.cead-acad-cal-dot { width:6px; height:6px; border-radius:50%; flex:0 0 auto; background:var(--ev,var(--cead-acad-ink)); }
+/* La figura toma el color del evento y es lo que lo identifica; el color pasa a
+   reforzarla en vez de ser la única pista. */
+.cead-acad-ev-ico { flex:0 0 auto; color:var(--ev,var(--cead-acad-ink)); }
 .cead-acad-cal-ev-t { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
 .cead-acad-cal-ev-t b { font-weight:700; font-variant-numeric:tabular-nums; }
 .cead-acad-cal-more { font-family:var(--cead-acad-font-display); font-size:.66rem; letter-spacing:.08em; color:var(--cead-acad-text-muted); padding-left:.42rem; }
@@ -1285,21 +1296,29 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 
 @media (max-width:640px){
 	/* A ~50px de ancho por celda no entra texto legible, así que el nombre se
-	   oculta. Pero antes lo que quedaba era un punto de 7px sobre un chip gris:
-	   el color de la categoría —lo único que se podía leer a ese tamaño— se
-	   perdía. Ahora cada evento es una BARRA de su color, se ve de un vistazo
-	   cuántas cosas hay y de qué tipo, la leyenda está justo arriba, y la barra
-	   sigue siendo el enlace al evento. El detalle con nombre y hora vive en la
+	   oculta. Lo que queda es la FIGURA del tipo en su color, con la barra
+	   debajo: la figura dice qué es —examen, feriado, acto— y la barra de dónde
+	   a dónde va. Con solo el color había que ir a la referencia y contar cuál
+	   de los nueve tonos era, cada vez. El detalle con nombre y hora vive en la
 	   vista Agenda, que es la que sirve en un celular. */
-	.cead-acad-cal-cell { min-height:92px; padding:.25rem .18rem; gap:.25rem; }
+	.cead-acad-cal-cell { min-height:96px; padding:.25rem .18rem; gap:.22rem; }
 	/* El número NO se achica al mismo ritmo que el resto: es lo que se viene a
 	   leer, y en un celular es lo único legible de la celda. */
 	.cead-acad-cal-day { min-width:26px; height:26px; font-size:.98rem; }
-	.cead-acad-cal-evs { gap:.14rem; }
-	.cead-acad-cal-ev { height:9px; padding:0; border-left:0; background:var(--ev,var(--cead-acad-border)); }
+	.cead-acad-cal-evs { gap:.16rem; align-items:center; }
+	.cead-acad-cal-ev {
+		width:100%; padding:0; border-left:0; background:none;
+		flex-direction:column; align-items:center; gap:2px;
+	}
+	/* La barra deja de ser el evento entero y pasa a ser su subrayado. */
+	.cead-acad-cal-ev::after {
+		content:""; display:block; width:80%; height:3px;
+		background:var(--ev,var(--cead-acad-border));
+	}
 	.cead-acad-cal-ev:hover { transform:none; }
-	.cead-acad-cal-ev-t, .cead-acad-cal-dot { display:none; }
+	.cead-acad-cal-ev-t { display:none; }
 	.cead-acad-cal-ev--span { margin-inline:-.18rem; padding-inline:0; }
+	.cead-acad-cal-ev--span::after { width:100%; }
 	.cead-acad-cal-ev--span.is-ini,
 	.cead-acad-cal-ev--span.is-fin { border:0; }
 	.cead-acad-cal-wd { font-size:.6rem; letter-spacing:.06em; padding:.5rem .15rem; }
@@ -1489,17 +1508,41 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 [data-theme="dark"] .cead-acad-cats a.is-active,
 [data-theme="dark"] .cead-acad-cal-toggle a.is-active { background:var(--cead-acad-brand); border-color:var(--cead-acad-brand); color:#fff; }
 
-/* Detalles del calendario y hovers.
-   El chip del evento NO se pisa acá: su fondo es el color del tipo mezclado
-   con `transparent`, así que se apoya solo sobre la celda oscura y sigue
-   diciendo de qué tipo es. Poniéndole un gris fijo se perdía justo eso. */
-[data-theme="dark"] .cead-acad-cal-cell.is-out { background:#101216; }
-[data-theme="dark"] .cead-acad-cal-cell.is-finde:not(.is-out) { background:#181b21; }
+/* ---- El calendario en oscuro ----
+   El problema no era el color de fondo sino el CONTRASTE entre superficies: la
+   tarjeta, la celda, el fin de semana y el día de otro mes estaban a pocos
+   puntos de distancia, y sobre una pantalla apagada eso se ve como una masa
+   gris donde no se distingue una semana de la otra. Acá se separan de verdad y
+   las líneas de la grilla se aclaran, que es lo que dibuja el damero. */
+[data-theme="dark"] .cead-acad-cal { background:#1a1d23; border-color:#333844; }
+[data-theme="dark"] .cead-acad-cal-cell { border-color:#2f3541; }
+[data-theme="dark"] .cead-acad-cal-cell.is-out { background:#111318; }
+[data-theme="dark"] .cead-acad-cal-cell.is-finde:not(.is-out) { background:#15181d; }
 [data-theme="dark"] .cead-acad-cal-row--head,
-[data-theme="dark"] .cead-acad-cal-pie { background:#16191f; }
-[data-theme="dark"] .cead-acad-cal-pie a:hover { background:#22262e; }
-[data-theme="dark"] .cead-acad-calnav-arrow { background:#1d2027; border-color:#2b2f37; }
+[data-theme="dark"] .cead-acad-cal-pie { background:#12151a; }
+[data-theme="dark"] .cead-acad-cal-wd,
+[data-theme="dark"] .cead-acad-cal-topo,
+[data-theme="dark"] .cead-acad-cal-pie { border-color:#333844; }
+[data-theme="dark"] .cead-acad-cal-pie a:hover { background:#232833; color:#fff; }
+[data-theme="dark"] .cead-acad-calnav-arrow { background:#232833; border-color:#333844; }
 [data-theme="dark"] .cead-acad-calnav-arrow:hover { background:var(--cead-acad-brand); border-color:var(--cead-acad-brand); color:#fff; }
+/* Los días de otro mes al 45% sobre oscuro directamente desaparecen. */
+[data-theme="dark"] .cead-acad-cal-cell.is-out .cead-acad-cal-day { opacity:.6; }
+
+/*
+ * Sobre fondo oscuro, un 12% del color mezclado con transparente da un gris
+ * sucio: el tinte se sube para que el chip vuelva a decir de qué color es, y
+ * la figura se aclara para que se lea sobre él. Un rojo del 12% sobre #1a1d23
+ * es indistinguible de un marrón del 12%, que es justo lo que se veía.
+ */
+@supports (background: color-mix(in srgb, red 10%, transparent)) {
+	[data-theme="dark"] .cead-acad-cal-ev             { background:color-mix(in srgb, var(--ev) 26%, transparent); }
+	[data-theme="dark"] .cead-acad-cal-ev:hover       { background:color-mix(in srgb, var(--ev) 42%, transparent); }
+	[data-theme="dark"] .cead-acad-cal-ev--span       { background:color-mix(in srgb, var(--ev) 34%, transparent); }
+	[data-theme="dark"] .cead-acad-cal-ev--span:hover { background:color-mix(in srgb, var(--ev) 48%, transparent); }
+	[data-theme="dark"] .cead-acad-ev-ico             { color:color-mix(in srgb, var(--ev) 72%, #fff); }
+	[data-theme="dark"] .cead-acad-cal-legend-dot     { background:color-mix(in srgb, var(--ev) 28%, transparent); }
+}
 [data-theme="dark"] .cead-acad-notif-item:hover,
 [data-theme="dark"] .cead-acad-feed-item:hover,
 [data-theme="dark"] .cead-acad-agenda-item:hover { background:#262a32; }
@@ -1512,6 +1555,13 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 
 /* Entrada del contenido al cargar */
 .cead-acad-panel-section { animation: cead-fade-up .42s cubic-bezier(0.34,1.56,0.64,1) both; }
+
+/* Filtrar la pantalla en la que ya estás —cambiar de mes, elegir otro curso—
+   no es llegar a ningún lado: el contenido se reemplaza sin volver a entrar.
+   Repetir el fundido y el escalonado en cada clic es lo que hacía sentir que
+   la página se recargaba. */
+.cead-acad-sin-entrada,
+.cead-acad-sin-entrada * { animation: none !important; }
 
 /* Stagger de tarjetas, accesos rápidos y agenda */
 .cead-acad-grid > *,

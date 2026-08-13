@@ -581,8 +581,33 @@ class Cead_Acad_WA_Admin {
 		echo '<p class="description">' . esc_html__( 'Hace que el modelo piense antes de contestar: mejora bastante cuando tiene que encadenar consultas o decidir entre varias opciones. Dejalo desactivado si no estás seguro — es un parámetro que varios proveedores todavía no aceptan, y ahí devuelven error en TODOS los mensajes. Si al prenderlo CEADI deja de responder, volvé a "Desactivado". También hace que tarde más.', 'cead-acad' ) . '</p></td></tr>';
 		$this->field( 'ai_maxtokens', __( 'Máx. tokens de respuesta', 'cead-acad' ), get_option( 'cead_acad_wa_ai_maxtokens', 800 ), '800', 'number' );
 		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Cuánto puede escribir CEADI de una. 800 alcanza para responder consultas; para que escriba artículos largos conviene 4000–8000. Ojo: cada modelo tiene su techo (DeepSeek corta en 8192) — si ponés más del que acepta, se reintenta solo con 8192 en vez de fallar. Valores altos también hacen que tarde más en contestar.', 'cead-acad' ) . '</p></td></tr>';
-		$this->field_textarea( 'ai_prompt', __( 'System prompt (personalidad / instrucciones)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_prompt', '' ) ?: Cead_Acad_WA_AI::default_persona(), 6 );
-		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Definí el tono y rol de CEADI. El formato de salida (ruteo en JSON) se agrega automáticamente, no hace falta escribirlo.', 'cead-acad' ) . '</p></td></tr>';
+		/*
+		 * El campo muestra SOLO lo que hay guardado, y la personalidad por
+		 * defecto va de placeholder.
+		 *
+		 * Antes se pre-cargaba el texto por defecto adentro del textarea. Se veía
+		 * bien, pero tenía una consecuencia que no se veía: bastaba entrar a esta
+		 * pantalla y tocar «Guardar» —aunque fuera para cambiar otra cosa— para
+		 * que esas dos mil palabras quedaran COPIADAS en la opción. Desde ese
+		 * momento la personalidad quedaba congelada en la versión de ese día, y
+		 * cualquier mejora que trajera una actualización del plugin no llegaba
+		 * nunca. Vacío significa «usá la que trae el plugin, y que se actualice
+		 * con él».
+		 */
+		$prompt_guardado = (string) get_option( 'cead_acad_wa_ai_prompt', '' );
+		$this->field_textarea( 'ai_prompt', __( 'System prompt (personalidad / instrucciones)', 'cead-acad' ), $prompt_guardado, 6 );
+		echo '<tr><th></th><td><p class="description">'
+			. esc_html__( 'Definí el tono y rol de CEADI. El formato de salida (ruteo en JSON) se agrega automáticamente, no hace falta escribirlo.', 'cead-acad' )
+			. ' <strong>' . esc_html__( 'Vacío = se usa la personalidad que trae el plugin, y mejora con cada actualización.', 'cead-acad' ) . '</strong>'
+			. '</p>';
+		if ( '' !== trim( $prompt_guardado ) ) {
+			echo '<p class="description" style="color:#8a6d00">'
+				. esc_html__( 'Ahora mismo hay una personalidad propia guardada, así que la del plugin NO se usa. Si no la escribiste a propósito, lo más probable es que se haya copiado sola al guardar esta pantalla: vaciá el campo y guardá para volver a la del plugin.', 'cead-acad' )
+				. '</p>';
+		}
+		echo '<details><summary>' . esc_html__( 'Ver la personalidad por defecto', 'cead-acad' ) . '</summary>'
+			. '<textarea readonly rows="10" class="large-text code">' . esc_textarea( Cead_Acad_WA_AI::default_persona() ) . '</textarea></details>';
+		echo '</td></tr>';
 		$this->field_textarea( 'ai_knowledge', __( 'Conocimiento (base de datos para responder)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_knowledge', '' ), 8 );
 		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Texto libre con info del colegio (horarios generales, reglas, contactos, fechas, etc.). La IA lo usa para responder dudas. Las FAQ del panel se suman a esto.', 'cead-acad' ) . '</p></td></tr>';
 		$this->field( 'ai_context_budget', __( 'Presupuesto de contexto (caracteres)', 'cead-acad' ), Cead_Acad_WA_AI::context_budget(), '22000', 'number' );

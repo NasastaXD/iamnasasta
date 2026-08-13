@@ -86,7 +86,7 @@ if ( $disponible ) {
 				<?php if ( $tipos_presentes ) : ?>
 					<ul class="cal-legend" aria-label="<?php esc_attr_e( 'Referencias', 'cead' ); ?>">
 						<?php foreach ( array_keys( $tipos_presentes ) as $t ) : ?>
-							<li><span class="cal-legend-dot" style="--ev:<?php echo esc_attr( Cead_Acad_Schedule_CPT::default_color( $t ) ); ?>"></span><?php echo esc_html( Cead_Acad_Schedule_CPT::type_label( $t ) ); ?></li>
+							<li style="--ev:<?php echo esc_attr( Cead_Acad_Schedule_CPT::default_color( $t ) ); ?>"><span class="cal-legend-dot"><?php echo Cead_Acad_Schedule_CPT::type_icon( $t, 12 ); // phpcs:ignore WordPress.Security.EscapeOutput ?></span><?php echo esc_html( Cead_Acad_Schedule_CPT::type_label( $t ) ); ?></li>
 						<?php endforeach; ?>
 					</ul>
 				<?php endif; ?>
@@ -142,7 +142,12 @@ if ( $disponible ) {
 										}
 									?>
 										<span class="<?php echo esc_attr( $cls_ev ); ?>" style="--ev:<?php echo esc_attr( $col ); ?>" title="<?php echo esc_attr( get_the_title( $e ) ); ?>">
-											<?php if ( ! $f['span'] ) : ?><span class="cal-ev-dot" aria-hidden="true"></span><?php endif; ?>
+											<?php
+											// La figura del tipo, igual que en el panel: el color
+											// solo obliga a ir a contar cuál de los nueve tonos es.
+											$tipo_ev = (string) get_post_meta( $e->ID, '_cead_acad_event_type', true ) ?: 'evento';
+											echo Cead_Acad_Schedule_CPT::type_icon( $tipo_ev, 12 ); // phpcs:ignore WordPress.Security.EscapeOutput
+											?>
 											<span class="cal-ev-t<?php echo $rotula ? '' : ' sr-only'; ?>"><?php echo esc_html( get_the_title( $e ) ); ?></span>
 										</span>
 									<?php endforeach; ?>
