@@ -67,11 +67,33 @@ $body = function () use ( $delegados, $q, $user ) {
 				<h3><?php echo '' !== $q ? esc_html__( 'Nadie coincide con esa búsqueda', 'cead-acad' ) : esc_html__( 'Todavía no hay delegados asignados', 'cead-acad' ); ?></h3>
 				<p>
 					<?php
+					/*
+					 * El texto tiene que nombrar la fuente REAL. Hasta 0.68.0 decía «se
+					 * asigna en la ficha de cada curso», que es de dónde se leía
+					 * entonces; con la lista saliendo del rol, esa frase mandaba a
+					 * completar un campo que ya no cambia nada — y el colegio tenía
+					 * delegados cargados mientras la pantalla decía que no.
+					 */
 					echo '' !== $q
 						? esc_html__( 'Probá con otro nombre o con el curso.', 'cead-acad' )
-						: esc_html__( 'El delegado se asigna en la ficha de cada curso, desde wp-admin.', 'cead-acad' );
+						: esc_html__( 'La lista sale de los usuarios con el rol Delegado. El rol se asigna en wp-admin, en CEAD Académico → Usuarios, editando a la persona.', 'cead-acad' );
 					?>
 				</p>
+				<?php
+				/*
+				 * La versión, solo para Dirección y solo cuando la lista sale vacía.
+				 *
+				 * Vacío por no haber delegados y vacío por estar corriendo una versión
+				 * vieja se ven idénticos, y esa ambigüedad ya costó una tarde: la
+				 * pantalla decía que no había ninguno teniendo dos cargados, y desde
+				 * afuera no había forma de saber cuál de las dos cosas pasaba. Con el
+				 * número a la vista se resuelve mirando.
+				 */
+				if ( '' === $q && current_user_can( 'cead_acad_manage_roles' ) ) : ?>
+					<p class="cead-acad-deleg-version">
+						<?php /* translators: %s: versión del plugin en ejecución */ printf( esc_html__( 'Estás viendo CEAD Académico %s.', 'cead-acad' ), esc_html( CEAD_ACAD_VERSION ) ); ?>
+					</p>
+				<?php endif; ?>
 			</div>
 		<?php else : ?>
 			<div class="cead-acad-deleg-grid">
