@@ -245,6 +245,7 @@ class Cead_Acad_WA_Engine {
 			case 'role_chooser':         $this->role_chooser( $phone, $lc, $context, $identity ); break;
 			case 'ia_home':              $this->ia_home( $phone, $body, $lc, $identity, $media ); break;
 			case 'ia_staff_confirm':     $this->ia_staff_confirm( $phone, $lc, $context, $identity, $body, $media ); break;
+			case 'ia_ig_editar':         $this->ig_editar( $phone, $context, $identity, $body ); break;
 			// Alumnado
 			case 'student_menu':         $this->student_menu( $phone, $lc, $identity, $body, $media ); break;
 			case 'stu_report_type':      $this->report_type( $phone, $lc ); break;
@@ -1014,23 +1015,7 @@ class Cead_Acad_WA_Engine {
 	 * @return array term_id => nombre
 	 */
 	private function article_categories() {
-		$social = (string) get_option( 'cead_acad_wa_social_category', 'redes-sociales' );
-		$social = sanitize_title( $social ) ?: 'redes-sociales';
-
-		$terms = get_terms( [
-			'taxonomy'   => 'category',
-			'hide_empty' => false,
-			'number'     => 30,
-			'orderby'    => 'name',
-		] );
-		if ( is_wp_error( $terms ) ) { return []; }
-
-		$out = [];
-		foreach ( $terms as $t ) {
-			if ( $t->slug === $social || $t->slug === 'uncategorized' || $t->slug === 'sin-categoria' ) { continue; }
-			$out[ (int) $t->term_id ] = $t->name;
-		}
-		return $out;
+		return Cead_Acad_Article_Categories::listar();
 	}
 
 	/**
@@ -1041,25 +1026,7 @@ class Cead_Acad_WA_Engine {
 	 * taxonomía con lo que se le haya ocurrido al modelo.
 	 */
 	private function resolve_category( $name ) {
-		$name = trim( (string) $name );
-		if ( '' === $name ) { return 0; }
-
-		$norm = static function ( $s ) {
-			$s = function_exists( 'remove_accents' ) ? remove_accents( $s ) : $s;
-			return trim( strtolower( $s ) );
-		};
-		$needle = $norm( $name );
-		if ( '' === $needle ) { return 0; }
-
-		$cats = $this->article_categories();
-		foreach ( $cats as $id => $label ) {
-			if ( $norm( $label ) === $needle ) { return (int) $id; }
-		}
-		foreach ( $cats as $id => $label ) {
-			$hay = $norm( $label );
-			if ( str_contains( $hay, $needle ) || str_contains( $needle, $hay ) ) { return (int) $id; }
-		}
-		return 0;
+		return Cead_Acad_Article_Categories::resolver( $name );
 	}
 
 	private function ai_staff_tools( $identity, $phone = '' ) {
@@ -1116,7 +1083,10 @@ class Cead_Acad_WA_Engine {
 					'parameters'  => [
 						'type'       => 'object',
 						'properties' => [
-							'mensaje'   => [ 'type' => 'string', 'description' => 'Texto del comunicado, ya redactado y listo para enviar.' ],
+							// Un comunicado también es algo que el colegio PUBLICA, así
+							// que se redacta con la misma voz que las notas y no con la
+							// del chat.
+							'mensaje'   => [ 'type' => 'string', 'description' => 'Texto del comunicado, ya redactado y listo para enviar.' . Cead_Acad_WA_AI::estilo_bloque() ],
 							'audiencia' => [ 'type' => 'string', 'description' => "A quién enviarlo ($aud)." ],
 						],
 						'required'   => [ 'mensaje', 'audiencia' ],
@@ -1146,7 +1116,16 @@ class Cead_Acad_WA_Engine {
 						. 'si un dato falta, escribí que está a confirmar.'
 						. ( class_exists( 'Cead_Acad_Article_Format' )
 							? Cead_Acad_Article_Format::templates_hint( array_values( $cats ) )
-							: '' ),
+							: '' )
+						/*
+						 * La guía de redacción del colegio va ACÁ y no en la
+						 * persona. La persona describe cómo CEADI conversa
+						 * —corto, voseo, sin vueltas— y eso es justo lo que NO
+						 * tiene que ser una nota institucional. Puesta en la
+						 * herramienta, solo pesa en el pedido de quien puede
+						 * publicar, y solo cuando está escribiendo.
+						 */
+						. Cead_Acad_WA_AI::estilo_bloque(),
 				],
 			];
 			if ( $cats ) {
@@ -1155,6 +1134,39 @@ class Cead_Acad_WA_Engine {
 					'enum'        => array_values( $cats ),
 					'description' => 'Categoría del artículo. Elegí la que mejor corresponda al tema entre: '
 						. implode( ', ', $cats ) . '. Si ninguna encaja, omitilo.',
+				];
+			}
+			/*
+			 * La maqueta. Es una decisión sobre el TEXTO —qué clase de cosa es lo
+			 * que se está publicando— y por eso la toma quien lo escribió, no un
+			 * clasificador de palabras clave corriendo después: una lista de
+			 * términos no distingue «se suspenden las clases del jueves» de «la
+			 * jornada del jueves fue un éxito», y las dos hablan de un jueves.
+			 *
+			 * Lo que sí es determinista es el veto: elegir «evento» sin dar fecha
+			 * no publica un evento, publica una noticia (ver Article_Kind).
+			 */
+			$maquetas = class_exists( 'Cead_Acad_Article_Kind' ) ? Cead_Acad_Article_Kind::catalogo() : [];
+			if ( $maquetas ) {
+				$pistas = [];
+				foreach ( $maquetas as $slug => $cfg ) {
+					$pistas[] = '«' . $slug . '»: ' . ( $cfg['pista'] ?? '' );
+				}
+				$props['formato'] = [
+					'type'        => 'string',
+					'enum'        => array_keys( $maquetas ),
+					'description' => 'Con qué maqueta se dibuja la nota en el sitio. Cada una cambia cómo se lee la página, '
+						. 'así que elegí por lo que ES el texto, no por el tema del que habla. '
+						. implode( ' ', $pistas ),
+				];
+				$props['fecha_evento'] = [
+					'type'        => 'string',
+					'description' => 'Solo para formato «evento»: cuándo es, en dd/mm/aaaa hh:mm o en lenguaje natural. '
+						. 'Sin esto la nota sale como noticia común, así que no elijas «evento» si no sabés la fecha.',
+				];
+				$props['lugar_evento'] = [
+					'type'        => 'string',
+					'description' => 'Solo para formato «evento»: dónde es (ej: "Patio central"). Opcional.',
 				];
 			}
 			if ( $es_dir ) {
@@ -1178,6 +1190,44 @@ class Cead_Acad_WA_Engine {
 				],
 			];
 		}
+		/*
+		 * Generar una imagen cuesta plata de verdad, así que la herramienta solo
+		 * PROPONE: nunca dibuja nada sin que la persona confirme. La regla de no
+		 * generar sin permiso está además escrita en la persona, porque una
+		 * herramienta disponible es una herramienta que el modelo va a usar.
+		 */
+		if ( class_exists( 'Cead_Acad_WA_Images' ) && Cead_Acad_WA_Images::enabled()
+			&& Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_articles' ) ) {
+			$tools[] = [
+				'type'     => 'function',
+				'function' => [
+					'name'        => 'generar_imagen',
+					'description' => 'Proponer la generación de una imagen o flyer con IA. NO se genera hasta que la persona lo apruebe, '
+						. 'y NO la propongas si no te la pidieron o no ofreciste antes y te dijeron que sí. '
+						. 'Sirve para afiches de eventos, placas para redes o una portada cuando una nota no tiene foto. '
+						. 'Nunca la uses para reemplazar una foto real de algo que pasó: una imagen generada de un acto que ocurrió es una foto falsa.',
+					'parameters'  => [
+						'type'       => 'object',
+						'properties' => [
+							'descripcion' => [
+								'type'        => 'string',
+								'description' => 'Qué tiene que mostrar la imagen, en una o dos frases. Describí la escena o la composición, no el texto.',
+							],
+							'texto' => [
+								'type'        => 'string',
+								'description' => 'El texto que va DENTRO del flyer, ya redactado y corto (un título y a lo sumo dos líneas de datos). Omitilo si la imagen no lleva texto.',
+							],
+							'para_post' => [
+								'type'        => 'integer',
+								'description' => 'ID de una nota del sitio a la que ponerle esta imagen como portada. Solo si te lo pidieron explícitamente para una nota concreta.',
+							],
+						],
+						'required'   => [ 'descripcion' ],
+					],
+				],
+			];
+		}
+
 		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_schedule' ) ) {
 			$tools[] = [
 				'type'     => 'function',
@@ -1499,6 +1549,19 @@ class Cead_Acad_WA_Engine {
 			$image = $media ? $this->store_image( $media ) : null;
 			$cat   = $this->resolve_category( $args['categoria'] ?? '' );
 
+			/*
+			 * La fecha del evento se normaliza ACÁ, antes de decidir la maqueta.
+			 * Si el modelo mandó algo que no es una fecha, `parse_datetime()`
+			 * devuelve null y el formato «evento» se cae solo a noticia — que es
+			 * lo correcto: una fecha que no se pudo leer es lo mismo que no tener
+			 * fecha, y peor sería guardarla cruda para que el tema la muestre mal.
+			 */
+			$fecha_ev = $this->parse_datetime( (string) ( $args['fecha_evento'] ?? '' ) );
+			$lugar_ev = sanitize_text_field( (string) ( $args['lugar_evento'] ?? '' ) );
+			$formato  = class_exists( 'Cead_Acad_Article_Kind' )
+				? Cead_Acad_Article_Kind::resolver( (string) ( $args['formato'] ?? '' ), [ 'fecha' => $fecha_ev, 'lugar' => $lugar_ev ] )
+				: '';
+
 			if ( $reply !== '' ) { $this->send( $phone, $reply ); }
 			$this->store->set_state( $phone, 'ia_staff_confirm', [
 				'kind'      => 'articulo',
@@ -1507,6 +1570,9 @@ class Cead_Acad_WA_Engine {
 				'redes'     => $redes,
 				'image'     => $image,
 				'categoria' => $cat,
+				'formato'   => $formato,
+				'fecha_ev'  => $fecha_ev,
+				'lugar_ev'  => $lugar_ev,
 			] );
 			$extra = $redes
 				? "\n📣 " . __( 'Además se va a publicar en las redes del colegio.', 'cead-acad' )
@@ -1514,6 +1580,23 @@ class Cead_Acad_WA_Engine {
 			if ( $cat ) {
 				$cats   = $this->article_categories();
 				$extra .= "\n🏷️ " . sprintf( __( 'Categoría: %s', 'cead-acad' ), $cats[ $cat ] ?? '' );
+			}
+			/*
+			 * La maqueta se muestra antes de publicar porque es una decisión que
+			 * cambia la página entera y que la tomó el modelo. Sin decirla, la
+			 * única forma de enterarse de que eligió mal es entrar al sitio con la
+			 * nota ya publicada; dicha acá, se corrige con «2. Editar».
+			 */
+			if ( $formato ) {
+				$extra .= "\n🧩 " . sprintf(
+					/* translators: %s: nombre de la maqueta con la que se dibujará la nota */
+					__( 'Maqueta: %s', 'cead-acad' ),
+					Cead_Acad_Article_Kind::label( $formato )
+				);
+				if ( 'evento' === $formato && $fecha_ev ) {
+					$extra .= ' · ' . date_i18n( 'd/m/Y H:i', strtotime( $fecha_ev ) );
+					if ( $lugar_ev ) { $extra .= ' · ' . $lugar_ev; }
+				}
 			}
 			if ( $image )                    { $extra .= "\n📎 " . __( 'Con imagen destacada.', 'cead-acad' ); }
 			elseif ( $media && ! $image )    { $extra .= "\n" . $this->m( 'image_attach_failed' ); }
@@ -1524,6 +1607,58 @@ class Cead_Acad_WA_Engine {
 					__( "📝 *Artículo* — propuesta de CEADI\n*%1\$s*\n────────\n%2\$s\n────────%3\$s\n\n*1.* ✅ Publicar\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
 					$titulo,
 					self::preview_text( $contenido ),
+					$extra
+				),
+				'ia_staff_propose'
+			);
+			return true;
+		}
+
+		if ( $action === 'generar_imagen' ) {
+			if ( ! class_exists( 'Cead_Acad_WA_Images' ) || ! Cead_Acad_WA_Images::enabled()
+				|| ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_articles' ) ) {
+				$this->send( $phone, $this->m( 'access_denied' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			$desc = trim( (string) ( $args['descripcion'] ?? '' ) );
+			if ( '' === $desc ) {
+				$this->send( $phone, __( '¿Qué querés que muestre la imagen?', 'cead-acad' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			$texto = trim( (string) ( $args['texto'] ?? '' ) );
+
+			/*
+			 * El post destino se valida ACÁ y no al generar: si el modelo inventó
+			 * un id, es mejor generar la imagen igual y mandarla suelta que
+			 * fallar entero — la imagen ya está pagada para cuando eso se nota.
+			 */
+			$para = (int) ( $args['para_post'] ?? 0 );
+			if ( $para ) {
+				$destino = get_post( $para );
+				if ( ! $destino || 'post' !== $destino->post_type ) { $para = 0; }
+			}
+
+			if ( $reply !== '' ) { $this->send( $phone, $reply ); }
+			$this->store->set_state( $phone, 'ia_staff_confirm', [
+				'kind'        => 'imagen',
+				'descripcion' => $desc,
+				'texto'       => $texto,
+				'para_post'   => $para,
+			] );
+
+			$extra = '';
+			if ( '' !== $texto ) { $extra .= "\n✍️ " . sprintf( __( 'Texto en la imagen: «%s»', 'cead-acad' ), $texto ); }
+			if ( $para )         { $extra .= "\n📰 " . sprintf( __( 'Se la pongo de portada a: %s', 'cead-acad' ), get_the_title( $para ) ); }
+			$extra .= "\n📐 " . Cead_Acad_WA_Images::size();
+
+			$this->send(
+				$phone,
+				sprintf(
+					/* translators: 1: descripción de la imagen, 2: datos extra */
+					__( "🎨 *Imagen* — propuesta de CEADI\n%1\$s%2\$s\n\n_Generarla tiene costo, por eso te pregunto._\n\n*1.* ✅ Generar\n*2.* ✏️ Cambiar la idea (decime el cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
+					$desc,
 					$extra
 				),
 				'ia_staff_propose'
@@ -1790,6 +1925,15 @@ class Cead_Acad_WA_Engine {
 		// es lo natural, así que el texto que viene después del 2 se toma como la
 		// instrucción y se ahorra una vuelta.
 		if ( 2 === $opcion ) {
+			/*
+			 * Editar un borrador de Instagram no es volver a proponer desde cero:
+			 * la nota ya está guardada, con sus fotos y su categoría. Reescribirla
+			 * desde el chat tiene que MODIFICAR esa, no crear otra al lado.
+			 */
+			if ( 'ig_borrador' === $kind ) {
+				$this->ig_editar( $phone, $context, $identity, $resto );
+				return;
+			}
 			$this->store->set_state( $phone, 'ia_home' );
 			if ( '' !== $resto && $this->ai_try( $phone, $resto, $identity, 'ia_home', $media ) ) {
 				return;
@@ -1813,6 +1957,8 @@ class Cead_Acad_WA_Engine {
 			elseif ( $kind === 'nota' ) { $this->execute_nota( $phone, $context, $identity ); }
 			elseif ( $kind === 'planilla' ) { $this->execute_planilla( $phone, $context, $identity ); }
 			elseif ( $kind === 'articulo' ) { $this->execute_articulo( $phone, $context, $identity ); }
+			elseif ( $kind === 'ig_borrador' ) { $this->execute_ig_borrador( $phone, $context, $identity ); }
+			elseif ( $kind === 'imagen' ) { $this->execute_imagen( $phone, $context, $identity ); }
 			elseif ( $kind === 'memoria' ) { $this->execute_memoria( $phone, $context, $identity ); }
 			elseif ( $kind === 'olvido' ) { $this->execute_olvido( $phone, $context, $identity ); }
 			else { $this->store->set_state( $phone, 'ia_home' ); }
@@ -1820,6 +1966,27 @@ class Cead_Acad_WA_Engine {
 		}
 		if ( 3 === $opcion ) {
 			$this->store->set_state( $phone, 'ia_home' );
+			/*
+			 * El borrador de Instagram no se borra al decir que no.
+			 *
+			 * En el resto de las propuestas «cancelar» es descartar algo que solo
+			 * existía en el chat. Acá existe una nota guardada en el sitio, con
+			 * las fotos ya subidas, y borrarla porque en ese momento no era el
+			 * momento sería tirar trabajo hecho. Queda de borrador, que es
+			 * exactamente lo que «todavía no» quiere decir.
+			 */
+			if ( 'ig_borrador' === $kind ) {
+				$this->send(
+					$phone,
+					sprintf(
+						/* translators: %s: enlace para editarlo en wp-admin */
+						__( "👍 Listo, no lo publico. Queda como borrador en el sitio por si lo querés después: %s", 'cead-acad' ),
+						admin_url( 'post.php?post=' . (int) ( $context['post_id'] ?? 0 ) . '&action=edit' )
+					),
+					'ia_cancel'
+				);
+				return;
+			}
 			$this->send( $phone, __( '❌ Listo, lo descarté. ¿Algo más?', 'cead-acad' ), 'ia_cancel' );
 			return;
 		}
@@ -2009,6 +2176,20 @@ class Cead_Acad_WA_Engine {
 		if ( $image && ! empty( $image['attachment_id'] ) ) {
 			set_post_thumbnail( $pid, (int) $image['attachment_id'] );
 		}
+		/*
+		 * La maqueta se vuelve a resolver al publicar, no se copia del contexto.
+		 * Entre la propuesta y el «sí» puede haber pasado un rato y el tema pudo
+		 * cambiar; y sobre todo, es la misma razón por la que la categoría se
+		 * revalida acá: lo que se guarda tiene que ser válido AHORA, no cuando se
+		 * propuso.
+		 */
+		$formato = '';
+		if ( class_exists( 'Cead_Acad_Article_Kind' ) ) {
+			$formato = Cead_Acad_Article_Kind::guardar( $pid, (string) ( $context['formato'] ?? '' ), [
+				'fecha' => (string) ( $context['fecha_ev'] ?? '' ),
+				'lugar' => (string) ( $context['lugar_ev'] ?? '' ),
+			] );
+		}
 		// La categoría temática se revalida contra las que existen ahora: entre
 		// la propuesta y la aprobación pudieron borrarla.
 		$tema = (int) ( $context['categoria'] ?? 0 );
@@ -2027,7 +2208,7 @@ class Cead_Acad_WA_Engine {
 			'user_id'     => $uid ?: null,
 			'entity_type' => 'post',
 			'entity_id'   => $pid,
-			'payload'     => [ 'redes' => $redes, 'categoria' => $tema ?: null, 'con_imagen' => (bool) $image, 'via' => 'ia' ],
+			'payload'     => [ 'redes' => $redes, 'categoria' => $tema ?: null, 'con_imagen' => (bool) $image, 'formato' => $formato ?: null, 'via' => 'ia' ],
 		] );
 		$this->send(
 			$phone,
@@ -2036,6 +2217,242 @@ class Cead_Acad_WA_Engine {
 			'article_published'
 		);
 		$this->store->set_state( $phone, 'ia_home' );
+	}
+
+	/**
+	 * Publica el borrador que armó el extractor de Instagram.
+	 *
+	 * Aprobar es cambiarle el estado a una nota que YA está completa: cuerpo,
+	 * categoría, maqueta y fotos se resolvieron cuando se creó el borrador. Por
+	 * eso acá no se arma nada — solo se comprueba que siga existiendo y que
+	 * quien aprueba pueda hacerlo.
+	 */
+	private function execute_ig_borrador( $phone, $context, $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_articles' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		$pid  = (int) ( $context['post_id'] ?? 0 );
+		$post = $pid ? get_post( $pid ) : null;
+		/*
+		 * Entre la propuesta y el «sí» el borrador pudo publicarse o borrarse
+		 * desde wp-admin — es justo lo que invita a hacer el enlace del mensaje.
+		 * Publicar a ciegas acá daría «listo, publicado» sobre algo que no
+		 * existe, o volvería a publicar lo ya publicado.
+		 */
+		if ( ! $post || 'post' !== $post->post_type ) {
+			$this->send( $phone, __( 'Ese borrador ya no está. Puede que lo hayas borrado desde el sitio.', 'cead-acad' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		if ( 'publish' === $post->post_status ) {
+			$this->send(
+				$phone,
+				sprintf( /* translators: %s: enlace a la nota */ __( 'Ese ya está publicado: %s', 'cead-acad' ), get_permalink( $pid ) )
+			);
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		$r = wp_update_post( [ 'ID' => $pid, 'post_status' => 'publish' ], true );
+		if ( is_wp_error( $r ) ) {
+			$this->send( $phone, $this->m( 'error_generic' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		Cead_Acad_Audit::log( 'wa_article_published', [
+			'user_id'     => $uid ?: null,
+			'entity_type' => 'post',
+			'entity_id'   => $pid,
+			'payload'     => [ 'via' => 'instagram', 'origen' => (string) get_post_meta( $pid, Cead_Acad_WA_Instagram::META_ORIGEN, true ) ],
+		] );
+
+		$this->send(
+			$phone,
+			$this->interp( $this->m( 'article_published' ), [ 'url' => get_permalink( $pid ) ] ),
+			'article_published'
+		);
+		$this->store->set_state( $phone, 'ia_home' );
+	}
+
+	/**
+	 * Aplica un cambio pedido por chat al borrador de Instagram.
+	 *
+	 * Reescribe título y cuerpo de la nota que ya existe, dejando intactas las
+	 * fotos y la categoría: quien pide «sacale la última frase» no está pidiendo
+	 * que se vuelvan a bajar las imágenes.
+	 *
+	 * @param string $instruccion Puede venir pegada al «2» («2 cambiale el
+	 *                            título») o en el mensaje siguiente.
+	 */
+	private function ig_editar( $phone, $context, $identity, $instruccion = '' ) {
+		$this->ia_turn = true;
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		$pid = (int) ( $context['post_id'] ?? 0 );
+
+		if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_articles' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		$instruccion = trim( (string) $instruccion );
+		if ( '' === $instruccion ) {
+			// Sin instrucción no hay nada que hacer: se espera el próximo mensaje
+			// conservando de qué borrador estábamos hablando.
+			$this->store->set_state( $phone, 'ia_ig_editar', [ 'post_id' => $pid ] );
+			$this->send( $phone, __( '✏️ Dale, decime qué le cambio y te lo dejo listo de nuevo.', 'cead-acad' ), 'ia_edit' );
+			return;
+		}
+
+		$post = $pid ? get_post( $pid ) : null;
+		if ( ! $post || 'draft' !== $post->post_status ) {
+			$this->send( $phone, __( 'Ese borrador ya no está disponible para editar por acá.', 'cead-acad' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		if ( ! class_exists( 'Cead_Acad_WA_AI' ) || ! Cead_Acad_WA_AI::enabled() ) {
+			$this->send(
+				$phone,
+				sprintf(
+					/* translators: %s: enlace para editarlo en wp-admin */
+					__( 'Ahora mismo no puedo reescribirlo. Editalo directo acá: %s', 'cead-acad' ),
+					admin_url( 'post.php?post=' . $pid . '&action=edit' )
+				)
+			);
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		$prompt = "Este es el borrador actual de una nota del colegio.
+
+"
+			. "TÍTULO: " . $post->post_title . "
+
+"
+			. "CUERPO:
+" . mb_substr( wp_strip_all_tags( $post->post_content ), 0, 2500 ) . "
+
+"
+			. "Cambio pedido: " . mb_substr( $instruccion, 0, 400 ) . "
+
+"
+			. 'Contestá SOLO con un objeto JSON {"titulo": "...", "contenido": "..."}, el cuerpo en MARKDOWN. '
+			. 'Aplicá SOLO el cambio pedido y dejá el resto como está. No inventes datos nuevos.'
+			. Cead_Acad_WA_AI::estilo_bloque();
+
+		$r     = Cead_Acad_WA_AI::route( $prompt, '', '', [], 'Estás corrigiendo un borrador de nota del colegio.' );
+		$texto = is_array( $r ) ? trim( (string) ( $r['reply'] ?? '' ) ) : '';
+		$ficha = '' !== $texto ? Cead_Acad_WA_Instagram::interpretar_publico( $texto, $post->post_title ) : null;
+
+		if ( ! $ficha ) {
+			$this->send( $phone, __( 'No me salió el cambio. Probá de nuevo o editalo desde el sitio.', 'cead-acad' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		$html = class_exists( 'Cead_Acad_Article_Format' )
+			? Cead_Acad_Article_Format::to_html( $ficha['contenido'] )
+			: wpautop( $ficha['contenido'] );
+
+		wp_update_post( [ 'ID' => $pid, 'post_title' => $ficha['titulo'], 'post_content' => $html ] );
+
+		$this->store->set_state( $phone, 'ia_staff_confirm', [ 'kind' => 'ig_borrador', 'post_id' => $pid ] );
+		$this->send(
+			$phone,
+			sprintf(
+				/* translators: 1: título corregido, 2: extracto del cuerpo */
+				__( "✏️ Corregido:\n\n📝 *%1\$s*\n────────\n%2\$s\n────────\n\n*1.* ✅ Publicar\n*2.* ✏️ Editar de nuevo\n*3.* ❌ Dejarlo en borrador", 'cead-acad' ),
+				$ficha['titulo'],
+				mb_substr( $ficha['contenido'], 0, 420 ) . ( mb_strlen( $ficha['contenido'] ) > 420 ? '…' : '' )
+			),
+			'ia_staff_propose'
+		);
+	}
+
+	/**
+	 * Genera la imagen aprobada y se la manda por WhatsApp.
+	 *
+	 * Se avisa ANTES de arrancar porque generar tarda entre diez segundos y un
+	 * minuto: sin ese aviso, quien mandó «1» ve el chat quieto y vuelve a
+	 * mandar «1» — y la segunda imagen se cobra igual que la primera.
+	 */
+	private function execute_imagen( $phone, $context, $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! class_exists( 'Cead_Acad_WA_Images' ) || ! Cead_Acad_WA_Images::enabled()
+			|| ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_articles' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		// Se saca de la espera antes de generar: si el proveedor tarda tanto que
+		// el turno se corta, la propuesta no queda colgada esperando un «1» que
+		// volvería a cobrar otra imagen.
+		$this->store->set_state( $phone, 'ia_home' );
+		$this->send( $phone, __( '🎨 Dale, la estoy generando. Tarda un poco.', 'cead-acad' ) );
+
+		$r = Cead_Acad_WA_Images::generar(
+			(string) ( $context['descripcion'] ?? '' ),
+			(string) ( $context['texto'] ?? '' )
+		);
+		if ( is_wp_error( $r ) ) {
+			$this->send(
+				$phone,
+				sprintf( /* translators: %s: motivo del fallo */ __( 'No pude generarla: %s', 'cead-acad' ), $r->get_error_message() )
+			);
+			return;
+		}
+
+		$para = (int) ( $context['para_post'] ?? 0 );
+		$nota = '';
+		if ( $para && get_post( $para ) ) {
+			set_post_thumbnail( $para, (int) $r['attachment_id'] );
+			$nota = "\n" . sprintf(
+				/* translators: %s: enlace a la nota */
+				__( 'Se la puse de portada a: %s', 'cead-acad' ),
+				get_permalink( $para )
+			);
+		}
+
+		Cead_Acad_Audit::log( 'wa_image_generated', [
+			'user_id'     => $uid ?: null,
+			'entity_type' => 'attachment',
+			'entity_id'   => (int) $r['attachment_id'],
+			'payload'     => [
+				'descripcion' => mb_substr( (string) ( $context['descripcion'] ?? '' ), 0, 200 ),
+				'con_texto'   => '' !== (string) ( $context['texto'] ?? '' ),
+				'para_post'   => $para ?: null,
+				'modelo'      => Cead_Acad_WA_Images::model(),
+			],
+		] );
+
+		/*
+		 * Se manda la imagen misma, no un enlace: el enlace obliga a abrir el
+		 * navegador para ver si sirve, y lo que se quiere es mirarla y decidir.
+		 * Si el bridge no puede con la imagen, queda el enlace como respaldo —
+		 * está subida a la biblioteca igual.
+		 */
+		$store  = new Cead_Acad_WA_Store();
+		$bridge = new Cead_Acad_WA_Bridge_Client( $store );
+		$res    = $bridge->send_image( $phone, $r['base64'], $r['mime'], __( 'Lista. Está guardada en la biblioteca del sitio.', 'cead-acad' ) . $nota );
+
+		if ( ! is_array( $res ) || empty( $res['sent'] ) ) {
+			$this->send(
+				$phone,
+				sprintf(
+					/* translators: 1: enlace a la imagen, 2: nota sobre la portada */
+					__( 'Lista, pero no te la pude mandar por acá. Está en: %1$s%2$s', 'cead-acad' ),
+					$r['url'],
+					$nota
+				)
+			);
+		}
 	}
 
 	private function execute_invitacion( $phone, $context, $identity ) {
@@ -3667,7 +4084,9 @@ class Cead_Acad_WA_Engine {
 	 */
 	private function leave_ia_state( $phone, $home_state ) {
 		$now = $this->store->get_state( $phone );
-		if ( ( $now['state'] ?? '' ) === 'ia_staff_confirm' ) {
+		// Mismo criterio para la edición de un borrador: es una conversación a
+		// medias esperando la próxima frase de la persona.
+		if ( in_array( $now['state'] ?? '', [ 'ia_staff_confirm', 'ia_ig_editar' ], true ) ) {
 			return;
 		}
 		$this->store->set_state( $phone, $home_state );

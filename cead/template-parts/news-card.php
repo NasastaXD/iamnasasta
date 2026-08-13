@@ -22,9 +22,26 @@ if ( ! $cead_resumen ) {
 	$cead_resumen = wp_strip_all_tags( strip_shortcodes( get_the_content() ) );
 }
 $cead_resumen = wp_trim_words( $cead_resumen, 24 );
+
+/*
+ * El sello de maqueta en la tarjeta.
+ *
+ * En un listado, «se suspenden las clases del jueves» y «así fue la jornada del
+ * jueves» son dos titulares parecidos con urgencias opuestas, y hasta acá se
+ * veían iguales. La noticia no lleva sello: es la mayoría de lo que hay y un
+ * sello en todas las tarjetas no distingue nada.
+ */
+$cead_tipo  = function_exists( 'cead_nota_tipo' ) ? cead_nota_tipo() : 'noticia';
+$cead_tipos = function_exists( 'cead_nota_tipos' ) ? cead_nota_tipos() : [];
+$cead_sello = ( 'noticia' !== $cead_tipo && isset( $cead_tipos[ $cead_tipo ] ) )
+	? (string) $cead_tipos[ $cead_tipo ]['label']
+	: '';
 ?>
 <a class="reveal cead-news-card" href="<?php the_permalink(); ?>">
 	<div class="cead-news-thumb">
+		<?php if ( $cead_sello ) : ?>
+			<span class="cead-news-sello cead-news-sello--<?php echo esc_attr( $cead_tipo ); ?>"><?php echo esc_html( $cead_sello ); ?></span>
+		<?php endif; ?>
 		<?php if ( has_post_thumbnail() ) : ?>
 			<?php the_post_thumbnail( 'large' ); ?>
 		<?php endif; ?>

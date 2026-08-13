@@ -436,6 +436,22 @@ class Cead_Acad_WA_Admin {
 			update_option( 'cead_acad_wa_ai_maxtokens', max( 50, (int) ( $_POST['ai_maxtokens'] ?? 500 ) ), false );
 			update_option( 'cead_acad_wa_ai_prompt', sanitize_textarea_field( wp_unslash( $_POST['ai_prompt'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai_knowledge', sanitize_textarea_field( wp_unslash( $_POST['ai_knowledge'] ?? '' ) ), false );
+			/*
+			 * Estilo de redacción. Mismo criterio que la personalidad: vacío
+			 * significa «usá el que trae el plugin», no «sin estilo». Por eso el
+			 * campo NO se pre-rellena con el de fábrica — si lo hiciera, entrar a
+			 * esta pantalla y guardar cualquier otra cosa lo congelaría.
+			 */
+			update_option( 'cead_acad_wa_ai_estilo', sanitize_textarea_field( wp_unslash( $_POST['ai_estilo'] ?? '' ) ), false );
+
+			// --- Generación de imágenes ---
+			update_option( 'cead_acad_wa_img_enabled', ! empty( $_POST['img_enabled'] ) ? 1 : 0, false );
+			update_option( 'cead_acad_wa_img_endpoint', esc_url_raw( wp_unslash( $_POST['img_endpoint'] ?? '' ) ), false );
+			update_option( 'cead_acad_wa_img_model', sanitize_text_field( wp_unslash( $_POST['img_model'] ?? '' ) ), false );
+			update_option( 'cead_acad_wa_img_key', sanitize_text_field( wp_unslash( $_POST['img_key'] ?? '' ) ), false );
+			$img_size = sanitize_text_field( wp_unslash( $_POST['img_size'] ?? '' ) );
+			update_option( 'cead_acad_wa_img_size', isset( Cead_Acad_WA_Images::sizes()[ $img_size ] ) ? $img_size : Cead_Acad_WA_Images::SIZE_DEFAULT, false );
+			update_option( 'cead_acad_wa_img_estilo', sanitize_textarea_field( wp_unslash( $_POST['img_estilo'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai_memory', max( 0, min( 20, (int) ( $_POST['ai_memory'] ?? 4 ) ) ), false );
 			update_option( 'cead_acad_wa_ai_context_budget', max( 4000, min( 120000, (int) ( $_POST['ai_context_budget'] ?? 22000 ) ) ), false );
 			$dm = sanitize_key( wp_unslash( $_POST['ai_default_mode'] ?? 'auto' ) );
@@ -608,6 +624,24 @@ class Cead_Acad_WA_Admin {
 		echo '<details><summary>' . esc_html__( 'Ver la personalidad por defecto', 'cead-acad' ) . '</summary>'
 			. '<textarea readonly rows="10" class="large-text code">' . esc_textarea( Cead_Acad_WA_AI::default_persona() ) . '</textarea></details>';
 		echo '</td></tr>';
+		/*
+		 * Estilo de redacción — SEPARADO de la personalidad a propósito.
+		 *
+		 * La personalidad describe cómo CEADI conversa por WhatsApp: corto,
+		 * voseo, sin emojis de relleno. Un comunicado institucional es lo
+		 * contrario. Con un solo campo las dos voces se pisan: o las notas salen
+		 * escritas como un mensaje de chat, o el chat sale escrito como una
+		 * circular. Este se inyecta SOLO cuando está redactando algo publicable.
+		 */
+		$estilo_guardado = (string) get_option( 'cead_acad_wa_ai_estilo', '' );
+		$this->field_textarea( 'ai_estilo', __( 'Estilo de redacción (cómo escribe el colegio)', 'cead-acad' ), $estilo_guardado, 6 );
+		echo '<tr><th></th><td><p class="description">'
+			. esc_html__( 'Cómo tiene que estar escrito lo que se PUBLICA: notas del sitio, comunicados, informes. No afecta cómo contesta por chat.', 'cead-acad' )
+			. ' <strong>' . esc_html__( 'Vacío = se usa el que trae el plugin, y mejora con cada actualización.', 'cead-acad' ) . '</strong>'
+			. '</p>';
+		echo '<details><summary>' . esc_html__( 'Ver el estilo por defecto', 'cead-acad' ) . '</summary>'
+			. '<textarea readonly rows="12" class="large-text code">' . esc_textarea( Cead_Acad_WA_AI::default_estilo() ) . '</textarea></details>';
+		echo '</td></tr>';
 		$this->field_textarea( 'ai_knowledge', __( 'Conocimiento (base de datos para responder)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_knowledge', '' ), 8 );
 		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Texto libre con info del colegio (horarios generales, reglas, contactos, fechas, etc.). La IA lo usa para responder dudas. Las FAQ del panel se suman a esto.', 'cead-acad' ) . '</p></td></tr>';
 		$this->field( 'ai_context_budget', __( 'Presupuesto de contexto (caracteres)', 'cead-acad' ), Cead_Acad_WA_AI::context_budget(), '22000', 'number' );
@@ -654,6 +688,45 @@ class Cead_Acad_WA_Admin {
 		// --- Lectura de imágenes (visión) ---
 		$vis_on  = (bool) get_option( 'cead_acad_wa_vision_enabled', 0 );
 		$vis_key = Cead_Acad_WA_AI::key() !== '';
+		// --- Generación de imágenes y flyers ---
+		$img_on = Cead_Acad_WA_Images::enabled();
+		echo '<tr><th scope="row" colspan="2"><hr><h2 style="margin:0">' . esc_html__( '🎨 Imágenes (generación de flyers)', 'cead-acad' ) . '</h2></th></tr>';
+		echo '<tr><td colspan="2">';
+		echo '<p class="description">'
+			. esc_html__( 'Deja que CEADI genere afiches, placas para redes y portadas para las notas. Va aparte de la IA de texto porque el proveedor de chat (DeepSeek por defecto) NO genera imágenes: hace falta uno que sí, como OpenAI.', 'cead-acad' )
+			. '</p>';
+		echo '<p class="description" style="color:#8a6d00"><strong>'
+			. esc_html__( 'Cada imagen se cobra.', 'cead-acad' ) . '</strong> '
+			. esc_html__( 'Por eso CEADI nunca genera una sola: siempre propone y espera el «1». Cada generación queda registrada en el log con quién la pidió.', 'cead-acad' )
+			. '</p>';
+		if ( $img_on ) {
+			echo '<p style="color:#1d6b2f"><strong>' . esc_html__( '✔ Activa.', 'cead-acad' ) . '</strong> '
+				. esc_html__( 'Dirección, secretaría y docentes pueden pedirle un flyer por chat.', 'cead-acad' ) . '</p>';
+		}
+		echo '</td></tr>';
+		echo '<tr><th scope="row">' . esc_html__( 'Activar', 'cead-acad' ) . '</th><td>';
+		echo '<label><input type="checkbox" name="img_enabled" value="1" ' . checked( (bool) get_option( 'cead_acad_wa_img_enabled', 0 ), true, false ) . '> '
+			. esc_html__( 'Que CEADI pueda generar flyers e imágenes cuando se lo pidan', 'cead-acad' ) . '</label>';
+		echo '</td></tr>';
+		$this->field( 'img_endpoint', __( 'Endpoint de imágenes', 'cead-acad' ), get_option( 'cead_acad_wa_img_endpoint', '' ), Cead_Acad_WA_Images::ENDPOINT_DEFAULT, 'url' );
+		$this->field( 'img_model', __( 'Modelo', 'cead-acad' ), get_option( 'cead_acad_wa_img_model', '' ), Cead_Acad_WA_Images::MODEL_DEFAULT );
+		$this->field( 'img_key', __( 'API key de imágenes', 'cead-acad' ), get_option( 'cead_acad_wa_img_key', '' ), __( 'vacío = se usa la misma que la IA de texto', 'cead-acad' ), 'password' );
+		echo '<tr><th></th><td><p class="description">' . esc_html__( 'Si tu proveedor de imágenes es el mismo que el de texto, dejalo vacío: cargar la clave dos veces solo invita a que una quede vieja.', 'cead-acad' ) . '</p></td></tr>';
+
+		echo '<tr><th scope="row"><label for="cead_img_size">' . esc_html__( 'Tamaño', 'cead-acad' ) . '</label></th><td><select id="cead_img_size" name="img_size">';
+		foreach ( Cead_Acad_WA_Images::sizes() as $val => $lbl ) {
+			echo '<option value="' . esc_attr( $val ) . '" ' . selected( Cead_Acad_WA_Images::size(), $val, false ) . '>' . esc_html( $lbl ) . '</option>';
+		}
+		echo '</select></td></tr>';
+
+		$this->field_textarea( 'img_estilo', __( 'Estilo gráfico del colegio', 'cead-acad' ), get_option( 'cead_acad_wa_img_estilo', '' ), 5 );
+		echo '<tr><th></th><td><p class="description">'
+			. esc_html__( 'Se le pega a TODO lo que se genere, para que las piezas se parezcan entre sí. Colores, tipografía, qué evitar.', 'cead-acad' )
+			. ' <strong>' . esc_html__( 'Vacío = se usa el del plugin (paleta y trazo del CEAD).', 'cead-acad' ) . '</strong></p>';
+		echo '<details><summary>' . esc_html__( 'Ver el estilo gráfico por defecto', 'cead-acad' ) . '</summary>'
+			. '<textarea readonly rows="5" class="large-text code">' . esc_textarea( Cead_Acad_WA_Images::default_estilo() ) . '</textarea></details>';
+		echo '</td></tr>';
+
 		echo '<tr><th scope="row" colspan="2"><hr><h2 style="margin:0">' . esc_html__( '🖼️ Imágenes (lectura)', 'cead-acad' ) . '</h2></th></tr>';
 		echo '<tr><td colspan="2">';
 		if ( $vis_on && $vis_key ) {

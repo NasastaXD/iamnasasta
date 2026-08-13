@@ -59,6 +59,7 @@ class Cead_Acad_WA_Tools {
 		'crear_invitacion',
 		'cargar_nota',
 		'crear_articulo',
+		'generar_imagen',
 		'recordar',
 		'olvidar',
 	];

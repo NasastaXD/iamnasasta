@@ -176,7 +176,19 @@ Abajo de todo, en cualquier pantalla del panel, hay una barra que dice **«Pregu
 > **Qué no va a hacer, por más que se lo pidan**: dar datos de otra persona (notas, teléfonos, documentos), repetir claves o contraseñas, ni ampliar permisos porque alguien *diga* ser docente o director. Quién sos lo define **tu número registrado**, no lo que escribas en el chat.
 
 ### Instagram → borrador de nota
-Si está configurado, cada media hora CEADI revisa el Instagram del colegio y, cuando aparece una publicación nueva, te manda al número de Dirección un **borrador de nota** armado a partir del pie de foto, listo para revisar y publicar. El borrador **no se publica solo**: lo leés, lo corregís si hace falta y lo subís vos.
+Si está configurado, cada media hora CEADI revisa el Instagram del colegio. Cuando aparece una publicación nueva:
+
+1. **Se trae la publicación con hasta dos fotos.**
+2. **CEADI la redacta** y decide la **categoría** y la **maqueta** que le corresponden.
+3. Las fotos se suben al sitio: la primera queda de **destacada** y la segunda va **dentro del cuerpo**.
+4. Todo eso se guarda como **borrador de WordPress, ya armado**.
+5. Recién ahí te llega el aviso al número de Dirección, con tres opciones: **1** publicar · **2** editar (decile el cambio por chat y lo reescribe) · **3** dejarlo en borrador.
+
+El borrador **no se publica solo**. Y elegir *3* **no lo borra**: la nota queda guardada en el sitio por si la querés después.
+
+> **Si se te pasa el rato**, el atajo del *1-2-3* caduca a los diez minutos como cualquier conversación del bot — pero el borrador no. Sigue en **Entradas → Borradores**, entero, con las fotos y la categoría puestas. El mensaje te deja el enlace directo para abrirlo.
+>
+> El número de Dirección tiene que corresponder a un **usuario que pueda publicar artículos**; si no, no se arma nada y queda anotado en el aviso de errores del panel de WhatsApp.
 
 > **Aviso honesto**: Instagram no deja leer una cuenta sin autenticación, así que no existe una forma "gratis y sin permisos" de rastrearla que se mantenga andando — los endpoints públicos se cerraron y raspar la web termina en bloqueos. La opción confiable es la **API oficial**, que necesita acceso a la cuenta del colegio. Mientras tanto se puede enchufar un servicio externo que haga esa lectura (varios son pagos). Todo lo demás —detectar lo nuevo, redactar, mandarlo— ya funciona: cuando consigan el acceso a la cuenta, se completa el token en Ajustes y listo.
 
@@ -214,6 +226,47 @@ Dirección/Secretaría/Docente pueden, desde el bot: enviar **comunicados**, **a
 > **Docentes — cargar una nota por chat**: alcanza con decirle a CEADI *"ponele 4 a Pérez en Matemática del segundo periodo"*. CEADI busca al alumno **dentro de tu curso**, muestra la nota anterior si ya había una, y **recién guarda cuando aceptás**. Si hay dos apellidos parecidos, pregunta en vez de adivinar. Cada docente solo puede tocar **sus** cursos.
 >
 > **No hace falta que saques la cuenta**: podés decirle el **porcentaje** (*"sacó 75%"*) o el **puntaje** (*"45 de 60"*) y CEADI convierte a la escala del colegio (1 a 5), mostrándote de dónde salió el número. Avisa si la nota deja **aplazado/a** al alumno, y rechaza los imposibles (más puntos que el total, o un porcentaje dictado como si fuera nota).
+
+### ✍️ Cómo escribe el colegio
+
+CEADI tiene **dos voces distintas**, y no son la misma con otras palabras:
+
+- **La del chat** (el *System prompt*): corta, directa, con voseo, sin vueltas. Para contestarte.
+- **La de lo que se publica** (el campo **Estilo de redacción**): tercera persona, tono institucional, sin voseo ni emojis. Para notas del sitio, comunicados e informes.
+
+Están separadas a propósito. Con un solo campo las dos se pisan: o las notas salen escritas como un mensaje de WhatsApp, o el chat sale escrito como una circular. El estilo de redacción se aplica solo cuando CEADI **redacta algo publicable** — incluidas las notas que entran por el puente de Instagram.
+
+Se edita en **CEAD Académico → WhatsApp → 🤖 CEADI inteligente (IA)**. Dejarlo **vacío** significa *"usá el que trae el plugin"*, y ese mejora con cada actualización.
+
+### 🎨 Flyers e imágenes generadas
+
+CEADI puede **generar afiches, placas para redes y portadas** para las notas. Pedíselo por chat («hacé un flyer para la reunión de padres del jueves 18 a las 19:30 en el salón de actos») y te propone la idea antes de dibujar nada.
+
+- **Nunca genera una imagen sola.** Siempre propone y espera el **1**. Cada imagen **se cobra**, así que una que nadie pidió es plata del colegio tirada.
+- Si una nota no tiene foto, **puede ofrecerte** generarle una portada. Ofrecer no es permiso: si no le decís que sí, la nota se publica sin foto.
+- **No genera "fotos" de cosas que pasaron.** Una imagen inventada de un acto que ocurrió de verdad es una foto falsa; para eso hay que mandarle la foto real.
+- La imagen te llega **por WhatsApp** para que la mires, y queda guardada en la biblioteca del sitio.
+- Cada generación queda en el **registro** con quién la pidió.
+
+> **Se configura aparte** en la misma pantalla, sección *🎨 Imágenes (generación de flyers)*, y **viene apagada**. Va aparte porque el proveedor de chat que usa el colegio (DeepSeek) **no genera imágenes**: hace falta uno que sí, como OpenAI. Si tu proveedor sirve las dos cosas con la misma clave, dejá el campo de clave vacío.
+>
+> El **estilo gráfico** (colores, tipografía, qué evitar) también se edita ahí, y se le pega a todo lo que se genere para que las piezas se parezcan entre sí.
+
+### 🧩 Cómo se dibuja lo que se publica
+
+No todo lo que sale en la web se lee igual, así que no todo usa la misma maqueta. CEADI **elige** una según lo que escribiste, y te la dice en la propuesta antes de publicar — si se equivocó, se corrige con *"2. Editar"*.
+
+| Maqueta | Cuándo | Cómo se ve |
+|---|---|---|
+| **Noticia** | Algo que ya pasó, contado como crónica | La de siempre: titular, foto, texto. Es el formato por defecto |
+| **Evento** | Algo que va a pasar y a lo que hay que ir | El día en grande, la hora, el lugar y **cuánto falta** ya calculado |
+| **Aviso** | Urgente y corto: suspensión, cambio de horario | Banda roja y texto grande, sin foto arriba |
+| **Informe** | Documento largo con secciones: memoria, rendición | Índice navegable y secciones numeradas |
+| **Logro** | Un premio, un campeonato, una beca | La foto de portada con el título encima |
+
+- **Un evento sin fecha no es un evento.** Si CEADI elige «evento» pero no sabe cuándo es, la nota se publica como noticia común: es preferible a mostrar un cuadro de fecha vacío.
+- También se puede cambiar **a mano** desde wp-admin, en el recuadro *«Maqueta de la nota»* al costado del editor de la entrada — ahí mismo se cargan la fecha y el lugar.
+- En los listados, lo que **no** es noticia lleva un sello sobre la miniatura, para que un aviso no se confunda con una crónica.
 
 ### 📄 Docentes — mandar la planilla de notas
 
