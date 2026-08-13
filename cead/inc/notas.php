@@ -99,20 +99,57 @@ function cead_nota_post_types() {
 }
 
 /**
+ * Los `template-nota-*.php` que fuerzan una maqueta desde el selector nativo
+ * de «Plantilla» de wp-admin, y qué slug del catálogo fuerza cada uno.
+ *
+ * Existen porque «Documento institucional» y «Nota con portada» —dos
+ * plantillas más viejas e independientes, ya en ese mismo selector— hicieron
+ * evidente que hay gente que prefiere elegir la maqueta ahí antes que en el
+ * recuadro del costado del editor. Estas cinco son la versión de ese mismo
+ * gesto para el sistema de notas.
+ */
+function cead_nota_plantillas_nativas() {
+	return [
+		'template-nota-noticia.php' => 'noticia',
+		'template-nota-evento.php'  => 'evento',
+		'template-nota-aviso.php'   => 'aviso',
+		'template-nota-informe.php' => 'informe',
+		'template-nota-logro.php'   => 'logro',
+	];
+}
+
+/**
  * El tipo de una nota, ya validado.
  *
- * Se valida acá y no solo al guardar porque el meta se puede escribir por
+ * Dos fuentes posibles, en este orden:
+ *
+ *   1. El selector nativo de «Plantilla». Elegir ahí «Nota: Evento» es una
+ *      decisión explícita para ESTE post, tan fuerte como elegirla en el
+ *      recuadro del costado — más, incluso: es la misma acción con la que ya
+ *      se elige «Documento institucional» o «Nota con portada», así que
+ *      manda sobre el meta guardado.
+ *   2. El recuadro «Maqueta de la nota» (`_cead_nota_tipo`), que es lo que
+ *      escribe CEADI cuando publica desde WhatsApp o Instagram.
+ *
+ * Se valida acá y no solo al guardar porque el dato se puede escribir por
  * muchas puertas —el plugin, la pantalla de edición, una importación, alguien
  * con acceso a la base— y la página se dibuja igual con lo que encuentre. Que un
  * `evento` sin fecha caiga a `noticia` acá significa que la única forma de ver
- * el bloque de fecha vacío es no pasar por esta función.
+ * el bloque de fecha vacío es no pasar por esta función — y vale para las DOS
+ * fuentes: elegir «Nota: Evento» a mano sin cargar la fecha tampoco dibuja el
+ * bloque vacío.
  */
 function cead_nota_tipo( $post = null ) {
 	$post = get_post( $post );
 	if ( ! $post ) { return CEAD_NOTA_DEFECTO; }
 
-	$tipos = cead_nota_tipos();
-	$slug  = sanitize_key( (string) get_post_meta( $post->ID, CEAD_NOTA_META, true ) );
+	$tipos     = cead_nota_tipos();
+	$plantilla = (string) get_page_template_slug( $post );
+	$forzado   = cead_nota_plantillas_nativas()[ $plantilla ] ?? null;
+
+	$slug = null !== $forzado
+		? $forzado
+		: sanitize_key( (string) get_post_meta( $post->ID, CEAD_NOTA_META, true ) );
 
 	if ( '' === $slug || ! isset( $tipos[ $slug ] ) ) { return CEAD_NOTA_DEFECTO; }
 
@@ -227,7 +264,25 @@ function cead_nota_meta_box_cb( $post ) {
 	$actual = sanitize_key( (string) get_post_meta( $post->ID, CEAD_NOTA_META, true ) ) ?: CEAD_NOTA_DEFECTO;
 	$fecha  = (string) get_post_meta( $post->ID, CEAD_NOTA_FECHA, true );
 	$lugar  = (string) get_post_meta( $post->ID, CEAD_NOTA_LUGAR, true );
-	?>
+
+	/*
+	 * Si esta nota tiene elegida una de las cinco «Nota: X» en el selector
+	 * nativo de «Plantilla», ESA manda sobre lo que se elija acá abajo — sin
+	 * decirlo, cambiar el select de este recuadro parecería no hacer nada.
+	 */
+	$plantilla_activa = cead_nota_plantillas_nativas()[ (string) get_page_template_slug( $post ) ] ?? null;
+	if ( null !== $plantilla_activa ) :
+		?>
+		<p class="description" style="background:#fff3cd;padding:.5em;border-left:3px solid #dba617">
+			<?php
+			printf(
+				/* translators: %s: nombre de la maqueta elegida en el selector nativo de Plantilla */
+				esc_html__( 'El selector de «Plantilla» (más abajo en esta pantalla) tiene elegida «Nota: %s», y esa manda sobre lo que elijas acá.', 'cead' ),
+				esc_html( $tipos[ $plantilla_activa ]['label'] ?? $plantilla_activa )
+			);
+			?>
+		</p>
+	<?php endif; ?>
 	<p>
 		<label for="cead_nota_tipo_sel"><strong><?php esc_html_e( 'Cómo se dibuja', 'cead' ); ?></strong></label><br>
 		<select id="cead_nota_tipo_sel" name="cead_nota_tipo" style="width:100%">
