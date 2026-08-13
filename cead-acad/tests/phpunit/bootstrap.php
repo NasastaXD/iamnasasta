@@ -104,6 +104,26 @@ if ( ! function_exists( 'get_post_meta' ) ) {
 		return $single ? $value : [ $value ];
 	}
 }
+if ( ! function_exists( 'get_post' ) ) {
+	// Sin noción de un «post actual» global: en los tests siempre se pasa un
+	// ID explícito. Alcanza para lo que `cead_nota_tipo()` necesita de acá.
+	function get_post( $post = null ) {
+		if ( is_object( $post ) ) { return $post; }
+		if ( null === $post ) { return null; }
+		$id = (int) $post;
+		return $id > 0 ? (object) [ 'ID' => $id ] : null;
+	}
+}
+if ( ! function_exists( 'get_page_template_slug' ) ) {
+	// Mismo comportamiento que el núcleo: lee `_wp_page_template` y trata
+	// '' y 'default' como «sin plantilla elegida».
+	function get_page_template_slug( $post = null ) {
+		$post = get_post( $post );
+		if ( ! $post ) { return false; }
+		$template = get_post_meta( $post->ID, '_wp_page_template', true );
+		return ( ! $template || 'default' === $template ) ? '' : $template;
+	}
+}
 if ( ! function_exists( 'update_post_meta' ) ) {
 	function update_post_meta( $post_id, $key, $value ) {
 		$GLOBALS['cead_test_postmeta'][ $post_id ][ $key ] = $value;

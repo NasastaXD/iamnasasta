@@ -191,4 +191,88 @@ final class MaquetasNotaTest extends TestCase {
 
 		$this->assertSame( 'Faltan 5 días', cead_nota_cuando( $en_5, $hoy ) );
 	}
+
+	/* ------------------------- cead_nota_tipo() -------------------------- */
+	/*
+	 * Dos fuentes para la misma decisión: el selector nativo de «Plantilla»
+	 * (`_wp_page_template`) y el recuadro del costado (`_cead_nota_tipo`).
+	 * Lo que importa acá es el orden y que el veto por datos faltantes valga
+	 * para las dos, no solo para una.
+	 */
+
+	protected function setUp(): void {
+		cead_test_reset_postmeta();
+	}
+
+	public function test_sin_plantilla_ni_meta_es_noticia(): void {
+		$this->assertSame( 'noticia', cead_nota_tipo( 101 ) );
+	}
+
+	public function test_solo_con_el_meta_del_recuadro_se_respeta(): void {
+		update_post_meta( 102, '_cead_nota_tipo', 'aviso' );
+
+		$this->assertSame( 'aviso', cead_nota_tipo( 102 ) );
+	}
+
+	public function test_la_plantilla_nativa_tambien_elige_maqueta(): void {
+		update_post_meta( 103, '_wp_page_template', 'template-nota-aviso.php' );
+
+		$this->assertSame( 'aviso', cead_nota_tipo( 103 ) );
+	}
+
+	/**
+	 * La plantilla nativa MANDA sobre el meta guardado.
+	 *
+	 * Elegir «Nota: Logro» en el selector nativo es una decisión explícita
+	 * para ESTE post — la misma acción con la que ya se elige «Documento
+	 * institucional» — y tiene que ganarle a un meta que puede venir de antes
+	 * o de un valor que nadie tocó.
+	 */
+	public function test_la_plantilla_nativa_le_gana_al_meta_guardado(): void {
+		update_post_meta( 104, '_cead_nota_tipo', 'aviso' );
+		update_post_meta( 104, '_wp_page_template', 'template-nota-logro.php' );
+
+		$this->assertSame( 'logro', cead_nota_tipo( 104 ) );
+	}
+
+	/**
+	 * El veto por datos faltantes vale para las DOS fuentes.
+	 *
+	 * Elegir «Nota: Evento» a mano sin cargar la fecha en el recuadro tampoco
+	 * tiene que dibujar el bloque de fecha vacío — es el mismo caso real que
+	 * ya cubre el camino automático, ahora por la otra puerta.
+	 */
+	public function test_evento_por_plantilla_nativa_sin_fecha_tambien_degrada(): void {
+		update_post_meta( 105, '_wp_page_template', 'template-nota-evento.php' );
+
+		$this->assertSame( 'noticia', cead_nota_tipo( 105 ) );
+	}
+
+	public function test_evento_por_plantilla_nativa_con_fecha_si_vale(): void {
+		update_post_meta( 106, '_wp_page_template', 'template-nota-evento.php' );
+		update_post_meta( 106, '_cead_nota_fecha', '2026-08-20 09:00:00' );
+
+		$this->assertSame( 'evento', cead_nota_tipo( 106 ) );
+	}
+
+	/**
+	 * «Documento institucional» y «Nota con portada» son plantillas más
+	 * viejas e independientes, ya en el mismo selector. No tienen que forzar
+	 * ninguna maqueta del sistema de notas: si lo hicieran, elegirlas
+	 * cambiaría en silencio cómo se dibuja algo que no tiene nada que ver.
+	 */
+	public function test_una_plantilla_nativa_ajena_al_sistema_no_fuerza_nada(): void {
+		update_post_meta( 107, '_cead_nota_tipo', 'logro' );
+		update_post_meta( 107, '_wp_page_template', 'template-documento.php' );
+
+		$this->assertSame( 'logro', cead_nota_tipo( 107 ) );
+	}
+
+	/** `_wp_page_template` en 'default' es «no elegí nada», no un slug propio. */
+	public function test_plantilla_por_defecto_no_fuerza_nada(): void {
+		update_post_meta( 108, '_cead_nota_tipo', 'informe' );
+		update_post_meta( 108, '_wp_page_template', 'default' );
+
+		$this->assertSame( 'informe', cead_nota_tipo( 108 ) );
+	}
 }

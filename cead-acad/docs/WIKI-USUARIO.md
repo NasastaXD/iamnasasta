@@ -265,8 +265,16 @@ No todo lo que sale en la web se lee igual, así que no todo usa la misma maquet
 | **Logro** | Un premio, un campeonato, una beca | La foto de portada con el título encima |
 
 - **Un evento sin fecha no es un evento.** Si CEADI elige «evento» pero no sabe cuándo es, la nota se publica como noticia común: es preferible a mostrar un cuadro de fecha vacío.
-- También se puede cambiar **a mano** desde wp-admin, en el recuadro *«Maqueta de la nota»* al costado del editor de la entrada — ahí mismo se cargan la fecha y el lugar.
 - En los listados, lo que **no** es noticia lleva un sello sobre la miniatura, para que un aviso no se confunda con una crónica.
+
+**También se elige a mano, desde wp-admin, de dos formas:**
+
+1. **El recuadro *«Maqueta de la nota»*** al costado del editor — ahí mismo se cargan la fecha y el lugar del evento.
+2. **El selector nativo de *«Plantilla»***, el mismo desplegable donde ya estaban *«Documento institucional»* y *«Nota con portada»*. Ahí aparecen las cinco como *«Nota: Noticia»*, *«Nota: Evento»*, *«Nota: Aviso»*, *«Nota: Informe»* y *«Nota: Logro»*, para quien prefiera elegir la maqueta desde ese mismo lugar en vez de scrollear hasta el recuadro.
+
+Si se elige por las dos vías a la vez, **manda la Plantilla**: es la misma acción con la que ya se elegían las otras dos plantillas, así que el recuadro avisa cuando eso está pasando. El veto de «sin fecha no hay evento» vale igual para las dos.
+
+> *«Documento institucional»* y *«Nota con portada»* son plantillas más viejas e independientes del sistema de maquetas — se parecen a Informe y Logro pero son diseños distintos. Se mantuvieron las dos por separado a propósito, para no cambiarle el aspecto a notas que ya estén publicadas con ellas.
 
 ### 📄 Docentes — mandar la planilla de notas
 

@@ -14,6 +14,11 @@
  * un tema hijo a medio copiar— tiene que caer en la maqueta de siempre, no en
  * una página vacía.
  *
+ * `cead_nota_tipo()` decide sola si la maqueta sale del selector nativo de
+ * «Plantilla» (`template-nota-*.php`) o del recuadro del costado del editor:
+ * no hace falta pasarle nada acá, y por eso este archivo se llama igual desde
+ * `single.php`, desde los cinco `template-nota-*.php` y desde `news-card.php`.
+ *
  * Espera estar dentro del loop.
  */
 

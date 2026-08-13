@@ -97,13 +97,27 @@ class Cead_Acad_WA_Engine {
 			}
 		}
 
-		// Planilla de notas: el docente manda el Excel que ya usa y lo procesamos
-		// acá mismo, sin archivarlo. No pasa por el dispatch normal.
+		/*
+		 * Planilla de notas: el docente manda el Excel que ya usa y lo procesamos
+		 * acá mismo, sin archivarlo. No pasa por el dispatch normal.
+		 *
+		 * Mismo criterio que el audio de acá arriba: si el número no se va a
+		 * atender, no se gasta el turno en contestar «no tenés permiso para
+		 * cargar notas» — se deja caer al aviso estándar de no-registrado más
+		 * abajo (silencioso la mayor parte del tiempo, una vez cada 6h). Antes
+		 * este bloque corría ANTES del filtro de registrados y contestaba
+		 * siempre: un número desconocido podía confirmar que el bot está vivo
+		 * mandando cualquier archivo con cara de .xlsx, saltándose el throttle
+		 * pensado justamente para eso.
+		 */
 		if ( $media && Cead_Acad_Grades_Sheet::looks_like_sheet( $media ) ) {
-			$this->outbox = [];
-			$this->sheet_received( $phone, $media, $body, $identity );
-			$this->flush_outbox( $phone );
-			return;
+			$attend = ! get_option( 'cead_acad_wa_registered_only', 1 ) || ! empty( $identity['user_id'] );
+			if ( $attend ) {
+				$this->outbox = [];
+				$this->sheet_received( $phone, $media, $body, $identity );
+				$this->flush_outbox( $phone );
+				return;
+			}
 		}
 
 		// Log redactado para reportes sensibles.
