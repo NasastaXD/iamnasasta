@@ -478,6 +478,7 @@ require_once dirname( __DIR__, 2 ) . '/includes/helpers.php';
  * más que reimplementar su criterio en el test y que después se separen.
  */
 require_once dirname( __DIR__, 3 ) . '/cead/inc/helpers.php';
+require_once dirname( __DIR__, 2 ) . '/includes/class-cead-acad-capabilities.php';
 require_once dirname( __DIR__, 2 ) . '/modules/courses/class-courses-roster.php';
 require_once dirname( __DIR__, 2 ) . '/modules/courses/class-courses-admin.php';
 require_once dirname( __DIR__, 2 ) . '/admin/class-admin-menu.php';

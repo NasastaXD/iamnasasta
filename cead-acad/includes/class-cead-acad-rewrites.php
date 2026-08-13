@@ -199,6 +199,10 @@ class Cead_Acad_Rewrites {
 				cead_acad_template( 'panel/horarios/list.php' );
 				return;
 
+			case 'delegados':
+				cead_acad_template( 'panel/delegados/list.php' );
+				return;
+
 			case 'calendario':
 				$id = isset( $parts[1] ) ? (int) $parts[1] : 0;
 				if ( $id > 0 ) {
