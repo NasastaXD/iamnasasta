@@ -345,51 +345,37 @@
 	}
 
 	/* ============================================================ CEADI ==
-	 * El punto de abajo a la derecha. Tocarlo despliega un menú con las dos
-	 * formas de hablarle —el chat de acá o WhatsApp— y desde ahí se abre el
-	 * chat. Vive fuera del <main>, así que el router no lo toca y la
-	 * conversación sobrevive al cambio de pantalla.
+	 * El botón de abajo a la derecha y su desplegable. Un solo control: el
+	 * mismo botón abre y cierra, y el ícono cambia de globo a ✕.
 	 *
-	 * Tres estados en `data-estado`: `cerrado`, `menu`, `abierto`. Si la
-	 * plantilla no dibujó el menú (no hay número de WhatsApp cargado), el
-	 * estado `menu` no existe y el punto abre el chat directo.
+	 * Vive fuera del <main>, así que el router no lo toca y la conversación
+	 * sobrevive al cambio de pantalla.
+	 *
+	 * `data-estado` es `cerrado` o `abierto`, y nada más. Antes había un paso
+	 * intermedio (`menu`) con dos opciones; se sacó porque cobraba dos toques
+	 * por lo que se hace siempre —escribir— para dejar a mano lo que se hace
+	 * una vez en la vida: agendar el número. Ese enlace ahora es un ícono en la
+	 * cabecera del desplegable.
 	 * ==================================================================== */
 	(function ceadi() {
 		var caja = document.getElementById('cead-ceadi');
 		if (!caja || !window.CeadAcad || !CeadAcad.rest) { return; }
 
 		var panel   = document.getElementById('cead-ceadi-panel');
-		var menu    = document.getElementById('cead-ceadi-menu');
 		var abrir   = document.getElementById('cead-ceadi-abrir');
-		var irChat  = document.getElementById('cead-ceadi-chat');
-		var cerrar  = document.getElementById('cead-ceadi-cerrar');
 		var hilo    = document.getElementById('cead-ceadi-hilo');
 		var form    = document.getElementById('cead-ceadi-form');
 		var input   = document.getElementById('cead-ceadi-input');
 		var enviarB = form ? form.querySelector('button[type=submit]') : null;
 		var ocupado = false;
 
-		function estado()      { return caja.dataset.estado; }
-		function estaAbierto() { return estado() === 'abierto'; }
-
-		function abrirMenu() {
-			caja.dataset.estado = 'menu';
-			menu.hidden = false;
-			abrir.setAttribute('aria-expanded', 'true');
-			focusSinSaltar(menu.querySelector('button, a'));
-		}
-		function cerrarMenu(devolverFoco) {
-			caja.dataset.estado = 'cerrado';
-			menu.hidden = true;
-			abrir.setAttribute('aria-expanded', 'false');
-			if (devolverFoco) { focusSinSaltar(abrir); }
-		}
+		function estaAbierto() { return caja.dataset.estado === 'abierto'; }
 
 		function abrirChat() {
-			if (menu) { menu.hidden = true; }
 			caja.dataset.estado = 'abierto';
 			panel.hidden = false;
 			abrir.setAttribute('aria-expanded', 'true');
+			abrir.setAttribute('aria-label', 'Cerrar CEADI');
 			focusSinSaltar(input);
 			hilo.scrollTop = hilo.scrollHeight;
 		}
@@ -397,29 +383,25 @@
 			caja.dataset.estado = 'cerrado';
 			panel.hidden = true;
 			abrir.setAttribute('aria-expanded', 'false');
+			abrir.setAttribute('aria-label', 'Abrir CEADI');
 			if (devolverFoco) { focusSinSaltar(abrir); }
 		}
 
 		abrir.addEventListener('click', function () {
-			// Sin menú dibujado hay una sola cosa que hacer, así que se hace.
-			if (!menu) { abrirChat(); return; }
-			if (estado() === 'menu') { cerrarMenu(true); } else { abrirMenu(); }
+			if (estaAbierto()) { cerrarChat(true); } else { abrirChat(); }
 		});
-		if (irChat) { irChat.addEventListener('click', abrirChat); }
-		cerrar.addEventListener('click', function () { cerrarChat(true); });
 
-		// Tocar fuera cierra el menú. El chat no: se cierra con su ✕ o con
-		// Escape, porque cerrarlo de un toque perdido en medio de escribir
-		// sería peor que dejarlo abierto.
+		/*
+		 * Tocar afuera cierra, como cualquier desplegable. No se pierde nada:
+		 * ni la conversación ni lo que quedó escrito en el campo se borran al
+		 * cerrar, así que volver a abrir devuelve todo donde estaba.
+		 */
 		document.addEventListener('click', function (e) {
-			if (estado() === 'menu' && !caja.contains(e.target)) { cerrarMenu(false); }
+			if (estaAbierto() && !caja.contains(e.target)) { cerrarChat(false); }
 		});
 
 		document.addEventListener('keydown', function (e) {
-			if (e.key !== 'Escape' && e.keyCode !== 27) { return; }
-			// Se cierra de a una capa: el chat primero, el menú después.
-			if (estaAbierto())          { cerrarChat(true); }
-			else if (estado() === 'menu') { cerrarMenu(true); }
+			if ((e.key === 'Escape' || e.keyCode === 27) && estaAbierto()) { cerrarChat(true); }
 		});
 
 		function burbuja(texto, quien) {

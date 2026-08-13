@@ -297,6 +297,83 @@ foreach ( glob( $raiz . '/cead-acad/docs/*.md' ) as $doc ) {
 	}
 }
 
+/* ------------------- 5. `hidden` pisado por un `display` de autor ---------- */
+/*
+ * El bug que costó caro: un panel marcado con `hidden` en la plantilla se
+ * dibujaba abierto igual, porque el CSS le declaraba `display:flex`.
+ *
+ * No es una cuestión de especificidad sino de origen: `[hidden]{display:none}`
+ * vive en la hoja del navegador y CUALQUIER declaración de una hoja de autor le
+ * gana. Un `display` sobre una clase que en el HTML lleva `hidden` deja el
+ * atributo sin efecto, y el resultado no se nota leyendo el código: se nota
+ * cuando el chat aparece abierto tapando media pantalla.
+ *
+ * Se busca: elementos con atributo `hidden` en las plantillas, y por cada uno,
+ * si su clase recibe un `display` distinto de `none` sin que exista en la misma
+ * hoja una regla `[hidden]` que lo corte.
+ */
+$plantillas = [];
+$itP = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $raiz . '/cead-acad/templates' ) );
+foreach ( $itP as $f ) {
+	if ( $f->isFile() && 'php' === $f->getExtension() ) { $plantillas[] = $f->getPathname(); }
+}
+
+$ocultos = []; // clase => archivo donde se marca hidden
+foreach ( $plantillas as $p ) {
+	$src = (string) file_get_contents( $p );
+
+	/*
+	 * Primero se sacan los bloques PHP, y recién después se buscan etiquetas.
+	 * Un `<?php … ?>` adentro de un atributo trae un `>` propio, así que
+	 * cualquier intento de leer la etiqueta con `[^>]*` la corta ahí y se pierde
+	 * todo lo que viene después — incluido el `hidden`, que suele ir al final.
+	 * Es exactamente por qué la primera versión de este chequeo daba luz verde
+	 * al bug que existe para encontrar.
+	 */
+	$src = preg_replace( '/<\?(?:php|=).*?\?>/s', '__PHP__', $src );
+
+	// Sobre el archivo entero y no línea por línea: `class` y `hidden` casi
+	// nunca caen en el mismo renglón.
+	if ( ! preg_match_all( '/<\w+[^>]*>/', $src, $tags ) ) { continue; }
+	foreach ( $tags[0] as $tag ) {
+		if ( ! preg_match( '/\shidden(?=[\s>])/', $tag ) ) { continue; }
+		if ( ! preg_match( '/class="([^"<]+)"/', $tag, $mc ) ) { continue; }
+		foreach ( preg_split( '/\s+/', trim( $mc[1] ) ) as $clase ) {
+			// Las clases que salían de PHP no se pueden chequear estáticamente.
+			if ( '' === $clase || false !== strpos( $clase, '__PHP__' ) ) { continue; }
+			$ocultos[ $clase ] = str_replace( $raiz . '/', '', $p );
+		}
+	}
+}
+
+foreach ( glob( $raiz . '/cead-acad/assets/css/*.css' ) as $hoja ) {
+	// Sin comentarios: uno de ellos EXPLICA este bug citando la regla, y el
+	// chequeo lo leía como si la regla estuviera puesta. Un comentario que
+	// desactiva su propio chequeo es peor que no tener chequeo.
+	$css = preg_replace( '#/\*.*?\*/#s', '', (string) file_get_contents( $hoja ) );
+
+	/*
+	 * ¿La hoja se defiende sola? Alcanza con que exista una regla `[hidden]`
+	 * que apague el display. Es grueso —una regla acotada a un componente
+	 * cubre a toda la hoja— pero hoy hay un solo lugar con `hidden`, y errar
+	 * hacia el falso negativo es preferible a molestar con falsos positivos
+	 * cada vez que alguien escriba un `display`.
+	 */
+	if ( preg_match( '/\[hidden\][^{]*\{[^}]*display\s*:\s*none/i', $css ) ) { continue; }
+
+	foreach ( $ocultos as $clase => $donde ) {
+		$re = '/\.' . preg_quote( $clase, '/' ) . '\s*(?:,[^{]*)?\{([^}]*)\}/';
+		if ( ! preg_match_all( $re, $css, $bloques ) ) { continue; }
+		foreach ( $bloques[1] as $cuerpo ) {
+			if ( ! preg_match( '/display\s*:\s*(?!none)/i', $cuerpo ) ) { continue; }
+			$fallos[] = str_replace( $raiz . '/', '', $hoja ) . "  le da `display` a .{$clase}, que en {$donde} se marca con `hidden`.\n"
+				. '    El atributo queda sin efecto: `[hidden]{display:none}` es del navegador y pierde contra' . "\n"
+				. '    cualquier regla de autor, sin importar la especificidad. Agregá `[hidden] { display:none !important }`.';
+			break;
+		}
+	}
+}
+
 /* --------------------------------------------------------------- resultado */
 
 if ( $fallos ) {
