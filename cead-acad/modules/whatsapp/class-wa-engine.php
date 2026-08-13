@@ -1083,7 +1083,10 @@ class Cead_Acad_WA_Engine {
 					'parameters'  => [
 						'type'       => 'object',
 						'properties' => [
-							'mensaje'   => [ 'type' => 'string', 'description' => 'Texto del comunicado, ya redactado y listo para enviar.' ],
+							// Un comunicado también es algo que el colegio PUBLICA, así
+							// que se redacta con la misma voz que las notas y no con la
+							// del chat.
+							'mensaje'   => [ 'type' => 'string', 'description' => 'Texto del comunicado, ya redactado y listo para enviar.' . Cead_Acad_WA_AI::estilo_bloque() ],
 							'audiencia' => [ 'type' => 'string', 'description' => "A quién enviarlo ($aud)." ],
 						],
 						'required'   => [ 'mensaje', 'audiencia' ],
@@ -1113,7 +1116,16 @@ class Cead_Acad_WA_Engine {
 						. 'si un dato falta, escribí que está a confirmar.'
 						. ( class_exists( 'Cead_Acad_Article_Format' )
 							? Cead_Acad_Article_Format::templates_hint( array_values( $cats ) )
-							: '' ),
+							: '' )
+						/*
+						 * La guía de redacción del colegio va ACÁ y no en la
+						 * persona. La persona describe cómo CEADI conversa
+						 * —corto, voseo, sin vueltas— y eso es justo lo que NO
+						 * tiene que ser una nota institucional. Puesta en la
+						 * herramienta, solo pesa en el pedido de quien puede
+						 * publicar, y solo cuando está escribiendo.
+						 */
+						. Cead_Acad_WA_AI::estilo_bloque(),
 				],
 			];
 			if ( $cats ) {
@@ -1178,6 +1190,44 @@ class Cead_Acad_WA_Engine {
 				],
 			];
 		}
+		/*
+		 * Generar una imagen cuesta plata de verdad, así que la herramienta solo
+		 * PROPONE: nunca dibuja nada sin que la persona confirme. La regla de no
+		 * generar sin permiso está además escrita en la persona, porque una
+		 * herramienta disponible es una herramienta que el modelo va a usar.
+		 */
+		if ( class_exists( 'Cead_Acad_WA_Images' ) && Cead_Acad_WA_Images::enabled()
+			&& Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_articles' ) ) {
+			$tools[] = [
+				'type'     => 'function',
+				'function' => [
+					'name'        => 'generar_imagen',
+					'description' => 'Proponer la generación de una imagen o flyer con IA. NO se genera hasta que la persona lo apruebe, '
+						. 'y NO la propongas si no te la pidieron o no ofreciste antes y te dijeron que sí. '
+						. 'Sirve para afiches de eventos, placas para redes o una portada cuando una nota no tiene foto. '
+						. 'Nunca la uses para reemplazar una foto real de algo que pasó: una imagen generada de un acto que ocurrió es una foto falsa.',
+					'parameters'  => [
+						'type'       => 'object',
+						'properties' => [
+							'descripcion' => [
+								'type'        => 'string',
+								'description' => 'Qué tiene que mostrar la imagen, en una o dos frases. Describí la escena o la composición, no el texto.',
+							],
+							'texto' => [
+								'type'        => 'string',
+								'description' => 'El texto que va DENTRO del flyer, ya redactado y corto (un título y a lo sumo dos líneas de datos). Omitilo si la imagen no lleva texto.',
+							],
+							'para_post' => [
+								'type'        => 'integer',
+								'description' => 'ID de una nota del sitio a la que ponerle esta imagen como portada. Solo si te lo pidieron explícitamente para una nota concreta.',
+							],
+						],
+						'required'   => [ 'descripcion' ],
+					],
+				],
+			];
+		}
+
 		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_schedule' ) ) {
 			$tools[] = [
 				'type'     => 'function',
@@ -1564,6 +1614,58 @@ class Cead_Acad_WA_Engine {
 			return true;
 		}
 
+		if ( $action === 'generar_imagen' ) {
+			if ( ! class_exists( 'Cead_Acad_WA_Images' ) || ! Cead_Acad_WA_Images::enabled()
+				|| ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_articles' ) ) {
+				$this->send( $phone, $this->m( 'access_denied' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			$desc = trim( (string) ( $args['descripcion'] ?? '' ) );
+			if ( '' === $desc ) {
+				$this->send( $phone, __( '¿Qué querés que muestre la imagen?', 'cead-acad' ) );
+				$this->store->set_state( $phone, 'ia_home' );
+				return true;
+			}
+			$texto = trim( (string) ( $args['texto'] ?? '' ) );
+
+			/*
+			 * El post destino se valida ACÁ y no al generar: si el modelo inventó
+			 * un id, es mejor generar la imagen igual y mandarla suelta que
+			 * fallar entero — la imagen ya está pagada para cuando eso se nota.
+			 */
+			$para = (int) ( $args['para_post'] ?? 0 );
+			if ( $para ) {
+				$destino = get_post( $para );
+				if ( ! $destino || 'post' !== $destino->post_type ) { $para = 0; }
+			}
+
+			if ( $reply !== '' ) { $this->send( $phone, $reply ); }
+			$this->store->set_state( $phone, 'ia_staff_confirm', [
+				'kind'        => 'imagen',
+				'descripcion' => $desc,
+				'texto'       => $texto,
+				'para_post'   => $para,
+			] );
+
+			$extra = '';
+			if ( '' !== $texto ) { $extra .= "\n✍️ " . sprintf( __( 'Texto en la imagen: «%s»', 'cead-acad' ), $texto ); }
+			if ( $para )         { $extra .= "\n📰 " . sprintf( __( 'Se la pongo de portada a: %s', 'cead-acad' ), get_the_title( $para ) ); }
+			$extra .= "\n📐 " . Cead_Acad_WA_Images::size();
+
+			$this->send(
+				$phone,
+				sprintf(
+					/* translators: 1: descripción de la imagen, 2: datos extra */
+					__( "🎨 *Imagen* — propuesta de CEADI\n%1\$s%2\$s\n\n_Generarla tiene costo, por eso te pregunto._\n\n*1.* ✅ Generar\n*2.* ✏️ Cambiar la idea (decime el cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
+					$desc,
+					$extra
+				),
+				'ia_staff_propose'
+			);
+			return true;
+		}
+
 		if ( $action === 'crear_invitacion' ) {
 			if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_invitations' ) ) {
 				$this->send( $phone, $this->m( 'access_denied' ) );
@@ -1856,6 +1958,7 @@ class Cead_Acad_WA_Engine {
 			elseif ( $kind === 'planilla' ) { $this->execute_planilla( $phone, $context, $identity ); }
 			elseif ( $kind === 'articulo' ) { $this->execute_articulo( $phone, $context, $identity ); }
 			elseif ( $kind === 'ig_borrador' ) { $this->execute_ig_borrador( $phone, $context, $identity ); }
+			elseif ( $kind === 'imagen' ) { $this->execute_imagen( $phone, $context, $identity ); }
 			elseif ( $kind === 'memoria' ) { $this->execute_memoria( $phone, $context, $identity ); }
 			elseif ( $kind === 'olvido' ) { $this->execute_olvido( $phone, $context, $identity ); }
 			else { $this->store->set_state( $phone, 'ia_home' ); }
@@ -2240,7 +2343,8 @@ class Cead_Acad_WA_Engine {
 
 "
 			. 'Contestá SOLO con un objeto JSON {"titulo": "...", "contenido": "..."}, el cuerpo en MARKDOWN. '
-			. 'Aplicá SOLO el cambio pedido y dejá el resto como está. No inventes datos nuevos.';
+			. 'Aplicá SOLO el cambio pedido y dejá el resto como está. No inventes datos nuevos.'
+			. Cead_Acad_WA_AI::estilo_bloque();
 
 		$r     = Cead_Acad_WA_AI::route( $prompt, '', '', [], 'Estás corrigiendo un borrador de nota del colegio.' );
 		$texto = is_array( $r ) ? trim( (string) ( $r['reply'] ?? '' ) ) : '';
@@ -2269,6 +2373,86 @@ class Cead_Acad_WA_Engine {
 			),
 			'ia_staff_propose'
 		);
+	}
+
+	/**
+	 * Genera la imagen aprobada y se la manda por WhatsApp.
+	 *
+	 * Se avisa ANTES de arrancar porque generar tarda entre diez segundos y un
+	 * minuto: sin ese aviso, quien mandó «1» ve el chat quieto y vuelve a
+	 * mandar «1» — y la segunda imagen se cobra igual que la primera.
+	 */
+	private function execute_imagen( $phone, $context, $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! class_exists( 'Cead_Acad_WA_Images' ) || ! Cead_Acad_WA_Images::enabled()
+			|| ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_articles' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		// Se saca de la espera antes de generar: si el proveedor tarda tanto que
+		// el turno se corta, la propuesta no queda colgada esperando un «1» que
+		// volvería a cobrar otra imagen.
+		$this->store->set_state( $phone, 'ia_home' );
+		$this->send( $phone, __( '🎨 Dale, la estoy generando. Tarda un poco.', 'cead-acad' ) );
+
+		$r = Cead_Acad_WA_Images::generar(
+			(string) ( $context['descripcion'] ?? '' ),
+			(string) ( $context['texto'] ?? '' )
+		);
+		if ( is_wp_error( $r ) ) {
+			$this->send(
+				$phone,
+				sprintf( /* translators: %s: motivo del fallo */ __( 'No pude generarla: %s', 'cead-acad' ), $r->get_error_message() )
+			);
+			return;
+		}
+
+		$para = (int) ( $context['para_post'] ?? 0 );
+		$nota = '';
+		if ( $para && get_post( $para ) ) {
+			set_post_thumbnail( $para, (int) $r['attachment_id'] );
+			$nota = "\n" . sprintf(
+				/* translators: %s: enlace a la nota */
+				__( 'Se la puse de portada a: %s', 'cead-acad' ),
+				get_permalink( $para )
+			);
+		}
+
+		Cead_Acad_Audit::log( 'wa_image_generated', [
+			'user_id'     => $uid ?: null,
+			'entity_type' => 'attachment',
+			'entity_id'   => (int) $r['attachment_id'],
+			'payload'     => [
+				'descripcion' => mb_substr( (string) ( $context['descripcion'] ?? '' ), 0, 200 ),
+				'con_texto'   => '' !== (string) ( $context['texto'] ?? '' ),
+				'para_post'   => $para ?: null,
+				'modelo'      => Cead_Acad_WA_Images::model(),
+			],
+		] );
+
+		/*
+		 * Se manda la imagen misma, no un enlace: el enlace obliga a abrir el
+		 * navegador para ver si sirve, y lo que se quiere es mirarla y decidir.
+		 * Si el bridge no puede con la imagen, queda el enlace como respaldo —
+		 * está subida a la biblioteca igual.
+		 */
+		$store  = new Cead_Acad_WA_Store();
+		$bridge = new Cead_Acad_WA_Bridge_Client( $store );
+		$res    = $bridge->send_image( $phone, $r['base64'], $r['mime'], __( 'Lista. Está guardada en la biblioteca del sitio.', 'cead-acad' ) . $nota );
+
+		if ( ! is_array( $res ) || empty( $res['sent'] ) ) {
+			$this->send(
+				$phone,
+				sprintf(
+					/* translators: 1: enlace a la imagen, 2: nota sobre la portada */
+					__( 'Lista, pero no te la pude mandar por acá. Está en: %1$s%2$s', 'cead-acad' ),
+					$r['url'],
+					$nota
+				)
+			);
+		}
 	}
 
 	private function execute_invitacion( $phone, $context, $identity ) {

@@ -381,8 +381,11 @@ class Cead_Acad_WA_Instagram {
 			. ( $maquetas ? '- formato: ' . self::pistas_de_maqueta( $maquetas ) . "\n" : '' )
 			. "- epigrafe: una línea describiendo qué se ve en las fotos, para el pie de imagen.\n\n"
 			. "NO inventes datos que no estén en el texto (fechas, nombres, resultados, cantidades). "
-			. "Si un dato falta, escribí que está a confirmar. No copies hashtags ni emojis.\n\n"
-			. "Texto de la publicación:\n" . mb_substr( $pie, 0, 1500 );
+			. "Si un dato falta, escribí que está a confirmar. No copies hashtags ni emojis."
+			// La misma guía de redacción que usa el resto del sistema: una nota
+			// que entra por Instagram tiene que sonar igual que una escrita a mano.
+			. Cead_Acad_WA_AI::estilo_bloque()
+			. "\n\nTexto de la publicación:\n" . mb_substr( $pie, 0, 1500 );
 
 		$r     = Cead_Acad_WA_AI::route( $prompt, '', '', [], 'Estás preparando un borrador de nota para el sitio del colegio.' );
 		$texto = is_array( $r ) ? trim( (string) ( $r['reply'] ?? '' ) ) : '';

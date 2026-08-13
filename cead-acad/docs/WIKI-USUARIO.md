@@ -227,6 +227,31 @@ Dirección/Secretaría/Docente pueden, desde el bot: enviar **comunicados**, **a
 >
 > **No hace falta que saques la cuenta**: podés decirle el **porcentaje** (*"sacó 75%"*) o el **puntaje** (*"45 de 60"*) y CEADI convierte a la escala del colegio (1 a 5), mostrándote de dónde salió el número. Avisa si la nota deja **aplazado/a** al alumno, y rechaza los imposibles (más puntos que el total, o un porcentaje dictado como si fuera nota).
 
+### ✍️ Cómo escribe el colegio
+
+CEADI tiene **dos voces distintas**, y no son la misma con otras palabras:
+
+- **La del chat** (el *System prompt*): corta, directa, con voseo, sin vueltas. Para contestarte.
+- **La de lo que se publica** (el campo **Estilo de redacción**): tercera persona, tono institucional, sin voseo ni emojis. Para notas del sitio, comunicados e informes.
+
+Están separadas a propósito. Con un solo campo las dos se pisan: o las notas salen escritas como un mensaje de WhatsApp, o el chat sale escrito como una circular. El estilo de redacción se aplica solo cuando CEADI **redacta algo publicable** — incluidas las notas que entran por el puente de Instagram.
+
+Se edita en **CEAD Académico → WhatsApp → 🤖 CEADI inteligente (IA)**. Dejarlo **vacío** significa *"usá el que trae el plugin"*, y ese mejora con cada actualización.
+
+### 🎨 Flyers e imágenes generadas
+
+CEADI puede **generar afiches, placas para redes y portadas** para las notas. Pedíselo por chat («hacé un flyer para la reunión de padres del jueves 18 a las 19:30 en el salón de actos») y te propone la idea antes de dibujar nada.
+
+- **Nunca genera una imagen sola.** Siempre propone y espera el **1**. Cada imagen **se cobra**, así que una que nadie pidió es plata del colegio tirada.
+- Si una nota no tiene foto, **puede ofrecerte** generarle una portada. Ofrecer no es permiso: si no le decís que sí, la nota se publica sin foto.
+- **No genera "fotos" de cosas que pasaron.** Una imagen inventada de un acto que ocurrió de verdad es una foto falsa; para eso hay que mandarle la foto real.
+- La imagen te llega **por WhatsApp** para que la mires, y queda guardada en la biblioteca del sitio.
+- Cada generación queda en el **registro** con quién la pidió.
+
+> **Se configura aparte** en la misma pantalla, sección *🎨 Imágenes (generación de flyers)*, y **viene apagada**. Va aparte porque el proveedor de chat que usa el colegio (DeepSeek) **no genera imágenes**: hace falta uno que sí, como OpenAI. Si tu proveedor sirve las dos cosas con la misma clave, dejá el campo de clave vacío.
+>
+> El **estilo gráfico** (colores, tipografía, qué evitar) también se edita ahí, y se le pega a todo lo que se genere para que las piezas se parezcan entre sí.
+
 ### 🧩 Cómo se dibuja lo que se publica
 
 No todo lo que sale en la web se lee igual, así que no todo usa la misma maqueta. CEADI **elige** una según lo que escribiste, y te la dice en la propuesta antes de publicar — si se equivocó, se corrige con *"2. Editar"*.

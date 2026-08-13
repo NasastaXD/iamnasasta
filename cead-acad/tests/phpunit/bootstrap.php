@@ -548,5 +548,6 @@ require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-memory.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-news.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-tools.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-instagram.php';
+require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-images.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-article-format.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-engine.php';
