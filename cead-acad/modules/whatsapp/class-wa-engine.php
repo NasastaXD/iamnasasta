@@ -245,6 +245,7 @@ class Cead_Acad_WA_Engine {
 			case 'role_chooser':         $this->role_chooser( $phone, $lc, $context, $identity ); break;
 			case 'ia_home':              $this->ia_home( $phone, $body, $lc, $identity, $media ); break;
 			case 'ia_staff_confirm':     $this->ia_staff_confirm( $phone, $lc, $context, $identity, $body, $media ); break;
+			case 'ia_ig_editar':         $this->ig_editar( $phone, $context, $identity, $body ); break;
 			// Alumnado
 			case 'student_menu':         $this->student_menu( $phone, $lc, $identity, $body, $media ); break;
 			case 'stu_report_type':      $this->report_type( $phone, $lc ); break;
@@ -1014,23 +1015,7 @@ class Cead_Acad_WA_Engine {
 	 * @return array term_id => nombre
 	 */
 	private function article_categories() {
-		$social = (string) get_option( 'cead_acad_wa_social_category', 'redes-sociales' );
-		$social = sanitize_title( $social ) ?: 'redes-sociales';
-
-		$terms = get_terms( [
-			'taxonomy'   => 'category',
-			'hide_empty' => false,
-			'number'     => 30,
-			'orderby'    => 'name',
-		] );
-		if ( is_wp_error( $terms ) ) { return []; }
-
-		$out = [];
-		foreach ( $terms as $t ) {
-			if ( $t->slug === $social || $t->slug === 'uncategorized' || $t->slug === 'sin-categoria' ) { continue; }
-			$out[ (int) $t->term_id ] = $t->name;
-		}
-		return $out;
+		return Cead_Acad_Article_Categories::listar();
 	}
 
 	/**
@@ -1041,25 +1026,7 @@ class Cead_Acad_WA_Engine {
 	 * taxonomía con lo que se le haya ocurrido al modelo.
 	 */
 	private function resolve_category( $name ) {
-		$name = trim( (string) $name );
-		if ( '' === $name ) { return 0; }
-
-		$norm = static function ( $s ) {
-			$s = function_exists( 'remove_accents' ) ? remove_accents( $s ) : $s;
-			return trim( strtolower( $s ) );
-		};
-		$needle = $norm( $name );
-		if ( '' === $needle ) { return 0; }
-
-		$cats = $this->article_categories();
-		foreach ( $cats as $id => $label ) {
-			if ( $norm( $label ) === $needle ) { return (int) $id; }
-		}
-		foreach ( $cats as $id => $label ) {
-			$hay = $norm( $label );
-			if ( str_contains( $hay, $needle ) || str_contains( $needle, $hay ) ) { return (int) $id; }
-		}
-		return 0;
+		return Cead_Acad_Article_Categories::resolver( $name );
 	}
 
 	private function ai_staff_tools( $identity, $phone = '' ) {
@@ -1856,6 +1823,15 @@ class Cead_Acad_WA_Engine {
 		// es lo natural, así que el texto que viene después del 2 se toma como la
 		// instrucción y se ahorra una vuelta.
 		if ( 2 === $opcion ) {
+			/*
+			 * Editar un borrador de Instagram no es volver a proponer desde cero:
+			 * la nota ya está guardada, con sus fotos y su categoría. Reescribirla
+			 * desde el chat tiene que MODIFICAR esa, no crear otra al lado.
+			 */
+			if ( 'ig_borrador' === $kind ) {
+				$this->ig_editar( $phone, $context, $identity, $resto );
+				return;
+			}
 			$this->store->set_state( $phone, 'ia_home' );
 			if ( '' !== $resto && $this->ai_try( $phone, $resto, $identity, 'ia_home', $media ) ) {
 				return;
@@ -1879,6 +1855,7 @@ class Cead_Acad_WA_Engine {
 			elseif ( $kind === 'nota' ) { $this->execute_nota( $phone, $context, $identity ); }
 			elseif ( $kind === 'planilla' ) { $this->execute_planilla( $phone, $context, $identity ); }
 			elseif ( $kind === 'articulo' ) { $this->execute_articulo( $phone, $context, $identity ); }
+			elseif ( $kind === 'ig_borrador' ) { $this->execute_ig_borrador( $phone, $context, $identity ); }
 			elseif ( $kind === 'memoria' ) { $this->execute_memoria( $phone, $context, $identity ); }
 			elseif ( $kind === 'olvido' ) { $this->execute_olvido( $phone, $context, $identity ); }
 			else { $this->store->set_state( $phone, 'ia_home' ); }
@@ -1886,6 +1863,27 @@ class Cead_Acad_WA_Engine {
 		}
 		if ( 3 === $opcion ) {
 			$this->store->set_state( $phone, 'ia_home' );
+			/*
+			 * El borrador de Instagram no se borra al decir que no.
+			 *
+			 * En el resto de las propuestas «cancelar» es descartar algo que solo
+			 * existía en el chat. Acá existe una nota guardada en el sitio, con
+			 * las fotos ya subidas, y borrarla porque en ese momento no era el
+			 * momento sería tirar trabajo hecho. Queda de borrador, que es
+			 * exactamente lo que «todavía no» quiere decir.
+			 */
+			if ( 'ig_borrador' === $kind ) {
+				$this->send(
+					$phone,
+					sprintf(
+						/* translators: %s: enlace para editarlo en wp-admin */
+						__( "👍 Listo, no lo publico. Queda como borrador en el sitio por si lo querés después: %s", 'cead-acad' ),
+						admin_url( 'post.php?post=' . (int) ( $context['post_id'] ?? 0 ) . '&action=edit' )
+					),
+					'ia_cancel'
+				);
+				return;
+			}
 			$this->send( $phone, __( '❌ Listo, lo descarté. ¿Algo más?', 'cead-acad' ), 'ia_cancel' );
 			return;
 		}
@@ -2116,6 +2114,161 @@ class Cead_Acad_WA_Engine {
 			'article_published'
 		);
 		$this->store->set_state( $phone, 'ia_home' );
+	}
+
+	/**
+	 * Publica el borrador que armó el extractor de Instagram.
+	 *
+	 * Aprobar es cambiarle el estado a una nota que YA está completa: cuerpo,
+	 * categoría, maqueta y fotos se resolvieron cuando se creó el borrador. Por
+	 * eso acá no se arma nada — solo se comprueba que siga existiendo y que
+	 * quien aprueba pueda hacerlo.
+	 */
+	private function execute_ig_borrador( $phone, $context, $identity ) {
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_articles' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		$pid  = (int) ( $context['post_id'] ?? 0 );
+		$post = $pid ? get_post( $pid ) : null;
+		/*
+		 * Entre la propuesta y el «sí» el borrador pudo publicarse o borrarse
+		 * desde wp-admin — es justo lo que invita a hacer el enlace del mensaje.
+		 * Publicar a ciegas acá daría «listo, publicado» sobre algo que no
+		 * existe, o volvería a publicar lo ya publicado.
+		 */
+		if ( ! $post || 'post' !== $post->post_type ) {
+			$this->send( $phone, __( 'Ese borrador ya no está. Puede que lo hayas borrado desde el sitio.', 'cead-acad' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+		if ( 'publish' === $post->post_status ) {
+			$this->send(
+				$phone,
+				sprintf( /* translators: %s: enlace a la nota */ __( 'Ese ya está publicado: %s', 'cead-acad' ), get_permalink( $pid ) )
+			);
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		$r = wp_update_post( [ 'ID' => $pid, 'post_status' => 'publish' ], true );
+		if ( is_wp_error( $r ) ) {
+			$this->send( $phone, $this->m( 'error_generic' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		Cead_Acad_Audit::log( 'wa_article_published', [
+			'user_id'     => $uid ?: null,
+			'entity_type' => 'post',
+			'entity_id'   => $pid,
+			'payload'     => [ 'via' => 'instagram', 'origen' => (string) get_post_meta( $pid, Cead_Acad_WA_Instagram::META_ORIGEN, true ) ],
+		] );
+
+		$this->send(
+			$phone,
+			$this->interp( $this->m( 'article_published' ), [ 'url' => get_permalink( $pid ) ] ),
+			'article_published'
+		);
+		$this->store->set_state( $phone, 'ia_home' );
+	}
+
+	/**
+	 * Aplica un cambio pedido por chat al borrador de Instagram.
+	 *
+	 * Reescribe título y cuerpo de la nota que ya existe, dejando intactas las
+	 * fotos y la categoría: quien pide «sacale la última frase» no está pidiendo
+	 * que se vuelvan a bajar las imágenes.
+	 *
+	 * @param string $instruccion Puede venir pegada al «2» («2 cambiale el
+	 *                            título») o en el mensaje siguiente.
+	 */
+	private function ig_editar( $phone, $context, $identity, $instruccion = '' ) {
+		$this->ia_turn = true;
+		$uid = (int) ( $identity['user_id'] ?? 0 );
+		$pid = (int) ( $context['post_id'] ?? 0 );
+
+		if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_articles' ) ) {
+			$this->send( $phone, $this->m( 'access_denied' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		$instruccion = trim( (string) $instruccion );
+		if ( '' === $instruccion ) {
+			// Sin instrucción no hay nada que hacer: se espera el próximo mensaje
+			// conservando de qué borrador estábamos hablando.
+			$this->store->set_state( $phone, 'ia_ig_editar', [ 'post_id' => $pid ] );
+			$this->send( $phone, __( '✏️ Dale, decime qué le cambio y te lo dejo listo de nuevo.', 'cead-acad' ), 'ia_edit' );
+			return;
+		}
+
+		$post = $pid ? get_post( $pid ) : null;
+		if ( ! $post || 'draft' !== $post->post_status ) {
+			$this->send( $phone, __( 'Ese borrador ya no está disponible para editar por acá.', 'cead-acad' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		if ( ! class_exists( 'Cead_Acad_WA_AI' ) || ! Cead_Acad_WA_AI::enabled() ) {
+			$this->send(
+				$phone,
+				sprintf(
+					/* translators: %s: enlace para editarlo en wp-admin */
+					__( 'Ahora mismo no puedo reescribirlo. Editalo directo acá: %s', 'cead-acad' ),
+					admin_url( 'post.php?post=' . $pid . '&action=edit' )
+				)
+			);
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		$prompt = "Este es el borrador actual de una nota del colegio.
+
+"
+			. "TÍTULO: " . $post->post_title . "
+
+"
+			. "CUERPO:
+" . mb_substr( wp_strip_all_tags( $post->post_content ), 0, 2500 ) . "
+
+"
+			. "Cambio pedido: " . mb_substr( $instruccion, 0, 400 ) . "
+
+"
+			. 'Contestá SOLO con un objeto JSON {"titulo": "...", "contenido": "..."}, el cuerpo en MARKDOWN. '
+			. 'Aplicá SOLO el cambio pedido y dejá el resto como está. No inventes datos nuevos.';
+
+		$r     = Cead_Acad_WA_AI::route( $prompt, '', '', [], 'Estás corrigiendo un borrador de nota del colegio.' );
+		$texto = is_array( $r ) ? trim( (string) ( $r['reply'] ?? '' ) ) : '';
+		$ficha = '' !== $texto ? Cead_Acad_WA_Instagram::interpretar_publico( $texto, $post->post_title ) : null;
+
+		if ( ! $ficha ) {
+			$this->send( $phone, __( 'No me salió el cambio. Probá de nuevo o editalo desde el sitio.', 'cead-acad' ) );
+			$this->store->set_state( $phone, 'ia_home' );
+			return;
+		}
+
+		$html = class_exists( 'Cead_Acad_Article_Format' )
+			? Cead_Acad_Article_Format::to_html( $ficha['contenido'] )
+			: wpautop( $ficha['contenido'] );
+
+		wp_update_post( [ 'ID' => $pid, 'post_title' => $ficha['titulo'], 'post_content' => $html ] );
+
+		$this->store->set_state( $phone, 'ia_staff_confirm', [ 'kind' => 'ig_borrador', 'post_id' => $pid ] );
+		$this->send(
+			$phone,
+			sprintf(
+				/* translators: 1: título corregido, 2: extracto del cuerpo */
+				__( "✏️ Corregido:\n\n📝 *%1\$s*\n────────\n%2\$s\n────────\n\n*1.* ✅ Publicar\n*2.* ✏️ Editar de nuevo\n*3.* ❌ Dejarlo en borrador", 'cead-acad' ),
+				$ficha['titulo'],
+				mb_substr( $ficha['contenido'], 0, 420 ) . ( mb_strlen( $ficha['contenido'] ) > 420 ? '…' : '' )
+			),
+			'ia_staff_propose'
+		);
 	}
 
 	private function execute_invitacion( $phone, $context, $identity ) {
@@ -3747,7 +3900,9 @@ class Cead_Acad_WA_Engine {
 	 */
 	private function leave_ia_state( $phone, $home_state ) {
 		$now = $this->store->get_state( $phone );
-		if ( ( $now['state'] ?? '' ) === 'ia_staff_confirm' ) {
+		// Mismo criterio para la edición de un borrador: es una conversación a
+		// medias esperando la próxima frase de la persona.
+		if ( in_array( $now['state'] ?? '', [ 'ia_staff_confirm', 'ia_ig_editar' ], true ) ) {
 			return;
 		}
 		$this->store->set_state( $phone, $home_state );

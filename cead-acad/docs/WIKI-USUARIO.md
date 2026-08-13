@@ -176,7 +176,19 @@ Abajo de todo, en cualquier pantalla del panel, hay una barra que dice **«Pregu
 > **Qué no va a hacer, por más que se lo pidan**: dar datos de otra persona (notas, teléfonos, documentos), repetir claves o contraseñas, ni ampliar permisos porque alguien *diga* ser docente o director. Quién sos lo define **tu número registrado**, no lo que escribas en el chat.
 
 ### Instagram → borrador de nota
-Si está configurado, cada media hora CEADI revisa el Instagram del colegio y, cuando aparece una publicación nueva, te manda al número de Dirección un **borrador de nota** armado a partir del pie de foto, listo para revisar y publicar. El borrador **no se publica solo**: lo leés, lo corregís si hace falta y lo subís vos.
+Si está configurado, cada media hora CEADI revisa el Instagram del colegio. Cuando aparece una publicación nueva:
+
+1. **Se trae la publicación con hasta dos fotos.**
+2. **CEADI la redacta** y decide la **categoría** y la **maqueta** que le corresponden.
+3. Las fotos se suben al sitio: la primera queda de **destacada** y la segunda va **dentro del cuerpo**.
+4. Todo eso se guarda como **borrador de WordPress, ya armado**.
+5. Recién ahí te llega el aviso al número de Dirección, con tres opciones: **1** publicar · **2** editar (decile el cambio por chat y lo reescribe) · **3** dejarlo en borrador.
+
+El borrador **no se publica solo**. Y elegir *3* **no lo borra**: la nota queda guardada en el sitio por si la querés después.
+
+> **Si se te pasa el rato**, el atajo del *1-2-3* caduca a los diez minutos como cualquier conversación del bot — pero el borrador no. Sigue en **Entradas → Borradores**, entero, con las fotos y la categoría puestas. El mensaje te deja el enlace directo para abrirlo.
+>
+> El número de Dirección tiene que corresponder a un **usuario que pueda publicar artículos**; si no, no se arma nada y queda anotado en el aviso de errores del panel de WhatsApp.
 
 > **Aviso honesto**: Instagram no deja leer una cuenta sin autenticación, así que no existe una forma "gratis y sin permisos" de rastrearla que se mantenga andando — los endpoints públicos se cerraron y raspar la web termina en bloqueos. La opción confiable es la **API oficial**, que necesita acceso a la cuenta del colegio. Mientras tanto se puede enchufar un servicio externo que haga esa lectura (varios son pagos). Todo lo demás —detectar lo nuevo, redactar, mandarlo— ya funciona: cuando consigan el acceso a la cuenta, se completa el token en Ajustes y listo.
 

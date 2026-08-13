@@ -525,6 +525,7 @@ if ( ! function_exists( 'register_post_meta' ) ) { function register_post_meta( 
 require_once dirname( __DIR__, 3 ) . '/cead/inc/notas.php';
 
 require_once dirname( __DIR__, 2 ) . '/includes/class-article-kind.php';
+require_once dirname( __DIR__, 2 ) . '/includes/class-article-categories.php';
 require_once dirname( __DIR__, 2 ) . '/includes/class-cead-acad-capabilities.php';
 require_once dirname( __DIR__, 2 ) . '/modules/courses/class-courses-roster.php';
 require_once dirname( __DIR__, 2 ) . '/modules/courses/class-courses-admin.php';
