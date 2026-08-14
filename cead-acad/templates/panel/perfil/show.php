@@ -27,6 +27,9 @@ $body = function () use ( $user, $rdisp, $avatar, $phone, $doc ) {
 	$errs = [
 		'tipo'   => __( 'El archivo debe ser una imagen.', 'cead-acad' ),
 		'subida' => __( 'No se pudo subir la imagen. Probá con otra.', 'cead-acad' ),
+		// No se dice de quién es el número: sería filtrarle a un alumno a qué
+		// compañero pertenece un teléfono que probó a mano.
+		'tel_ocupado' => __( 'Ese número ya está registrado en otra cuenta, así que no se guardó. Cada persona necesita el suyo, porque es con eso que CEADI la reconoce por WhatsApp. Si es tu número, avisá a secretaría.', 'cead-acad' ),
 	];
 	?>
 	<section class="cead-acad-panel-section">

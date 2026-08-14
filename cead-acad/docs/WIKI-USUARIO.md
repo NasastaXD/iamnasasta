@@ -135,7 +135,11 @@ Tu **carné digital** con foto, rol, curso, documento y un **código QR**. Al es
 
 ### 👤 Mi perfil
 - Cambiar **foto**, **nombre** y **teléfono**.
-- **Verificación de WhatsApp**: pedís un **código** que CEADI te manda al WhatsApp, lo ingresás y tu número queda **✅ verificado**.
+- **Verificación de WhatsApp**: pedís un **código** que CEADI te manda al WhatsApp, lo ingresás y tu número queda **✅ verificado**. Si después **cambiás el número**, la verificación se cae y hay que rehacerla — el ✅ vale para el número que confirmaste, no para la cuenta.
+
+> **Tu número tiene que ser tuyo y solo tuyo.** Es con lo que CEADI te reconoce cuando le escribís, así que el sistema no deja que dos cuentas tengan el mismo: si al registrarte o al editar tu perfil sale que el número «ya está registrado en otra cuenta», es porque figura en la ficha de otra persona. Si el número es tuyo, avisá a secretaría.
+>
+> Escribilo como quieras —`0981123456`, `0981 123 456` o `+595 981 123456` son el mismo número para el sistema—, pero que sea el celular donde de verdad usás WhatsApp.
 
 ### 📲 Instalar app
 Tutorial para instalar el sistema como app (ver §3).

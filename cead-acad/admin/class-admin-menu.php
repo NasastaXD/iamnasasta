@@ -434,6 +434,23 @@ class Cead_Acad_Admin_Menu {
 		if ( $email && email_exists( $email ) ) {
 			return [ 'type' => 'error', 'msg' => __( 'Ya hay una cuenta con ese email.', 'cead-acad' ) ];
 		}
+		// Mismo criterio que el email, y por un motivo más fuerte: el teléfono es
+		// la llave con la que CEADI reconoce a quien escribe. Repetido, el bot le
+		// contesta a una persona con los datos de la otra, sin fallar en nada.
+		if ( $phone !== '' && class_exists( 'Cead_Acad_WA_Identity' ) ) {
+			$duenio = Cead_Acad_WA_Identity::phone_taken_by( $phone );
+			if ( $duenio ) {
+				$u = get_user_by( 'id', $duenio );
+				return [
+					'type' => 'error',
+					'msg'  => sprintf(
+						/* translators: %s: nombre de la cuenta que ya tiene ese número */
+						__( 'Ese teléfono ya está en la ficha de %s. Cada cuenta necesita su propio número: es con eso que CEADI reconoce a quien le escribe.', 'cead-acad' ),
+						$u ? $u->display_name : ( '#' . $duenio )
+					),
+				];
+			}
+		}
 
 		$valid_roles = array_keys( Cead_Acad_Capabilities::roles() );
 		if ( ! in_array( $role, $valid_roles, true ) ) {
@@ -462,7 +479,7 @@ class Cead_Acad_Admin_Menu {
 
 		update_user_meta( $user_id, '_cead_acad_legal_name', $full_name );
 		if ( $phone !== '' ) {
-			update_user_meta( $user_id, '_cead_acad_phone', $phone );
+			Cead_Acad_WA_Identity::store_phone( $user_id, $phone );
 		}
 
 		Cead_Acad_Audit::log( 'user_created', [
@@ -500,8 +517,24 @@ class Cead_Acad_Admin_Menu {
 		if ( $email && email_exists( $email ) && (int) email_exists( $email ) !== $user_id ) {
 			return [ 'type' => 'error', 'msg' => __( 'Ya hay otra cuenta con ese email.', 'cead-acad' ) ];
 		}
+		// Igual que el email de arriba: se excluye a la propia ficha, si no
+		// guardar sin tocar el teléfono se rechazaría a sí mismo.
+		if ( $phone !== '' && class_exists( 'Cead_Acad_WA_Identity' ) ) {
+			$duenio = Cead_Acad_WA_Identity::phone_taken_by( $phone, $user_id );
+			if ( $duenio ) {
+				$u = get_user_by( 'id', $duenio );
+				return [
+					'type' => 'error',
+					'msg'  => sprintf(
+						/* translators: %s: nombre de la cuenta que ya tiene ese número */
+						__( 'Ese teléfono ya está en la ficha de %s. Cada cuenta necesita su propio número: es con eso que CEADI reconoce a quien le escribe.', 'cead-acad' ),
+						$u ? $u->display_name : ( '#' . $duenio )
+					),
+				];
+			}
+		}
 
-		update_user_meta( $user_id, '_cead_acad_phone', $phone );
+		Cead_Acad_WA_Identity::store_phone( $user_id, $phone );
 		update_user_meta( $user_id, '_cead_acad_document_id', $document_id );
 		update_user_meta( $user_id, '_cead_acad_birthdate', $birthdate );
 

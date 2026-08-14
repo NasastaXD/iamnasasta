@@ -109,6 +109,21 @@ class Cead_Acad_Auth_Controller {
 		if ( email_exists( $email ) ) {
 			$this->bail_to( 'registro', 'email_taken', [ 't' => $token ] );
 		}
+		/*
+		 * El teléfono también tiene que ser único, y por una razón más fuerte que
+		 * la del email: es la LLAVE con la que CEADI reconoce a quien le escribe.
+		 * Con dos cuentas compartiendo número, la búsqueda devuelve una de las dos
+		 * —siempre la misma, la que salga primero— y el bot le muestra a quien
+		 * escriba las notas del otro. No falla nada visible: contesta con total
+		 * seguridad los datos de la persona equivocada.
+		 *
+		 * Pasa de verdad en un colegio: hermanos que comparten el celular, alguien
+		 * que anota el número de la madre, un dígito de más. Con cinco cuentas de
+		 * prueba no se nota; con un curso entero, sí.
+		 */
+		if ( class_exists( 'Cead_Acad_WA_Identity' ) && Cead_Acad_WA_Identity::phone_taken_by( $phone ) ) {
+			$this->bail_to( 'registro', 'phone_taken', [ 't' => $token ] );
+		}
 
 		// Curso: el del invite manda; si no trae y es Alumno/a o Delegado/a, el elegido en el form.
 		$needs_course = in_array( $invitation['role'], [ 'cead_acad_student', 'cead_acad_delegate' ], true );
@@ -145,7 +160,7 @@ class Cead_Acad_Auth_Controller {
 		}
 
 		update_user_meta( $user_id, '_cead_acad_legal_name', $full_name );
-		update_user_meta( $user_id, '_cead_acad_phone', $phone );
+		Cead_Acad_WA_Identity::store_phone( $user_id, $phone );
 		update_user_meta( $user_id, '_cead_acad_invited_via', (int) $invitation['id'] );
 		if ( $course_id ) {
 			$role_in_course = ( $invitation['role'] === 'cead_acad_delegate' ) ? 'delegate' : 'student';

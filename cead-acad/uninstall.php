@@ -97,10 +97,19 @@ $options = [
 	'cead_acad_grades_scale_bands',
 	'cead_acad_grades_score_max',
 	'cead_acad_grades_score_pass',
+	// Marca de la migración que generó la clave canónica de teléfono.
+	'cead_acad_phone_keys_backfilled',
 ];
 foreach ( $options as $opt ) {
 	delete_option( $opt );
 }
+
+/*
+ * La clave canónica de teléfono es un dato derivado del plugin, no del colegio:
+ * se puede reconstruir en cualquier momento desde el número visible, así que se
+ * borra. El número en sí NO se toca — ese lo cargó una persona y es suyo.
+ */
+delete_metadata( 'user', 0, '_cead_acad_phone_e164', '', true );
 
 // Borrar roles del plugin.
 foreach ( [ 'cead_acad_direction', 'cead_acad_secretary', 'cead_acad_teacher', 'cead_acad_delegate', 'cead_acad_student', 'cead_acad_guardian', 'cead_acad_student_council' ] as $role ) {

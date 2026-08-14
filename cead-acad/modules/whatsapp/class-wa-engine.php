@@ -3975,7 +3975,7 @@ class Cead_Acad_WA_Engine {
 		if ( is_wp_error( $uid ) ) {
 			return [ 'created' => false, 'error' => true, 'label' => $labels[ $role ] ?? $role ];
 		}
-		update_user_meta( $uid, '_cead_acad_phone', $target );
+		Cead_Acad_WA_Identity::store_phone( $uid, $target );
 		return [ 'created' => true, 'label' => $labels[ $role ] ?? $role, 'user_id' => $uid ];
 	}
 
