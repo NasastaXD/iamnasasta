@@ -36,7 +36,7 @@ class Cead_Acad_WA_AI {
 	 * clave => descripción (la descripción va en el prompt para que tenga criterio).
 	 */
 	public static function actions() {
-		return [
+		$acciones = [
 			'horario'       => 'mostrar el horario de clases personal del alumno (datos reales del sistema)',
 			'notas'         => 'mostrar las notas/boletín del alumno (calificaciones reales por materia y periodo)',
 			'tareas'        => 'mostrar las tareas pendientes del alumno y sus fechas de entrega (datos reales del curso)',
@@ -49,10 +49,20 @@ class Cead_Acad_WA_AI {
 			'consejo'       => 'abrir el Consejo Estudiantil',
 			'recordatorios' => 'activar o desactivar los recordatorios de eventos',
 			'panel'         => 'dar el enlace al panel web del alumno',
-			'carne'         => 'dar el enlace al carné digital del alumno',
 			'faq'           => 'mostrar el listado completo de preguntas frecuentes',
 			'ajustes'       => 'abrir los ajustes del usuario (ver sus datos, cambiar su nombre, pedir cambio de número, activar/desactivar el modo IA o los recordatorios)',
 		];
+
+		/*
+		 * El carné solo se le ofrece a CEADI si está encendido. Esta lista va
+		 * dentro del prompt: dejar la acción acá con la función apagada sería
+		 * enseñarle a mandar a los alumnos a una página que redirige sola.
+		 */
+		if ( function_exists( 'cead_acad_carne_activo' ) && cead_acad_carne_activo() ) {
+			$acciones['carne'] = 'dar el enlace al carné digital del alumno';
+		}
+
+		return $acciones;
 	}
 
 	/* ---------------- Config ---------------- */

@@ -68,11 +68,37 @@ $body = function () use ( $resources, $subjects, $types, $subject, $type, $searc
 			<a class="cead-acad-btn <?php echo $only_fav ? '' : 'cead-acad-btn--ghost'; ?>" href="<?php echo esc_url( $only_fav ? cead_acad_url( 'panel/recursos' ) : add_query_arg( 'fav', '1', cead_acad_url( 'panel/recursos' ) ) ); ?>">★ <?php esc_html_e( 'Favoritos', 'cead-acad' ); ?></a>
 		</form>
 
-		<?php if ( ! $resources ) : ?>
+		<?php
+		if ( ! $resources ) :
+			/*
+			 * Tres motivos distintos para que la grilla esté vacía, y el mensaje
+			 * tiene que decir CUÁL. Antes los tres decían «no coinciden con los
+			 * filtros actuales»: a un alumno que entra por primera vez, sin tocar
+			 * nada, le echaba la culpa de un filtro que nunca puso, y como no hay
+			 * filtro que sacar, el mensaje además no le da salida.
+			 */
+			$hay_filtro = ( '' !== $search || '' !== $subject || '' !== $type );
+			if ( $hay_filtro ) {
+				$vacio_eyebrow = __( 'Sin resultados', 'cead-acad' );
+				$vacio_titulo  = __( 'Nada coincide con tu búsqueda', 'cead-acad' );
+				$vacio_texto   = __( 'Probá con otras palabras o quitá los filtros para ver todo.', 'cead-acad' );
+			} elseif ( $only_fav ) {
+				$vacio_eyebrow = __( 'Favoritos', 'cead-acad' );
+				$vacio_titulo  = __( 'Todavía no marcaste favoritos', 'cead-acad' );
+				$vacio_texto   = __( 'Tocá la estrella de un recurso para guardarlo acá y encontrarlo rápido.', 'cead-acad' );
+			} else {
+				$vacio_eyebrow = __( 'Biblioteca', 'cead-acad' );
+				$vacio_titulo  = __( 'Todavía no hay recursos', 'cead-acad' );
+				$vacio_texto   = __( 'Cuando tus docentes compartan materiales para tus materias, van a aparecer acá.', 'cead-acad' );
+			}
+			?>
 			<div class="cead-acad-card cead-acad-card--empty" style="margin-top:1.5rem">
-				<span class="cead-acad-eyebrow"><?php esc_html_e( 'Sin resultados', 'cead-acad' ); ?></span>
-				<h3><?php esc_html_e( 'Nada para mostrar', 'cead-acad' ); ?></h3>
-				<p><?php esc_html_e( 'No hay recursos que coincidan con los filtros actuales.', 'cead-acad' ); ?></p>
+				<span class="cead-acad-eyebrow"><?php echo esc_html( $vacio_eyebrow ); ?></span>
+				<h3><?php echo esc_html( $vacio_titulo ); ?></h3>
+				<p><?php echo esc_html( $vacio_texto ); ?></p>
+				<?php if ( $hay_filtro || $only_fav ) : ?>
+					<p style="margin-top:1rem"><a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( cead_acad_url( 'panel/recursos' ) ); ?>"><?php esc_html_e( 'Ver todos los recursos', 'cead-acad' ); ?></a></p>
+				<?php endif; ?>
 			</div>
 		<?php else : ?>
 			<div class="cead-acad-grid cead-acad-grid--3" style="margin-top:1.5rem">

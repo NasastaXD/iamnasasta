@@ -3,7 +3,7 @@
  * Plugin Name:       CEAD Académico
  * Plugin URI:        https://github.com/nasastaxd/iamnasasta
  * Description:       Módulo académico-administrativo para CEAD: invitaciones, login estilizado, comunicados, encuestas, horarios, recursos, importadores e importación masiva.
- * Version:           0.73.0
+ * Version:           0.75.0
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            CEAD
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CEAD_ACAD_VERSION',    '0.73.0' );
+define( 'CEAD_ACAD_VERSION',    '0.75.0' );
 define( 'CEAD_ACAD_DB_VERSION', '18' );
 define( 'CEAD_ACAD_FILE',       __FILE__ );
 define( 'CEAD_ACAD_DIR',        plugin_dir_path( __FILE__ ) );
@@ -100,6 +100,7 @@ require_once CEAD_ACAD_DIR . 'modules/updates/class-updates.php';
 require_once CEAD_ACAD_DIR . 'modules/admin-ui/class-admin-dashboard.php';
 require_once CEAD_ACAD_DIR . 'includes/class-cead-acad-audit.php';
 require_once CEAD_ACAD_DIR . 'includes/class-cead-acad-email.php';
+require_once CEAD_ACAD_DIR . 'includes/class-cead-acad-qr.php';
 require_once CEAD_ACAD_DIR . 'includes/class-article-kind.php';
 require_once CEAD_ACAD_DIR . 'includes/class-article-categories.php';
 require_once CEAD_ACAD_DIR . 'admin/class-admin-menu.php';

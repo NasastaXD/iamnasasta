@@ -104,6 +104,25 @@ final class Cead_Acad_Plugin {
 			update_option( 'cead_acad_flush_rewrites', 1 );
 			update_option( 'cead_acad_rewrites_version', CEAD_ACAD_VERSION );
 		}
+
+		/*
+		 * Clave canónica de teléfono para las fichas que ya existían.
+		 *
+		 * Hasta ahora el número se buscaba por como estaba escrito, y quien lo
+		 * había cargado con espacios o guiones —«0981 111 111»— era invisible
+		 * para CEADI: cuenta correcta, número correcto en pantalla, y el bot
+		 * contestando «este número no está registrado» para siempre.
+		 *
+		 * Corre una sola vez (la marca es propia, no la versión del plugin, para
+		 * no repetir el barrido en cada actualización).
+		 */
+		if ( ! get_option( 'cead_acad_phone_keys_backfilled' ) ) {
+			$migradas = Cead_Acad_WA_Identity::backfill_phone_keys();
+			update_option( 'cead_acad_phone_keys_backfilled', 1 );
+			if ( $migradas ) {
+				error_log( '[CeadAcad] clave de teléfono generada para ' . (int) $migradas . ' ficha(s).' );
+			}
+		}
 	}
 
 	/**

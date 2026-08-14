@@ -21,11 +21,25 @@ $course = $course_id ? get_the_title( $course_id ) : '';
 
 $token      = Cead_Acad_Account::carne_token( $user->ID );
 $verify_url = cead_acad_url( 'carne/' . $token );
-$qr_src     = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=' . rawurlencode( $verify_url );
+
+/*
+ * El QR se dibuja acá, en el servidor del colegio.
+ *
+ * Antes lo generaba `api.qrserver.com` con la URL en el query string. Esa URL
+ * lleva el token del carné, que es la única prueba de identidad de la tarjeta y
+ * no vence: mandárselo a un tercero es entregarle una credencial permanente de
+ * cada alumno que abre su carné, y además dejaba la tarjeta con la imagen rota
+ * cuando ese servicio no estaba disponible — justo en la puerta del colegio,
+ * que es donde se muestra.
+ */
+$qr_svg = Cead_Acad_QR::svg( $verify_url, [
+	'class' => 'cead-acad-carne-qr-img',
+	'title' => __( 'Código QR de verificación', 'cead-acad' ),
+] );
 
 $page_title = __( 'Mi carné', 'cead-acad' );
 
-$body = function () use ( $user, $rdisp, $avatar, $doc, $course, $qr_src, $verify_url ) {
+$body = function () use ( $user, $rdisp, $avatar, $doc, $course, $qr_svg, $verify_url ) {
 	?>
 	<section class="cead-acad-panel-section">
 		<span class="cead-acad-eyebrow"><?php esc_html_e( 'Identificación', 'cead-acad' ); ?></span>
@@ -53,7 +67,11 @@ $body = function () use ( $user, $rdisp, $avatar, $doc, $course, $qr_src, $verif
 					<p class="cead-acad-carne-line"><strong><?php esc_html_e( 'ID:', 'cead-acad' ); ?></strong> <?php echo esc_html( str_pad( (string) $user->ID, 6, '0', STR_PAD_LEFT ) ); ?></p>
 				</div>
 				<div class="cead-acad-carne-qr">
-					<img src="<?php echo esc_url( $qr_src ); ?>" alt="<?php esc_attr_e( 'Código QR de verificación', 'cead-acad' ); ?>" loading="lazy">
+					<?php
+					// SVG armado por Cead_Acad_QR (no entra nada del usuario: solo
+					// dígitos y el token firmado), por eso va tal cual.
+					echo $qr_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+					?>
 					<span><?php esc_html_e( 'Escaneá para verificar', 'cead-acad' ); ?></span>
 				</div>
 			</div>

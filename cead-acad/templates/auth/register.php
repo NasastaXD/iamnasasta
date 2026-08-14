@@ -98,6 +98,11 @@ $body  = function () use ( $token, $invitation, $status, $err, $role_display, $p
 			'email_taken'       => __( 'Ya hay una cuenta con ese email.', 'cead-acad' ),
 			'rate_limited'      => __( 'Demasiados intentos. Esperá un minuto.', 'cead-acad' ),
 			'missing_phone'     => __( 'El número de teléfono es obligatorio.', 'cead-acad' ),
+			// Se explica el porqué: sin eso, alguien que comparte el celular en
+			// casa cree que el sistema está roto y vuelve a intentar con el mismo
+			// número. Cada cuenta necesita el suyo porque es con lo que CEADI
+			// distingue a una persona de otra.
+			'phone_taken'       => __( 'Ese número ya está registrado en otra cuenta. Cada persona necesita su propio número, porque es con eso que CEADI la reconoce por WhatsApp. Si el número es tuyo y no sabés por qué figura ocupado, avisá a secretaría.', 'cead-acad' ),
 			'invitation_used'   => __( 'Este link de invitación ya se utilizó.', 'cead-acad' ),
 			'invitation_expired'=> __( 'Este link de invitación expiró.', 'cead-acad' ),
 			'invitation_revoked'=> __( 'Esta invitación fue revocada.', 'cead-acad' ),

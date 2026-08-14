@@ -271,8 +271,44 @@ class Cead_Acad_Account {
 			wp_update_user( [ 'ID' => $user_id, 'display_name' => $display ] );
 		}
 
-		$phone = sanitize_text_field( (string) ( $_POST['phone'] ?? '' ) );
-		update_user_meta( $user_id, self::PHONE_META, $phone );
+		$phone   = sanitize_text_field( (string) ( $_POST['phone'] ?? '' ) );
+		$anterior = (string) get_user_meta( $user_id, self::PHONE_META, true );
+
+		/*
+		 * El teléfono no puede estar en dos fichas.
+		 *
+		 * Es la llave con la que CEADI reconoce a quien le escribe, así que
+		 * repetido no produce un error: produce que el bot le conteste a alguien
+		 * con los datos de otro. Y esta es la puerta más expuesta de las tres que
+		 * escriben el número —la abre cualquier alumno desde su propio perfil—,
+		 * así que también es por donde alguien podría anotarse el número de un
+		 * compañero y dejarlo sin bot.
+		 */
+		if ( $phone !== '' && class_exists( 'Cead_Acad_WA_Identity' ) ) {
+			if ( Cead_Acad_WA_Identity::phone_taken_by( $phone, $user_id ) ) {
+				cead_acad_flash( 'perfil_phone', $anterior );
+				wp_safe_redirect( add_query_arg( 'err', 'tel_ocupado', $dest ) );
+				exit;
+			}
+		}
+
+		Cead_Acad_WA_Identity::store_phone( $user_id, $phone );
+
+		/*
+		 * Cambió el número → la verificación anterior deja de valer.
+		 *
+		 * La marca se ponía al confirmar el código y no la borraba nadie: quien
+		 * verificaba un número y después lo cambiaba se quedaba con el ✅ puesto
+		 * sobre un número que nunca confirmó. Se compara normalizado para que
+		 * reescribir el mismo número con otro formato («0981…» por «+595 981…»)
+		 * no cuente como cambio y obligue a verificar de nuevo sin motivo.
+		 */
+		if ( class_exists( 'Cead_Acad_WA_Identity' ) ) {
+			$cambio = Cead_Acad_WA_Identity::normalize_phone( $anterior ) !== Cead_Acad_WA_Identity::normalize_phone( $phone );
+			if ( $cambio ) {
+				delete_user_meta( $user_id, self::VERIFIED_META );
+			}
+		}
 
 		// Foto (opcional).
 		if ( ! empty( $_FILES['avatar']['name'] ) && empty( $_FILES['avatar']['error'] ) ) {

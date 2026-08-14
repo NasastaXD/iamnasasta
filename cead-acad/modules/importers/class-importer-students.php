@@ -101,7 +101,7 @@ class Cead_Acad_Importer_Students extends Cead_Acad_Importer_Base {
 		update_user_meta( $user_id, '_cead_acad_legal_name', $nombre );
 		if ( $doc )   { update_user_meta( $user_id, '_cead_acad_document_id', $doc ); }
 		if ( $fecha ) { update_user_meta( $user_id, '_cead_acad_birthdate', $fecha ); }
-		if ( $tel )   { update_user_meta( $user_id, '_cead_acad_phone', $tel ); }
+		if ( $tel )   { Cead_Acad_WA_Identity::store_phone( $user_id, $tel ); }
 		if ( ! $email ) { update_user_meta( $user_id, '_cead_acad_no_email', 1 ); }
 		update_user_meta( $user_id, '_cead_acad_imported_via_job', (int) $job_id );
 
