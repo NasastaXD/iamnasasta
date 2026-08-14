@@ -238,6 +238,8 @@ Están separadas a propósito. Con un solo campo las dos se pisan: o las notas s
 
 Se edita en **CEAD Académico → WhatsApp → 🤖 CEADI inteligente (IA)**. Dejarlo **vacío** significa *"usá el que trae el plugin"*, y ese mejora con cada actualización.
 
+> **Un comunicado es un caso especial dentro de "lo que se publica".** Sigue las mismas reglas de tono y voz, pero no la misma sintaxis: una nota del sitio usa `##` para subtítulos y `**dos asteriscos**` para negrita, mientras que un comunicado se manda **tal cual** al WhatsApp de cada destinatario, así que usa la sintaxis de WhatsApp (`*un asterisco*` para negrita, `_guion bajo_` para cursiva, sin encabezados ni tablas — WhatsApp no los interpreta). Además, CEADI le pone al comunicado un **título corto y propio** para la copia que queda en el panel: el título nunca se manda por WhatsApp, es solo para identificarlo en el listado del sitio, así que no es el mensaje copiado ni su primera línea.
+
 ### 🎨 Flyers e imágenes generadas
 
 CEADI puede **generar afiches, placas para redes y portadas** para las notas. Pedíselo por chat («hacé un flyer para la reunión de padres del jueves 18 a las 19:30 en el salón de actos») y te propone la idea antes de dibujar nada.

@@ -24,13 +24,35 @@ class Cead_Acad_WA_Broadcaster {
 	 * y en "Comunicados" del bot) con la audiencia mapeada. Estático para que lo
 	 * usen tanto el motor del bot como el panel de wp-admin.
 	 */
-	public static function create_broadcast_post( $message, $target, $attachment_id = 0 ) {
-		$title = wp_trim_words( $message !== '' ? $message : 'Comunicado', 10, '…' );
+	/**
+	 * @param string $titulo Título propio para el panel web. Vacío = se
+	 *                       deriva del mensaje (lo que hacían siempre los
+	 *                       comunicados sin IA — un aviso corto de un par de
+	 *                       líneas queda bien así; solo se nota cuando el
+	 *                       mensaje es largo y el recorte cae a la mitad de
+	 *                       una frase, que es exactamente lo que evita darle
+	 *                       un título propio a CEADI cuando redacta).
+	 */
+	public static function create_broadcast_post( $message, $target, $attachment_id = 0, $titulo = '' ) {
+		$titulo = trim( (string) $titulo );
+		$title  = '' !== $titulo ? $titulo : wp_trim_words( $message !== '' ? $message : 'Comunicado', 10, '…' );
+
+		/*
+		 * El mensaje es texto de WhatsApp — *negrita* con un asterisco, sin
+		 * encabezados ni tablas — y ESE es el que se manda a los teléfonos, tal
+		 * cual, en `enqueue()`. Acá se guarda una traducción a HTML aparte, solo
+		 * para que la copia que vive en el panel se vea leída y no como un
+		 * bloque de texto con asteriscos sueltos.
+		 */
+		$html = class_exists( 'Cead_Acad_Article_Format' )
+			? Cead_Acad_Article_Format::to_html_whatsapp( $message )
+			: $message;
+
 		$pid = wp_insert_post( [
 			'post_type'    => Cead_Acad_Broadcasts_CPT::POST_TYPE,
 			'post_status'  => 'publish',
 			'post_title'   => $title,
-			'post_content' => $message,
+			'post_content' => $html,
 		], true );
 		if ( is_wp_error( $pid ) ) {
 			return 0;

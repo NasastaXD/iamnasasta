@@ -1097,13 +1097,28 @@ class Cead_Acad_WA_Engine {
 					'parameters'  => [
 						'type'       => 'object',
 						'properties' => [
+							/*
+							 * Un comunicado son DOS textos con un solo origen: lo que
+							 * llega al chat de cada destinatario, y lo que queda como
+							 * post en el panel web. Pedirle uno solo al modelo y usarlo
+							 * para las dos cosas es lo que hacía que el sitio mostrara
+							 * asteriscos sueltos (WhatsApp los entiende, HTML no) y un
+							 * título que era el mensaje mismo cortado a la mitad.
+							 */
+							'titulo'    => [
+								'type'        => 'string',
+								'description' => 'Título corto SOLO para la versión que queda en el panel web. NO se manda por WhatsApp — '
+									. 'es lo que identifica al comunicado en el listado, así que tiene que ser una frase propia, '
+									. 'no el mensaje copiado ni su primera línea.',
+							],
 							// Un comunicado también es algo que el colegio PUBLICA, así
 							// que se redacta con la misma voz que las notas y no con la
-							// del chat.
-							'mensaje'   => [ 'type' => 'string', 'description' => 'Texto del comunicado, ya redactado y listo para enviar.' . Cead_Acad_WA_AI::estilo_bloque() ],
+							// del chat — pero con la sintaxis de WhatsApp, no la de una
+							// nota del sitio: esto se manda tal cual, letra por letra.
+							'mensaje'   => [ 'type' => 'string', 'description' => 'Texto del comunicado, tal cual se manda por WhatsApp.' . Cead_Acad_WA_AI::estilo_bloque( 'comunicado' ) ],
 							'audiencia' => [ 'type' => 'string', 'description' => "A quién enviarlo ($aud)." ],
 						],
-						'required'   => [ 'mensaje', 'audiencia' ],
+						'required'   => [ 'titulo', 'mensaje', 'audiencia' ],
 					],
 				],
 			];
@@ -1508,6 +1523,11 @@ class Cead_Acad_WA_Engine {
 				return true;
 			}
 			$mensaje = trim( (string) ( $args['mensaje'] ?? '' ) );
+			// El modelo lo manda casi siempre —es un campo requerido de la
+			// herramienta—, pero «casi siempre» no es «siempre»: si lo omitió,
+			// el mismo recorte que ya usaban los comunicados sin IA es mejor
+			// que guardar el post sin título.
+			$titulo  = trim( (string) ( $args['titulo'] ?? '' ) );
 			$aud     = (string) ( $args['audiencia'] ?? '' );
 			$aud     = in_array( $aud, [ 'students', 'staff', 'all' ], true ) ? $aud : 'students';
 			if ( $aud === 'all' && ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast_all' ) ) {
@@ -1526,17 +1546,28 @@ class Cead_Acad_WA_Engine {
 
 			$labels = [ 'students' => __( 'Alumnado', 'cead-acad' ), 'staff' => __( 'Personal', 'cead-acad' ), 'all' => __( 'Todos', 'cead-acad' ) ];
 			$count  = (int) $this->broadcaster->count_for( $aud );
-			$this->store->set_state( $phone, 'ia_staff_confirm', [ 'kind' => 'comunicado', 'mensaje' => $mensaje, 'audiencia' => $aud, 'image' => $image ] );
+			$this->store->set_state( $phone, 'ia_staff_confirm', [
+				'kind'      => 'comunicado',
+				'mensaje'   => $mensaje,
+				'titulo'    => $titulo,
+				'audiencia' => $aud,
+				'image'     => $image,
+			] );
 			$image_note = $image ? "\n📎 " . __( 'Con imagen adjunta.', 'cead-acad' ) : ( $image_failed ? "\n" . $this->m( 'image_attach_failed' ) : '' );
+			// El título es para el panel web, no para el mensaje: no repetirlo
+			// acá sería mostrar dos veces el mismo dato, y el mensaje ya trae
+			// suficiente texto.
+			$titulo_note = $titulo ? "\n🏷️ " . sprintf( __( 'Título en el sitio: %s', 'cead-acad' ), $titulo ) : '';
 			$this->send(
 				$phone,
 				sprintf(
-					/* translators: 1: audiencia, 2: cantidad de destinatarios, 3: texto del comunicado, 4: nota de imagen adjunta */
-					__( "📢 *Comunicado* — propuesta de CEADI\nPara: *%1\$s* (%2\$d)\n────────\n%3\$s\n────────%4\$s\n\n*1.* ✅ Aceptar y enviar\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
+					/* translators: 1: audiencia, 2: cantidad de destinatarios, 3: texto del comunicado, 4: nota de imagen adjunta, 5: nota de título */
+					__( "📢 *Comunicado* — propuesta de CEADI\nPara: *%1\$s* (%2\$d)\n────────\n%3\$s\n────────%4\$s%5\$s\n\n*1.* ✅ Aceptar y enviar\n*2.* ✏️ Editar (decime el cambio)\n*3.* ❌ Cancelar", 'cead-acad' ),
 					$labels[ $aud ],
 					$count,
 					$mensaje,
-					$image_note
+					$image_note,
+					$titulo_note
 				),
 				'ia_staff_propose'
 			);
@@ -2050,12 +2081,16 @@ class Cead_Acad_WA_Engine {
 			return;
 		}
 		$mensaje = (string) ( $context['mensaje'] ?? '' );
+		$titulo  = (string) ( $context['titulo'] ?? '' );
 		$aud     = (string) ( $context['audiencia'] ?? 'students' );
 		$image   = $context['image'] ?? null;
 		if ( $aud === 'all' && ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_publish_broadcast_all' ) ) {
 			$aud = 'students';
 		}
-		$this->create_broadcast_post( $mensaje, $aud, $image );
+		$this->create_broadcast_post( $mensaje, $aud, $image, $titulo );
+		// El envío por WhatsApp recibe el mensaje CRUDO, tal cual se propuso:
+		// el título es un dato del panel web y nunca viajó en el texto que se
+		// manda a los teléfonos, así que no hay nada que sacarle acá.
 		$res = $this->broadcaster->enqueue_for( $mensaje, $aud, $image );
 		Cead_Acad_Audit::log( 'wa_broadcast_sent', [
 			'user_id' => $uid ?: null,
@@ -4023,9 +4058,9 @@ class Cead_Acad_WA_Engine {
 	}
 
 	/** Crea el comunicado como post (delegado al broadcaster, compartido con admin). */
-	private function create_broadcast_post( $message, $target, $image = null ) {
+	private function create_broadcast_post( $message, $target, $image = null, $titulo = '' ) {
 		$attachment_id = ( is_array( $image ) && ! empty( $image['attachment_id'] ) ) ? (int) $image['attachment_id'] : 0;
-		return Cead_Acad_WA_Broadcaster::create_broadcast_post( $message, $target, $attachment_id );
+		return Cead_Acad_WA_Broadcaster::create_broadcast_post( $message, $target, $attachment_id, $titulo );
 	}
 
 	/**

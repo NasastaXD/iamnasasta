@@ -194,6 +194,62 @@ class Cead_Acad_Article_Format {
 	}
 
 	/**
+	 * WhatsApp → HTML, para la copia de un comunicado que se ve en el panel.
+	 *
+	 * Un comunicado es DOS textos con un solo origen: lo que llega al chat de
+	 * cada destinatario, tal cual, y lo que queda como post en el panel web.
+	 * El mensaje que se manda por WhatsApp NUNCA pasa por acá — sigue siendo
+	 * exactamente lo que se escribió, letra por letra. Esto solo genera la
+	 * segunda vida de ese mismo texto, así que entiende la sintaxis de
+	 * WhatsApp (`*negrita*` con un asterisco) y no la de Markdown de un
+	 * artículo (`**negrita**` con dos), que es justo al revés.
+	 *
+	 * Deliberadamente más chico que `to_html()`: un comunicado no lleva
+	 * subtítulos, tablas ni listas — es un mensaje de chat, no una nota.
+	 */
+	public static function to_html_whatsapp( $texto ) {
+		$texto = trim( (string) $texto );
+		if ( '' === $texto ) { return ''; }
+		if ( self::looks_like_html( $texto ) ) { return $texto; }
+
+		$texto    = str_replace( [ "\r\n", "\r" ], "\n", $texto );
+		$parrafos = preg_split( '/\n{2,}/', $texto );
+
+		$html = [];
+		foreach ( $parrafos as $p ) {
+			$p = trim( $p );
+			if ( '' === $p ) { continue; }
+			// Un salto de línea SIMPLE adentro de un párrafo es un renglón
+			// nuevo del mismo mensaje, no un párrafo aparte — así se ve en
+			// WhatsApp, y separarlo en <p> distintos le cambiaría el ritmo.
+			$linea  = str_replace( "\n", '<br>', self::inline_whatsapp( $p ) );
+			$html[] = '<p>' . $linea . '</p>';
+		}
+		return implode( "\n", $html );
+	}
+
+	/** Como `inline()`, pero con la sintaxis de énfasis de WhatsApp. */
+	protected static function inline_whatsapp( $texto ) {
+		$t = esc_html( (string) $texto );
+
+		// *negrita* — un asterisco. Con dos sería Markdown de artículo, que
+		// nadie escribe a mano en un chat.
+		$t = preg_replace( '/(?<![\w*])\*(?!\s)([^*\n]+?)(?<!\s)\*(?![\w*])/us', '<strong>$1</strong>', $t );
+		// _cursiva_
+		$t = preg_replace( '/(?<![\w_])_(?!\s)([^_\n]+?)(?<!\s)_(?![\w_])/us', '<em>$1</em>', $t );
+		// ~tachado~ — WhatsApp también lo soporta.
+		$t = preg_replace( '/(?<![\w~])~(?!\s)([^~\n]+?)(?<!\s)~(?![\w~])/us', '<del>$1</del>', $t );
+
+		// URLs sueltas, igual que en inline().
+		$t = preg_replace_callback( '/(?<!["\'>=])\bhttps?:\/\/[^\s<]+/u', static function ( $m ) {
+			$url = esc_url( html_entity_decode( $m[0], ENT_QUOTES, 'UTF-8' ) );
+			return '<a href="' . $url . '">' . $url . '</a>';
+		}, $t );
+
+		return $t;
+	}
+
+	/**
 	 * ¿Ya es HTML? Se mira si arranca con una etiqueta de bloque; así el
 	 * contenido que alguien pegó ya maquetado no se toca.
 	 */
