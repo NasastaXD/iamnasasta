@@ -3515,6 +3515,14 @@ class Cead_Acad_WA_Engine {
 
 	// A15 Carné digital
 	private function show_carne( $phone, $identity ) {
+		// Segunda puerta: la acción ya no se le ofrece a la IA con el carné
+		// apagado, pero al menú clásico se llega por otros caminos y mandar el
+		// enlace igual terminaría en una redirección al inicio del panel.
+		if ( ! cead_acad_carne_activo() ) {
+			$this->send( $phone, $this->m( 'carne_off' ) );
+			$this->back_to_student( $phone );
+			return;
+		}
 		$uid = (int) ( $identity['user_id'] ?? 0 );
 		if ( ! $uid ) {
 			$this->send( $phone, $this->m( 'academic_need_login' ) );

@@ -88,7 +88,9 @@ $body = function () use ( $user, $rdisp, $avatar, $phone, $doc ) {
 
 			<div class="cead-acad-profile-actions">
 				<button type="submit" class="cead-acad-btn"><?php esc_html_e( 'Guardar cambios', 'cead-acad' ); ?></button>
-				<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( cead_acad_url( 'panel/carne' ) ); ?>"><?php esc_html_e( 'Ver mi carné', 'cead-acad' ); ?></a>
+				<?php if ( cead_acad_carne_activo() ) : ?>
+					<a class="cead-acad-btn cead-acad-btn--ghost" href="<?php echo esc_url( cead_acad_url( 'panel/carne' ) ); ?>"><?php esc_html_e( 'Ver mi carné', 'cead-acad' ); ?></a>
+				<?php endif; ?>
 			</div>
 		</form>
 

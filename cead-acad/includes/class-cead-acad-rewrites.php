@@ -124,6 +124,21 @@ class Cead_Acad_Rewrites {
 				exit;
 
 			case 'carne' === $route:
+				// La verificación es pública: muestra nombre, foto y curso a
+				// quien tenga el token. Con la función apagada tiene que estar
+				// apagada también acá, o el dato sigue expuesto sin que nadie
+				// vea la feature en el panel.
+				if ( ! cead_acad_carne_activo() ) {
+					// `dispatch()` ya mandó un 200 y quien llama hace exit, así
+					// que un `return` pelado devolvería una página en blanco
+					// exitosa. Hay que decir explícitamente que no está.
+					status_header( 404 );
+					wp_die(
+						esc_html__( 'El carné digital no está disponible.', 'cead-acad' ),
+						esc_html__( 'No disponible', 'cead-acad' ),
+						[ 'response' => 404 ]
+					);
+				}
 				$token = (string) get_query_var( 'cead_acad_t' );
 				cead_acad_template( 'carne/verify.php', [ 'token' => $token ] );
 				return;
@@ -234,6 +249,13 @@ class Cead_Acad_Rewrites {
 				return;
 
 			case 'carne':
+				// Con el carné apagado la ruta no existe: se cae al inicio del
+				// panel. Ocultar solo los enlaces dejaría la página viva para
+				// cualquiera que se guardó la URL o la tenga en el historial.
+				if ( ! cead_acad_carne_activo() ) {
+					wp_safe_redirect( cead_acad_url( 'panel' ) );
+					exit;
+				}
 				cead_acad_template( 'panel/carne/show.php' );
 				return;
 

@@ -22,6 +22,7 @@ $options = [
 	'cead_acad_flush_rewrites',
 	'cead_acad_rewrites_version',
 	'cead_acad_block_wp_login',
+	'cead_acad_carne_enabled',
 	'cead_acad_caps_version',
 	'cead_acad_terms_seeded',
 	'cead_acad_fixture_intercead2026_seeded',

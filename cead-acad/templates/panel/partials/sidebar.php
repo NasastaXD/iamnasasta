@@ -18,7 +18,10 @@ $base_items = [
 	[ 'href' => 'panel/recursos',     'label' => __( 'Recursos', 'cead-acad' ),     'icon' => 'portfolio' ],
 	[ 'href' => 'panel/faq',          'label' => __( 'Preguntas frecuentes', 'cead-acad' ), 'icon' => 'editor-help' ],
 	[ 'href' => 'panel/wiki',         'label' => __( 'Wiki / Ayuda', 'cead-acad' ),  'icon' => 'book' ],
-	[ 'href' => 'panel/carne',        'label' => __( 'Mi carné', 'cead-acad' ),     'icon' => 'id' ],
+	// El carné va apagado hasta que el colegio lo adopte (cead_acad_carne_activo()).
+	...( cead_acad_carne_activo()
+		? [ [ 'href' => 'panel/carne', 'label' => __( 'Mi carné', 'cead-acad' ), 'icon' => 'id' ] ]
+		: [] ),
 	[ 'href' => 'panel/perfil',       'label' => __( 'Mi perfil', 'cead-acad' ),    'icon' => 'admin-users' ],
 	[ 'href' => 'panel/app',          'label' => __( 'Instalar app', 'cead-acad' ), 'icon' => 'smartphone' ],
 ];

@@ -540,6 +540,8 @@ if ( ! function_exists( 'wp_set_object_terms' ) ) {
 
 // ---- Código bajo test ----
 require_once dirname( __DIR__, 2 ) . '/includes/helpers.php';
+// El generador de QR es PHP puro: no necesita nada de WordPress.
+require_once dirname( __DIR__, 2 ) . '/includes/class-cead-acad-qr.php';
 /*
  * Los helpers del TEMA, que es un proyecto hermano en el mismo repositorio.
  * Entra solo este archivo, y solo porque `cead_social_links()` no necesita nada

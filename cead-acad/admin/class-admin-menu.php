@@ -56,6 +56,69 @@ class Cead_Acad_Admin_Menu {
 			'cead-acad-users',
 			[ $this, 'render_users' ]
 		);
+
+		add_submenu_page(
+			'cead-acad',
+			__( 'Funciones', 'cead-acad' ),
+			__( 'Funciones', 'cead-acad' ),
+			'manage_options',
+			'cead-acad-features',
+			[ $this, 'render_features' ]
+		);
+	}
+
+	/**
+	 * Funciones que se prenden y apagan.
+	 *
+	 * Cada entrada: opción => [ etiqueta, descripción, valor por defecto ].
+	 * Vive acá y no desperdigada porque lo que hace útil a esta pantalla es que
+	 * sea UNA sola lista: si cada módulo agrega su interruptor donde le queda
+	 * cómodo, en un mes nadie sabe dónde se apaga qué.
+	 */
+	protected function features() {
+		return [
+			'cead_acad_carne_enabled' => [
+				'label' => __( 'Carné digital', 'cead-acad' ),
+				'desc'  => __( 'Agrega «Mi carné» al panel: una credencial con foto, curso y un QR de verificación. Apagado mientras el colegio no lo use de verdad — si nadie escanea el QR en la puerta, es una sección que confunde más de lo que sirve. Con esto apagado también queda cerrada la página pública de verificación.', 'cead-acad' ),
+				'default' => false,
+			],
+		];
+	}
+
+	public function render_features() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
+		}
+
+		$features = $this->features();
+
+		if ( isset( $_POST['cead_acad_features_nonce'] ) && cead_acad_verify_nonce( 'cead_acad_features_nonce', 'cead_acad_features' ) ) {
+			foreach ( $features as $opcion => $_ ) {
+				update_option( $opcion, isset( $_POST[ $opcion ] ) ? 1 : 0 );
+			}
+			if ( class_exists( 'Cead_Acad_Audit' ) ) {
+				Cead_Acad_Audit::log( 'features_updated', [ 'by' => get_current_user_id() ] );
+			}
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Funciones actualizadas.', 'cead-acad' ) . '</p></div>';
+		}
+
+		echo '<div class="wrap"><h1>' . esc_html__( 'Funciones', 'cead-acad' ) . '</h1>';
+		echo '<p>' . esc_html__( 'Partes del sistema que se pueden prender y apagar sin tocar código. Lo apagado desaparece del panel, del bot y de sus rutas.', 'cead-acad' ) . '</p>';
+
+		echo '<form method="post">';
+		wp_nonce_field( 'cead_acad_features', 'cead_acad_features_nonce' );
+		echo '<table class="form-table" role="presentation"><tbody>';
+		foreach ( $features as $opcion => $f ) {
+			$activo = (bool) get_option( $opcion, $f['default'] );
+			echo '<tr><th scope="row">' . esc_html( $f['label'] ) . '</th><td>';
+			echo '<label><input type="checkbox" name="' . esc_attr( $opcion ) . '" value="1" ' . checked( $activo, true, false ) . '> ';
+			echo esc_html__( 'Activar', 'cead-acad' ) . '</label>';
+			echo '<p class="description">' . esc_html( $f['desc'] ) . '</p>';
+			echo '</td></tr>';
+		}
+		echo '</tbody></table>';
+		submit_button( __( 'Guardar', 'cead-acad' ) );
+		echo '</form></div>';
 	}
 
 	public function render_dashboard() {
