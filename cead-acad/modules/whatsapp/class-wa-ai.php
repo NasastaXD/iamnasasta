@@ -427,9 +427,28 @@ class Cead_Acad_WA_AI {
 	 * Devolver cadena vacía importa: concatenar un encabezado con nada abajo
 	 * le dice al modelo que hay reglas de estilo y no se las muestra.
 	 */
-	public static function estilo_bloque() {
+	/**
+	 * @param string $contexto 'articulo' (por defecto) o 'comunicado'.
+	 *                         `default_estilo()` está escrita pensando en una
+	 *                         nota del sitio: pide `##` para subtítulos y
+	 *                         tablas con `|`, que un artículo entiende y
+	 *                         WhatsApp no — ahí esas marcas quedarían como
+	 *                         símbolos sueltos en la pantalla de cada
+	 *                         destinatario. Un comunicado se manda TAL CUAL
+	 *                         por WhatsApp, así que necesita la sintaxis de
+	 *                         WhatsApp (un asterisco, no dos) y no la de un
+	 *                         artículo.
+	 */
+	public static function estilo_bloque( $contexto = 'articulo' ) {
 		$e = trim( self::estilo() );
-		return '' === $e ? '' : "\n\n# CÓMO ESCRIBE EL COLEGIO\n" . $e;
+		if ( '' === $e ) { return ''; }
+		$bloque = "\n\n# CÓMO ESCRIBE EL COLEGIO\n" . $e;
+		if ( 'comunicado' === $contexto ) {
+			$bloque .= "\n\nEsto se manda TAL CUAL por WhatsApp, no es una nota del sitio: la sintaxis es la de WhatsApp. "
+				. 'Para negrita usá *un solo asterisco* (no **dos**, que es de una nota). Nada de encabezados con ## ni tablas con | '
+				. '— WhatsApp no los interpreta y saldrían como símbolos sueltos en la pantalla de cada destinatario.';
+		}
+		return $bloque;
 	}
 
 	public static function default_estilo() {
