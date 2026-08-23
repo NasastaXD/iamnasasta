@@ -431,10 +431,10 @@ class Cead_Acad_WA_Admin {
 			update_option( 'cead_acad_wa_ai_endpoint', esc_url_raw( wp_unslash( $_POST['ai_endpoint'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai_endpoint_is_base', ! empty( $_POST['ai_endpoint_is_base'] ) ? 1 : 0, false );
 			// Modelo por tipo de tarea (vacío = el modelo general).
-			foreach ( array_keys( Cead_Acad_WA_AI::tareas() ) as $tarea_clave ) {
+			foreach ( array_keys( Cead_Acad_WA_AI::niveles() ) as $nivel_clave ) {
 				update_option(
-					'cead_acad_wa_ai_model_' . $tarea_clave,
-					sanitize_text_field( wp_unslash( $_POST[ 'ai_model_' . $tarea_clave ] ?? '' ) ),
+					'cead_acad_wa_ai_model_' . $nivel_clave,
+					sanitize_text_field( wp_unslash( $_POST[ 'ai_model_' . $nivel_clave ] ?? '' ) ),
 					false
 				);
 			}
@@ -599,14 +599,16 @@ class Cead_Acad_WA_Admin {
 
 
 		/* ---------------- Modelo según la dificultad de la tarea ------------ */
-		echo '<tr><th scope="row" colspan="2"><h2 style="margin:1.5em 0 0">' . esc_html__( 'Modelo por tipo de tarea (opcional)', 'cead-acad' ) . '</h2></th></tr>';
+		echo '<tr><th scope="row" colspan="2"><h2 style="margin:1.5em 0 0">' . esc_html__( 'Modelo por dificultad (opcional)', 'cead-acad' ) . '</h2></th></tr>';
 		echo '<tr><th></th><td><p class="description">'
-			. esc_html__( 'Decirle a alguien a qué hora tiene Matemática y redactar la nota de un acto escolar no son el mismo trabajo. Acá se puede usar un modelo chico y barato para lo cotidiano —que es la mayor parte del volumen— y uno bueno solo para escribir.', 'cead-acad' )
+			. esc_html__( 'Lo que se elige acá es sobre todo VELOCIDAD. Un modelo grande tarda bastante más, y nadie espera que «¿qué clases tengo hoy?» tarde diez segundos. La idea es que lo cotidiano salga rápido y que el modelo lento entre solo donde la persona ya espera esperar.', 'cead-acad' )
 			. '</p><p class="description">'
-			. esc_html__( 'Dejar una casilla vacía usa el modelo general de arriba. Si no se toca nada, todo sigue funcionando exactamente como antes.', 'cead-acad' )
+			. esc_html__( 'CEADI arranca cada conversación en el nivel 1. Si el modelo pide algo pesado (cargar una nota, redactar un artículo, mandar un comunicado), rehace ese turno solo con el modelo del nivel que corresponda. Los turnos livianos nunca pagan esa demora.', 'cead-acad' )
+			. '</p><p class="description">'
+			. esc_html__( 'Dejar una casilla vacía usa el modelo general de arriba. Si no se toca nada, todo sigue funcionando como antes.', 'cead-acad' )
 			. '</p></td></tr>';
 
-		foreach ( Cead_Acad_WA_AI::tareas() as $clave => $etiqueta ) {
+		foreach ( Cead_Acad_WA_AI::niveles() as $clave => $etiqueta ) {
 			$this->field(
 				'ai_model_' . $clave,
 				$etiqueta,
@@ -616,13 +618,13 @@ class Cead_Acad_WA_Admin {
 			);
 		}
 
-		echo '<tr><th></th><td><p class="description">'
-			. esc_html__( 'Cómo se decide: si quien escribe es personal con permisos (puede publicar, cargar notas), el turno cuenta como «gestión»; si no, como «día a día». Los borradores de Instagram y las correcciones de notas van siempre por «redacción».', 'cead-acad' )
-			. '</p><p class="description">'
-			. esc_html__( 'Si querés que CEADI escriba bien los artículos que le pedís por chat, el modelo bueno va en «gestión»: cuando el personal le pide una nota, el artículo se redacta dentro de ese mismo turno.', 'cead-acad' )
-			. '</p><p class="description">'
-			. esc_html__( 'Con una imagen adjunta manda el modelo de lectura de imágenes, no el de la tarea: un modelo sin visión no puede mirar la foto por más potente que sea.', 'cead-acad' )
-			. '</p></td></tr>';
+		echo '<tr><th scope="row">' . esc_html__( 'Qué entra en cada nivel', 'cead-acad' ) . '</th><td>';
+		echo '<p class="description" style="margin-top:0">' . esc_html__( 'Nivel 3 · Máximo — cargar una nota, redactar un artículo, mandar un comunicado, recordar un dato, leer una planilla de notas y los borradores de Instagram.', 'cead-acad' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Nivel 2 · Medio — crear un evento (sacar fecha y hora de una frase), crear una invitación, olvidar un dato, buscar una persona, ver las notas de un curso.', 'cead-acad' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Nivel 1 · Rápido — todo lo demás: horarios, notas propias, tareas, comunicados, calendario, listados, métricas y responder dudas.', 'cead-acad' ) . '</p>';
+		echo '<p class="description"><strong>' . esc_html__( 'Las denuncias no dependen del modelo:', 'cead-acad' ) . '</strong> ' . esc_html__( 'palabras como «bullying», «acoso» o «me están molestando» abren el canal de reportes al instante, sin pasar por la IA. Un modelo mejor falla menos, pero falla, y ahí no hay segunda oportunidad.', 'cead-acad' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Con una imagen adjunta manda el modelo de lectura de imágenes y no se escala: un modelo sin visión no puede mirar la foto por potente que sea.', 'cead-acad' ) . '</p>';
+		echo '</td></tr>';
 
 		/* ------------------------- Proveedor de respaldo ------------------- */
 		echo '<tr><th scope="row" colspan="2"><h2 style="margin:1.5em 0 0">' . esc_html__( 'Proveedor de respaldo (opcional)', 'cead-acad' ) . '</h2></th></tr>';

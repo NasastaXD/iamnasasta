@@ -107,92 +107,158 @@ class Cead_Acad_WA_AI {
 	}
 
 
-	/* ------------------- Modelo según la dificultad de la tarea ------------- */
+	/* ------------------ Modelo según la dificultad de la tarea -------------- */
 
 	/*
-	 * No todo lo que hace CEADI cuesta lo mismo ni necesita lo mismo.
+	 * Tres niveles de dificultad, y la dificultad es una propiedad de la TAREA,
+	 * no de quién la pide.
 	 *
-	 * Decirle a alguien a qué hora tiene Matemática es buscar un dato y
-	 * ordenarlo en una frase: lo hace bien cualquier modelo chico, y responde
-	 * más rápido. Redactar la nota de un acto escolar que se va a publicar en el
-	 * sitio del colegio, con la voz institucional, eligiendo categoría y
-	 * maqueta, es otra tarea. Usar el mismo modelo para las dos es pagar el caro
-	 * para contestar horarios, o escribir las notas con el barato.
+	 * Que escriba un alumno o la directora no cambia lo difícil que es el
+	 * trabajo: leer una planilla de notas torcida es igual de difícil sin
+	 * importar quién mandó el archivo. Agrupar por «alumno / personal» mezclaba
+	 * «listame los cursos» con «cargá esta nota», que no se parecen en nada.
 	 *
-	 * La dificultad NO se adivina leyendo el mensaje: eso haría falta una
-	 * llamada extra solo para clasificar, que gasta la plata y el tiempo que
-	 * queríamos ahorrar. Se decide en el LUGAR DEL CÓDIGO que pide el trabajo,
-	 * que ya sabe qué está pidiendo.
+	 * El criterio para subir de nivel es DOBLE, y las dos mitades importan:
+	 *
+	 *   - Exigencia: qué tan probable es que un modelo chico se equivoque.
+	 *   - Costo del error: qué pasa cuando se equivoca. Hay tareas fáciles de
+	 *     hacer y carísimas de errar; ésas también suben.
+	 *
+	 * Lo que se está comprando con el nivel 3 no es plata: es TIEMPO. Un modelo
+	 * grande tarda bastante más, y nadie espera que «¿qué clases tengo hoy?»
+	 * tarde diez segundos. Por eso el nivel alto se reserva para lo que la
+	 * persona YA espera que tarde —escribir una nota, procesar una planilla— y
+	 * para lo que no se puede errar.
 	 */
 
-	/** Preguntas del día a día: horarios, notas, tareas, dudas sueltas. */
-	const TAREA_CHARLA = 'charla';
+	/** Salir rápido: elegir una pantalla, listar, contestar una duda. */
+	const NIVEL_RAPIDO = 'n1';
 
-	/** Personal operando el sistema: publicar, cargar notas, mandar comunicados. */
-	const TAREA_GESTION = 'gestion';
+	/** Trabajo real pero acotado: sacar datos de una frase suelta. */
+	const NIVEL_MEDIO = 'n2';
 
-	/** Escribir algo que se publica: notas, comunicados, resúmenes. */
-	const TAREA_REDACCION = 'redaccion';
+	/** No se puede errar, y la persona ya espera que tarde. */
+	const NIVEL_MAXIMO = 'n3';
 
-	/** Las tres, con su etiqueta, para la pantalla de ajustes. */
-	public static function tareas() {
+	/** Los tres, con su etiqueta, para la pantalla de ajustes. */
+	public static function niveles() {
 		return [
-			self::TAREA_CHARLA    => __( 'Preguntas del día a día (horarios, notas, dudas sueltas)', 'cead-acad' ),
-			self::TAREA_GESTION   => __( 'Gestión del personal (publicar, cargar notas, comunicados)', 'cead-acad' ),
-			self::TAREA_REDACCION => __( 'Redacción para publicar (notas del sitio, comunicados)', 'cead-acad' ),
+			self::NIVEL_RAPIDO => __( '1 · Rápido — elegir pantalla, listar, contestar dudas', 'cead-acad' ),
+			self::NIVEL_MEDIO  => __( '2 · Medio — sacar datos de una frase suelta (fechas, nombres)', 'cead-acad' ),
+			self::NIVEL_MAXIMO => __( '3 · Máximo — redactar, cargar notas, leer planillas', 'cead-acad' ),
 		];
 	}
 
-	/** La opción donde vive el modelo de cada tarea. */
-	protected static function opcion_modelo( $tarea ) {
-		return 'cead_acad_wa_ai_model_' . sanitize_key( (string) $tarea );
+	/**
+	 * Qué nivel pide cada función. Lo que no está acá es nivel 1.
+	 *
+	 * Esta tabla es el corazón del ruteo y conviene leerla como lo que es: la
+	 * lista de las cosas que NO le confiamos al modelo rápido, con el motivo.
+	 */
+	public static function dificultades() {
+		return [
+			/*
+			 * NIVEL 3 — lo que no se puede errar.
+			 */
+
+			// Escribir una frase que tiene que entenderse fuera de esta charla,
+			// y que queda guardada para siempre ensuciando cada conversación
+			// futura si sale mal. Los modelos chicos copian la frase cruda con
+			// los pronombres colgando («que empieza a las 7:10»: ¿qué cosa?).
+			'recordar'          => self::NIVEL_MAXIMO,
+
+			// Elegir la audiencia Y redactar, en un mensaje que sale a mucha
+			// gente de una y no se puede despublicar de los celulares.
+			'enviar_comunicado' => self::NIVEL_MAXIMO,
+
+			// Se publica en el sitio con la voz del colegio.
+			'crear_articulo'    => self::NIVEL_MAXIMO,
+
+			/*
+			 * Sacar alumno + materia + período + nota de una frase suelta, con
+			 * la escala paraguaya y decimales con coma. Lo aprueba un humano,
+			 * pero «un 4 a Ana en Mate» SE LEE BIEN aunque sea la Ana
+			 * equivocada: la aprobación no atrapa este error.
+			 */
+			'cargar_nota'       => self::NIVEL_MAXIMO,
+
+			/*
+			 * NIVEL 2 — trabajo real, pero con red.
+			 */
+
+			// Sacar fecha y hora de español natural («el viernes que viene a las
+			// 8») es la falla clásica del modelo chico. Lo salva que un humano
+			// aprueba y la fecha se lee de un vistazo.
+			'crear_evento'      => self::NIVEL_MEDIO,
+
+			// Rol + nombre, y da acceso al sistema. Lo aprueba un humano.
+			'crear_invitacion'  => self::NIVEL_MEDIO,
+
+			// Borra una memoria: hay que acertar CUÁL entre varias parecidas.
+			'olvidar'           => self::NIVEL_MEDIO,
+
+			// Devuelve teléfono y estado de cuenta de una persona real.
+			'buscar_persona'    => self::NIVEL_MEDIO,
+
+			// Lee las notas de un curso entero.
+			'ver_notas_curso'   => self::NIVEL_MEDIO,
+		];
+	}
+
+	/** Nivel que pide una función ('' o desconocida = el rápido). */
+	public static function nivel_de( $funcion ) {
+		$tabla = self::dificultades();
+		return $tabla[ (string) $funcion ] ?? self::NIVEL_RAPIDO;
+	}
+
+	/** Orden de los niveles, para poder comparar cuál es más alto. */
+	protected static function peso_nivel( $nivel ) {
+		$orden = [ self::NIVEL_RAPIDO => 1, self::NIVEL_MEDIO => 2, self::NIVEL_MAXIMO => 3 ];
+		return $orden[ (string) $nivel ] ?? 1;
+	}
+
+	/** ¿$a exige más que $b? */
+	public static function nivel_mayor( $a, $b ) {
+		return self::peso_nivel( $a ) > self::peso_nivel( $b );
 	}
 
 	/**
-	 * Qué modelo usar para esta tarea.
+	 * Qué modelo usar en un nivel.
 	 *
-	 * Vacío = el modelo general. Eso hace que la función sea opt-in: quien no
-	 * toque nada sigue con un solo modelo para todo, igual que antes, y quien
-	 * quiera afinar completa solo las casillas que le interesan.
+	 * Vacío = el modelo general, así que esto es opt-in: quien no toque nada
+	 * sigue con un solo modelo para todo, igual que antes.
+	 *
+	 * Se leen también los nombres viejos (charla/gestion/redaccion) para no
+	 * dejar huérfana la configuración de quien ya la había cargado.
 	 */
-	public static function model_para( $tarea = self::TAREA_CHARLA ) {
-		if ( ! array_key_exists( $tarea, self::tareas() ) ) {
+	public static function model_nivel( $nivel = self::NIVEL_RAPIDO ) {
+		if ( ! array_key_exists( $nivel, self::niveles() ) ) {
 			return self::model();
 		}
-		$m = trim( (string) get_option( self::opcion_modelo( $tarea ), '' ) );
+		$m = trim( (string) get_option( 'cead_acad_wa_ai_model_' . $nivel, '' ) );
+		if ( '' === $m ) {
+			$viejo = [ self::NIVEL_RAPIDO => 'charla', self::NIVEL_MEDIO => 'gestion', self::NIVEL_MAXIMO => 'redaccion' ];
+			$m     = trim( (string) get_option( 'cead_acad_wa_ai_model_' . $viejo[ $nivel ], '' ) );
+		}
 		return '' !== $m ? $m : self::model();
 	}
 
 	/**
-	 * Qué modelo usar en un turno concreto, ya contando si vino una imagen.
+	 * Qué modelo usar en un turno, ya contando si vino una imagen.
 	 *
 	 * Devolver null significa «que lo elija `call()`», y es lo correcto cuando
-	 * hay una foto: ahí manda el modelo de visión y no el de la tarea. Pasarle
-	 * un modelo lo tomaría como «modelo forzado» y ya no cambiaría al de visión,
+	 * hay una foto: ahí manda el modelo de visión y no el del nivel. Pasarle un
+	 * modelo lo tomaría como «modelo forzado» y ya no cambiaría al de visión,
 	 * así que CEADI recibiría la foto con un modelo que no puede mirarla. Un
 	 * nivel de dificultad no sirve de nada si el modelo no tiene ojos.
 	 *
 	 * @return string|null
 	 */
-	public static function modelo_para_turno( $tarea, $con_imagen ) {
+	public static function modelo_para_turno( $nivel, $con_imagen ) {
 		if ( $con_imagen && self::vision_enabled() ) {
 			return null;
 		}
-		return self::model_para( $tarea );
-	}
-
-	/**
-	 * Qué tarea es, cuando quien llama no lo dice.
-	 *
-	 * Se mira si vinieron herramientas de personal. No es una adivinanza: esas
-	 * herramientas se arman a partir de los permisos REALES de quien escribe, así
-	 * que su presencia significa que del otro lado hay alguien que puede publicar
-	 * o cargar notas, no un alumno preguntando a qué hora entra.
-	 */
-	protected static function tarea_por_defecto( $extra_tools ) {
-		return ( is_array( $extra_tools ) && [] !== $extra_tools )
-			? self::TAREA_GESTION
-			: self::TAREA_CHARLA;
+		return self::model_nivel( $nivel );
 	}
 
 	/* ------------------------- Proveedor de respaldo ------------------------ */
@@ -1190,12 +1256,12 @@ TXT;
 	 * (HTTP 400), cae automáticamente al modo JSON. Devuelve un array de depuración:
 	 * [ ok, code, error, intent, reply, content ].
 	 */
-	public static function call( $message, $faq_context = '', $key = null, $endpoint = null, $model = null, $history = [], $extra_tools = [], $user_context = '', $image = null, $user_id = 0 ) {
+	public static function call( $message, $faq_context = '', $key = null, $endpoint = null, $model = null, $history = [], $extra_tools = [], $user_context = '', $image = null, $user_id = 0, $nivel = null ) {
 		self::$last_tools = [];
 		$key      = $key !== null ? $key : self::key();
 		$endpoint = $endpoint !== null && $endpoint !== '' ? $endpoint : self::endpoint();
 		$forced_model = ( $model !== null && $model !== '' );
-		$model    = $forced_model ? $model : self::model();
+		$model    = $forced_model ? $model : self::model_nivel( $nivel ?: self::NIVEL_RAPIDO );
 		$message  = trim( (string) $message );
 
 		// Imagen adjunta: solo se manda si la lectura de imágenes está activa.
@@ -1248,7 +1314,11 @@ TXT;
 		$timeout = $pesado ? 35 : 18;
 		$retry   = ! $pesado;
 
-		$payload = static function ( $mode, $tokens ) use ( $model, $messages, $tools ) {
+		// $model va por REFERENCIA: si el turno escala a un nivel más alto, el
+		// payload tiene que salir con el modelo nuevo. Capturado por valor, la
+		// escalada cambiaría una variable que nadie mira y seguiría llamando al
+		// modelo chico — sin fallar, solo haciendo mal el trabajo difícil.
+		$payload = static function ( $mode, $tokens ) use ( &$model, $messages, $tools ) {
 			$p = [
 				'model'       => $model,
 				'temperature' => self::temperature(),
@@ -1284,6 +1354,27 @@ TXT;
 		$conversacion = $messages( 'tools' );
 		$modo_json    = false;
 		$arranque     = microtime( true );
+
+		/*
+		 * Nivel con el que se está corriendo el turno, para poder ESCALAR.
+		 *
+		 * El modelo se elige antes de saber qué va a pedir la persona: es el
+		 * propio modelo el que decide qué herramienta llamar. Así que no se
+		 * puede rutear por función de entrada. Lo que sí se puede es empezar
+		 * rápido y subir cuando el modelo muestra la mano: si pide `cargar_nota`
+		 * o `crear_articulo`, se rehace el turno con el modelo bueno y se tira
+		 * lo que había contestado el chico.
+		 *
+		 * Es una llamada de más, pero solo en los turnos pesados, que son pocos
+		 * y son justo aquellos en los que la persona YA espera esperar. Los
+		 * cientos de «¿qué clases tengo hoy?» salen a la velocidad del modelo
+		 * rápido, que es lo que se quería.
+		 */
+		$nivel_actual = $forced_model ? null : ( $nivel ?: self::NIVEL_RAPIDO );
+		$escalado     = false;
+		// Con una foto manda el modelo de visión y no se escala: cambiar de
+		// modelo a mitad de turno dejaría la imagen atrás.
+		if ( $img_block ) { $nivel_actual = null; }
 		/*
 		 * Lo último que el modelo alcanzó a DECIR, vuelta a vuelta.
 		 *
@@ -1359,6 +1450,38 @@ TXT;
 
 			$dicho = trim( (string) ( $msg['content'] ?? '' ) );
 			if ( '' !== $dicho ) { $ultimo_texto = $dicho; }
+
+			/*
+			 * ESCALADA. Va acá arriba, antes de decidir si el bucle sigue,
+			 * porque las tareas caras (cargar_nota, crear_articulo,
+			 * enviar_comunicado) son de GESTIÓN y cortan el bucle unas líneas
+			 * más abajo: preguntando después, ya sería tarde.
+			 *
+			 * Se rehace el turno DESDE CERO con el modelo del nivel que pide, y
+			 * se tira lo que había armado el rápido. No se reaprovecha a
+			 * propósito: en `cargar_nota` lo difícil no es elegir la herramienta
+			 * sino sacar bien el alumno, la materia y el período de una frase
+			 * suelta, y eso ya lo hizo —quizá mal— el modelo chico. Quedarse con
+			 * sus argumentos sería escalar el nombre y no el trabajo.
+			 */
+			if ( null !== $nivel_actual && ! $escalado && [] !== $llamadas ) {
+				$pide = self::NIVEL_RAPIDO;
+				foreach ( $llamadas as $l ) {
+					$n = self::nivel_de( (string) ( $l['function']['name'] ?? '' ) );
+					if ( self::nivel_mayor( $n, $pide ) ) { $pide = $n; }
+				}
+				if ( self::nivel_mayor( $pide, $nivel_actual ) ) {
+					$nivel_actual = $pide;
+					$model        = self::model_nivel( $pide );
+					$escalado     = true;
+					$conversacion = $messages( 'tools' );
+					$ultimo_texto = '';
+					self::$last_tools = [];
+					error_log( '[CeadAcadWA][AI] Escalo a nivel ' . $pide . ' (' . $model . ') y rehago el turno.' );
+					$ronda = -1; // el for lo vuelve a 0
+					continue;
+				}
+			}
 
 			/*
 			 * El bucle solo sigue si TODAS las llamadas de este mensaje son
@@ -1639,13 +1762,19 @@ TXT;
 	 * está activa y hay $phone. `$user_context` describe a quién atiende (nombre,
 	 * rol, cursos, fecha de hoy) para que responda con datos y no a ciegas.
 	 */
-	public static function route( $message, $faq_context = '', $phone = '', $extra_tools = [], $user_context = '', $image = null, $user_id = 0, $tarea = null ) {
+	public static function route( $message, $faq_context = '', $phone = '', $extra_tools = [], $user_context = '', $image = null, $user_id = 0, $nivel = null ) {
 		$history = ( $phone !== '' ) ? self::load_memory( $phone ) : [];
-		// Sin tarea explícita se deduce de si vinieron herramientas de personal.
-		$tarea = ( null !== $tarea ) ? $tarea : self::tarea_por_defecto( $extra_tools );
-
-		$modelo = self::modelo_para_turno( $tarea, null !== $image );
-		$r = self::call( $message, $faq_context, null, null, $modelo, $history, $extra_tools, $user_context, $image, $user_id );
+		/*
+		 * Se arranca en el nivel RÁPIDO salvo que quien llama sepa de antemano
+		 * que el trabajo es pesado (leer una planilla, redactar una nota). Para
+		 * todo lo demás decide `call()` sobre la marcha: si el modelo pide una
+		 * herramienta cara, escala solo.
+		 */
+		$r = self::call(
+			$message, $faq_context, null, null, null, $history,
+			$extra_tools, $user_context, $image, $user_id,
+			$nivel ?: self::NIVEL_RAPIDO
+		);
 		if ( ! $r['ok'] ) {
 			// Fallo TÉCNICO (no «no entendí»): registrarlo para diagnóstico. El
 			// motor lo usa para caer al menú, y el admin lo muestra en CEADI · IA.

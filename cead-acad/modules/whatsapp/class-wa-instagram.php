@@ -390,7 +390,7 @@ class Cead_Acad_WA_Instagram {
 		// Redacción: esta nota se publica en el sitio con la voz del colegio.
 		$r     = Cead_Acad_WA_AI::route(
 			$prompt, '', '', [], 'Estás preparando un borrador de nota para el sitio del colegio.',
-			null, 0, Cead_Acad_WA_AI::TAREA_REDACCION
+			null, 0, Cead_Acad_WA_AI::NIVEL_MAXIMO
 		);
 		$texto = is_array( $r ) ? trim( (string) ( $r['reply'] ?? '' ) ) : '';
 		if ( '' === $texto ) { return null; }
