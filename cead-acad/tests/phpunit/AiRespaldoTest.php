@@ -75,6 +75,67 @@ final class AiRespaldoTest extends TestCase {
 		$this->assertSame( 'https://respaldo.example/v1/chat/completions', Cead_Acad_WA_AI::respaldo_endpoint() );
 	}
 
+	/* ------------------- el respaldo también tiene niveles ------------------ */
+
+	/**
+	 * Sin niveles propios cargados, el respaldo usa su modelo general para todo.
+	 * Es el caso de quien carga un respaldo y no quiere pensar más.
+	 *
+	 * @dataProvider losTresNiveles
+	 */
+	public function test_sin_niveles_propios_usa_el_modelo_general_del_respaldo( string $nivel ): void {
+		$this->cargarRespaldo();
+
+		$this->assertSame( 'modelo-de-respaldo', Cead_Acad_WA_AI::respaldo_model_nivel( $nivel ) );
+	}
+
+	public static function losTresNiveles(): array {
+		return [
+			'rápido' => [ Cead_Acad_WA_AI::NIVEL_RAPIDO ],
+			'medio'  => [ Cead_Acad_WA_AI::NIVEL_MEDIO ],
+			'máximo' => [ Cead_Acad_WA_AI::NIVEL_MAXIMO ],
+		];
+	}
+
+	/**
+	 * El caso que justifica todo esto.
+	 *
+	 * Si el proveedor principal se cae JUSTO mientras se carga una nota, esa
+	 * nota no puede terminar cargada por el modelo chico del respaldo: un humano
+	 * aprueba «un 4 a Ana en Mate» porque se lee bien, aunque sea la Ana
+	 * equivocada. Una caída del proveedor no puede degradar en silencio la
+	 * calidad de lo que no se puede errar.
+	 */
+	public function test_el_respaldo_respeta_el_nivel_de_dificultad(): void {
+		$this->cargarRespaldo();
+		cead_test_set_option( 'cead_acad_wa_ai2_model_n3', 'respaldo-grande' );
+
+		$this->assertSame( 'respaldo-grande', Cead_Acad_WA_AI::respaldo_model_nivel( Cead_Acad_WA_AI::NIVEL_MAXIMO ) );
+		// Los otros niveles no se contagian.
+		$this->assertSame( 'modelo-de-respaldo', Cead_Acad_WA_AI::respaldo_model_nivel( Cead_Acad_WA_AI::NIVEL_RAPIDO ) );
+	}
+
+	/** Sin nivel (proveedor forzado, o una imagen) usa el general. */
+	public function test_sin_nivel_usa_el_general(): void {
+		$this->cargarRespaldo();
+		cead_test_set_option( 'cead_acad_wa_ai2_model_n3', 'respaldo-grande' );
+
+		$this->assertSame( 'modelo-de-respaldo', Cead_Acad_WA_AI::respaldo_model_nivel( null ) );
+		$this->assertSame( 'modelo-de-respaldo', Cead_Acad_WA_AI::respaldo_model_nivel( 'inventado' ) );
+	}
+
+	/**
+	 * Los niveles del respaldo son SUYOS: no heredan los del principal. Si los
+	 * heredaran, CEADI le pediría al respaldo un modelo que ese proveedor no
+	 * tiene y la caída del principal se convertiría en una caída total.
+	 */
+	public function test_no_hereda_los_modelos_del_principal(): void {
+		$this->cargarRespaldo();
+		cead_test_set_option( 'cead_acad_wa_ai_model_n3', 'modelo-solo-del-principal' );
+
+		$this->assertSame( 'modelo-de-respaldo', Cead_Acad_WA_AI::respaldo_model_nivel( Cead_Acad_WA_AI::NIVEL_MAXIMO ) );
+	}
+
 	/* -------------------------- el diagnóstico ------------------------------ */
 
 	/**
