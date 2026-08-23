@@ -282,6 +282,11 @@ if ( ! function_exists( '_n' ) ) {
 if ( ! function_exists( 'esc_url' ) ) {
 	function esc_url( $url ) { return filter_var( (string) $url, FILTER_SANITIZE_URL ); }
 }
+if ( ! function_exists( 'wp_parse_url' ) ) {
+	function wp_parse_url( $url, $component = -1 ) {
+		return parse_url( (string) $url, $component );
+	}
+}
 if ( ! function_exists( 'wp_strip_all_tags' ) ) {
 	function wp_strip_all_tags( $text, $remove_breaks = false ) {
 		$text = preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', (string) $text );

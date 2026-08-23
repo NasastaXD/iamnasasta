@@ -105,6 +105,50 @@ class Cead_Acad_WA_AI {
 	public static function endpoint_is_base() {
 		return (bool) get_option( 'cead_acad_wa_ai_endpoint_is_base', 0 );
 	}
+
+	/* ------------------------- Proveedor de respaldo ------------------------ */
+
+	/*
+	 * Un segundo proveedor, con su propio endpoint, modelo y key.
+	 *
+	 * Los servicios de IA se caen, se quedan sin saldo y retiran modelos sin
+	 * avisar, y cuando eso pasa CEADI deja de entender lenguaje natural para
+	 * todo el colegio a la vez. El respaldo es el seguro: idealmente de OTRA
+	 * empresa, porque dos modelos del mismo proveedor se caen juntos.
+	 */
+
+	public static function respaldo_key() {
+		if ( defined( 'CEAD_ACAD_AI2_KEY' ) && CEAD_ACAD_AI2_KEY ) {
+			return (string) CEAD_ACAD_AI2_KEY;
+		}
+		return (string) get_option( 'cead_acad_wa_ai2_key', '' );
+	}
+
+	public static function respaldo_model() {
+		return (string) get_option( 'cead_acad_wa_ai2_model', '' );
+	}
+
+	public static function respaldo_endpoint() {
+		$raw = trim( (string) get_option( 'cead_acad_wa_ai2_endpoint', '' ) );
+		if ( '' === $raw ) {
+			return '';
+		}
+		if ( (bool) get_option( 'cead_acad_wa_ai2_endpoint_is_base', 0 ) ) {
+			return rtrim( $raw, '/' ) . self::CHAT_PATH;
+		}
+		return $raw;
+	}
+
+	/**
+	 * Solo cuenta como respaldo si están las tres cosas. Un respaldo a medio
+	 * cargar es peor que ninguno: hace creer que hay red debajo y en el momento
+	 * de la caída falla igual, con el doble de demora encima.
+	 */
+	public static function respaldo_activo() {
+		return self::respaldo_key() !== ''
+			&& self::respaldo_endpoint() !== ''
+			&& self::respaldo_model() !== '';
+	}
 	/**
 	 * Esfuerzo de razonamiento, para modelos que lo soportan ('' = apagado).
 	 *
@@ -152,6 +196,234 @@ class Cead_Acad_WA_AI {
 	 * tiene antes que arriesgar el turno entero.
 	 */
 	const PRESUPUESTO_SEG = 38;
+
+
+	/* --------------------------- Aviso de caída ---------------------------- */
+
+	/** Se apaga durante la prueba del admin: ahí ya hay alguien mirando. */
+	protected static $silenciar_avisos = false;
+
+	public static function silenciar_avisos( $si = true ) {
+		self::$silenciar_avisos = (bool) $si;
+	}
+
+	/**
+	 * Permite apagar el respaldo para UNA prueba.
+	 *
+	 * Existe por el botón «Probar» del admin. Si la prueba se fuera al respaldo
+	 * sin decirlo, diría «OK» con el proveedor principal caído — que es
+	 * exactamente el problema que el respaldo introduce: tapa la falla hasta que
+	 * se caen los dos. Cada proveedor se prueba solo, y se informa por separado.
+	 */
+	protected static $usar_respaldo = true;
+
+	public static function usar_respaldo( $si = true ) {
+		self::$usar_respaldo = (bool) $si;
+	}
+
+	/**
+	 * Traduce la falla del proveedor a algo que dirección pueda accionar.
+	 *
+	 * El código HTTP solo no alcanza: DeepSeek avisa que se acabó el crédito con
+	 * un 402 y OpenAI con un 429 que por fuera es idéntico a «demasiados
+	 * pedidos», que se arregla esperando. Por eso además del código se mira el
+	 * cuerpo de la respuesta. Un aviso que dice «HTTP 429» no le sirve a nadie;
+	 * uno que dice «se acabó el crédito, recargá saldo» se resuelve en dos
+	 * minutos desde el celular.
+	 *
+	 * @return array{causa:string,arreglo:string}
+	 */
+	public static function diagnostico( $code, $bodyraw = '' ) {
+		$code = (int) $code;
+		$b    = strtolower( wp_strip_all_tags( (string) $bodyraw ) );
+
+		$dice = static function ( array $agujas ) use ( $b ) {
+			foreach ( $agujas as $a ) {
+				if ( '' !== $b && false !== strpos( $b, $a ) ) { return true; }
+			}
+			return false;
+		};
+
+		// El saldo se mira primero: viaja con códigos distintos según proveedor
+		// (402, 429, hasta 403) y es la causa más común de una caída larga.
+		if ( 402 === $code || $dice( [ 'insufficient balance', 'insufficient_quota', 'insufficient funds', 'exceeded your current quota', 'billing', 'payment required', 'saldo' ] ) ) {
+			return [
+				'causa'   => 'Se acabó el crédito de la cuenta.',
+				'arreglo' => 'Entrar al panel del proveedor y recargar saldo.',
+			];
+		}
+
+		if ( $dice( [ 'model not found', 'model_not_found', 'does not exist', 'no such model', 'deprecated', 'decommissioned', 'has been retired' ] ) ) {
+			return [
+				'causa'   => 'El modelo configurado ya no existe (lo retiraron o cambió de nombre).',
+				'arreglo' => 'Cambiar el nombre del modelo en CEAD Académico → CEADI · IA.',
+			];
+		}
+
+		if ( 401 === $code || 403 === $code || $dice( [ 'invalid api key', 'incorrect api key', 'unauthorized', 'invalid_api_key' ] ) ) {
+			return [
+				'causa'   => 'La API key no es válida o fue revocada.',
+				'arreglo' => 'Generar una key nueva en el proveedor y cargarla en CEADI · IA.',
+			];
+		}
+
+		if ( 429 === $code ) {
+			return [
+				'causa'   => 'El proveedor está limitando la cantidad de pedidos.',
+				'arreglo' => 'Suele pasar solo en unos minutos. Si sigue, hay que subir el plan.',
+			];
+		}
+
+		if ( 404 === $code ) {
+			return [
+				'causa'   => 'El endpoint no responde en esa dirección (404).',
+				'arreglo' => 'Revisar la URL del endpoint y el interruptor «es una base URL».',
+			];
+		}
+
+		if ( 0 === $code ) {
+			return [
+				'causa'   => 'El servidor no pudo conectarse al proveedor (red, DNS o timeout).',
+				'arreglo' => 'Revisar que el VPS tenga internet y que el proveedor no esté caído.',
+			];
+		}
+
+		if ( $code >= 500 ) {
+			return [
+				'causa'   => 'El proveedor está caído de su lado.',
+				'arreglo' => 'No hay nada que tocar: se resuelve cuando ellos lo levanten.',
+			];
+		}
+
+		return [
+			'causa'   => 'Error inesperado del proveedor (HTTP ' . $code . ').',
+			'arreglo' => 'Mirar el detalle en CEAD Académico → Registros.',
+		];
+	}
+
+	/**
+	 * Le avisa a dirección por WhatsApp que la IA se cayó.
+	 *
+	 * Dos cuidados que hacen la diferencia entre un aviso útil y uno dañino:
+	 *
+	 * 1. ESTÁ LIMITADO. Un proveedor caído falla en CADA mensaje de CADA alumno.
+	 *    Sin freno, dirección recibiría cientos de avisos idénticos en minutos:
+	 *    dejaría de leerlos, y en un puente no oficial ese envío masivo es
+	 *    justamente lo que hace que baneen el número del colegio. Se manda uno
+	 *    por causa cada media hora.
+	 * 2. NUNCA VIAJA LA API KEY. Se manda el código, la causa y el arreglo; el
+	 *    cuerpo crudo de la respuesta se recorta y queda en el registro, no en
+	 *    un chat de WhatsApp que se reenvía.
+	 *
+	 * @param string $situacion 'respaldo' (el primario cayó y el respaldo salvó) o 'caido'.
+	 * @param array  $r         Respuesta fallida ([code, bodyraw, error]).
+	 * @param string $quien     Nombre legible del proveedor que falló.
+	 */
+	protected static function avisar_caida( $situacion, $r, $quien ) {
+		if ( self::$silenciar_avisos ) { return; }
+
+		$code = (int) ( $r['code'] ?? 0 );
+		$dg   = self::diagnostico( $code, (string) ( $r['bodyraw'] ?? $r['error'] ?? '' ) );
+
+		// Un aviso por causa y por situación cada media hora.
+		$llave = 'cead_acad_ai_aviso_' . md5( $situacion . '|' . $dg['causa'] );
+		if ( get_transient( $llave ) ) { return; }
+		set_transient( $llave, 1, 30 * MINUTE_IN_SECONDS );
+
+		$telefono = (string) get_option( 'cead_acad_wa_director_phone', '' );
+		if ( '' === trim( $telefono ) ) {
+			error_log( '[CeadAcadWA][AI] Falló la IA y no hay número de dirección cargado para avisar.' );
+			return;
+		}
+
+		$texto = self::mensaje_caida( $situacion, $r, $quien );
+
+		try {
+			$store  = new Cead_Acad_WA_Store();
+			$bridge = new Cead_Acad_WA_Bridge_Client( $store );
+			$bridge->send_message( $telefono, $texto );
+		} catch ( Throwable $e ) {
+			error_log( '[CeadAcadWA][AI] No se pudo avisar la caída: ' . $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Arma el texto del aviso. Función pura: no manda nada, así se puede testear.
+	 *
+	 * Lo que se testea acá no es la redacción sino una garantía: que NUNCA
+	 * viaje la API key. El aviso sale por WhatsApp, se reenvía, queda en el
+	 * celular de varias personas y en las copias de seguridad de WhatsApp. Una
+	 * key filtrada ahí es una cuenta que cualquiera puede vaciar. Por eso el
+	 * mensaje se arma con el código, la causa y el arreglo — nunca con lo que
+	 * se le mandó al proveedor.
+	 */
+	public static function mensaje_caida( $situacion, $r, $quien ) {
+		$code = (int) ( $r['code'] ?? 0 );
+		$dg   = self::diagnostico( $code, (string) ( $r['bodyraw'] ?? $r['error'] ?? '' ) );
+
+		$detalle = trim( (string) ( $r['error'] ?? '' ) );
+		if ( '' === $detalle ) {
+			$detalle = mb_substr( trim( wp_strip_all_tags( (string) ( $r['bodyraw'] ?? '' ) ) ), 0, 160 );
+		}
+		$detalle = self::redactar( $detalle );
+
+		if ( 'respaldo' === $situacion ) {
+			$texto  = "⚠️ *CEADI: falló el proveedor principal de IA*\n\n";
+			$texto .= "Proveedor: {$quien}\n";
+			$texto .= 'Error: HTTP ' . $code . ( '' !== $detalle ? ' — ' . $detalle : '' ) . "\n\n";
+			$texto .= "*Qué pasó:* {$dg['causa']}\n";
+			$texto .= "*Qué hacer:* {$dg['arreglo']}\n\n";
+			$texto .= '_CEADI sigue funcionando con el proveedor de respaldo. No hay apuro, pero conviene resolverlo._';
+			return $texto;
+		}
+
+		$texto  = "🔴 *CEADI: se cayó la IA*\n\n";
+		$texto .= "Proveedor: {$quien}\n";
+		$texto .= 'Error: HTTP ' . $code . ( '' !== $detalle ? ' — ' . $detalle : '' ) . "\n\n";
+		$texto .= "*Qué pasó:* {$dg['causa']}\n";
+		$texto .= "*Qué hacer:* {$dg['arreglo']}\n\n";
+		$texto .= '_Mientras tanto CEADI atiende con el menú numérico: los alumnos NO quedan sin respuesta, pero no entiende lenguaje natural._';
+		return $texto;
+	}
+
+	/**
+	 * Tacha credenciales del texto que va a salir del servidor.
+	 *
+	 * Hace falta porque VARIOS proveedores devuelven la key adentro del propio
+	 * mensaje de error («Invalid API key: sk-...»). Sin esto, la falla más común
+	 * de todas —una key mal cargada— publicaría esa key por WhatsApp, en un
+	 * mensaje pensado justamente para reenviar. La cuenta quedaría a mano de
+	 * cualquiera y nadie se enteraría hasta ver la factura.
+	 *
+	 * Se tachan las keys configuradas (que son las que pueden aparecer) y además
+	 * cualquier cosa con forma de credencial, por si el proveedor devuelve un
+	 * token que no es ninguna de las dos.
+	 */
+	protected static function redactar( $texto ) {
+		$texto = (string) $texto;
+		if ( '' === $texto ) { return ''; }
+
+		foreach ( [ self::key(), self::respaldo_key() ] as $secreto ) {
+			$secreto = (string) $secreto;
+			// El mínimo evita que una key vacía o absurdamente corta convierta
+			// el mensaje entero en asteriscos.
+			if ( strlen( $secreto ) >= 8 ) {
+				$texto = str_replace( $secreto, '[key oculta]', $texto );
+			}
+		}
+
+		// Formas típicas de credencial: sk-…, Bearer …, tokens largos.
+		$texto = preg_replace( '/\b(sk|pk|api|key|tok)[-_][A-Za-z0-9_\-]{8,}/i', '[key oculta]', $texto );
+		$texto = preg_replace( '/\bBearer\s+[A-Za-z0-9._\-]{8,}/i', 'Bearer [key oculta]', $texto );
+
+		return (string) $texto;
+	}
+
+	/** Nombre corto y legible de un endpoint, para el aviso (sin la key). */
+	protected static function nombre_proveedor( $endpoint ) {
+		$host = (string) wp_parse_url( (string) $endpoint, PHP_URL_HOST );
+		return '' !== $host ? $host : 'proveedor sin identificar';
+	}
 
 	/** ¿El 400 del proveedor se queja justamente del max_tokens? */
 	protected static function rejects_max_tokens( $r ) {
@@ -1079,19 +1351,84 @@ TXT;
 
 	public static function last_tools() { return self::$last_tools; }
 
-	/** POST al endpoint compatible OpenAI. Devuelve [ code, error, bodyraw, data ]. */
 	/**
-	 * POST al endpoint. Un solo error transitorio (timeout, corte de red, 429,
-	 * 5xx del proveedor) no puede tirar todo el turno al menú de fallback: eso
-	 * es exactamente lo que hacía caer la conversación de golpe. Reintenta UNA
-	 * vez, con una pausa breve, solo ante fallas que tienen sentido reintentar.
+	 * POST al proveedor, con respaldo automático.
 	 *
-	 * Timeout de 18s por intento (no 30s): el bridge espera como máximo 45s una
-	 * respuesta de WordPress para un mensaje de texto (WP_TIMEOUT_MS). Con
-	 * 18 + 0.6 + 18 ≈ 36.6s el peor caso del reintento entra holgado ahí adentro;
-	 * con 30s por intento, dos intentos solos ya superarían esos 45s.
+	 * Un error transitorio (timeout, corte de red, 429, 5xx) no puede tirar el
+	 * turno al menú de fallback. Hay dos formas de cubrirse y NO se acumulan:
+	 *
+	 *  - Sin respaldo cargado: se reintenta UNA vez contra el mismo proveedor.
+	 *  - Con respaldo cargado: NO se reintenta el mismo, se va derecho al otro.
+	 *
+	 * Que se excluyan es deliberado y es la parte fácil de romper. El bridge
+	 * espera 45s como mucho (WP_TIMEOUT_MS) y el turno entero tiene 38s de
+	 * presupuesto: con 18s por intento, primario + respaldo son 18 + 0.6 + 18 ≈
+	 * 36.6s, que entra. Si además se reintentara el primario serían ~55s, el
+	 * bridge cortaría antes y el alumno no recibiría NADA — peor que la caída
+	 * que se quería cubrir. Además, reintentar al que acaba de devolver 500 es
+	 * menos probable que funcione que preguntarle a otra empresa.
+	 *
+	 * @param bool $permitir_respaldo false cuando quien llama fijó un proveedor
+	 *                                a mano y no quiere que se le cambie.
 	 */
-	protected static function http( $endpoint, $key, array $payload, $timeout = 18, $allow_retry = true ) {
+	protected static function http( $endpoint, $key, array $payload, $timeout = 18, $allow_retry = true, $permitir_respaldo = true ) {
+		$hay_respaldo = $permitir_respaldo && self::$usar_respaldo && self::respaldo_activo();
+
+		$r = self::http_una( $endpoint, $key, $payload, $timeout, $allow_retry && ! $hay_respaldo );
+
+		if ( 200 === $r['code'] ) {
+			self::store_usage( $r['data'] );
+			return $r;
+		}
+
+		if ( ! $hay_respaldo ) {
+			if ( '' !== $r['error'] ) {
+				error_log( '[CeadAcadWA][AI] ' . $r['error'] );
+			}
+			return $r;
+		}
+
+		/*
+		 * Un 400 casi siempre es culpa NUESTRA (un parámetro que este modelo no
+		 * acepta), no del proveedor. El respaldo lo rechazaría igual, y quien
+		 * llama ya tiene sus propias salidas para el 400 —bajar max_tokens,
+		 * pasar a modo JSON—, que dejarían de correr si acá nos fuéramos al otro
+		 * proveedor primero.
+		 */
+		if ( 400 === $r['code'] ) {
+			return $r;
+		}
+
+		error_log( '[CeadAcadWA][AI] Falló el primario (HTTP ' . $r['code'] . '); voy al respaldo.' );
+		self::avisar_caida( 'respaldo', $r, self::nombre_proveedor( $endpoint ) );
+
+		usleep( 600000 );
+
+		$p2          = $payload;
+		$p2['model'] = self::respaldo_model();
+		$r2          = self::http_una( self::respaldo_endpoint(), self::respaldo_key(), $p2, $timeout, false );
+
+		if ( 200 === $r2['code'] ) {
+			self::store_usage( $r2['data'] );
+			set_transient( 'cead_acad_wa_ai_en_respaldo', 1, HOUR_IN_SECONDS );
+			return $r2;
+		}
+
+		error_log( '[CeadAcadWA][AI] También falló el respaldo (HTTP ' . $r2['code'] . ').' );
+		self::avisar_caida( 'caido', $r2, self::nombre_proveedor( self::respaldo_endpoint() ) );
+
+		// Se devuelve el error del PRIMARIO: es el proveedor que hay que
+		// arreglar, y su mensaje es el que describe la causa de fondo.
+		return $r;
+	}
+
+	/** ¿Se está atendiendo con el respaldo? (para el estado en wp-admin). */
+	public static function en_respaldo() {
+		return (bool) get_transient( 'cead_acad_wa_ai_en_respaldo' );
+	}
+
+	/** Un intento contra UN proveedor, con reintento opcional al mismo. */
+	protected static function http_una( $endpoint, $key, array $payload, $timeout, $allow_retry ) {
 		$attempt = static function () use ( $endpoint, $key, $payload, $timeout ) {
 			$res = wp_remote_post( $endpoint, [
 				'timeout' => $timeout,
@@ -1124,12 +1461,6 @@ TXT;
 			if ( 200 === $r2['code'] || ( 0 !== $r2['code'] && $r2['code'] < 500 && 429 !== $r2['code'] ) ) {
 				$r = $r2;
 			}
-		}
-		if ( '' !== $r['error'] ) {
-			error_log( '[CeadAcadWA][AI] ' . $r['error'] . ( $retriable ? ' (tras reintento)' : '' ) );
-		}
-		if ( 200 === $r['code'] ) {
-			self::store_usage( $r['data'] );
 		}
 		return $r;
 	}
@@ -1331,9 +1662,36 @@ TXT;
 		delete_transient( self::memory_key( $phone ) );
 	}
 
-	/** Prueba desde el admin: resumen legible. */
-	public static function test( $message = '¿qué clases tengo hoy?' ) {
-		$r = self::call( $message );
+	/**
+	 * Prueba desde el admin: resumen legible.
+	 *
+	 * Prueba SIEMPRE un proveedor solo, sin respaldo. Dejar que la prueba se
+	 * fuera al respaldo devolvería «OK» con el principal caído, que es el modo
+	 * clásico en que una arquitectura con respaldo falla: nadie se entera de la
+	 * primera caída y se descubre todo junto el día que caen los dos.
+	 *
+	 * @param string $proveedor 'primario' o 'respaldo'.
+	 */
+	public static function test( $message = '¿qué clases tengo hoy?', $proveedor = 'primario' ) {
+		if ( 'respaldo' === $proveedor ) {
+			if ( ! self::respaldo_activo() ) {
+				return [ 'ok' => false, 'summary' => 'No hay proveedor de respaldo configurado (faltan endpoint, modelo o key).' ];
+			}
+			return self::test_contra( $message, self::respaldo_endpoint(), self::respaldo_key(), self::respaldo_model() );
+		}
+		return self::test_contra( $message, self::endpoint(), self::key(), self::model() );
+	}
+
+	/** Corre la prueba contra un proveedor concreto, con avisos y respaldo apagados. */
+	protected static function test_contra( $message, $endpoint, $key, $model ) {
+		self::silenciar_avisos( true );
+		self::usar_respaldo( false );
+		try {
+			$r = self::call( $message, '', $key, $endpoint, $model );
+		} finally {
+			self::silenciar_avisos( false );
+			self::usar_respaldo( true );
+		}
 		if ( $r['ok'] ) {
 			delete_transient( 'cead_acad_wa_ai_last_error' );
 			$accion = $r['intent'] !== '' ? sprintf( 'función: "%s"', $r['intent'] ) : 'respuesta directa (sin función)';
