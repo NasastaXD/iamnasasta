@@ -387,7 +387,11 @@ class Cead_Acad_WA_Instagram {
 			. Cead_Acad_WA_AI::estilo_bloque()
 			. "\n\nTexto de la publicación:\n" . mb_substr( $pie, 0, 1500 );
 
-		$r     = Cead_Acad_WA_AI::route( $prompt, '', '', [], 'Estás preparando un borrador de nota para el sitio del colegio.' );
+		// Redacción: esta nota se publica en el sitio con la voz del colegio.
+		$r     = Cead_Acad_WA_AI::route(
+			$prompt, '', '', [], 'Estás preparando un borrador de nota para el sitio del colegio.',
+			null, 0, Cead_Acad_WA_AI::TAREA_REDACCION
+		);
 		$texto = is_array( $r ) ? trim( (string) ( $r['reply'] ?? '' ) ) : '';
 		if ( '' === $texto ) { return null; }
 

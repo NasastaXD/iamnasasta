@@ -2395,7 +2395,11 @@ class Cead_Acad_WA_Engine {
 			. 'Aplicá SOLO el cambio pedido y dejá el resto como está. No inventes datos nuevos.'
 			. Cead_Acad_WA_AI::estilo_bloque();
 
-		$r     = Cead_Acad_WA_AI::route( $prompt, '', '', [], 'Estás corrigiendo un borrador de nota del colegio.' );
+		// Redacción: corregir una nota es el mismo oficio que escribirla.
+		$r     = Cead_Acad_WA_AI::route(
+			$prompt, '', '', [], 'Estás corrigiendo un borrador de nota del colegio.',
+			null, 0, Cead_Acad_WA_AI::TAREA_REDACCION
+		);
 		$texto = is_array( $r ) ? trim( (string) ( $r['reply'] ?? '' ) ) : '';
 		$ficha = '' !== $texto ? Cead_Acad_WA_Instagram::interpretar_publico( $texto, $post->post_title ) : null;
 
@@ -2716,7 +2720,16 @@ class Cead_Acad_WA_Engine {
 			. "\"formato\": \"nota\" si ya son notas del colegio, \"porcentaje\" si son 0-100, \"puntaje\" si son puntos sobre un total (poné el total en \"puntaje_total\").\n"
 			. "Si la materia, el periodo o el curso no aparecen, dejalos en \"\". No inventes.";
 
-		$res = Cead_Acad_WA_AI::route( $prompt, '', '', [], $this->ai_user_context( $identity ) );
+		/*
+		 * Gestión y no charla: leer una planilla de notas es entender una tabla
+		 * con encabezados torcidos y decidir qué columna es la calificación. Un
+		 * modelo chico se equivoca de columna y las notas entran mal, que es de
+		 * los errores más caros de deshacer.
+		 */
+		$res = Cead_Acad_WA_AI::route(
+			$prompt, '', '', [], $this->ai_user_context( $identity ),
+			null, 0, Cead_Acad_WA_AI::TAREA_GESTION
+		);
 		$txt = is_array( $res ) ? (string) ( $res['reply'] ?? '' ) : '';
 		if ( '' === $txt ) { return null; }
 

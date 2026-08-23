@@ -106,6 +106,95 @@ class Cead_Acad_WA_AI {
 		return (bool) get_option( 'cead_acad_wa_ai_endpoint_is_base', 0 );
 	}
 
+
+	/* ------------------- Modelo según la dificultad de la tarea ------------- */
+
+	/*
+	 * No todo lo que hace CEADI cuesta lo mismo ni necesita lo mismo.
+	 *
+	 * Decirle a alguien a qué hora tiene Matemática es buscar un dato y
+	 * ordenarlo en una frase: lo hace bien cualquier modelo chico, y responde
+	 * más rápido. Redactar la nota de un acto escolar que se va a publicar en el
+	 * sitio del colegio, con la voz institucional, eligiendo categoría y
+	 * maqueta, es otra tarea. Usar el mismo modelo para las dos es pagar el caro
+	 * para contestar horarios, o escribir las notas con el barato.
+	 *
+	 * La dificultad NO se adivina leyendo el mensaje: eso haría falta una
+	 * llamada extra solo para clasificar, que gasta la plata y el tiempo que
+	 * queríamos ahorrar. Se decide en el LUGAR DEL CÓDIGO que pide el trabajo,
+	 * que ya sabe qué está pidiendo.
+	 */
+
+	/** Preguntas del día a día: horarios, notas, tareas, dudas sueltas. */
+	const TAREA_CHARLA = 'charla';
+
+	/** Personal operando el sistema: publicar, cargar notas, mandar comunicados. */
+	const TAREA_GESTION = 'gestion';
+
+	/** Escribir algo que se publica: notas, comunicados, resúmenes. */
+	const TAREA_REDACCION = 'redaccion';
+
+	/** Las tres, con su etiqueta, para la pantalla de ajustes. */
+	public static function tareas() {
+		return [
+			self::TAREA_CHARLA    => __( 'Preguntas del día a día (horarios, notas, dudas sueltas)', 'cead-acad' ),
+			self::TAREA_GESTION   => __( 'Gestión del personal (publicar, cargar notas, comunicados)', 'cead-acad' ),
+			self::TAREA_REDACCION => __( 'Redacción para publicar (notas del sitio, comunicados)', 'cead-acad' ),
+		];
+	}
+
+	/** La opción donde vive el modelo de cada tarea. */
+	protected static function opcion_modelo( $tarea ) {
+		return 'cead_acad_wa_ai_model_' . sanitize_key( (string) $tarea );
+	}
+
+	/**
+	 * Qué modelo usar para esta tarea.
+	 *
+	 * Vacío = el modelo general. Eso hace que la función sea opt-in: quien no
+	 * toque nada sigue con un solo modelo para todo, igual que antes, y quien
+	 * quiera afinar completa solo las casillas que le interesan.
+	 */
+	public static function model_para( $tarea = self::TAREA_CHARLA ) {
+		if ( ! array_key_exists( $tarea, self::tareas() ) ) {
+			return self::model();
+		}
+		$m = trim( (string) get_option( self::opcion_modelo( $tarea ), '' ) );
+		return '' !== $m ? $m : self::model();
+	}
+
+	/**
+	 * Qué modelo usar en un turno concreto, ya contando si vino una imagen.
+	 *
+	 * Devolver null significa «que lo elija `call()`», y es lo correcto cuando
+	 * hay una foto: ahí manda el modelo de visión y no el de la tarea. Pasarle
+	 * un modelo lo tomaría como «modelo forzado» y ya no cambiaría al de visión,
+	 * así que CEADI recibiría la foto con un modelo que no puede mirarla. Un
+	 * nivel de dificultad no sirve de nada si el modelo no tiene ojos.
+	 *
+	 * @return string|null
+	 */
+	public static function modelo_para_turno( $tarea, $con_imagen ) {
+		if ( $con_imagen && self::vision_enabled() ) {
+			return null;
+		}
+		return self::model_para( $tarea );
+	}
+
+	/**
+	 * Qué tarea es, cuando quien llama no lo dice.
+	 *
+	 * Se mira si vinieron herramientas de personal. No es una adivinanza: esas
+	 * herramientas se arman a partir de los permisos REALES de quien escribe, así
+	 * que su presencia significa que del otro lado hay alguien que puede publicar
+	 * o cargar notas, no un alumno preguntando a qué hora entra.
+	 */
+	protected static function tarea_por_defecto( $extra_tools ) {
+		return ( is_array( $extra_tools ) && [] !== $extra_tools )
+			? self::TAREA_GESTION
+			: self::TAREA_CHARLA;
+	}
+
 	/* ------------------------- Proveedor de respaldo ------------------------ */
 
 	/*
@@ -1550,9 +1639,13 @@ TXT;
 	 * está activa y hay $phone. `$user_context` describe a quién atiende (nombre,
 	 * rol, cursos, fecha de hoy) para que responda con datos y no a ciegas.
 	 */
-	public static function route( $message, $faq_context = '', $phone = '', $extra_tools = [], $user_context = '', $image = null, $user_id = 0 ) {
+	public static function route( $message, $faq_context = '', $phone = '', $extra_tools = [], $user_context = '', $image = null, $user_id = 0, $tarea = null ) {
 		$history = ( $phone !== '' ) ? self::load_memory( $phone ) : [];
-		$r = self::call( $message, $faq_context, null, null, null, $history, $extra_tools, $user_context, $image, $user_id );
+		// Sin tarea explícita se deduce de si vinieron herramientas de personal.
+		$tarea = ( null !== $tarea ) ? $tarea : self::tarea_por_defecto( $extra_tools );
+
+		$modelo = self::modelo_para_turno( $tarea, null !== $image );
+		$r = self::call( $message, $faq_context, null, null, $modelo, $history, $extra_tools, $user_context, $image, $user_id );
 		if ( ! $r['ok'] ) {
 			// Fallo TÉCNICO (no «no entendí»): registrarlo para diagnóstico. El
 			// motor lo usa para caer al menú, y el admin lo muestra en CEADI · IA.

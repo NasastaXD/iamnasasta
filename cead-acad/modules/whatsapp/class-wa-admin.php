@@ -430,6 +430,15 @@ class Cead_Acad_WA_Admin {
 			update_option( 'cead_acad_wa_ai_model', sanitize_text_field( wp_unslash( $_POST['ai_model'] ?? '' ) ) ?: 'deepseek-chat', false );
 			update_option( 'cead_acad_wa_ai_endpoint', esc_url_raw( wp_unslash( $_POST['ai_endpoint'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai_endpoint_is_base', ! empty( $_POST['ai_endpoint_is_base'] ) ? 1 : 0, false );
+			// Modelo por tipo de tarea (vacío = el modelo general).
+			foreach ( array_keys( Cead_Acad_WA_AI::tareas() ) as $tarea_clave ) {
+				update_option(
+					'cead_acad_wa_ai_model_' . $tarea_clave,
+					sanitize_text_field( wp_unslash( $_POST[ 'ai_model_' . $tarea_clave ] ?? '' ) ),
+					false
+				);
+			}
+
 			// Proveedor de respaldo (opcional).
 			update_option( 'cead_acad_wa_ai2_key', sanitize_text_field( wp_unslash( $_POST['ai2_key'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai2_model', sanitize_text_field( wp_unslash( $_POST['ai2_model'] ?? '' ) ), false );
@@ -587,6 +596,33 @@ class Cead_Acad_WA_Admin {
 		if ( Cead_Acad_WA_AI::key() !== '' && defined( 'CEAD_ACAD_AI_KEY' ) && CEAD_ACAD_AI_KEY ) {
 			echo '<tr><th></th><td><p class="description">' . esc_html__( 'La API key está fijada por constante en wp-config.php (CEAD_ACAD_AI_KEY); este campo se ignora.', 'cead-acad' ) . '</p></td></tr>';
 		}
+
+
+		/* ---------------- Modelo según la dificultad de la tarea ------------ */
+		echo '<tr><th scope="row" colspan="2"><h2 style="margin:1.5em 0 0">' . esc_html__( 'Modelo por tipo de tarea (opcional)', 'cead-acad' ) . '</h2></th></tr>';
+		echo '<tr><th></th><td><p class="description">'
+			. esc_html__( 'Decirle a alguien a qué hora tiene Matemática y redactar la nota de un acto escolar no son el mismo trabajo. Acá se puede usar un modelo chico y barato para lo cotidiano —que es la mayor parte del volumen— y uno bueno solo para escribir.', 'cead-acad' )
+			. '</p><p class="description">'
+			. esc_html__( 'Dejar una casilla vacía usa el modelo general de arriba. Si no se toca nada, todo sigue funcionando exactamente como antes.', 'cead-acad' )
+			. '</p></td></tr>';
+
+		foreach ( Cead_Acad_WA_AI::tareas() as $clave => $etiqueta ) {
+			$this->field(
+				'ai_model_' . $clave,
+				$etiqueta,
+				get_option( 'cead_acad_wa_ai_model_' . $clave, '' ),
+				/* translators: %s: modelo general configurado */
+				sprintf( __( 'vacío = %s', 'cead-acad' ), Cead_Acad_WA_AI::model() )
+			);
+		}
+
+		echo '<tr><th></th><td><p class="description">'
+			. esc_html__( 'Cómo se decide: si quien escribe es personal con permisos (puede publicar, cargar notas), el turno cuenta como «gestión»; si no, como «día a día». Los borradores de Instagram y las correcciones de notas van siempre por «redacción».', 'cead-acad' )
+			. '</p><p class="description">'
+			. esc_html__( 'Si querés que CEADI escriba bien los artículos que le pedís por chat, el modelo bueno va en «gestión»: cuando el personal le pide una nota, el artículo se redacta dentro de ese mismo turno.', 'cead-acad' )
+			. '</p><p class="description">'
+			. esc_html__( 'Con una imagen adjunta manda el modelo de lectura de imágenes, no el de la tarea: un modelo sin visión no puede mirar la foto por más potente que sea.', 'cead-acad' )
+			. '</p></td></tr>';
 
 		/* ------------------------- Proveedor de respaldo ------------------- */
 		echo '<tr><th scope="row" colspan="2"><h2 style="margin:1.5em 0 0">' . esc_html__( 'Proveedor de respaldo (opcional)', 'cead-acad' ) . '</h2></th></tr>';
