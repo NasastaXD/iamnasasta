@@ -43,8 +43,11 @@ $quick = [
 	[ 'href' => 'panel/calendario',  'label' => __( 'Calendario', 'cead-acad' ),  'icon' => '📅' ],
 	[ 'href' => 'panel/comunicados', 'label' => __( 'Comunicados', 'cead-acad' ), 'icon' => '📣' ],
 	[ 'href' => 'panel/recursos',    'label' => __( 'Recursos', 'cead-acad' ),    'icon' => '📁' ],
-	[ 'href' => 'panel/carne',       'label' => __( 'Mi carné', 'cead-acad' ),    'icon' => '🪪' ],
 ];
+// El carné va apagado hasta que el colegio lo adopte (cead_acad_carne_activo()).
+if ( cead_acad_carne_activo() ) {
+	$quick[] = [ 'href' => 'panel/carne', 'label' => __( 'Mi carné', 'cead-acad' ), 'icon' => '🪪' ];
+}
 if ( current_user_can( 'cead_acad_view_own_grades' ) ) {
 	$quick[] = [ 'href' => 'panel/boletin', 'label' => __( 'Boletín', 'cead-acad' ), 'icon' => '📝' ];
 }

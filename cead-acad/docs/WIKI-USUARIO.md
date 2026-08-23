@@ -34,7 +34,7 @@ Esta wiki explica **todo lo que tiene el sistema** en lenguaje simple: el panel 
 
 CEAD Académico es la plataforma del colegio. Tiene tres caras:
 
-1. **El panel web** (`/panel`) — donde cada persona, según su rol, ve comunicados, calendario, horarios, tareas, recursos, su carné, etc.
+1. **El panel web** (`/panel`) — donde cada persona, según su rol, ve comunicados, calendario, horarios, tareas, recursos, boletín, etc.
 2. **CEADI**, el **bot de WhatsApp** — atiende consultas, horarios, eventos, reportes y mensajes desde el celular.
 3. **La administración** (wp-admin) — donde dirección y secretaría cargan cursos, usuarios, comunicados, eventos, calificaciones e importan datos.
 
@@ -79,7 +79,7 @@ Se puede usar desde el navegador o **instalarse como app** en el celular (ver §
 | **Secretaría** | Casi todo lo administrativo (cursos, invitaciones, comunicados, eventos, importadores, buzón). |
 | **Docente** | Comunicados y eventos de sus cursos; carga de notas y tareas. |
 | **Delegado/a** | Gestiona las **tareas de su curso**. |
-| **Alumno/a** | Comunicados, horarios, calendario, tareas, recursos, carné, boletín (sus notas), escribir al CEAD. |
+| **Alumno/a** | Comunicados, horarios, calendario, tareas, recursos, boletín (sus notas), escribir al CEAD. |
 | **Familia** | Calendario, eventos, comunicados, recursos, tareas a nivel colegio. **No ve calificaciones.** |
 | **Consejo Estudiantil** | Recibe y responde **sugerencias** dirigidas al Consejo; puede publicar comunicados. |
 
@@ -127,15 +127,21 @@ Tareas de tu curso con **fecha de vencimiento** (resalta "vence hoy/vencida"), p
 ### 📁 Recursos
 Biblioteca de materiales (PDFs, enlaces, mapas). Tiene **búsqueda**, **filtros por materia/tipo** y **favoritos** ⭐.
 
-### 🪪 Mi carné
-Tu **carné digital** con foto, rol, curso, documento y un **código QR**. Al escanearlo, abre una **página pública de verificación** que confirma que el carné es válido (muestra nombre, rol, curso y foto; **no** expone datos sensibles). Botón para **imprimir / guardar PDF**.
+### 🪪 Mi carné *(desactivado)*
+> **Esta función está apagada.** No aparece en el panel ni la ofrece CEADI. Se prende desde **wp-admin → CEAD Académico → Funciones**, y tiene sentido recién cuando el colegio decida usar el carné digital de verdad (que alguien escanee el QR en la puerta). Mientras tanto sería una sección que no lleva a nada y que se puede confundir con un documento oficial.
+
+Cuando está activo: tu **carné digital** con foto, rol, curso, documento y un **código QR**. Al escanearlo, abre una **página pública de verificación** que confirma que el carné es válido (muestra nombre, rol, curso y foto; **no** expone datos sensibles). Botón para **imprimir / guardar PDF**. El QR lo genera el propio servidor del colegio: el código de verificación no sale a ningún servicio externo.
 
 ![Carné digital con foto, datos del alumno y código QR de verificación](img/carne.svg)
 *Ilustración del carné digital y su QR de verificación pública.*
 
 ### 👤 Mi perfil
 - Cambiar **foto**, **nombre** y **teléfono**.
-- **Verificación de WhatsApp**: pedís un **código** que CEADI te manda al WhatsApp, lo ingresás y tu número queda **✅ verificado**.
+- **Verificación de WhatsApp**: pedís un **código** que CEADI te manda al WhatsApp, lo ingresás y tu número queda **✅ verificado**. Si después **cambiás el número**, la verificación se cae y hay que rehacerla — el ✅ vale para el número que confirmaste, no para la cuenta.
+
+> **Tu número tiene que ser tuyo y solo tuyo.** Es con lo que CEADI te reconoce cuando le escribís, así que el sistema no deja que dos cuentas tengan el mismo: si al registrarte o al editar tu perfil sale que el número «ya está registrado en otra cuenta», es porque figura en la ficha de otra persona. Si el número es tuyo, avisá a secretaría.
+>
+> Escribilo como quieras —`0981123456`, `0981 123 456` o `+595 981 123456` son el mismo número para el sistema—, pero que sea el celular donde de verdad usás WhatsApp.
 
 ### 📲 Instalar app
 Tutorial para instalar el sistema como app (ver §3).
@@ -200,14 +206,15 @@ El borrador **no se publica solo**. Y elegir *3* **no lo borra**: la nota queda 
  4. Contacto           12. Mis ajustes
  5. Comunicados        13. Mis notas
  6. Reportar algo      14. Mis tareas
- 7. Sugerencias        15. Mi carné
+ 7. Sugerencias        15. Mi carné *(apagado)*
  8. Preguntas frecuentes
                         0. Salir
 ```
 - **Reportar algo (6)**: anónimo o confidencial, con categoría; queda en el **buzón**.
 - **Escribir a un encargado (7)**: elegís **Administración / Consejo / Dirección** y tu mensaje cae en el **buzón**.
 - **Mis ajustes (12)**: ver tus datos, cambiar tu nombre para mostrar, pedir a Secretaría el cambio de número, y elegir si querés hablarle en **lenguaje natural** o con el **menú de números**.
-- **Mis notas (13)**, **Mis tareas (14)** y **Mi carné (15)**: lo mismo que ves en el panel, pero sin salir del chat.
+- **Mis notas (13)** y **Mis tareas (14)**: lo mismo que ves en el panel, pero sin salir del chat.
+- **Mi carné (15)**: la función está apagada. La opción sigue en el menú numerado (los números están fijos y mover uno correría todos los demás), pero al elegirla CEADI responde que todavía no está habilitada en vez de mandar un enlace muerto.
 - Los reportes y mensajes **se gestionan solo en el panel** (no se reenvían a ningún WhatsApp de coordinación).
 
 ### Comandos útiles

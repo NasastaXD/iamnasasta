@@ -36,7 +36,7 @@ class Cead_Acad_WA_AI {
 	 * clave => descripción (la descripción va en el prompt para que tenga criterio).
 	 */
 	public static function actions() {
-		return [
+		$acciones = [
 			'horario'       => 'mostrar el horario de clases personal del alumno (datos reales del sistema)',
 			'notas'         => 'mostrar las notas/boletín del alumno (calificaciones reales por materia y periodo)',
 			'tareas'        => 'mostrar las tareas pendientes del alumno y sus fechas de entrega (datos reales del curso)',
@@ -49,10 +49,20 @@ class Cead_Acad_WA_AI {
 			'consejo'       => 'abrir el Consejo Estudiantil',
 			'recordatorios' => 'activar o desactivar los recordatorios de eventos',
 			'panel'         => 'dar el enlace al panel web del alumno',
-			'carne'         => 'dar el enlace al carné digital del alumno',
 			'faq'           => 'mostrar el listado completo de preguntas frecuentes',
 			'ajustes'       => 'abrir los ajustes del usuario (ver sus datos, cambiar su nombre, pedir cambio de número, activar/desactivar el modo IA o los recordatorios)',
 		];
+
+		/*
+		 * El carné solo se le ofrece a CEADI si está encendido. Esta lista va
+		 * dentro del prompt: dejar la acción acá con la función apagada sería
+		 * enseñarle a mandar a los alumnos a una página que redirige sola.
+		 */
+		if ( function_exists( 'cead_acad_carne_activo' ) && cead_acad_carne_activo() ) {
+			$acciones['carne'] = 'dar el enlace al carné digital del alumno';
+		}
+
+		return $acciones;
 	}
 
 	/* ---------------- Config ---------------- */
@@ -94,6 +104,205 @@ class Cead_Acad_WA_AI {
 	/** ¿Lo cargado en «Endpoint» es una base URL en vez del endpoint completo? */
 	public static function endpoint_is_base() {
 		return (bool) get_option( 'cead_acad_wa_ai_endpoint_is_base', 0 );
+	}
+
+
+	/* ------------------ Modelo según la dificultad de la tarea -------------- */
+
+	/*
+	 * Tres niveles de dificultad, y la dificultad es una propiedad de la TAREA,
+	 * no de quién la pide.
+	 *
+	 * Que escriba un alumno o la directora no cambia lo difícil que es el
+	 * trabajo: leer una planilla de notas torcida es igual de difícil sin
+	 * importar quién mandó el archivo. Agrupar por «alumno / personal» mezclaba
+	 * «listame los cursos» con «cargá esta nota», que no se parecen en nada.
+	 *
+	 * El criterio para subir de nivel es DOBLE, y las dos mitades importan:
+	 *
+	 *   - Exigencia: qué tan probable es que un modelo chico se equivoque.
+	 *   - Costo del error: qué pasa cuando se equivoca. Hay tareas fáciles de
+	 *     hacer y carísimas de errar; ésas también suben.
+	 *
+	 * Lo que se está comprando con el nivel 3 no es plata: es TIEMPO. Un modelo
+	 * grande tarda bastante más, y nadie espera que «¿qué clases tengo hoy?»
+	 * tarde diez segundos. Por eso el nivel alto se reserva para lo que la
+	 * persona YA espera que tarde —escribir una nota, procesar una planilla— y
+	 * para lo que no se puede errar.
+	 */
+
+	/** Salir rápido: elegir una pantalla, listar, contestar una duda. */
+	const NIVEL_RAPIDO = 'n1';
+
+	/** Trabajo real pero acotado: sacar datos de una frase suelta. */
+	const NIVEL_MEDIO = 'n2';
+
+	/** No se puede errar, y la persona ya espera que tarde. */
+	const NIVEL_MAXIMO = 'n3';
+
+	/** Los tres, con su etiqueta, para la pantalla de ajustes. */
+	public static function niveles() {
+		return [
+			self::NIVEL_RAPIDO => __( '1 · Rápido — elegir pantalla, listar, contestar dudas', 'cead-acad' ),
+			self::NIVEL_MEDIO  => __( '2 · Medio — sacar datos de una frase suelta (fechas, nombres)', 'cead-acad' ),
+			self::NIVEL_MAXIMO => __( '3 · Máximo — redactar, cargar notas, leer planillas', 'cead-acad' ),
+		];
+	}
+
+	/**
+	 * Qué nivel pide cada función. Lo que no está acá es nivel 1.
+	 *
+	 * Esta tabla es el corazón del ruteo y conviene leerla como lo que es: la
+	 * lista de las cosas que NO le confiamos al modelo rápido, con el motivo.
+	 */
+	public static function dificultades() {
+		return [
+			/*
+			 * NIVEL 3 — lo que no se puede errar.
+			 */
+
+			// Escribir una frase que tiene que entenderse fuera de esta charla,
+			// y que queda guardada para siempre ensuciando cada conversación
+			// futura si sale mal. Los modelos chicos copian la frase cruda con
+			// los pronombres colgando («que empieza a las 7:10»: ¿qué cosa?).
+			'recordar'          => self::NIVEL_MAXIMO,
+
+			// Elegir la audiencia Y redactar, en un mensaje que sale a mucha
+			// gente de una y no se puede despublicar de los celulares.
+			'enviar_comunicado' => self::NIVEL_MAXIMO,
+
+			// Se publica en el sitio con la voz del colegio.
+			'crear_articulo'    => self::NIVEL_MAXIMO,
+
+			/*
+			 * Sacar alumno + materia + período + nota de una frase suelta, con
+			 * la escala paraguaya y decimales con coma. Lo aprueba un humano,
+			 * pero «un 4 a Ana en Mate» SE LEE BIEN aunque sea la Ana
+			 * equivocada: la aprobación no atrapa este error.
+			 */
+			'cargar_nota'       => self::NIVEL_MAXIMO,
+
+			/*
+			 * NIVEL 2 — trabajo real, pero con red.
+			 */
+
+			// Sacar fecha y hora de español natural («el viernes que viene a las
+			// 8») es la falla clásica del modelo chico. Lo salva que un humano
+			// aprueba y la fecha se lee de un vistazo.
+			'crear_evento'      => self::NIVEL_MEDIO,
+
+			// Rol + nombre, y da acceso al sistema. Lo aprueba un humano.
+			'crear_invitacion'  => self::NIVEL_MEDIO,
+
+			// Borra una memoria: hay que acertar CUÁL entre varias parecidas.
+			'olvidar'           => self::NIVEL_MEDIO,
+
+			// Devuelve teléfono y estado de cuenta de una persona real.
+			'buscar_persona'    => self::NIVEL_MEDIO,
+
+			// Lee las notas de un curso entero.
+			'ver_notas_curso'   => self::NIVEL_MEDIO,
+		];
+	}
+
+	/** Nivel que pide una función ('' o desconocida = el rápido). */
+	public static function nivel_de( $funcion ) {
+		$tabla = self::dificultades();
+		return $tabla[ (string) $funcion ] ?? self::NIVEL_RAPIDO;
+	}
+
+	/** Orden de los niveles, para poder comparar cuál es más alto. */
+	protected static function peso_nivel( $nivel ) {
+		$orden = [ self::NIVEL_RAPIDO => 1, self::NIVEL_MEDIO => 2, self::NIVEL_MAXIMO => 3 ];
+		return $orden[ (string) $nivel ] ?? 1;
+	}
+
+	/** ¿$a exige más que $b? */
+	public static function nivel_mayor( $a, $b ) {
+		return self::peso_nivel( $a ) > self::peso_nivel( $b );
+	}
+
+	/**
+	 * Qué modelo usar en un nivel.
+	 *
+	 * Vacío = el modelo general, así que esto es opt-in: quien no toque nada
+	 * sigue con un solo modelo para todo, igual que antes.
+	 *
+	 * Se leen también los nombres viejos (charla/gestion/redaccion) para no
+	 * dejar huérfana la configuración de quien ya la había cargado.
+	 */
+	public static function model_nivel( $nivel = self::NIVEL_RAPIDO ) {
+		if ( ! array_key_exists( $nivel, self::niveles() ) ) {
+			return self::model();
+		}
+		$m = trim( (string) get_option( 'cead_acad_wa_ai_model_' . $nivel, '' ) );
+		if ( '' === $m ) {
+			$viejo = [ self::NIVEL_RAPIDO => 'charla', self::NIVEL_MEDIO => 'gestion', self::NIVEL_MAXIMO => 'redaccion' ];
+			$m     = trim( (string) get_option( 'cead_acad_wa_ai_model_' . $viejo[ $nivel ], '' ) );
+		}
+		return '' !== $m ? $m : self::model();
+	}
+
+	/**
+	 * Qué modelo usar en un turno, ya contando si vino una imagen.
+	 *
+	 * Devolver null significa «que lo elija `call()`», y es lo correcto cuando
+	 * hay una foto: ahí manda el modelo de visión y no el del nivel. Pasarle un
+	 * modelo lo tomaría como «modelo forzado» y ya no cambiaría al de visión,
+	 * así que CEADI recibiría la foto con un modelo que no puede mirarla. Un
+	 * nivel de dificultad no sirve de nada si el modelo no tiene ojos.
+	 *
+	 * @return string|null
+	 */
+	public static function modelo_para_turno( $nivel, $con_imagen ) {
+		if ( $con_imagen && self::vision_enabled() ) {
+			return null;
+		}
+		return self::model_nivel( $nivel );
+	}
+
+	/* ------------------------- Proveedor de respaldo ------------------------ */
+
+	/*
+	 * Un segundo proveedor, con su propio endpoint, modelo y key.
+	 *
+	 * Los servicios de IA se caen, se quedan sin saldo y retiran modelos sin
+	 * avisar, y cuando eso pasa CEADI deja de entender lenguaje natural para
+	 * todo el colegio a la vez. El respaldo es el seguro: idealmente de OTRA
+	 * empresa, porque dos modelos del mismo proveedor se caen juntos.
+	 */
+
+	public static function respaldo_key() {
+		if ( defined( 'CEAD_ACAD_AI2_KEY' ) && CEAD_ACAD_AI2_KEY ) {
+			return (string) CEAD_ACAD_AI2_KEY;
+		}
+		return (string) get_option( 'cead_acad_wa_ai2_key', '' );
+	}
+
+	public static function respaldo_model() {
+		return (string) get_option( 'cead_acad_wa_ai2_model', '' );
+	}
+
+	public static function respaldo_endpoint() {
+		$raw = trim( (string) get_option( 'cead_acad_wa_ai2_endpoint', '' ) );
+		if ( '' === $raw ) {
+			return '';
+		}
+		if ( (bool) get_option( 'cead_acad_wa_ai2_endpoint_is_base', 0 ) ) {
+			return rtrim( $raw, '/' ) . self::CHAT_PATH;
+		}
+		return $raw;
+	}
+
+	/**
+	 * Solo cuenta como respaldo si están las tres cosas. Un respaldo a medio
+	 * cargar es peor que ninguno: hace creer que hay red debajo y en el momento
+	 * de la caída falla igual, con el doble de demora encima.
+	 */
+	public static function respaldo_activo() {
+		return self::respaldo_key() !== ''
+			&& self::respaldo_endpoint() !== ''
+			&& self::respaldo_model() !== '';
 	}
 	/**
 	 * Esfuerzo de razonamiento, para modelos que lo soportan ('' = apagado).
@@ -142,6 +351,234 @@ class Cead_Acad_WA_AI {
 	 * tiene antes que arriesgar el turno entero.
 	 */
 	const PRESUPUESTO_SEG = 38;
+
+
+	/* --------------------------- Aviso de caída ---------------------------- */
+
+	/** Se apaga durante la prueba del admin: ahí ya hay alguien mirando. */
+	protected static $silenciar_avisos = false;
+
+	public static function silenciar_avisos( $si = true ) {
+		self::$silenciar_avisos = (bool) $si;
+	}
+
+	/**
+	 * Permite apagar el respaldo para UNA prueba.
+	 *
+	 * Existe por el botón «Probar» del admin. Si la prueba se fuera al respaldo
+	 * sin decirlo, diría «OK» con el proveedor principal caído — que es
+	 * exactamente el problema que el respaldo introduce: tapa la falla hasta que
+	 * se caen los dos. Cada proveedor se prueba solo, y se informa por separado.
+	 */
+	protected static $usar_respaldo = true;
+
+	public static function usar_respaldo( $si = true ) {
+		self::$usar_respaldo = (bool) $si;
+	}
+
+	/**
+	 * Traduce la falla del proveedor a algo que dirección pueda accionar.
+	 *
+	 * El código HTTP solo no alcanza: DeepSeek avisa que se acabó el crédito con
+	 * un 402 y OpenAI con un 429 que por fuera es idéntico a «demasiados
+	 * pedidos», que se arregla esperando. Por eso además del código se mira el
+	 * cuerpo de la respuesta. Un aviso que dice «HTTP 429» no le sirve a nadie;
+	 * uno que dice «se acabó el crédito, recargá saldo» se resuelve en dos
+	 * minutos desde el celular.
+	 *
+	 * @return array{causa:string,arreglo:string}
+	 */
+	public static function diagnostico( $code, $bodyraw = '' ) {
+		$code = (int) $code;
+		$b    = strtolower( wp_strip_all_tags( (string) $bodyraw ) );
+
+		$dice = static function ( array $agujas ) use ( $b ) {
+			foreach ( $agujas as $a ) {
+				if ( '' !== $b && false !== strpos( $b, $a ) ) { return true; }
+			}
+			return false;
+		};
+
+		// El saldo se mira primero: viaja con códigos distintos según proveedor
+		// (402, 429, hasta 403) y es la causa más común de una caída larga.
+		if ( 402 === $code || $dice( [ 'insufficient balance', 'insufficient_quota', 'insufficient funds', 'exceeded your current quota', 'billing', 'payment required', 'saldo' ] ) ) {
+			return [
+				'causa'   => 'Se acabó el crédito de la cuenta.',
+				'arreglo' => 'Entrar al panel del proveedor y recargar saldo.',
+			];
+		}
+
+		if ( $dice( [ 'model not found', 'model_not_found', 'does not exist', 'no such model', 'deprecated', 'decommissioned', 'has been retired' ] ) ) {
+			return [
+				'causa'   => 'El modelo configurado ya no existe (lo retiraron o cambió de nombre).',
+				'arreglo' => 'Cambiar el nombre del modelo en CEAD Académico → CEADI · IA.',
+			];
+		}
+
+		if ( 401 === $code || 403 === $code || $dice( [ 'invalid api key', 'incorrect api key', 'unauthorized', 'invalid_api_key' ] ) ) {
+			return [
+				'causa'   => 'La API key no es válida o fue revocada.',
+				'arreglo' => 'Generar una key nueva en el proveedor y cargarla en CEADI · IA.',
+			];
+		}
+
+		if ( 429 === $code ) {
+			return [
+				'causa'   => 'El proveedor está limitando la cantidad de pedidos.',
+				'arreglo' => 'Suele pasar solo en unos minutos. Si sigue, hay que subir el plan.',
+			];
+		}
+
+		if ( 404 === $code ) {
+			return [
+				'causa'   => 'El endpoint no responde en esa dirección (404).',
+				'arreglo' => 'Revisar la URL del endpoint y el interruptor «es una base URL».',
+			];
+		}
+
+		if ( 0 === $code ) {
+			return [
+				'causa'   => 'El servidor no pudo conectarse al proveedor (red, DNS o timeout).',
+				'arreglo' => 'Revisar que el VPS tenga internet y que el proveedor no esté caído.',
+			];
+		}
+
+		if ( $code >= 500 ) {
+			return [
+				'causa'   => 'El proveedor está caído de su lado.',
+				'arreglo' => 'No hay nada que tocar: se resuelve cuando ellos lo levanten.',
+			];
+		}
+
+		return [
+			'causa'   => 'Error inesperado del proveedor (HTTP ' . $code . ').',
+			'arreglo' => 'Mirar el detalle en CEAD Académico → Registros.',
+		];
+	}
+
+	/**
+	 * Le avisa a dirección por WhatsApp que la IA se cayó.
+	 *
+	 * Dos cuidados que hacen la diferencia entre un aviso útil y uno dañino:
+	 *
+	 * 1. ESTÁ LIMITADO. Un proveedor caído falla en CADA mensaje de CADA alumno.
+	 *    Sin freno, dirección recibiría cientos de avisos idénticos en minutos:
+	 *    dejaría de leerlos, y en un puente no oficial ese envío masivo es
+	 *    justamente lo que hace que baneen el número del colegio. Se manda uno
+	 *    por causa cada media hora.
+	 * 2. NUNCA VIAJA LA API KEY. Se manda el código, la causa y el arreglo; el
+	 *    cuerpo crudo de la respuesta se recorta y queda en el registro, no en
+	 *    un chat de WhatsApp que se reenvía.
+	 *
+	 * @param string $situacion 'respaldo' (el primario cayó y el respaldo salvó) o 'caido'.
+	 * @param array  $r         Respuesta fallida ([code, bodyraw, error]).
+	 * @param string $quien     Nombre legible del proveedor que falló.
+	 */
+	protected static function avisar_caida( $situacion, $r, $quien ) {
+		if ( self::$silenciar_avisos ) { return; }
+
+		$code = (int) ( $r['code'] ?? 0 );
+		$dg   = self::diagnostico( $code, (string) ( $r['bodyraw'] ?? $r['error'] ?? '' ) );
+
+		// Un aviso por causa y por situación cada media hora.
+		$llave = 'cead_acad_ai_aviso_' . md5( $situacion . '|' . $dg['causa'] );
+		if ( get_transient( $llave ) ) { return; }
+		set_transient( $llave, 1, 30 * MINUTE_IN_SECONDS );
+
+		$telefono = (string) get_option( 'cead_acad_wa_director_phone', '' );
+		if ( '' === trim( $telefono ) ) {
+			error_log( '[CeadAcadWA][AI] Falló la IA y no hay número de dirección cargado para avisar.' );
+			return;
+		}
+
+		$texto = self::mensaje_caida( $situacion, $r, $quien );
+
+		try {
+			$store  = new Cead_Acad_WA_Store();
+			$bridge = new Cead_Acad_WA_Bridge_Client( $store );
+			$bridge->send_message( $telefono, $texto );
+		} catch ( Throwable $e ) {
+			error_log( '[CeadAcadWA][AI] No se pudo avisar la caída: ' . $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Arma el texto del aviso. Función pura: no manda nada, así se puede testear.
+	 *
+	 * Lo que se testea acá no es la redacción sino una garantía: que NUNCA
+	 * viaje la API key. El aviso sale por WhatsApp, se reenvía, queda en el
+	 * celular de varias personas y en las copias de seguridad de WhatsApp. Una
+	 * key filtrada ahí es una cuenta que cualquiera puede vaciar. Por eso el
+	 * mensaje se arma con el código, la causa y el arreglo — nunca con lo que
+	 * se le mandó al proveedor.
+	 */
+	public static function mensaje_caida( $situacion, $r, $quien ) {
+		$code = (int) ( $r['code'] ?? 0 );
+		$dg   = self::diagnostico( $code, (string) ( $r['bodyraw'] ?? $r['error'] ?? '' ) );
+
+		$detalle = trim( (string) ( $r['error'] ?? '' ) );
+		if ( '' === $detalle ) {
+			$detalle = mb_substr( trim( wp_strip_all_tags( (string) ( $r['bodyraw'] ?? '' ) ) ), 0, 160 );
+		}
+		$detalle = self::redactar( $detalle );
+
+		if ( 'respaldo' === $situacion ) {
+			$texto  = "⚠️ *CEADI: falló el proveedor principal de IA*\n\n";
+			$texto .= "Proveedor: {$quien}\n";
+			$texto .= 'Error: HTTP ' . $code . ( '' !== $detalle ? ' — ' . $detalle : '' ) . "\n\n";
+			$texto .= "*Qué pasó:* {$dg['causa']}\n";
+			$texto .= "*Qué hacer:* {$dg['arreglo']}\n\n";
+			$texto .= '_CEADI sigue funcionando con el proveedor de respaldo. No hay apuro, pero conviene resolverlo._';
+			return $texto;
+		}
+
+		$texto  = "🔴 *CEADI: se cayó la IA*\n\n";
+		$texto .= "Proveedor: {$quien}\n";
+		$texto .= 'Error: HTTP ' . $code . ( '' !== $detalle ? ' — ' . $detalle : '' ) . "\n\n";
+		$texto .= "*Qué pasó:* {$dg['causa']}\n";
+		$texto .= "*Qué hacer:* {$dg['arreglo']}\n\n";
+		$texto .= '_Mientras tanto CEADI atiende con el menú numérico: los alumnos NO quedan sin respuesta, pero no entiende lenguaje natural._';
+		return $texto;
+	}
+
+	/**
+	 * Tacha credenciales del texto que va a salir del servidor.
+	 *
+	 * Hace falta porque VARIOS proveedores devuelven la key adentro del propio
+	 * mensaje de error («Invalid API key: sk-...»). Sin esto, la falla más común
+	 * de todas —una key mal cargada— publicaría esa key por WhatsApp, en un
+	 * mensaje pensado justamente para reenviar. La cuenta quedaría a mano de
+	 * cualquiera y nadie se enteraría hasta ver la factura.
+	 *
+	 * Se tachan las keys configuradas (que son las que pueden aparecer) y además
+	 * cualquier cosa con forma de credencial, por si el proveedor devuelve un
+	 * token que no es ninguna de las dos.
+	 */
+	protected static function redactar( $texto ) {
+		$texto = (string) $texto;
+		if ( '' === $texto ) { return ''; }
+
+		foreach ( [ self::key(), self::respaldo_key() ] as $secreto ) {
+			$secreto = (string) $secreto;
+			// El mínimo evita que una key vacía o absurdamente corta convierta
+			// el mensaje entero en asteriscos.
+			if ( strlen( $secreto ) >= 8 ) {
+				$texto = str_replace( $secreto, '[key oculta]', $texto );
+			}
+		}
+
+		// Formas típicas de credencial: sk-…, Bearer …, tokens largos.
+		$texto = preg_replace( '/\b(sk|pk|api|key|tok)[-_][A-Za-z0-9_\-]{8,}/i', '[key oculta]', $texto );
+		$texto = preg_replace( '/\bBearer\s+[A-Za-z0-9._\-]{8,}/i', 'Bearer [key oculta]', $texto );
+
+		return (string) $texto;
+	}
+
+	/** Nombre corto y legible de un endpoint, para el aviso (sin la key). */
+	protected static function nombre_proveedor( $endpoint ) {
+		$host = (string) wp_parse_url( (string) $endpoint, PHP_URL_HOST );
+		return '' !== $host ? $host : 'proveedor sin identificar';
+	}
 
 	/** ¿El 400 del proveedor se queja justamente del max_tokens? */
 	protected static function rejects_max_tokens( $r ) {
@@ -459,6 +896,7 @@ Esto vale cuando REDACTÁS algo que se va a publicar (una nota del sitio, un com
 Tercera persona, tono institucional y llano. El colegio informa; no se felicita a sí mismo.
 - Escribí como una crónica de diario escolar, no como una publicidad. Nada de «una jornada inolvidable», «un éxito rotundo», «nuestros queridos estudiantes».
 - Español de Paraguay, pero en registro escrito: sin voseo, sin modismos de chat, sin abreviaturas.
+- Siempre en castellano, aunque el material de origen (un pie de foto, una nota de voz) venga en guaraní o mezclado.
 - Frases cortas. Un dato por frase.
 - Nombres propios completos la primera vez que aparecen.
 - Los cursos como los nombra el colegio (por ejemplo «3.º Ciencias Básicas»), no inventados.
@@ -485,6 +923,13 @@ TXT;
 	public static function default_persona() {
 		return <<<'TXT'
 Sos CEADI, el asistente por WhatsApp del CEAD «Félix de Guarania», colegio secundario de alto desempeño de Caaguazú, Paraguay. Atendés a alumnado, familias, docentes, secretaría y dirección.
+
+# IDIOMA — REGLA FIJA
+Entendés guaraní y jopara perfectamente. **Respondés siempre en castellano**, sin excepción.
+- Si te escriben en guaraní o mezclando, entendés todo y contestás en castellano, con naturalidad y sin comentar el cambio de idioma. No corrijas a nadie, no pidas que te escriban en castellano, no aclares que respondés en castellano: simplemente contestá.
+- Aunque te pidan expresamente que contestes en guaraní, contestás en castellano. Si insisten, una línea: «Te contesto en castellano, pero te entiendo igual.» Y seguís.
+- Explicar qué significa una palabra o frase en guaraní SÍ podés: eso es hablar SOBRE el guaraní, y la explicación va en castellano. Lo que no hacés es escribir tus respuestas en guaraní.
+- Responder en castellano no significa hablar raro: el castellano paraguayo lleva palabras guaraníes de uso corriente y ésas se usan con naturalidad. La regla es sobre el idioma en que escribís, no sobre borrar cómo se habla acá.
 
 # CÓMO RESPONDÉS
 Directo y sin vueltas, pero conversás como una persona. Español de Paraguay, voseo.
@@ -819,12 +1264,12 @@ TXT;
 	 * (HTTP 400), cae automáticamente al modo JSON. Devuelve un array de depuración:
 	 * [ ok, code, error, intent, reply, content ].
 	 */
-	public static function call( $message, $faq_context = '', $key = null, $endpoint = null, $model = null, $history = [], $extra_tools = [], $user_context = '', $image = null, $user_id = 0 ) {
+	public static function call( $message, $faq_context = '', $key = null, $endpoint = null, $model = null, $history = [], $extra_tools = [], $user_context = '', $image = null, $user_id = 0, $nivel = null ) {
 		self::$last_tools = [];
 		$key      = $key !== null ? $key : self::key();
 		$endpoint = $endpoint !== null && $endpoint !== '' ? $endpoint : self::endpoint();
 		$forced_model = ( $model !== null && $model !== '' );
-		$model    = $forced_model ? $model : self::model();
+		$model    = $forced_model ? $model : self::model_nivel( $nivel ?: self::NIVEL_RAPIDO );
 		$message  = trim( (string) $message );
 
 		// Imagen adjunta: solo se manda si la lectura de imágenes está activa.
@@ -877,7 +1322,11 @@ TXT;
 		$timeout = $pesado ? 35 : 18;
 		$retry   = ! $pesado;
 
-		$payload = static function ( $mode, $tokens ) use ( $model, $messages, $tools ) {
+		// $model va por REFERENCIA: si el turno escala a un nivel más alto, el
+		// payload tiene que salir con el modelo nuevo. Capturado por valor, la
+		// escalada cambiaría una variable que nadie mira y seguiría llamando al
+		// modelo chico — sin fallar, solo haciendo mal el trabajo difícil.
+		$payload = static function ( $mode, $tokens ) use ( &$model, $messages, $tools ) {
 			$p = [
 				'model'       => $model,
 				'temperature' => self::temperature(),
@@ -913,6 +1362,27 @@ TXT;
 		$conversacion = $messages( 'tools' );
 		$modo_json    = false;
 		$arranque     = microtime( true );
+
+		/*
+		 * Nivel con el que se está corriendo el turno, para poder ESCALAR.
+		 *
+		 * El modelo se elige antes de saber qué va a pedir la persona: es el
+		 * propio modelo el que decide qué herramienta llamar. Así que no se
+		 * puede rutear por función de entrada. Lo que sí se puede es empezar
+		 * rápido y subir cuando el modelo muestra la mano: si pide `cargar_nota`
+		 * o `crear_articulo`, se rehace el turno con el modelo bueno y se tira
+		 * lo que había contestado el chico.
+		 *
+		 * Es una llamada de más, pero solo en los turnos pesados, que son pocos
+		 * y son justo aquellos en los que la persona YA espera esperar. Los
+		 * cientos de «¿qué clases tengo hoy?» salen a la velocidad del modelo
+		 * rápido, que es lo que se quería.
+		 */
+		$nivel_actual = $forced_model ? null : ( $nivel ?: self::NIVEL_RAPIDO );
+		$escalado     = false;
+		// Con una foto manda el modelo de visión y no se escala: cambiar de
+		// modelo a mitad de turno dejaría la imagen atrás.
+		if ( $img_block ) { $nivel_actual = null; }
 		/*
 		 * Lo último que el modelo alcanzó a DECIR, vuelta a vuelta.
 		 *
@@ -988,6 +1458,38 @@ TXT;
 
 			$dicho = trim( (string) ( $msg['content'] ?? '' ) );
 			if ( '' !== $dicho ) { $ultimo_texto = $dicho; }
+
+			/*
+			 * ESCALADA. Va acá arriba, antes de decidir si el bucle sigue,
+			 * porque las tareas caras (cargar_nota, crear_articulo,
+			 * enviar_comunicado) son de GESTIÓN y cortan el bucle unas líneas
+			 * más abajo: preguntando después, ya sería tarde.
+			 *
+			 * Se rehace el turno DESDE CERO con el modelo del nivel que pide, y
+			 * se tira lo que había armado el rápido. No se reaprovecha a
+			 * propósito: en `cargar_nota` lo difícil no es elegir la herramienta
+			 * sino sacar bien el alumno, la materia y el período de una frase
+			 * suelta, y eso ya lo hizo —quizá mal— el modelo chico. Quedarse con
+			 * sus argumentos sería escalar el nombre y no el trabajo.
+			 */
+			if ( null !== $nivel_actual && ! $escalado && [] !== $llamadas ) {
+				$pide = self::NIVEL_RAPIDO;
+				foreach ( $llamadas as $l ) {
+					$n = self::nivel_de( (string) ( $l['function']['name'] ?? '' ) );
+					if ( self::nivel_mayor( $n, $pide ) ) { $pide = $n; }
+				}
+				if ( self::nivel_mayor( $pide, $nivel_actual ) ) {
+					$nivel_actual = $pide;
+					$model        = self::model_nivel( $pide );
+					$escalado     = true;
+					$conversacion = $messages( 'tools' );
+					$ultimo_texto = '';
+					self::$last_tools = [];
+					error_log( '[CeadAcadWA][AI] Escalo a nivel ' . $pide . ' (' . $model . ') y rehago el turno.' );
+					$ronda = -1; // el for lo vuelve a 0
+					continue;
+				}
+			}
 
 			/*
 			 * El bucle solo sigue si TODAS las llamadas de este mensaje son
@@ -1069,19 +1571,84 @@ TXT;
 
 	public static function last_tools() { return self::$last_tools; }
 
-	/** POST al endpoint compatible OpenAI. Devuelve [ code, error, bodyraw, data ]. */
 	/**
-	 * POST al endpoint. Un solo error transitorio (timeout, corte de red, 429,
-	 * 5xx del proveedor) no puede tirar todo el turno al menú de fallback: eso
-	 * es exactamente lo que hacía caer la conversación de golpe. Reintenta UNA
-	 * vez, con una pausa breve, solo ante fallas que tienen sentido reintentar.
+	 * POST al proveedor, con respaldo automático.
 	 *
-	 * Timeout de 18s por intento (no 30s): el bridge espera como máximo 45s una
-	 * respuesta de WordPress para un mensaje de texto (WP_TIMEOUT_MS). Con
-	 * 18 + 0.6 + 18 ≈ 36.6s el peor caso del reintento entra holgado ahí adentro;
-	 * con 30s por intento, dos intentos solos ya superarían esos 45s.
+	 * Un error transitorio (timeout, corte de red, 429, 5xx) no puede tirar el
+	 * turno al menú de fallback. Hay dos formas de cubrirse y NO se acumulan:
+	 *
+	 *  - Sin respaldo cargado: se reintenta UNA vez contra el mismo proveedor.
+	 *  - Con respaldo cargado: NO se reintenta el mismo, se va derecho al otro.
+	 *
+	 * Que se excluyan es deliberado y es la parte fácil de romper. El bridge
+	 * espera 45s como mucho (WP_TIMEOUT_MS) y el turno entero tiene 38s de
+	 * presupuesto: con 18s por intento, primario + respaldo son 18 + 0.6 + 18 ≈
+	 * 36.6s, que entra. Si además se reintentara el primario serían ~55s, el
+	 * bridge cortaría antes y el alumno no recibiría NADA — peor que la caída
+	 * que se quería cubrir. Además, reintentar al que acaba de devolver 500 es
+	 * menos probable que funcione que preguntarle a otra empresa.
+	 *
+	 * @param bool $permitir_respaldo false cuando quien llama fijó un proveedor
+	 *                                a mano y no quiere que se le cambie.
 	 */
-	protected static function http( $endpoint, $key, array $payload, $timeout = 18, $allow_retry = true ) {
+	protected static function http( $endpoint, $key, array $payload, $timeout = 18, $allow_retry = true, $permitir_respaldo = true ) {
+		$hay_respaldo = $permitir_respaldo && self::$usar_respaldo && self::respaldo_activo();
+
+		$r = self::http_una( $endpoint, $key, $payload, $timeout, $allow_retry && ! $hay_respaldo );
+
+		if ( 200 === $r['code'] ) {
+			self::store_usage( $r['data'] );
+			return $r;
+		}
+
+		if ( ! $hay_respaldo ) {
+			if ( '' !== $r['error'] ) {
+				error_log( '[CeadAcadWA][AI] ' . $r['error'] );
+			}
+			return $r;
+		}
+
+		/*
+		 * Un 400 casi siempre es culpa NUESTRA (un parámetro que este modelo no
+		 * acepta), no del proveedor. El respaldo lo rechazaría igual, y quien
+		 * llama ya tiene sus propias salidas para el 400 —bajar max_tokens,
+		 * pasar a modo JSON—, que dejarían de correr si acá nos fuéramos al otro
+		 * proveedor primero.
+		 */
+		if ( 400 === $r['code'] ) {
+			return $r;
+		}
+
+		error_log( '[CeadAcadWA][AI] Falló el primario (HTTP ' . $r['code'] . '); voy al respaldo.' );
+		self::avisar_caida( 'respaldo', $r, self::nombre_proveedor( $endpoint ) );
+
+		usleep( 600000 );
+
+		$p2          = $payload;
+		$p2['model'] = self::respaldo_model();
+		$r2          = self::http_una( self::respaldo_endpoint(), self::respaldo_key(), $p2, $timeout, false );
+
+		if ( 200 === $r2['code'] ) {
+			self::store_usage( $r2['data'] );
+			set_transient( 'cead_acad_wa_ai_en_respaldo', 1, HOUR_IN_SECONDS );
+			return $r2;
+		}
+
+		error_log( '[CeadAcadWA][AI] También falló el respaldo (HTTP ' . $r2['code'] . ').' );
+		self::avisar_caida( 'caido', $r2, self::nombre_proveedor( self::respaldo_endpoint() ) );
+
+		// Se devuelve el error del PRIMARIO: es el proveedor que hay que
+		// arreglar, y su mensaje es el que describe la causa de fondo.
+		return $r;
+	}
+
+	/** ¿Se está atendiendo con el respaldo? (para el estado en wp-admin). */
+	public static function en_respaldo() {
+		return (bool) get_transient( 'cead_acad_wa_ai_en_respaldo' );
+	}
+
+	/** Un intento contra UN proveedor, con reintento opcional al mismo. */
+	protected static function http_una( $endpoint, $key, array $payload, $timeout, $allow_retry ) {
 		$attempt = static function () use ( $endpoint, $key, $payload, $timeout ) {
 			$res = wp_remote_post( $endpoint, [
 				'timeout' => $timeout,
@@ -1114,12 +1681,6 @@ TXT;
 			if ( 200 === $r2['code'] || ( 0 !== $r2['code'] && $r2['code'] < 500 && 429 !== $r2['code'] ) ) {
 				$r = $r2;
 			}
-		}
-		if ( '' !== $r['error'] ) {
-			error_log( '[CeadAcadWA][AI] ' . $r['error'] . ( $retriable ? ' (tras reintento)' : '' ) );
-		}
-		if ( 200 === $r['code'] ) {
-			self::store_usage( $r['data'] );
 		}
 		return $r;
 	}
@@ -1209,9 +1770,19 @@ TXT;
 	 * está activa y hay $phone. `$user_context` describe a quién atiende (nombre,
 	 * rol, cursos, fecha de hoy) para que responda con datos y no a ciegas.
 	 */
-	public static function route( $message, $faq_context = '', $phone = '', $extra_tools = [], $user_context = '', $image = null, $user_id = 0 ) {
+	public static function route( $message, $faq_context = '', $phone = '', $extra_tools = [], $user_context = '', $image = null, $user_id = 0, $nivel = null ) {
 		$history = ( $phone !== '' ) ? self::load_memory( $phone ) : [];
-		$r = self::call( $message, $faq_context, null, null, null, $history, $extra_tools, $user_context, $image, $user_id );
+		/*
+		 * Se arranca en el nivel RÁPIDO salvo que quien llama sepa de antemano
+		 * que el trabajo es pesado (leer una planilla, redactar una nota). Para
+		 * todo lo demás decide `call()` sobre la marcha: si el modelo pide una
+		 * herramienta cara, escala solo.
+		 */
+		$r = self::call(
+			$message, $faq_context, null, null, null, $history,
+			$extra_tools, $user_context, $image, $user_id,
+			$nivel ?: self::NIVEL_RAPIDO
+		);
 		if ( ! $r['ok'] ) {
 			// Fallo TÉCNICO (no «no entendí»): registrarlo para diagnóstico. El
 			// motor lo usa para caer al menú, y el admin lo muestra en CEADI · IA.
@@ -1321,9 +1892,36 @@ TXT;
 		delete_transient( self::memory_key( $phone ) );
 	}
 
-	/** Prueba desde el admin: resumen legible. */
-	public static function test( $message = '¿qué clases tengo hoy?' ) {
-		$r = self::call( $message );
+	/**
+	 * Prueba desde el admin: resumen legible.
+	 *
+	 * Prueba SIEMPRE un proveedor solo, sin respaldo. Dejar que la prueba se
+	 * fuera al respaldo devolvería «OK» con el principal caído, que es el modo
+	 * clásico en que una arquitectura con respaldo falla: nadie se entera de la
+	 * primera caída y se descubre todo junto el día que caen los dos.
+	 *
+	 * @param string $proveedor 'primario' o 'respaldo'.
+	 */
+	public static function test( $message = '¿qué clases tengo hoy?', $proveedor = 'primario' ) {
+		if ( 'respaldo' === $proveedor ) {
+			if ( ! self::respaldo_activo() ) {
+				return [ 'ok' => false, 'summary' => 'No hay proveedor de respaldo configurado (faltan endpoint, modelo o key).' ];
+			}
+			return self::test_contra( $message, self::respaldo_endpoint(), self::respaldo_key(), self::respaldo_model() );
+		}
+		return self::test_contra( $message, self::endpoint(), self::key(), self::model() );
+	}
+
+	/** Corre la prueba contra un proveedor concreto, con avisos y respaldo apagados. */
+	protected static function test_contra( $message, $endpoint, $key, $model ) {
+		self::silenciar_avisos( true );
+		self::usar_respaldo( false );
+		try {
+			$r = self::call( $message, '', $key, $endpoint, $model );
+		} finally {
+			self::silenciar_avisos( false );
+			self::usar_respaldo( true );
+		}
 		if ( $r['ok'] ) {
 			delete_transient( 'cead_acad_wa_ai_last_error' );
 			$accion = $r['intent'] !== '' ? sprintf( 'función: "%s"', $r['intent'] ) : 'respuesta directa (sin función)';

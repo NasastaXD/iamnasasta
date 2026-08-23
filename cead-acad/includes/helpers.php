@@ -265,3 +265,22 @@ function cead_acad_wa_link( $numero = null ) {
 
 	return '' === $digitos ? '' : 'https://wa.me/' . $digitos;
 }
+
+/**
+ * ¿Está activo el carné digital?
+ *
+ * Apagado de fábrica. El carné funciona, pero hoy no lo usa nadie: nadie escanea
+ * el QR en la puerta y no hay acuerdo de que ese sea el documento del colegio.
+ * Una entrada de menú que no lleva a nada que sirva le cuesta atención a cada
+ * alumno que la prueba, y encima invita a confundirlo con un carné oficial.
+ * Cuando el colegio decida usarlo, se prende acá y aparece completo.
+ *
+ * Es una función y no un `get_option()` suelto porque son SEIS los lugares que
+ * muestran el carné —menú lateral, barra superior, atajos del inicio, perfil,
+ * la ruta del panel y la verificación pública— y con la pregunta escrita seis
+ * veces alcanza con que alguien agregue un séptimo lugar para que la función
+ * quede medio apagada: visible por un lado, 404 por el otro.
+ */
+function cead_acad_carne_activo() {
+	return (bool) get_option( 'cead_acad_carne_enabled', false );
+}

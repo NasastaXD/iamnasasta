@@ -22,6 +22,7 @@ $options = [
 	'cead_acad_flush_rewrites',
 	'cead_acad_rewrites_version',
 	'cead_acad_block_wp_login',
+	'cead_acad_carne_enabled',
 	'cead_acad_caps_version',
 	'cead_acad_terms_seeded',
 	'cead_acad_fixture_intercead2026_seeded',
@@ -38,6 +39,16 @@ $options = [
 	'cead_acad_wa_reminder_days',
 	'cead_acad_wa_report_forward_number',
 	'cead_acad_wa_country_code',
+	'cead_acad_wa_ai_model_charla',
+	'cead_acad_wa_ai_model_gestion',
+	'cead_acad_wa_ai_model_redaccion',
+	'cead_acad_wa_ai_model_n1',
+	'cead_acad_wa_ai_model_n2',
+	'cead_acad_wa_ai_model_n3',
+	'cead_acad_wa_ai2_endpoint',
+	'cead_acad_wa_ai2_endpoint_is_base',
+	'cead_acad_wa_ai2_key',
+	'cead_acad_wa_ai2_model',
 	'cead_acad_wa_comm_templates',
 	'cead_acad_wa_broadcast_job',
 	'cead_acad_wa_bot_name',
@@ -97,10 +108,19 @@ $options = [
 	'cead_acad_grades_scale_bands',
 	'cead_acad_grades_score_max',
 	'cead_acad_grades_score_pass',
+	// Marca de la migración que generó la clave canónica de teléfono.
+	'cead_acad_phone_keys_backfilled',
 ];
 foreach ( $options as $opt ) {
 	delete_option( $opt );
 }
+
+/*
+ * La clave canónica de teléfono es un dato derivado del plugin, no del colegio:
+ * se puede reconstruir en cualquier momento desde el número visible, así que se
+ * borra. El número en sí NO se toca — ese lo cargó una persona y es suyo.
+ */
+delete_metadata( 'user', 0, '_cead_acad_phone_e164', '', true );
 
 // Borrar roles del plugin.
 foreach ( [ 'cead_acad_direction', 'cead_acad_secretary', 'cead_acad_teacher', 'cead_acad_delegate', 'cead_acad_student', 'cead_acad_guardian', 'cead_acad_student_council' ] as $role ) {

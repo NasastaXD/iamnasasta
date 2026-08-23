@@ -430,6 +430,20 @@ class Cead_Acad_WA_Admin {
 			update_option( 'cead_acad_wa_ai_model', sanitize_text_field( wp_unslash( $_POST['ai_model'] ?? '' ) ) ?: 'deepseek-chat', false );
 			update_option( 'cead_acad_wa_ai_endpoint', esc_url_raw( wp_unslash( $_POST['ai_endpoint'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai_endpoint_is_base', ! empty( $_POST['ai_endpoint_is_base'] ) ? 1 : 0, false );
+			// Modelo por tipo de tarea (vacío = el modelo general).
+			foreach ( array_keys( Cead_Acad_WA_AI::niveles() ) as $nivel_clave ) {
+				update_option(
+					'cead_acad_wa_ai_model_' . $nivel_clave,
+					sanitize_text_field( wp_unslash( $_POST[ 'ai_model_' . $nivel_clave ] ?? '' ) ),
+					false
+				);
+			}
+
+			// Proveedor de respaldo (opcional).
+			update_option( 'cead_acad_wa_ai2_key', sanitize_text_field( wp_unslash( $_POST['ai2_key'] ?? '' ) ), false );
+			update_option( 'cead_acad_wa_ai2_model', sanitize_text_field( wp_unslash( $_POST['ai2_model'] ?? '' ) ), false );
+			update_option( 'cead_acad_wa_ai2_endpoint', esc_url_raw( wp_unslash( $_POST['ai2_endpoint'] ?? '' ) ), false );
+			update_option( 'cead_acad_wa_ai2_endpoint_is_base', ! empty( $_POST['ai2_endpoint_is_base'] ) ? 1 : 0, false );
 			update_option( 'cead_acad_wa_ai_temp', is_numeric( $_POST['ai_temp'] ?? '' ) ? (float) $_POST['ai_temp'] : 0.2, false );
 			$razona_in = sanitize_key( wp_unslash( $_POST['ai_reasoning'] ?? '' ) );
 			update_option( 'cead_acad_wa_ai_reasoning', in_array( $razona_in, [ 'low', 'medium', 'high' ], true ) ? $razona_in : '', false );
@@ -472,9 +486,11 @@ class Cead_Acad_WA_Admin {
 			// necesita ni key ni modelo aparte.
 			update_option( 'cead_acad_wa_docs_enabled', ! empty( $_POST['docs_enabled'] ) ? 1 : 0, false );
 
-			if ( $action === 'ai_test' ) {
-				$msg = sanitize_text_field( wp_unslash( $_POST['ai_test_message'] ?? '' ) ) ?: '¿qué clases tengo hoy?';
-				$t   = Cead_Acad_WA_AI::test( $msg );
+			if ( $action === 'ai_test' || $action === 'ai2_test' ) {
+				$msg   = sanitize_text_field( wp_unslash( $_POST['ai_test_message'] ?? '' ) ) ?: '¿qué clases tengo hoy?';
+				$cual  = ( $action === 'ai2_test' ) ? 'respaldo' : 'primario';
+				$t     = Cead_Acad_WA_AI::test( $msg, $cual );
+				$t['summary'] = ( 'respaldo' === $cual ? '[respaldo] ' : '[principal] ' ) . $t['summary'];
 				$notice = [ $t['ok'] ? 'ok' : 'err', __( 'Prueba IA', 'cead-acad' ) . ': ' . $t['summary'] ];
 			} elseif ( $action === 'stt_test' ) {
 				$t      = Cead_Acad_WA_AI::stt_test();
@@ -580,6 +596,64 @@ class Cead_Acad_WA_Admin {
 		if ( Cead_Acad_WA_AI::key() !== '' && defined( 'CEAD_ACAD_AI_KEY' ) && CEAD_ACAD_AI_KEY ) {
 			echo '<tr><th></th><td><p class="description">' . esc_html__( 'La API key está fijada por constante en wp-config.php (CEAD_ACAD_AI_KEY); este campo se ignora.', 'cead-acad' ) . '</p></td></tr>';
 		}
+
+
+		/* ---------------- Modelo según la dificultad de la tarea ------------ */
+		echo '<tr><th scope="row" colspan="2"><h2 style="margin:1.5em 0 0">' . esc_html__( 'Modelo por dificultad (opcional)', 'cead-acad' ) . '</h2></th></tr>';
+		echo '<tr><th></th><td><p class="description">'
+			. esc_html__( 'Lo que se elige acá es sobre todo VELOCIDAD. Un modelo grande tarda bastante más, y nadie espera que «¿qué clases tengo hoy?» tarde diez segundos. La idea es que lo cotidiano salga rápido y que el modelo lento entre solo donde la persona ya espera esperar.', 'cead-acad' )
+			. '</p><p class="description">'
+			. esc_html__( 'CEADI arranca cada conversación en el nivel 1. Si el modelo pide algo pesado (cargar una nota, redactar un artículo, mandar un comunicado), rehace ese turno solo con el modelo del nivel que corresponda. Los turnos livianos nunca pagan esa demora.', 'cead-acad' )
+			. '</p><p class="description">'
+			. esc_html__( 'Dejar una casilla vacía usa el modelo general de arriba. Si no se toca nada, todo sigue funcionando como antes.', 'cead-acad' )
+			. '</p></td></tr>';
+
+		foreach ( Cead_Acad_WA_AI::niveles() as $clave => $etiqueta ) {
+			$this->field(
+				'ai_model_' . $clave,
+				$etiqueta,
+				get_option( 'cead_acad_wa_ai_model_' . $clave, '' ),
+				/* translators: %s: modelo general configurado */
+				sprintf( __( 'vacío = %s', 'cead-acad' ), Cead_Acad_WA_AI::model() )
+			);
+		}
+
+		echo '<tr><th scope="row">' . esc_html__( 'Qué entra en cada nivel', 'cead-acad' ) . '</th><td>';
+		echo '<p class="description" style="margin-top:0">' . esc_html__( 'Nivel 3 · Máximo — cargar una nota, redactar un artículo, mandar un comunicado, recordar un dato, leer una planilla de notas y los borradores de Instagram.', 'cead-acad' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Nivel 2 · Medio — crear un evento (sacar fecha y hora de una frase), crear una invitación, olvidar un dato, buscar una persona, ver las notas de un curso.', 'cead-acad' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Nivel 1 · Rápido — todo lo demás: horarios, notas propias, tareas, comunicados, calendario, listados, métricas y responder dudas.', 'cead-acad' ) . '</p>';
+		echo '<p class="description"><strong>' . esc_html__( 'Las denuncias no dependen del modelo:', 'cead-acad' ) . '</strong> ' . esc_html__( 'palabras como «bullying», «acoso» o «me están molestando» abren el canal de reportes al instante, sin pasar por la IA. Un modelo mejor falla menos, pero falla, y ahí no hay segunda oportunidad.', 'cead-acad' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Con una imagen adjunta manda el modelo de lectura de imágenes y no se escala: un modelo sin visión no puede mirar la foto por potente que sea.', 'cead-acad' ) . '</p>';
+		echo '</td></tr>';
+
+		/* ------------------------- Proveedor de respaldo ------------------- */
+		echo '<tr><th scope="row" colspan="2"><h2 style="margin:1.5em 0 0">' . esc_html__( 'Proveedor de respaldo (opcional)', 'cead-acad' ) . '</h2></th></tr>';
+		echo '<tr><th></th><td><p class="description">'
+			. esc_html__( 'Si el proveedor principal falla, CEADI reintenta el mismo mensaje contra este otro y el alumno no se entera. Conviene que sea de OTRA empresa: dos modelos del mismo proveedor se caen juntos y el respaldo no serviría de nada.', 'cead-acad' )
+			. '</p><p class="description">'
+			. esc_html__( 'Cargando el respaldo, CEADI deja de reintentar contra el principal (va derecho al otro). Es a propósito: el bot tiene un presupuesto de tiempo por mensaje, y hacer las dos cosas lo pasaría de largo — el alumno no recibiría nada, que es peor que la caída.', 'cead-acad' )
+			. '</p></td></tr>';
+
+		$this->field( 'ai2_endpoint', __( 'Endpoint del respaldo', 'cead-acad' ), get_option( 'cead_acad_wa_ai2_endpoint', '' ), 'https://openrouter.ai/api/v1/chat/completions', 'url' );
+		echo '<tr><th></th><td><label><input type="checkbox" name="ai2_endpoint_is_base" value="1" ' . checked( (bool) get_option( 'cead_acad_wa_ai2_endpoint_is_base', 0 ), true, false ) . '> '
+			. esc_html__( 'Lo de arriba es una base, no el endpoint completo', 'cead-acad' ) . '</label></td></tr>';
+		$this->field( 'ai2_model', __( 'Modelo del respaldo', 'cead-acad' ), get_option( 'cead_acad_wa_ai2_model', '' ), 'ej. openai/gpt-4o-mini' );
+		$this->field( 'ai2_key', __( 'API key del respaldo', 'cead-acad' ), get_option( 'cead_acad_wa_ai2_key', '' ), 'sk-... (o definir CEAD_ACAD_AI2_KEY en wp-config)', 'password' );
+
+		echo '<tr><th scope="row">' . esc_html__( 'Estado del respaldo', 'cead-acad' ) . '</th><td>';
+		if ( Cead_Acad_WA_AI::respaldo_activo() ) {
+			echo '<p style="margin:0">✅ ' . esc_html__( 'Configurado. Si el principal falla, CEADI usa este.', 'cead-acad' ) . '</p>';
+			if ( Cead_Acad_WA_AI::en_respaldo() ) {
+				echo '<div class="notice notice-warning inline" style="margin:.6em 0"><p>⚠️ <strong>'
+					. esc_html__( 'CEADI está atendiendo con el respaldo en este momento.', 'cead-acad' )
+					. '</strong> ' . esc_html__( 'Quiere decir que el proveedor principal falló en la última hora. Probalo acá abajo y revisá saldo, key y modelo.', 'cead-acad' ) . '</p></div>';
+			}
+		} else {
+			echo '<p style="margin:0">⚪ ' . esc_html__( 'Sin configurar: hacen falta endpoint, modelo y key. Si el proveedor principal se cae, CEADI pasa al menú numérico hasta que vuelva.', 'cead-acad' ) . '</p>';
+		}
+		echo '<p class="description">' . esc_html__( 'Cuando un proveedor falla, CEADI le avisa por WhatsApp al número de dirección (se carga en la pestaña WhatsApp) con el error y qué hacer. Manda un aviso por causa cada media hora, no uno por mensaje.', 'cead-acad' ) . '</p>';
+		echo '</td></tr>';
+
 		$this->field( 'ai_temp', __( 'Temperatura (0–1)', 'cead-acad' ), get_option( 'cead_acad_wa_ai_temp', '0.5' ), '0.5', 'text' );
 		echo '<tr><th></th><td><p class="description">' . esc_html__( '0.5 (recomendado) = respuestas naturales y con criterio. Más bajo = más rígido; más alto = más creativo.', 'cead-acad' ) . '</p></td></tr>';
 		$razona = Cead_Acad_WA_AI::reasoning();
@@ -769,6 +843,9 @@ class Cead_Acad_WA_Admin {
 		echo '<tr><th scope="row">' . esc_html__( 'Probar IA', 'cead-acad' ) . '</th><td>';
 		echo '<input type="text" name="ai_test_message" class="regular-text" placeholder="' . esc_attr__( '¿qué clases tengo hoy?', 'cead-acad' ) . '">';
 		echo ' <button type="submit" class="button" name="cead_acad_wa_ai_action" value="ai_test">' . esc_html__( 'Guardar y probar IA', 'cead-acad' ) . '</button>';
+		if ( Cead_Acad_WA_AI::respaldo_activo() ) {
+			echo ' <button type="submit" class="button" name="cead_acad_wa_ai_action" value="ai2_test">' . esc_html__( 'Probar el respaldo', 'cead-acad' ) . '</button>';
+		}
 		echo '<p class="description">' . esc_html__( 'Guarda la configuración y hace una consulta de prueba a la API de IA; el resultado aparece arriba.', 'cead-acad' ) . '</p></td></tr>';
 
 		echo '</tbody></table>';

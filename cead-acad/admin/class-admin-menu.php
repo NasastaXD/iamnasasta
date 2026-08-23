@@ -56,6 +56,69 @@ class Cead_Acad_Admin_Menu {
 			'cead-acad-users',
 			[ $this, 'render_users' ]
 		);
+
+		add_submenu_page(
+			'cead-acad',
+			__( 'Funciones', 'cead-acad' ),
+			__( 'Funciones', 'cead-acad' ),
+			'manage_options',
+			'cead-acad-features',
+			[ $this, 'render_features' ]
+		);
+	}
+
+	/**
+	 * Funciones que se prenden y apagan.
+	 *
+	 * Cada entrada: opción => [ etiqueta, descripción, valor por defecto ].
+	 * Vive acá y no desperdigada porque lo que hace útil a esta pantalla es que
+	 * sea UNA sola lista: si cada módulo agrega su interruptor donde le queda
+	 * cómodo, en un mes nadie sabe dónde se apaga qué.
+	 */
+	protected function features() {
+		return [
+			'cead_acad_carne_enabled' => [
+				'label' => __( 'Carné digital', 'cead-acad' ),
+				'desc'  => __( 'Agrega «Mi carné» al panel: una credencial con foto, curso y un QR de verificación. Apagado mientras el colegio no lo use de verdad — si nadie escanea el QR en la puerta, es una sección que confunde más de lo que sirve. Con esto apagado también queda cerrada la página pública de verificación.', 'cead-acad' ),
+				'default' => false,
+			],
+		];
+	}
+
+	public function render_features() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
+		}
+
+		$features = $this->features();
+
+		if ( isset( $_POST['cead_acad_features_nonce'] ) && cead_acad_verify_nonce( 'cead_acad_features_nonce', 'cead_acad_features' ) ) {
+			foreach ( $features as $opcion => $_ ) {
+				update_option( $opcion, isset( $_POST[ $opcion ] ) ? 1 : 0 );
+			}
+			if ( class_exists( 'Cead_Acad_Audit' ) ) {
+				Cead_Acad_Audit::log( 'features_updated', [ 'by' => get_current_user_id() ] );
+			}
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Funciones actualizadas.', 'cead-acad' ) . '</p></div>';
+		}
+
+		echo '<div class="wrap"><h1>' . esc_html__( 'Funciones', 'cead-acad' ) . '</h1>';
+		echo '<p>' . esc_html__( 'Partes del sistema que se pueden prender y apagar sin tocar código. Lo apagado desaparece del panel, del bot y de sus rutas.', 'cead-acad' ) . '</p>';
+
+		echo '<form method="post">';
+		wp_nonce_field( 'cead_acad_features', 'cead_acad_features_nonce' );
+		echo '<table class="form-table" role="presentation"><tbody>';
+		foreach ( $features as $opcion => $f ) {
+			$activo = (bool) get_option( $opcion, $f['default'] );
+			echo '<tr><th scope="row">' . esc_html( $f['label'] ) . '</th><td>';
+			echo '<label><input type="checkbox" name="' . esc_attr( $opcion ) . '" value="1" ' . checked( $activo, true, false ) . '> ';
+			echo esc_html__( 'Activar', 'cead-acad' ) . '</label>';
+			echo '<p class="description">' . esc_html( $f['desc'] ) . '</p>';
+			echo '</td></tr>';
+		}
+		echo '</tbody></table>';
+		submit_button( __( 'Guardar', 'cead-acad' ) );
+		echo '</form></div>';
 	}
 
 	public function render_dashboard() {
@@ -434,6 +497,23 @@ class Cead_Acad_Admin_Menu {
 		if ( $email && email_exists( $email ) ) {
 			return [ 'type' => 'error', 'msg' => __( 'Ya hay una cuenta con ese email.', 'cead-acad' ) ];
 		}
+		// Mismo criterio que el email, y por un motivo más fuerte: el teléfono es
+		// la llave con la que CEADI reconoce a quien escribe. Repetido, el bot le
+		// contesta a una persona con los datos de la otra, sin fallar en nada.
+		if ( $phone !== '' && class_exists( 'Cead_Acad_WA_Identity' ) ) {
+			$duenio = Cead_Acad_WA_Identity::phone_taken_by( $phone );
+			if ( $duenio ) {
+				$u = get_user_by( 'id', $duenio );
+				return [
+					'type' => 'error',
+					'msg'  => sprintf(
+						/* translators: %s: nombre de la cuenta que ya tiene ese número */
+						__( 'Ese teléfono ya está en la ficha de %s. Cada cuenta necesita su propio número: es con eso que CEADI reconoce a quien le escribe.', 'cead-acad' ),
+						$u ? $u->display_name : ( '#' . $duenio )
+					),
+				];
+			}
+		}
 
 		$valid_roles = array_keys( Cead_Acad_Capabilities::roles() );
 		if ( ! in_array( $role, $valid_roles, true ) ) {
@@ -462,7 +542,7 @@ class Cead_Acad_Admin_Menu {
 
 		update_user_meta( $user_id, '_cead_acad_legal_name', $full_name );
 		if ( $phone !== '' ) {
-			update_user_meta( $user_id, '_cead_acad_phone', $phone );
+			Cead_Acad_WA_Identity::store_phone( $user_id, $phone );
 		}
 
 		Cead_Acad_Audit::log( 'user_created', [
@@ -500,8 +580,24 @@ class Cead_Acad_Admin_Menu {
 		if ( $email && email_exists( $email ) && (int) email_exists( $email ) !== $user_id ) {
 			return [ 'type' => 'error', 'msg' => __( 'Ya hay otra cuenta con ese email.', 'cead-acad' ) ];
 		}
+		// Igual que el email de arriba: se excluye a la propia ficha, si no
+		// guardar sin tocar el teléfono se rechazaría a sí mismo.
+		if ( $phone !== '' && class_exists( 'Cead_Acad_WA_Identity' ) ) {
+			$duenio = Cead_Acad_WA_Identity::phone_taken_by( $phone, $user_id );
+			if ( $duenio ) {
+				$u = get_user_by( 'id', $duenio );
+				return [
+					'type' => 'error',
+					'msg'  => sprintf(
+						/* translators: %s: nombre de la cuenta que ya tiene ese número */
+						__( 'Ese teléfono ya está en la ficha de %s. Cada cuenta necesita su propio número: es con eso que CEADI reconoce a quien le escribe.', 'cead-acad' ),
+						$u ? $u->display_name : ( '#' . $duenio )
+					),
+				];
+			}
+		}
 
-		update_user_meta( $user_id, '_cead_acad_phone', $phone );
+		Cead_Acad_WA_Identity::store_phone( $user_id, $phone );
 		update_user_meta( $user_id, '_cead_acad_document_id', $document_id );
 		update_user_meta( $user_id, '_cead_acad_birthdate', $birthdate );
 

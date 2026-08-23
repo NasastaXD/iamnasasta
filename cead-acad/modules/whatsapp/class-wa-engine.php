@@ -717,6 +717,26 @@ class Cead_Acad_WA_Engine {
 			}
 			return false;
 		}
+		/*
+		 * Red para las denuncias, ANTES de la IA y sin depender de ella.
+		 *
+		 * Reconocer un pedido de ayuda es fácil para un modelo; el problema es
+		 * que si igual falla, no hay segunda oportunidad. Un alumno que junta
+		 * coraje para escribir «me están molestando» y recibe una respuesta de
+		 * preguntas frecuentes no reintenta: cierra el chat y aprende que acá no
+		 * lo escuchan. Es el peor fallo posible de todo el sistema y el único
+		 * que no se arregla después.
+		 *
+		 * Por eso no se resuelve poniéndole un modelo más caro —un modelo mejor
+		 * falla menos, pero falla— sino sacándolo del modelo: estas palabras
+		 * abren el trámite guiado siempre, al instante y sin gastar una llamada.
+		 */
+		if ( $this->pide_ayuda( $text ) ) {
+			$this->in_ia = false;
+			$this->report_start( $phone );
+			return true;
+		}
+
 		$res = Cead_Acad_WA_AI::route(
 			$text,
 			$this->faq_context(),
@@ -2395,7 +2415,11 @@ class Cead_Acad_WA_Engine {
 			. 'Aplicá SOLO el cambio pedido y dejá el resto como está. No inventes datos nuevos.'
 			. Cead_Acad_WA_AI::estilo_bloque();
 
-		$r     = Cead_Acad_WA_AI::route( $prompt, '', '', [], 'Estás corrigiendo un borrador de nota del colegio.' );
+		// Redacción: corregir una nota es el mismo oficio que escribirla.
+		$r     = Cead_Acad_WA_AI::route(
+			$prompt, '', '', [], 'Estás corrigiendo un borrador de nota del colegio.',
+			null, 0, Cead_Acad_WA_AI::NIVEL_MAXIMO
+		);
 		$texto = is_array( $r ) ? trim( (string) ( $r['reply'] ?? '' ) ) : '';
 		$ficha = '' !== $texto ? Cead_Acad_WA_Instagram::interpretar_publico( $texto, $post->post_title ) : null;
 
@@ -2716,7 +2740,16 @@ class Cead_Acad_WA_Engine {
 			. "\"formato\": \"nota\" si ya son notas del colegio, \"porcentaje\" si son 0-100, \"puntaje\" si son puntos sobre un total (poné el total en \"puntaje_total\").\n"
 			. "Si la materia, el periodo o el curso no aparecen, dejalos en \"\". No inventes.";
 
-		$res = Cead_Acad_WA_AI::route( $prompt, '', '', [], $this->ai_user_context( $identity ) );
+		/*
+		 * Gestión y no charla: leer una planilla de notas es entender una tabla
+		 * con encabezados torcidos y decidir qué columna es la calificación. Un
+		 * modelo chico se equivoca de columna y las notas entran mal, que es de
+		 * los errores más caros de deshacer.
+		 */
+		$res = Cead_Acad_WA_AI::route(
+			$prompt, '', '', [], $this->ai_user_context( $identity ),
+			null, 0, Cead_Acad_WA_AI::NIVEL_MAXIMO
+		);
 		$txt = is_array( $res ) ? (string) ( $res['reply'] ?? '' ) : '';
 		if ( '' === $txt ) { return null; }
 
@@ -3131,6 +3164,43 @@ class Cead_Acad_WA_Engine {
 	}
 
 	// A5 Reporte
+	/**
+	 * ¿El mensaje es un pedido de ayuda que tiene que abrir el canal de
+	 * reportes sí o sí?
+	 *
+	 * Deliberadamente CORTA y sin sinónimos rebuscados. Cada palabra de más es
+	 * un falso positivo, y un falso positivo también hace daño: alguien que
+	 * escribe «me molesta que el horario esté mal» no quiere iniciar una
+	 * denuncia, y meterlo en un trámite guiado que no pidió es tratarlo de
+	 * víctima y hacerle perder el hilo. La IA sigue estando para todo lo que no
+	 * cae acá — esto es el piso, no el techo.
+	 *
+	 * Función pura para poder testear la lista sin levantar el motor.
+	 */
+	public static function pide_ayuda( $texto ) {
+		$t = ' ' . self::sin_tildes( mb_strtolower( trim( (string) $texto ) ) ) . ' ';
+		if ( ' ' === $t ) { return false; }
+
+		foreach ( [
+			'bullying', 'acoso', 'acosan', 'abuso', 'abusan',
+			'me pegan', 'me pego', 'me golpean', 'me amenazan', 'amenaza',
+			'me estan molestando', 'me molestan', 'me hacen bullying',
+			'quiero denunciar', 'hacer una denuncia', 'denunciar a',
+		] as $aguja ) {
+			if ( false !== strpos( $t, self::sin_tildes( $aguja ) ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Minúsculas sin tildes: la gente escribe «amenazá» y «amenaza» indistinto. */
+	protected static function sin_tildes( $s ) {
+		return strtr( (string) $s, [
+			'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n',
+		] );
+	}
+
 	private function report_start( $phone ) {
 		$this->force_new = true; // el prompt sale como mensaje nuevo, separado del menú.
 		$this->store->set_state( $phone, 'stu_report_type' );
@@ -3515,6 +3585,14 @@ class Cead_Acad_WA_Engine {
 
 	// A15 Carné digital
 	private function show_carne( $phone, $identity ) {
+		// Segunda puerta: la acción ya no se le ofrece a la IA con el carné
+		// apagado, pero al menú clásico se llega por otros caminos y mandar el
+		// enlace igual terminaría en una redirección al inicio del panel.
+		if ( ! cead_acad_carne_activo() ) {
+			$this->send( $phone, $this->m( 'carne_off' ) );
+			$this->back_to_student( $phone );
+			return;
+		}
 		$uid = (int) ( $identity['user_id'] ?? 0 );
 		if ( ! $uid ) {
 			$this->send( $phone, $this->m( 'academic_need_login' ) );
@@ -3975,7 +4053,7 @@ class Cead_Acad_WA_Engine {
 		if ( is_wp_error( $uid ) ) {
 			return [ 'created' => false, 'error' => true, 'label' => $labels[ $role ] ?? $role ];
 		}
-		update_user_meta( $uid, '_cead_acad_phone', $target );
+		Cead_Acad_WA_Identity::store_phone( $uid, $target );
 		return [ 'created' => true, 'label' => $labels[ $role ] ?? $role, 'user_id' => $uid ];
 	}
 

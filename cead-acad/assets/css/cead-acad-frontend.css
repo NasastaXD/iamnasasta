@@ -1414,7 +1414,9 @@ a.cead-acad-today-mat:hover { color:var(--cead-acad-brand-deep); }
 .cead-acad-carne-name { font-family:var(--cead-acad-font-display); font-size:1.5rem; margin:.1rem 0 .5rem; text-transform:uppercase; line-height:1; }
 .cead-acad-carne-line { margin:.12rem 0; font-size:.9rem; color:var(--cead-acad-text-soft); }
 .cead-acad-carne-qr { text-align:center; flex:0 0 auto; }
-.cead-acad-carne-qr img { width:120px; height:120px; display:block; }
+/* El QR ahora es un <svg> inline, no un <img> de un servicio externo. */
+.cead-acad-carne-qr img,
+.cead-acad-carne-qr svg { width:120px; height:120px; display:block; }
 .cead-acad-carne-qr span { display:block; font-size:.66rem; color:var(--cead-acad-text-muted); margin-top:.3rem; }
 
 /* Modo oscuro: superficies nuevas */

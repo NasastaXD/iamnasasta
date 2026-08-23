@@ -287,6 +287,7 @@ class Cead_Acad_WA_Tables {
 			'tareas_header'       => [ 'academico', 'Tareas: encabezado' ],
 			'tareas_none'         => [ 'academico', 'Tareas: sin tareas pendientes' ],
 			'carne_link'          => [ 'academico', 'Carné: enlace al carné digital (usa {url})' ],
+			'carne_off'           => [ 'academico', 'Carné: la función está apagada' ],
 			// Reportes
 			'report_type_prompt'     => [ 'reportes', 'Pregunta tipo de reporte' ],
 			'report_category_prompt' => [ 'reportes', 'Pregunta categoría del reporte' ],
@@ -411,6 +412,7 @@ class Cead_Acad_WA_Tables {
 			'tareas_header'    => '📝 *Tus tareas pendientes*',
 			'tareas_none'      => '🎉 ¡No tenés tareas pendientes! (o todavía no se cargaron).',
 			'carne_link'       => "🎟️ *Tu carné digital*\nAbrilo desde tu panel (con tu sesión iniciada):\n{url}",
+			'carne_off'        => 'Por ahora el carné digital no está habilitado. Cuando el colegio lo active te aviso.',
 
 			// Reporte (A5)
 			'report_type_prompt'    => "🛡️ Canal para reportar situaciones (bullying, seguridad, etc.).\n¿Cómo querés enviarlo?\n1. Anónimo total\n2. Confidencial (quiero que me contacten)\n0. Cancelar",

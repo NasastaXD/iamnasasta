@@ -66,6 +66,49 @@ function cead_test_reset_usermeta() {
 	$GLOBALS['cead_test_usermeta'] = [];
 }
 
+/**
+ * `get_users()` acotado a la búsqueda por meta, que es la que usa
+ * `Cead_Acad_WA_Identity::find_user_by_phone()`.
+ *
+ * Se falsea la CONSULTA, no el resultado: así el test corre el criterio real de
+ * búsqueda de teléfonos —el LIKE sobre los últimos dígitos y la confirmación
+ * por igualdad normalizada— en vez de una reimplementación que podría acertar
+ * donde el código verdadero falla.
+ *
+ * Solo entiende `meta_key` + `meta_value` + `meta_compare` LIKE|=, y
+ * `fields => ID`. Cualquier otra consulta (por rol, por ejemplo) devuelve vacío
+ * a propósito: es más honesto que inventar un resultado plausible.
+ */
+if ( ! function_exists( 'get_users' ) ) {
+	function get_users( $args = [] ) {
+		$key = (string) ( $args['meta_key'] ?? '' );
+		if ( '' === $key ) { return []; }
+
+		$needle  = (string) ( $args['meta_value'] ?? '' );
+		$compare = strtoupper( (string) ( $args['meta_compare'] ?? '=' ) );
+
+		$out = [];
+		foreach ( $GLOBALS['cead_test_usermeta'] as $uid => $metas ) {
+			// Como el INNER JOIN de WordPress: sin el meta, la fila no entra —
+			// ni siquiera para un `!=`.
+			if ( ! array_key_exists( $key, $metas ) ) { continue; }
+			$valor = (string) $metas[ $key ];
+			$match = match ( $compare ) {
+				'LIKE'  => '' !== $needle && false !== strpos( $valor, $needle ),
+				'!='    => $valor !== $needle,
+				default => $valor === $needle,
+			};
+			if ( $match ) { $out[] = (int) $uid; }
+		}
+		// -1 es «todos», igual que en WordPress.
+		$tope = (int) ( $args['number'] ?? 0 );
+		if ( $tope > 0 ) {
+			$out = array_slice( $out, 0, $tope );
+		}
+		return $out;
+	}
+}
+
 if ( ! function_exists( 'get_user_meta' ) ) {
 	function get_user_meta( $user_id, $key = '', $single = false ) {
 		if ( '' === $key ) {
@@ -238,6 +281,11 @@ if ( ! function_exists( '_n' ) ) {
 }
 if ( ! function_exists( 'esc_url' ) ) {
 	function esc_url( $url ) { return filter_var( (string) $url, FILTER_SANITIZE_URL ); }
+}
+if ( ! function_exists( 'wp_parse_url' ) ) {
+	function wp_parse_url( $url, $component = -1 ) {
+		return parse_url( (string) $url, $component );
+	}
 }
 if ( ! function_exists( 'wp_strip_all_tags' ) ) {
 	function wp_strip_all_tags( $text, $remove_breaks = false ) {
@@ -497,6 +545,8 @@ if ( ! function_exists( 'wp_set_object_terms' ) ) {
 
 // ---- Código bajo test ----
 require_once dirname( __DIR__, 2 ) . '/includes/helpers.php';
+// El generador de QR es PHP puro: no necesita nada de WordPress.
+require_once dirname( __DIR__, 2 ) . '/includes/class-cead-acad-qr.php';
 /*
  * Los helpers del TEMA, que es un proyecto hermano en el mismo repositorio.
  * Entra solo este archivo, y solo porque `cead_social_links()` no necesita nada
