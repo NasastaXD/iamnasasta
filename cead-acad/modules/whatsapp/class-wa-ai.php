@@ -295,6 +295,27 @@ class Cead_Acad_WA_AI {
 	}
 
 	/**
+	 * Qué modelo del respaldo usar para un nivel de dificultad.
+	 *
+	 * El respaldo tiene los mismos tres niveles que el principal, y por el mismo
+	 * motivo. Sin esto, una caída a mitad de `cargar_nota` se atendía con el
+	 * único modelo del respaldo: si ese es chico, las notas del curso se cargan
+	 * con el modelo equivocado, un humano aprueba «un 4 a Ana en Mate» porque se
+	 * lee bien, y el error queda. La caída del proveedor no puede degradar en
+	 * silencio la calidad de lo que no se puede errar.
+	 *
+	 * Vacío cae al modelo general del respaldo, así que quien no quiera afinar
+	 * carga uno solo y listo.
+	 */
+	public static function respaldo_model_nivel( $nivel = null ) {
+		if ( null === $nivel || ! array_key_exists( $nivel, self::niveles() ) ) {
+			return self::respaldo_model();
+		}
+		$m = trim( (string) get_option( 'cead_acad_wa_ai2_model_' . $nivel, '' ) );
+		return '' !== $m ? $m : self::respaldo_model();
+	}
+
+	/**
 	 * Solo cuenta como respaldo si están las tres cosas. Un respaldo a medio
 	 * cargar es peor que ninguno: hace creer que hay red debajo y en el momento
 	 * de la caída falla igual, con el doble de demora encima.
@@ -1419,7 +1440,7 @@ TXT;
 
 			$p = $payload( 'tools', $max_tokens );
 			$p['messages'] = $conversacion;
-			$r = self::http( $endpoint, $key, $p, $timeout, $retry );
+			$r = self::http( $endpoint, $key, $p, $timeout, $retry, true, $nivel_actual );
 
 			// Si el proveedor rechaza el max_tokens pedido (cada modelo tiene su
 			// techo; DeepSeek corta en 8192), se reintenta con un valor prudente.
@@ -1430,14 +1451,14 @@ TXT;
 				$max_tokens    = self::MAX_TOKENS_SAFE;
 				$p             = $payload( 'tools', $max_tokens );
 				$p['messages'] = $conversacion;
-				$r             = self::http( $endpoint, $key, $p, $timeout, $retry );
+				$r             = self::http( $endpoint, $key, $p, $timeout, $retry, true, $nivel_actual );
 			}
 
 			// Fallback: si el proveedor rechaza las herramientas (400), modo JSON.
 			// Solo tiene sentido en la primera vuelta: si ya veníamos encadenando
 			// herramientas, es que el proveedor las soporta.
 			if ( 400 === $r['code'] && 0 === $ronda ) {
-				$rj = self::http( $endpoint, $key, $payload( 'json', $max_tokens ), $timeout, $retry );
+				$rj = self::http( $endpoint, $key, $payload( 'json', $max_tokens ), $timeout, $retry, true, $nivel_actual );
 				if ( 200 === $rj['code'] ) {
 					$modo_json = true;
 					$r         = $rj;
@@ -1591,7 +1612,7 @@ TXT;
 	 * @param bool $permitir_respaldo false cuando quien llama fijó un proveedor
 	 *                                a mano y no quiere que se le cambie.
 	 */
-	protected static function http( $endpoint, $key, array $payload, $timeout = 18, $allow_retry = true, $permitir_respaldo = true ) {
+	protected static function http( $endpoint, $key, array $payload, $timeout = 18, $allow_retry = true, $permitir_respaldo = true, $nivel = null ) {
 		$hay_respaldo = $permitir_respaldo && self::$usar_respaldo && self::respaldo_activo();
 
 		$r = self::http_una( $endpoint, $key, $payload, $timeout, $allow_retry && ! $hay_respaldo );
@@ -1624,8 +1645,15 @@ TXT;
 
 		usleep( 600000 );
 
+		/*
+		 * Se cambia SOLO el modelo. Todo lo demás del pedido —la personalidad,
+		 * las reglas de idioma y seguridad, el historial, las herramientas— va
+		 * dentro de `messages` y viaja igual: son parte del pedido, no del
+		 * proveedor. Por eso el respaldo se comporta como CEADI y no como un
+		 * asistente genérico.
+		 */
 		$p2          = $payload;
-		$p2['model'] = self::respaldo_model();
+		$p2['model'] = self::respaldo_model_nivel( $nivel );
 		$r2          = self::http_una( self::respaldo_endpoint(), self::respaldo_key(), $p2, $timeout, false );
 
 		if ( 200 === $r2['code'] ) {

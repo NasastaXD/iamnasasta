@@ -444,6 +444,13 @@ class Cead_Acad_WA_Admin {
 			update_option( 'cead_acad_wa_ai2_model', sanitize_text_field( wp_unslash( $_POST['ai2_model'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai2_endpoint', esc_url_raw( wp_unslash( $_POST['ai2_endpoint'] ?? '' ) ), false );
 			update_option( 'cead_acad_wa_ai2_endpoint_is_base', ! empty( $_POST['ai2_endpoint_is_base'] ) ? 1 : 0, false );
+			foreach ( array_keys( Cead_Acad_WA_AI::niveles() ) as $nivel_clave ) {
+				update_option(
+					'cead_acad_wa_ai2_model_' . $nivel_clave,
+					sanitize_text_field( wp_unslash( $_POST[ 'ai2_model_' . $nivel_clave ] ?? '' ) ),
+					false
+				);
+			}
 			update_option( 'cead_acad_wa_ai_temp', is_numeric( $_POST['ai_temp'] ?? '' ) ? (float) $_POST['ai_temp'] : 0.2, false );
 			$razona_in = sanitize_key( wp_unslash( $_POST['ai_reasoning'] ?? '' ) );
 			update_option( 'cead_acad_wa_ai_reasoning', in_array( $razona_in, [ 'low', 'medium', 'high' ], true ) ? $razona_in : '', false );
@@ -639,6 +646,27 @@ class Cead_Acad_WA_Admin {
 			. esc_html__( 'Lo de arriba es una base, no el endpoint completo', 'cead-acad' ) . '</label></td></tr>';
 		$this->field( 'ai2_model', __( 'Modelo del respaldo', 'cead-acad' ), get_option( 'cead_acad_wa_ai2_model', '' ), 'ej. openai/gpt-4o-mini' );
 		$this->field( 'ai2_key', __( 'API key del respaldo', 'cead-acad' ), get_option( 'cead_acad_wa_ai2_key', '' ), 'sk-... (o definir CEAD_ACAD_AI2_KEY en wp-config)', 'password' );
+
+		echo '<tr><th></th><td><p class="description">'
+			. esc_html__( 'El respaldo tiene los mismos tres niveles que el principal, y por el mismo motivo: si el proveedor se cae justo mientras se carga una nota, esa nota no puede terminar cargada por un modelo chico. Vacías usan el modelo del respaldo de arriba.', 'cead-acad' )
+			. '</p></td></tr>';
+
+		foreach ( Cead_Acad_WA_AI::niveles() as $clave => $etiqueta ) {
+			$this->field(
+				'ai2_model_' . $clave,
+				/* translators: %s: nombre del nivel */
+				sprintf( __( 'Respaldo · %s', 'cead-acad' ), $etiqueta ),
+				get_option( 'cead_acad_wa_ai2_model_' . $clave, '' ),
+				/* translators: %s: modelo general del respaldo */
+				sprintf( __( 'vacío = %s', 'cead-acad' ), Cead_Acad_WA_AI::respaldo_model() ?: __( '(sin cargar)', 'cead-acad' ) )
+			);
+		}
+
+		echo '<tr><th></th><td><p class="description">'
+			. esc_html__( 'Lo único que cambia al pasar al respaldo es el modelo: la personalidad, las reglas de idioma y seguridad, el historial y las herramientas viajan igual, porque son parte del pedido y no del proveedor. El respaldo sigue siendo CEADI.', 'cead-acad' )
+			. '</p><p class="description">'
+			. esc_html__( 'Excepción: con una imagen adjunta el respaldo usa su modelo general. Si querés que las fotos sigan funcionando durante una caída, ese modelo tiene que aceptar imágenes.', 'cead-acad' )
+			. '</p></td></tr>';
 
 		echo '<tr><th scope="row">' . esc_html__( 'Estado del respaldo', 'cead-acad' ) . '</th><td>';
 		if ( Cead_Acad_WA_AI::respaldo_activo() ) {
