@@ -46,7 +46,7 @@ Se puede usar desde el navegador o **instalarse como app** en el celular (ver §
 
 | Acción | Dirección |
 |---|---|
-| Ingresar | `/login` |
+| Ingresar | `/ingresar` |
 | Registrarse | Solo con un **link de invitación** que genera la dirección (`/i/<código>`) |
 | Recuperar contraseña | `/recuperar` |
 | Cerrar sesión | `/salir` |
@@ -170,7 +170,7 @@ CEADI atiende por WhatsApp. **Solo responde a números registrados** en el panel
 *Ilustración de una conversación con CEADI por WhatsApp.*
 
 ### También está en el panel web
-Abajo de todo, en cualquier pantalla del panel, hay una barra que dice **«Preguntale a CEADI»**: al tocarla se abre un chat sin salir de donde estabas. Ahí responde preguntas con el alcance de tu rol —un alumno pregunta por lo suyo, dirección llega hasta los números del colegio—. Las acciones que modifican algo (mandar un comunicado, publicar una nota) se siguen haciendo **por WhatsApp**, que es donde está el paso de confirmación antes de ejecutar.
+Abajo a la derecha, en cualquier pantalla del panel, hay un **punto con la chispa del CEAD**: al tocarlo se abre un chat sin salir de donde estabas, y el mismo punto lo cierra. Adentro, al lado del título, hay un ícono para **agendar el número de CEADI** y seguir la conversación por WhatsApp. Ahí responde preguntas con el alcance de tu rol —un alumno pregunta por lo suyo, dirección llega hasta los números del colegio—. Las acciones que modifican algo (mandar un comunicado, publicar una nota) se siguen haciendo **por WhatsApp**, que es donde está el paso de confirmación antes de ejecutar.
 
 ### Dos formas de hablarle
 - **Lenguaje natural (IA)**: le escribís como a una persona ("¿qué tengo mañana?", "¿cuándo es la reunión?") y CEADI entiende y responde. Si la dirección lo deja activado, es el modo por defecto. Ahora puede **encadenar consultas**: si le preguntás algo que necesita mirar dos cosas, mira las dos antes de contestar en vez de adivinar.

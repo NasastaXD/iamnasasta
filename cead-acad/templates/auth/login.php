@@ -29,7 +29,7 @@ $body  = function () use ( $err, $ok, $next, $prefill_user ) {
 		$labels = [
 			'bad_credentials' => __( 'Usuario o contraseña incorrectos.', 'cead-acad' ),
 			'missing_fields'  => __( 'Completá usuario y contraseña.', 'cead-acad' ),
-			'rate_limited'    => __( 'Demasiados intentos. Esperá un minuto y volvé a probar.', 'cead-acad' ),
+			'rate_limited'    => __( 'Demasiados intentos fallidos con este usuario. Esperá unos minutos y volvé a probar. Si no te acordás la contraseña, usá «Olvidé mi contraseña».', 'cead-acad' ),
 			'invalid_nonce'   => __( 'Sesión expirada. Recargá la página.', 'cead-acad' ),
 			'suspended'       => __( 'Tu cuenta está suspendida. Contactá a la secretaría del CEAD.', 'cead-acad' ),
 		];

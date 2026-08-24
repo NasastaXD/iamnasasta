@@ -102,6 +102,7 @@ class Cead_Acad_WA_Admin {
 				update_option( 'cead_acad_wa_reminder_days', max( 1, (int) ( $_POST['reminder_days'] ?? 1 ) ), false );
 				update_option( 'cead_acad_wa_country_code', preg_replace( '/[^0-9]/', '', (string) ( $_POST['country_code'] ?? '595' ) ) ?: '595', false );
 				update_option( 'cead_acad_wa_bot_number', preg_replace( '/[^0-9]/', '', (string) ( $_POST['bot_number'] ?? '' ) ), false );
+				update_option( 'cead_acad_turismo_url', esc_url_raw( wp_unslash( $_POST['turismo_url'] ?? '' ) ), false );
 				update_option( 'cead_acad_wa_director_phone', preg_replace( '/[^0-9]/', '', (string) ( $_POST['director_phone'] ?? '' ) ), false );
 
 				$ig_modo = sanitize_key( wp_unslash( $_POST['ig_modo'] ?? '' ) );
@@ -341,6 +342,10 @@ class Cead_Acad_WA_Admin {
 		$this->field( 'bridge_url', __( 'URL del bridge', 'cead-acad' ), $s->bridge_url ?? '', 'https://tu-tunnel.trycloudflare.com' );
 		$this->field( 'shared_token', __( 'Token compartido (X-Caag-Token)', 'cead-acad' ), $s->shared_token ?? '', '', 'text' );
 		$this->field( 'report_forward_number', __( 'Número que recibe reportes', 'cead-acad' ), get_option( 'cead_acad_wa_report_forward_number', '' ), '595991123456' );
+		$this->field( 'turismo_url', __( 'Portal turístico (caaguazu.net)', 'cead-acad' ), get_option( 'cead_acad_turismo_url', '' ), 'https://caaguazu.net', 'url' );
+		echo '<tr><th></th><td><p class="description">'
+			. esc_html__( 'Con esto cargado —y el secreto CEAD_TUR_SSO_SECRET definido en wp-config.php— al alumnado y a los docentes de los cursos marcados como turísticos les aparece el botón para entrar al portal sin registrarse de nuevo. Si falta cualquiera de los dos, el botón no se muestra: es preferible que no exista a que lleve a un error.', 'cead-acad' )
+			. '</p></td></tr>';
 		$this->field( 'reminder_days', __( 'Días de anticipación de recordatorios', 'cead-acad' ), get_option( 'cead_acad_wa_reminder_days', 1 ), '', 'number' );
 		$this->field( 'country_code', __( 'Código de país (para reconocer alumnos)', 'cead-acad' ), get_option( 'cead_acad_wa_country_code', '595' ), '595' );
 			$this->field( 'bot_number', __( 'Número de CEADI (botón «Agregar a CEADI»)', 'cead-acad' ), get_option( 'cead_acad_wa_bot_number', '' ), '595991123456' );

@@ -128,8 +128,33 @@ function cead_acad_sanitize_hex( $color ) {
 /**
  * Devuelve URL a una ruta del panel/auth.
  */
+/**
+ * Rutas cuyo nombre INTERNO no coincide con lo que se ve en la barra.
+ *
+ * `login` a secas chocaba con el login de WordPress: entre `/login`,
+ * `/wp-login.php` y el redirector que manda de uno al otro, terminaba sin
+ * quedar claro cuál era cuál, sobre todo para quien usa los dos. La ruta se
+ * mudó a `/ingresar`.
+ *
+ * El mapa vive acá, y no cambiando las treinta y pico de llamadas que piden
+ * 'login', para que el nombre interno de la ruta y su dirección pública sean
+ * cosas distintas: la próxima mudanza es una línea, no una búsqueda global con
+ * el riesgo de saltearse una.
+ */
+function cead_acad_route_slugs() {
+	return [ 'login' => 'ingresar' ];
+}
+
 function cead_acad_url( $route ) {
-	return home_url( '/' . ltrim( $route, '/' ) );
+	$route = ltrim( (string) $route, '/' );
+	$slugs = cead_acad_route_slugs();
+	// Solo la primera parte: 'panel/perfil' no se toca.
+	$partes = explode( '/', $route, 2 );
+	if ( isset( $slugs[ $partes[0] ] ) ) {
+		$partes[0] = $slugs[ $partes[0] ];
+		$route     = implode( '/', $partes );
+	}
+	return home_url( '/' . $route );
 }
 
 /** Acción del nonce que protege el cierre de sesión. */
@@ -218,6 +243,9 @@ function cead_acad_verify_nonce( $field, $action ) {
 
 /**
  * Rate-limit por IP. Devuelve true si está OK, false si excedió.
+ *
+ * OJO con usarlo para el login: un colegio entero sale por UNA sola IP. Ver
+ * `cead_acad_login_permitido()`, que existe justamente por eso.
  */
 function cead_acad_rate_limit( $action, $max = 5, $window = 60 ) {
 	$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
@@ -228,6 +256,61 @@ function cead_acad_rate_limit( $action, $max = 5, $window = 60 ) {
 	}
 	set_transient( $key, $count + 1, $window );
 	return true;
+}
+
+/**
+ * Freno de fuerza bruta para el login, con dos contadores.
+ *
+ * El límite por IP a secas no sirve acá y es peor que nada: TODO el colegio
+ * sale por una sola IP pública. Con el tope anterior —ocho por minuto contando
+ * también los ingresos exitosos— el noveno alumno de la fila se comía un «probá
+ * más tarde» en el acto de registro, sin haber hecho nada mal y sin forma de
+ * entender por qué. Una medida de seguridad que carga contra la gente correcta
+ * termina desactivada, y ahí no queda ninguna.
+ *
+ * Por eso:
+ *  - Solo cuentan los intentos FALLIDOS. Entrar bien no gasta cupo.
+ *  - Un contador por USUARIO, que es el que de verdad frena a quien adivina una
+ *    contraseña: lo frena aunque cambie de IP.
+ *  - Otro por IP, mucho más alto, para el caso de alguien probando muchas
+ *    cuentas desde un mismo lugar. Alto a propósito: tiene que quedar bien por
+ *    encima de un curso entrando junto.
+ *
+ * @return bool true si se puede intentar.
+ */
+function cead_acad_login_permitido( $usuario ) {
+	$usuario = strtolower( trim( (string) $usuario ) );
+	if ( '' !== $usuario && (int) get_transient( 'cead_acad_lf_u_' . md5( $usuario ) ) >= 5 ) {
+		return false;
+	}
+	$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+	return (int) get_transient( 'cead_acad_lf_ip_' . md5( $ip ) ) < 60;
+}
+
+/** Anota un intento fallido. Los contadores viven 15 minutos. */
+function cead_acad_login_fallo( $usuario ) {
+	$usuario = strtolower( trim( (string) $usuario ) );
+	if ( '' !== $usuario ) {
+		$k = 'cead_acad_lf_u_' . md5( $usuario );
+		set_transient( $k, (int) get_transient( $k ) + 1, 15 * MINUTE_IN_SECONDS );
+	}
+	$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+	$ki = 'cead_acad_lf_ip_' . md5( $ip );
+	set_transient( $ki, (int) get_transient( $ki ) + 1, 15 * MINUTE_IN_SECONDS );
+}
+
+/**
+ * Entró bien: se limpia el contador de esa cuenta.
+ *
+ * Si no se limpiara, a alguien que se equivoca cuatro veces y acierta a la
+ * quinta le quedaría el contador casi lleno, y el próximo error lo dejaría
+ * afuera quince minutos habiendo demostrado que sabe su contraseña.
+ */
+function cead_acad_login_ok( $usuario ) {
+	$usuario = strtolower( trim( (string) $usuario ) );
+	if ( '' !== $usuario ) {
+		delete_transient( 'cead_acad_lf_u_' . md5( $usuario ) );
+	}
 }
 
 /**

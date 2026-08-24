@@ -51,6 +51,9 @@ if ( cead_acad_carne_activo() ) {
 if ( current_user_can( 'cead_acad_view_own_grades' ) ) {
 	$quick[] = [ 'href' => 'panel/boletin', 'label' => __( 'Boletín', 'cead-acad' ), 'icon' => '📝' ];
 }
+if ( class_exists( 'Cead_Acad_Turismo' ) && '' !== Cead_Acad_Turismo::rol_de( get_current_user_id() ) ) {
+	$quick[] = [ 'href' => 'panel/turismo', 'label' => __( 'Portal turístico', 'cead-acad' ), 'icon' => '🌴' ];
+}
 $quick[] = [ 'href' => 'panel/encuestas', 'label' => __( 'Encuestas', 'cead-acad' ), 'icon' => '🗳️' ];
 if ( current_user_can( 'cead_acad_view_delegates' ) ) {
 	$quick[] = [ 'href' => 'panel/delegados', 'label' => __( 'Delegados', 'cead-acad' ), 'icon' => '📇' ];

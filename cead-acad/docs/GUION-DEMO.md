@@ -17,7 +17,7 @@
 
 ## Parte 1 · La mirada del alumno (3–4 min)
 
-1. **Login** (`/login`) — Mostrá la pantalla con la estética CEAD. Mencioná: *"no hay registro libre, se entra por invitación"*.
+1. **Login** (`/ingresar`) — Mostrá la pantalla con la estética CEAD. Mencioná: *"no hay registro libre, se entra por invitación"*.
 2. **Inicio** (`/panel`) — Señalá los **accesos rápidos**, **clases de hoy**, **próximos eventos** y **últimos comunicados**. Frase clave: *"cada persona ve solo lo de su rol"*.
 3. **Comunicados** — Abrí uno **no leído** → mostrá cómo queda **marcado como leído** y baja el contador de la campana 🔔.
 4. **Calendario** — Mostrá la vista mensual y el botón de **sincronizar con Google/Apple** (iCal).

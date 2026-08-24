@@ -89,6 +89,12 @@ $options = [
 	'cead_acad_wa_img_estilo',
 	'cead_acad_wa_ai_memory',
 	'cead_acad_wa_ai_context_budget',
+	/*
+	 * Restos de los «datos de demo», una función que ya no existe. Se siguen
+	 * borrando a propósito: una instalación vieja puede tenerlas guardadas desde
+	 * antes de que se eliminara, y sacar el nombre de acá las dejaría huérfanas
+	 * para siempre. No busques el código: no está, y no tiene que volver.
+	 */
 	'cead_acad_demo_tools',
 	'cead_acad_demo_enrolled',
 	'cead_acad_wa_ai_memories',
@@ -111,6 +117,9 @@ $options = [
 	'cead_acad_grades_scale_bands',
 	'cead_acad_grades_score_max',
 	'cead_acad_grades_score_pass',
+	// Puente con el portal turístico de caaguazu.net. El secreto compartido NO
+	// está acá: vive en wp-config.php, no en la base.
+	'cead_acad_turismo_url',
 	// Marca de la migración que generó la clave canónica de teléfono.
 	'cead_acad_phone_keys_backfilled',
 ];

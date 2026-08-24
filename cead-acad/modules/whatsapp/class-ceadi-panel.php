@@ -53,7 +53,7 @@ class Cead_Acad_Ceadi_Panel {
 		return is_user_logged_in() && current_user_can( 'cead_acad_view_panel' );
 	}
 
-	/** ¿Está disponible el chat? Lo usa la plantilla para no dibujar una barra muerta. */
+	/** ¿Está disponible el chat? Lo usa la plantilla para no dibujar un punto muerto. */
 	public static function disponible() {
 		return class_exists( 'Cead_Acad_WA_AI' ) && Cead_Acad_WA_AI::enabled();
 	}
@@ -175,7 +175,15 @@ class Cead_Acad_Ceadi_Panel {
 		$curso_id = (int) get_user_meta( $uid, '_cead_acad_current_course_id', true );
 		if ( $curso_id ) { $lineas[] = 'Curso: ' . get_the_title( $curso_id ); }
 
-		$lineas[] = 'Hoy es ' . date_i18n( 'l j \d\e F \d\e Y', current_time( 'timestamp' ) ) . '.';
+		/*
+		 * Con la HORA, igual que por WhatsApp. Sin ella, desde el panel CEADI
+		 * sabía el día pero no la hora, así que no podía razonar nada del tipo
+		 * «tiene clase hasta las 14:50, te da el tiempo si salís ahora» — y esa
+		 * es justo la clase de pregunta que se le hace. Las dos superficies
+		 * tienen que saber lo mismo o la misma pregunta se contesta distinto
+		 * según por dónde entró.
+		 */
+		$lineas[] = 'Hoy es ' . date_i18n( 'l j \d\e F \d\e Y, H:i', current_time( 'timestamp' ) ) . '.';
 		$lineas[] = 'Te está escribiendo desde el panel web, no por WhatsApp.';
 
 		return implode( "\n", $lineas );
