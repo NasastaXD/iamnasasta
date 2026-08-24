@@ -41,6 +41,7 @@ class Cead_Acad_WA_Tools {
 		'listar_cursos',
 		'ver_curso',
 		'ver_horario_curso',
+		'consultar_horario',
 		'buscar_persona',
 		'consultar_calendario',
 	];
@@ -136,6 +137,72 @@ class Cead_Acad_WA_Tools {
 					],
 				],
 			],
+			/*
+			 * El horario mirado por CUALQUIER lado, no solo por curso.
+			 *
+			 * Existe por un caso real: «¿la profe Sanny tiene clase ahora?», que
+			 * CEADI contestaba con «¿de qué curso querés el horario?». No era
+			 * torpeza del modelo: la única herramienta de horarios estaba
+			 * indexada por curso, así que para responder habría tenido que
+			 * recorrer los cursos uno por uno, y el bucle no da para eso. Le
+			 * pidieron un dato sobre una PERSONA y solo tenía un molde con forma
+			 * de CURSO, así que preguntó por el curso.
+			 *
+			 * La gente no pregunta por entidades, pregunta por situaciones:
+			 * quién está, dónde, a qué hora, si puedo ir a buscarlo. Una
+			 * herramienta con filtros contesta todas esas de una sola llamada.
+			 */
+			'consultar_horario' => [
+				/*
+				 * Sin permiso NO se bloquea la consulta: se acota a los cursos
+				 * propios (ver `horario_buscar()`). Bloquearla entera dejaría a
+				 * un alumno sin poder preguntar por su propia clase; abrirla
+				 * entera sería una puerta lateral para leer el horario de otro
+				 * curso sin el permiso que hoy exige `ver_horario_curso`. El
+				 * permiso define el ALCANCE, no el acceso — mismo criterio que
+				 * `consultar_calendario`.
+				 */
+				'cap'  => null,
+				'spec' => [
+					'name'        => 'consultar_horario',
+					'description' => 'Busca en el horario de clases por cualquier combinación de docente, curso, materia, aula, '
+						. 'día y momento. Usalo para preguntas sobre PERSONAS y LUGARES, no solo sobre cursos: «¿la profe Sanny '
+						. 'tiene clase ahora?», «¿dónde está el profe de Física?», «¿qué hay en el aula 3 a la tarde?», «¿quién da '
+						. 'clase el viernes a primera hora?». Sin ningún filtro devuelve todo el horario, así que poné al menos uno. '
+						. 'Con momento="ahora" te dice qué está ocurriendo en este momento, ya calculado por el sistema: no deduzcas '
+						. 'vos la hora ni el día.',
+					'parameters'  => [
+						'type'       => 'object',
+						'properties' => [
+							'docente' => [
+								'type'        => 'string',
+								'description' => 'Nombre o parte del nombre del docente («Sanny», «Gimenez»).',
+							],
+							'curso'   => [
+								'type'        => 'string',
+								'description' => 'Título del curso, aproximado.',
+							],
+							'materia' => [
+								'type'        => 'string',
+								'description' => 'Nombre o parte de la materia («mate», «física»).',
+							],
+							'aula'    => [
+								'type'        => 'string',
+								'description' => 'Aula o sala.',
+							],
+							'dia'     => [
+								'type'        => 'string',
+								'description' => 'Día de la semana («lunes», «viernes»). Vacío = cualquier día.',
+							],
+							'momento' => [
+								'type'        => 'string',
+								'description' => '"ahora" (lo que está ocurriendo en este momento), "hoy" o "manana". Vacío = toda la semana.',
+							],
+						],
+					],
+				],
+			],
+
 			/*
 			 * El calendario NO pide permiso, y ese es el punto.
 			 *
@@ -233,6 +300,7 @@ class Cead_Acad_WA_Tools {
 			case 'listar_cursos':        return self::cursos();
 			case 'ver_curso':            return self::curso( (string) ( $args['curso'] ?? '' ) );
 			case 'ver_horario_curso':    return self::horario( (string) ( $args['curso'] ?? '' ) );
+			case 'consultar_horario':    return self::horario_buscar( $args, (int) $user_id );
 			case 'buscar_persona':       return self::persona( (string) ( $args['texto'] ?? '' ) );
 			case 'consultar_calendario': return self::calendario( (string) ( $args['texto'] ?? '' ), (int) ( $args['dias'] ?? 60 ), (int) $user_id );
 		}
@@ -322,6 +390,221 @@ class Cead_Acad_WA_Tools {
 	}
 
 	/** Busca un curso por título aproximado. Devuelve el post o null. */
+
+	/** Los días de la semana, para leerlos y para escribirlos. */
+	protected static function dias_semana() {
+		return [ 1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 7 => 'Domingo' ];
+	}
+
+	/** «viernes», «Vie», «5» → 5. Devuelve 0 si no se entiende. */
+	protected static function dia_numero( $texto ) {
+		$t = self::sin_tildes( mb_strtolower( trim( (string) $texto ) ) );
+		if ( '' === $t ) { return 0; }
+		if ( ctype_digit( $t ) ) {
+			$n = (int) $t;
+			return ( $n >= 1 && $n <= 7 ) ? $n : 0;
+		}
+		foreach ( self::dias_semana() as $n => $nombre ) {
+			// Con los tres primeros caracteres alcanza y tolera «mier», «miercoles».
+			if ( str_starts_with( self::sin_tildes( mb_strtolower( $nombre ) ), mb_substr( $t, 0, 3 ) ) ) {
+				return $n;
+			}
+		}
+		return 0;
+	}
+
+	protected static function sin_tildes( $s ) {
+		return strtr( (string) $s, [ 'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n' ] );
+	}
+
+	/** ¿La aguja aparece en el pajar? Comparación tolerante (sin tildes, sin may.). */
+	protected static function contiene( $pajar, $aguja ) {
+		$aguja = trim( (string) $aguja );
+		if ( '' === $aguja ) { return true; }
+		return false !== strpos(
+			self::sin_tildes( mb_strtolower( (string) $pajar ) ),
+			self::sin_tildes( mb_strtolower( $aguja ) )
+		);
+	}
+
+	/**
+	 * Busca franjas del horario por docente, curso, materia, aula, día y momento.
+	 *
+	 * El alcance depende del permiso y no el acceso: quien no puede ver horarios
+	 * ajenos igual puede preguntar, pero solo se le mira su propio curso. Así un
+	 * alumno pregunta por su clase sin que la herramienta se convierta en una
+	 * puerta lateral para leer el horario de otro curso.
+	 */
+	protected static function horario_buscar( $args, $user_id ) {
+		$cursos = self::cursos_visibles( $user_id );
+		if ( ! $cursos ) {
+			return 'No tengo horarios que puedas consultar. Si sos alumno/a, puede que todavía no estés asignado/a a un curso.';
+		}
+
+		// Se juntan las franjas de todos los cursos visibles y recién después se
+		// filtra: la parte de WordPress termina acá.
+		$franjas = [];
+		foreach ( $cursos as $curso ) {
+			$raw   = get_post_meta( $curso->ID, '_cead_acad_horario', true );
+			$slots = is_array( $raw ) ? $raw : ( is_string( $raw ) && '' !== $raw ? json_decode( $raw, true ) : [] );
+			if ( ! is_array( $slots ) ) { continue; }
+			foreach ( $slots as $s ) {
+				if ( ! is_array( $s ) ) { continue; }
+				$s['curso'] = $curso->post_title;
+				$franjas[]  = $s;
+			}
+		}
+
+		/*
+		 * El «ahora» lo calcula el sistema y no el modelo: es el dato que más se
+		 * deduce mal y del que depende toda la respuesta.
+		 */
+		$ts = current_time( 'timestamp' );
+
+		return self::horario_texto( $franjas, $args, (int) gmdate( 'N', $ts ), gmdate( 'H:i', $ts ) );
+	}
+
+	/**
+	 * Filtra y redacta el resultado. Función pura: recibe las franjas y la hora,
+	 * así que se puede testear con un «ahora» fijo sin depender del reloj.
+	 *
+	 * @param array  $franjas Cada una con dia, inicio, fin, materia, docente, aula, curso.
+	 * @param array  $args    Filtros de la herramienta.
+	 * @param int    $hoy     Día de la semana actual (1 = lunes).
+	 * @param string $hora    Hora actual «HH:MM».
+	 */
+	public static function horario_texto( array $franjas, array $args, $hoy, $hora ) {
+		$docente = (string) ( $args['docente'] ?? '' );
+		$curso_f = (string) ( $args['curso'] ?? '' );
+		$materia = (string) ( $args['materia'] ?? '' );
+		$aula    = (string) ( $args['aula'] ?? '' );
+		$momento = self::sin_tildes( mb_strtolower( trim( (string) ( $args['momento'] ?? '' ) ) ) );
+		$dia     = self::dia_numero( $args['dia'] ?? '' );
+		$hoy     = (int) $hoy;
+
+		$solo_ahora = ( 'ahora' === $momento );
+		if ( $solo_ahora || 'hoy' === $momento ) {
+			$dia = $hoy;
+		} elseif ( 'manana' === $momento ) {
+			$dia = ( 7 === $hoy ) ? 1 : $hoy + 1;
+		}
+
+		$filas = [];
+		foreach ( $franjas as $s ) {
+			$d = (int) ( $s['dia'] ?? 0 );
+			if ( $d < 1 || $d > 7 ) { continue; }
+			if ( $dia && $d !== $dia ) { continue; }
+			if ( ! self::contiene( $s['curso'] ?? '', $curso_f ) ) { continue; }
+			if ( ! self::contiene( $s['docente'] ?? '', $docente ) ) { continue; }
+			if ( ! self::contiene( $s['materia'] ?? '', $materia ) ) { continue; }
+			if ( ! self::contiene( $s['aula'] ?? '', $aula ) ) { continue; }
+
+			$inicio = (string) ( $s['inicio'] ?? '' );
+			$fin    = (string) ( $s['fin'] ?? '' );
+			if ( $solo_ahora ) {
+				// Sin hora de fin no se puede AFIRMAR que esté ocurriendo, y una
+				// afirmación de más manda a alguien a golpear una puerta vacía.
+				if ( '' === $inicio || '' === $fin ) { continue; }
+				if ( $hora < $inicio || $hora >= $fin ) { continue; }
+			}
+
+			$filas[] = [
+				'dia'     => $d,
+				'inicio'  => $inicio,
+				'fin'     => $fin,
+				'curso'   => (string) ( $s['curso'] ?? '' ),
+				'materia' => (string) ( $s['materia'] ?? '' ),
+				'docente' => (string) ( $s['docente'] ?? '' ),
+				'aula'    => (string) ( $s['aula'] ?? '' ),
+			];
+		}
+
+		if ( ! $filas ) {
+			return self::horario_sin_resultados( $solo_ahora, $dia, $docente, $hora );
+		}
+
+		usort( $filas, static function ( $a, $b ) {
+			return [ $a['dia'], $a['inicio'] ] <=> [ $b['dia'], $b['inicio'] ];
+		} );
+
+		$dias  = self::dias_semana();
+		$total = count( $filas );
+		$filas = array_slice( $filas, 0, self::TOPE_FILAS );
+
+		$out = [];
+		if ( $solo_ahora ) {
+			$out[] = 'Está ocurriendo ahora (' . $dias[ $hoy ] . ' ' . $hora . '):';
+		} elseif ( $dia ) {
+			$out[] = 'Horario del ' . $dias[ $dia ] . ':';
+		} else {
+			$out[] = 'Franjas que coinciden:';
+		}
+		foreach ( $filas as $f ) {
+			$linea  = '- ' . $dias[ $f['dia'] ] . ' ' . $f['inicio'];
+			$linea .= '' !== $f['fin'] ? '-' . $f['fin'] : '';
+			$linea .= ' · ' . $f['materia'];
+			$linea .= ' · ' . $f['curso'];
+			if ( '' !== $f['docente'] ) { $linea .= ' · ' . $f['docente']; }
+			if ( '' !== $f['aula'] ) { $linea .= ' · ' . $f['aula']; }
+			$out[] = $linea;
+		}
+		if ( $total > count( $filas ) ) {
+			$out[] = '(' . ( $total - count( $filas ) ) . ' franjas más; afiná la búsqueda.)';
+		}
+		return implode( "\n", $out );
+	}
+
+	/**
+	 * El «no hay nada» tiene que decir QUÉ no hay.
+	 *
+	 * Un «no encontré» pelado deja al modelo eligiendo entre «no da clase» y «no
+	 * tengo el dato», que para quien pregunta son cosas muy distintas: una lo
+	 * manda a buscar a la profesora y la otra no.
+	 */
+	protected static function horario_sin_resultados( $solo_ahora, $dia, $docente, $hora_hhmm ) {
+		$dias = self::dias_semana();
+		if ( $solo_ahora ) {
+			$quien = '' !== trim( $docente ) ? trim( $docente ) . ' no tiene clase' : 'No hay ninguna clase';
+			return $quien . ' en este momento (' . $hora_hhmm . ') según el horario cargado.';
+		}
+		if ( $dia ) {
+			return 'No hay nada que coincida el ' . $dias[ $dia ] . ' en el horario cargado.';
+		}
+		return 'No encontré ninguna franja que coincida en el horario cargado.';
+	}
+
+	/**
+	 * Los cursos cuyo horario puede mirar esta persona.
+	 *
+	 * Con el permiso, todos. Sin él, los suyos — que es lo que ya podía ver en
+	 * su panel, así que la herramienta no agrega acceso nuevo.
+	 */
+	protected static function cursos_visibles( $user_id ) {
+		$todos = user_can( (int) $user_id, 'cead_acad_view_other_schedules' );
+		if ( $todos ) {
+			return get_posts( [
+				'post_type'   => Cead_Acad_Courses_CPT::POST_TYPE,
+				'numberposts' => -1,
+				'post_status' => 'any',
+			] );
+		}
+
+		$ids = class_exists( 'Cead_Acad_Courses_Roster' )
+			? (array) Cead_Acad_Courses_Roster::courses_for_user( (int) $user_id )
+			: [];
+		$propio = (int) get_user_meta( (int) $user_id, '_cead_acad_current_course_id', true );
+		if ( $propio ) { $ids[] = $propio; }
+		$ids = array_values( array_unique( array_filter( array_map( 'intval', $ids ) ) ) );
+		if ( ! $ids ) { return []; }
+
+		return get_posts( [
+			'post_type'   => Cead_Acad_Courses_CPT::POST_TYPE,
+			'post__in'    => $ids,
+			'numberposts' => -1,
+			'post_status' => 'any',
+		] );
+	}
+
 	protected static function resolver_curso( $texto ) {
 		$texto = trim( $texto );
 		if ( '' === $texto ) { return null; }
