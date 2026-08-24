@@ -215,6 +215,63 @@ final class HorarioConsultaTest extends TestCase {
 		$this->assertStringContainsStringIgnoringCase( 'no', $r );
 	}
 
+	/* ------------------------ «¿qué materias da X?» -------------------------- */
+
+	/**
+	 * La pregunta tiene que poder contestarse SIN filtrar por curso ni por día:
+	 * se le pasa solo el docente y vuelven todas sus franjas, de donde salen las
+	 * materias. Si esto fallara, CEADI volvería a pedir un curso que nadie
+	 * mencionó.
+	 */
+	public function test_se_puede_saber_que_materias_da_un_docente(): void {
+		$r = $this->consultar( [ 'docente' => 'Sanny' ] );
+
+		$this->assertStringContainsString( 'Matemática', $r );
+		$this->assertStringContainsString( 'Historia', $r );
+		// Y solo las suyas.
+		$this->assertStringNotContainsString( 'Literatura', $r );
+	}
+
+	/** Con los cursos, que es lo primero que se pregunta después. */
+	public function test_dice_en_que_cursos_las_da(): void {
+		$r = $this->consultar( [ 'docente' => 'Sanny' ] );
+
+		$this->assertStringContainsString( '3.º Ciencias Básicas', $r );
+		$this->assertStringContainsString( '2.º Sociales', $r );
+	}
+
+	/**
+	 * El caso peligroso: alcance acotado a los cursos propios.
+	 *
+	 * Un alumno de 2.º pregunta «¿qué materias da Sanny?». Si ella le da Historia
+	 * a su curso y Matemática a otros dos, sin avisar que solo se miró su curso
+	 * la respuesta sería «Historia»: completa, segura y equivocada. Una respuesta
+	 * parcial presentada como total es peor que no contestar, porque nadie la
+	 * sale a verificar.
+	 */
+	public function test_avisa_cuando_solo_miro_el_curso_propio(): void {
+		$soloSuCurso = [ $this->franjas()[2] ]; // Historia, 2.º Sociales
+
+		$r = Cead_Acad_WA_Tools::horario_texto( $soloSuCurso, [ 'docente' => 'Sanny' ], 1, '14:20', true );
+
+		$this->assertStringContainsString( 'Historia', $r );
+		$this->assertStringContainsStringIgnoringCase( 'otros cursos', $r );
+	}
+
+    /** Y también cuando no encontró nada: ahí el aviso importa MÁS. */
+	public function test_avisa_del_alcance_aunque_no_encuentre_nada(): void {
+		$r = Cead_Acad_WA_Tools::horario_texto( [], [ 'docente' => 'Sanny' ], 1, '14:20', true );
+
+		$this->assertStringContainsStringIgnoringCase( 'otros cursos', $r );
+	}
+
+	/** Con permiso para ver todo, el aviso no aparece: sería ruido y confundiría. */
+	public function test_sin_acotar_no_avisa_nada(): void {
+		$r = $this->consultar( [ 'docente' => 'Sanny' ] );
+
+		$this->assertStringNotContainsStringIgnoringCase( 'otros cursos', $r );
+	}
+
 	/* --------------------------- la herramienta ------------------------------ */
 
 	/** Tiene que estar registrada como CONSULTA: se ejecuta sola, no escribe nada. */

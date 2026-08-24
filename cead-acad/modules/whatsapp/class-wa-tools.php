@@ -436,7 +436,8 @@ class Cead_Acad_WA_Tools {
 	 * puerta lateral para leer el horario de otro curso.
 	 */
 	protected static function horario_buscar( $args, $user_id ) {
-		$cursos = self::cursos_visibles( $user_id );
+		$acotado = ! user_can( (int) $user_id, 'cead_acad_view_other_schedules' );
+		$cursos  = self::cursos_visibles( $user_id );
 		if ( ! $cursos ) {
 			return 'No tengo horarios que puedas consultar. Si sos alumno/a, puede que todavía no estés asignado/a a un curso.';
 		}
@@ -461,7 +462,7 @@ class Cead_Acad_WA_Tools {
 		 */
 		$ts = current_time( 'timestamp' );
 
-		return self::horario_texto( $franjas, $args, (int) gmdate( 'N', $ts ), gmdate( 'H:i', $ts ) );
+		return self::horario_texto( $franjas, $args, (int) gmdate( 'N', $ts ), gmdate( 'H:i', $ts ), $acotado );
 	}
 
 	/**
@@ -473,7 +474,7 @@ class Cead_Acad_WA_Tools {
 	 * @param int    $hoy     Día de la semana actual (1 = lunes).
 	 * @param string $hora    Hora actual «HH:MM».
 	 */
-	public static function horario_texto( array $franjas, array $args, $hoy, $hora ) {
+	public static function horario_texto( array $franjas, array $args, $hoy, $hora, $acotado = false ) {
 		$docente = (string) ( $args['docente'] ?? '' );
 		$curso_f = (string) ( $args['curso'] ?? '' );
 		$materia = (string) ( $args['materia'] ?? '' );
@@ -519,8 +520,22 @@ class Cead_Acad_WA_Tools {
 			];
 		}
 
+		/*
+		 * Cuando solo se miraron los cursos propios hay que DECIRLO, tanto si
+		 * hubo resultados como si no.
+		 *
+		 * El caso que lo hace necesario: un alumno de 2.º pregunta «¿qué materias
+		 * da la profe Sanny?». Si Sanny le da Historia a su curso y Matemática a
+		 * otros dos, sin este aviso la respuesta sería «Historia» — completa,
+		 * segura y equivocada. Una respuesta parcial presentada como total es
+		 * peor que no contestar, porque nadie la sale a verificar.
+		 */
+		$nota = $acotado
+			? "\n(Solo se miró el horario de tu curso: puede haber más en otros cursos.)"
+			: '';
+
 		if ( ! $filas ) {
-			return self::horario_sin_resultados( $solo_ahora, $dia, $docente, $hora );
+			return self::horario_sin_resultados( $solo_ahora, $dia, $docente, $hora ) . $nota;
 		}
 
 		usort( $filas, static function ( $a, $b ) {
@@ -551,7 +566,7 @@ class Cead_Acad_WA_Tools {
 		if ( $total > count( $filas ) ) {
 			$out[] = '(' . ( $total - count( $filas ) ) . ' franjas más; afiná la búsqueda.)';
 		}
-		return implode( "\n", $out );
+		return implode( "\n", $out ) . $nota;
 	}
 
 	/**
