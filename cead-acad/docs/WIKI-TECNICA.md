@@ -42,7 +42,7 @@ El mismo diagrama en texto:
 │   cead/ (tema)            cead-acad/ (plugin)                │
 │   ───────────             ──────────────────                │
 │   Landing pública    +    Toda la lógica académica + panel   │
-│   (CPT Divisiones/        (/panel, /login), bot, importadores│
+│   (CPT Divisiones/        (/panel, /ingresar), bot, import.│
 │    Vida, Customizer)      REST API, cron, autoupdater        │
 └───────────────────────────────┬──────────────────────────────┘
                                  │  REST  /wp-json/caag-bot/v1/*
@@ -210,10 +210,10 @@ Cuerpo cifrado con **libsodium** (`sodium_crypto_secretbox`) o AES-256-GCM como 
 
 ### Frontend (`/panel`, gestionado por rewrites)
 
-Públicas: `/login`, `/registro?t=<token>`, `/recuperar`, `/salir`, `/wiki` y `/wiki/tecnica` (esta documentación).
+Públicas: `/ingresar` (con `/login` redirigiendo ahí por compatibilidad), `/registro?t=<token>`, `/recuperar`, `/salir`, `/wiki` y `/wiki/tecnica` (esta documentación).
 Autenticadas: `/panel`, `/panel/comunicados`, `/panel/encuestas`, `/panel/horarios`, `/panel/recursos`, `/panel/boletin`, `/panel/delegado`, `/panel/secretaria`, `/panel/direccion`.
 
-`wp-login.php` se bloquea por defecto y redirige a `/login` para usuarios del plugin.
+`wp-login.php` se bloquea por defecto y redirige a `/ingresar` para usuarios del plugin. La ruta se mudó de `/login` justamente porque las dos direcciones se confundían entre sí; el mapa nombre-interno → slug público vive en `cead_acad_route_slugs()`.
 
 ### REST API
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * Rewrite rules y enrutador del frontend: /login, /registro, /recuperar, /panel/*.
+ * Rewrite rules y enrutador del frontend: /ingresar, /registro, /recuperar, /panel/*.
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
@@ -27,7 +27,14 @@ class Cead_Acad_Rewrites {
 		add_rewrite_tag( '%' . self::QUERY_VAR . '%', '([^&]+)' );
 
 		// Rutas top-level estilizadas.
-		add_rewrite_rule( '^login/?$',           'index.php?' . self::QUERY_VAR . '=login',          'top' );
+		add_rewrite_rule( '^ingresar/?$',        'index.php?' . self::QUERY_VAR . '=login',          'top' );
+		/*
+		 * `/login` sigue existiendo, pero solo para llevar a `/ingresar`. Es la
+		 * dirección que la gente tiene guardada, la que quedó en mensajes viejos
+		 * y la que está impresa en cualquier papel que ya se repartió: sacarla de
+		 * golpe convierte todo eso en un 404 sin explicación.
+		 */
+		add_rewrite_rule( '^login/?$',           'index.php?' . self::QUERY_VAR . '=login_movido', 'top' );
 		add_rewrite_rule( '^registro/?$',        'index.php?' . self::QUERY_VAR . '=register',       'top' );
 		add_rewrite_rule( '^recuperar/?$',       'index.php?' . self::QUERY_VAR . '=recover',        'top' );
 		add_rewrite_rule( '^recuperar/restablecer/?$', 'index.php?' . self::QUERY_VAR . '=recover_reset', 'top' );
@@ -85,6 +92,12 @@ class Cead_Acad_Rewrites {
 		nocache_headers();
 
 		switch ( true ) {
+			case 'login_movido' === $route:
+				// 301: es una mudanza definitiva, y así los navegadores y los
+				// buscadores dejan de volver a la dirección vieja.
+				wp_safe_redirect( cead_acad_url( 'login' ), 301 );
+				exit;
+
 			case 'login' === $route:
 				cead_acad_template( 'auth/login.php' );
 				return;

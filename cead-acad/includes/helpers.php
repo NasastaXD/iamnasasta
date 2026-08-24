@@ -128,8 +128,33 @@ function cead_acad_sanitize_hex( $color ) {
 /**
  * Devuelve URL a una ruta del panel/auth.
  */
+/**
+ * Rutas cuyo nombre INTERNO no coincide con lo que se ve en la barra.
+ *
+ * `login` a secas chocaba con el login de WordPress: entre `/login`,
+ * `/wp-login.php` y el redirector que manda de uno al otro, terminaba sin
+ * quedar claro cuál era cuál, sobre todo para quien usa los dos. La ruta se
+ * mudó a `/ingresar`.
+ *
+ * El mapa vive acá, y no cambiando las treinta y pico de llamadas que piden
+ * 'login', para que el nombre interno de la ruta y su dirección pública sean
+ * cosas distintas: la próxima mudanza es una línea, no una búsqueda global con
+ * el riesgo de saltearse una.
+ */
+function cead_acad_route_slugs() {
+	return [ 'login' => 'ingresar' ];
+}
+
 function cead_acad_url( $route ) {
-	return home_url( '/' . ltrim( $route, '/' ) );
+	$route = ltrim( (string) $route, '/' );
+	$slugs = cead_acad_route_slugs();
+	// Solo la primera parte: 'panel/perfil' no se toca.
+	$partes = explode( '/', $route, 2 );
+	if ( isset( $slugs[ $partes[0] ] ) ) {
+		$partes[0] = $slugs[ $partes[0] ];
+		$route     = implode( '/', $partes );
+	}
+	return home_url( '/' . $route );
 }
 
 /** Acción del nonce que protege el cierre de sesión. */

@@ -46,7 +46,7 @@ Se puede usar desde el navegador o **instalarse como app** en el celular (ver §
 
 | Acción | Dirección |
 |---|---|
-| Ingresar | `/login` |
+| Ingresar | `/ingresar` |
 | Registrarse | Solo con un **link de invitación** que genera la dirección (`/i/<código>`) |
 | Recuperar contraseña | `/recuperar` |
 | Cerrar sesión | `/salir` |

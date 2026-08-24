@@ -140,7 +140,7 @@ regístrenlo. Es preferible una puerta cerrada a un permiso adivinado.
 
 2. **Buscar o crear la cuenta**, en este orden:
    - Por `cead_uid` guardado en la cuenta (ver punto 3) → esa es la cuenta.
-   - Si no, por email. **Acá está la decisión delicada — ver §6.1.**
+   - Si no, por email → vincular esa cuenta (ver §6.1).
    - Si no existe ninguna, crear con `Caaguazu_Cuentas_Accounts::create_with_hash()`.
 
 3. **Guardar `cead_uid`** en la cuenta, con `caaguazu_account_meta_set()` o en el
@@ -171,21 +171,36 @@ regístrenlo. Es preferible una puerta cerrada a un permiso adivinado.
 
 ## 6. Decisiones que necesito de ustedes
 
-### 6.1 Email que ya existe (la importante)
+### 6.1 Email que ya existe → vincular
 
-Si llega `ana@ejemplo.com` y **ya hay una cuenta con ese email que no tiene
-`cead_uid`** —una promotora de antes, por ejemplo—, ¿qué hacemos?
+Si llega `ana@ejemplo.com` y ya hay una cuenta con ese email sin `cead_uid`
+—una promotora de antes, por ejemplo—: **vincúlenlas**. La cuenta pasa a tener
+también el `cead_uid` y el grant que corresponda.
 
-Vincularlas automáticamente es cómodo y es un **riesgo de robo de cuenta**:
-quien controle esa dirección en el CEAD pasaría a manejar la cuenta de la
-promotora, con los permisos que ella tenga.
+En una versión anterior de este documento pedía lo contrario (rechazar y que un
+admin vinculara a mano). Estaba mal calibrado, por dos motivos:
 
-Mi recomendación: **no vincular solo**. Rechazar con un mensaje del tipo «ya
-existe una cuenta con ese email, escribinos», y que un admin lo vincule a mano.
-Es más fricción, pero la fricción se paga una vez y el robo de cuenta no se
-deshace.
+1. **El caso probable no es un ataque, es la misma persona.** En Caaguazú, un
+   alumno de Servicios Turísticos puede perfectamente ser ya promotor. Rechazar
+   ahí es fricción pura contra el caso que más se va a dar.
+2. **El ataque no está al alcance de un alumno.** Del lado del CEAD el email es
+   de solo lectura: un alumno no puede cambiarse el suyo, solo secretaría o
+   dirección desde wp-admin. Así que para forzar una colisión hace falta alguien
+   que ya tiene permiso para editar usuarios — y con ese permiso hay caminos
+   mucho más directos que este.
 
-**Necesito que confirmen esto**, porque cambia el código de los dos lados.
+Estamos hablando de 40-50 alumnos por año en una comunidad conocida, no de un
+registro público abierto. Pedir un trámite manual para cubrir un ataque que
+necesita cómplice interno es cambiar comodidad real por seguridad que no aplica.
+
+**Lo único que sí pido**, porque no cuesta fricción: que la vinculación quede
+**registrada** de su lado —cuenta, `cead_uid`, fecha—. Si alguna vez algo sale
+raro, la diferencia entre poder mirarlo y no poder es ese registro.
+
+Y una opción, no un requisito: si una cuenta tiene permisos fuertes en el portal
+(gestión de equipo, moderación), pueden pedir confirmación antes de vincular.
+Son un puñado de cuentas y no afecta a ningún alumno. Si les parece de más,
+sáltenlo.
 
 ### 6.2 A qué rol del portal mapea cada uno
 
@@ -244,5 +259,5 @@ Para que quede claro el reparto:
 
 ---
 
-**Respuesta que necesito para arrancar**: §6.1 (email repetido), §6.2 (mapa de
-roles) y §6.3 (panel). Con eso implemento nuestra mitad contra este contrato.
+**Respuesta que necesito para arrancar**: §6.2 (mapa de roles) y §6.3 (panel).
+La §6.1 ya está decidida: se vincula. Con eso implemento nuestra mitad.
