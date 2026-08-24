@@ -19,11 +19,17 @@ class Cead_Acad_Auth_Controller {
 		if ( ! cead_acad_verify_nonce( '_cead_nonce', 'cead_acad_login' ) ) {
 			$this->bail_to( 'login', 'invalid_nonce' );
 		}
-		if ( ! cead_acad_rate_limit( 'login', 8, 60 ) ) {
+		$user_login = sanitize_user( wp_unslash( $_POST['user_login'] ?? '' ), true );
+
+		/*
+		 * El freno va DESPUÉS de leer el usuario, porque cuenta por cuenta y no
+		 * solo por IP: el colegio entero sale por una sola IP pública, y un tope
+		 * por IP dejaría afuera al noveno alumno de la fila en el acto de
+		 * registro sin que hiciera nada mal.
+		 */
+		if ( ! cead_acad_login_permitido( $user_login ) ) {
 			$this->bail_to( 'login', 'rate_limited' );
 		}
-
-		$user_login = sanitize_user( wp_unslash( $_POST['user_login'] ?? '' ), true );
 		$password   = (string) ( $_POST['user_pass'] ?? '' );
 		$remember   = ! empty( $_POST['remember'] );
 
@@ -43,9 +49,19 @@ class Cead_Acad_Auth_Controller {
 		], is_ssl() );
 
 		if ( is_wp_error( $user ) ) {
-			$code = 'cead_acad_suspended' === $user->get_error_code() ? 'suspended' : 'bad_credentials';
-			$this->bail_to( 'login', $code );
+			$suspendida = 'cead_acad_suspended' === $user->get_error_code();
+			/*
+			 * Una cuenta suspendida no suma al contador: la contraseña puede
+			 * haber sido correcta, y castigar a quien la sabe no frena a nadie.
+			 */
+			if ( ! $suspendida ) {
+				cead_acad_login_fallo( $user_login );
+			}
+			$this->bail_to( 'login', $suspendida ? 'suspended' : 'bad_credentials' );
 		}
+
+		// Entró bien: se le limpia el contador a esa cuenta.
+		cead_acad_login_ok( $user_login );
 
 		$redirect = ! empty( $_POST['next'] ) ? esc_url_raw( wp_unslash( $_POST['next'] ) ) : cead_acad_url( 'panel' );
 		// Solo permitir redirect interno.

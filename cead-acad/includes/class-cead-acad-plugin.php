@@ -52,6 +52,7 @@ final class Cead_Acad_Plugin {
 		( new Cead_Acad_Audit() )->boot();
 
 		( new Cead_Acad_Rewrites() )->boot();
+		( new Cead_Acad_Hardening() )->boot();
 		( new Cead_Acad_Assets() )->boot();
 		( new Cead_Acad_Invitations() )->boot();
 		( new Cead_Acad_Auth_Controller() )->boot();

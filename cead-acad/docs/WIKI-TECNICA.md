@@ -213,7 +213,15 @@ Cuerpo cifrado con **libsodium** (`sodium_crypto_secretbox`) o AES-256-GCM como 
 Públicas: `/ingresar` (con `/login` redirigiendo ahí por compatibilidad), `/registro?t=<token>`, `/recuperar`, `/salir`, `/wiki` y `/wiki/tecnica` (esta documentación).
 Autenticadas: `/panel`, `/panel/comunicados`, `/panel/encuestas`, `/panel/horarios`, `/panel/recursos`, `/panel/boletin`, `/panel/delegado`, `/panel/secretaria`, `/panel/direccion`.
 
-`wp-login.php` se bloquea por defecto y redirige a `/ingresar` para usuarios del plugin. La ruta se mudó de `/login` justamente porque las dos direcciones se confundían entre sí; el mapa nombre-interno → slug público vive en `cead_acad_route_slugs()`.
+`wp-login.php` se bloquea por defecto y redirige a `/ingresar` para usuarios del plugin.
+
+**Bloquear esa pantalla no alcanza**, y por eso existe `Cead_Acad_Hardening`: hay al menos tres formas de autenticarse contra WordPress sin pasar nunca por ella. Un candado en la puerta principal no sirve si la ventana del fondo está abierta.
+
+- **XML-RPC apagado** (`xmlrpc_enabled` → false). `xmlrpc.php` acepta usuario y contraseña sin pasar por el formulario, y `system.multicall` mete cientos de intentos en UNA petición HTTP: esquiva la pantalla y también cualquier límite por cantidad de pedidos. No lo usa nada del proyecto (el bridge habla por REST con su propio token). Además se quita `pingback.ping`, que sobrevive a ese filtro porque no pide autenticación y convierte al sitio en intermediario para escanear redes ajenas.
+- **Contraseñas de aplicación apagadas para la gente del plugin.** Son credenciales alternativas que entran por REST, saltean el bloqueo y **siguen sirviendo aunque después se cambie la contraseña** — la puerta trasera que uno no quiere que quede si una cuenta se compromete un rato. A los administradores de WordPress se les dejan.
+- **Enumeración cerrada por los dos lados**: `?author=N` devuelve 404 a quien no está autenticado (el tema no tiene `author.php` ni enlaza archivos de autor, así que no rompe nada), y `/wp-json/wp/v2/users` se cierra **solo para peticiones sin autenticar** — cerrarlo del todo rompe el editor de bloques, y una medida que rompe el trabajo diario se termina desactivando entera.
+
+**Freno de login** (`cead_acad_login_permitido()`): dos contadores y **solo cuentan los fallos**. Uno por cuenta (5 en 15 min), que frena a quien adivina aunque cambie de IP; otro por IP, alto (60), para el barrido desde un mismo lugar. El tope anterior era por IP a secas y era peor que nada: **todo el colegio sale por una sola IP pública**, así que en un acto de registro el noveno alumno de la fila quedaba afuera sin haber hecho nada mal. La ruta se mudó de `/login` justamente porque las dos direcciones se confundían entre sí; el mapa nombre-interno → slug público vive en `cead_acad_route_slugs()`.
 
 ### REST API
 
