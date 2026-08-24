@@ -117,6 +117,9 @@ $options = [
 	'cead_acad_grades_scale_bands',
 	'cead_acad_grades_score_max',
 	'cead_acad_grades_score_pass',
+	// Puente con el portal turístico de caaguazu.net. El secreto compartido NO
+	// está acá: vive en wp-config.php, no en la base.
+	'cead_acad_turismo_url',
 	// Marca de la migración que generó la clave canónica de teléfono.
 	'cead_acad_phone_keys_backfilled',
 ];

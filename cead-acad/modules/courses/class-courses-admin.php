@@ -297,6 +297,15 @@ class Cead_Acad_Courses_Admin {
 					<?php $this->user_select( '_cead_acad_tutor', $tutor, [ 'cead_acad_teacher' ] ); ?>
 				</td>
 			</tr>
+
+			<tr>
+				<th><label for="cead_acad_turismo"><?php esc_html_e( 'Portal turístico', 'cead-acad' ); ?></label></th>
+				<td>
+					<label><input type="checkbox" id="cead_acad_turismo" name="_cead_acad_turismo" value="1" <?php checked( '1', (string) get_post_meta( $post->ID, '_cead_acad_turismo', true ) ); ?>>
+						<?php esc_html_e( 'Este curso participa del portal de caaguazu.net', 'cead-acad' ); ?></label>
+					<p class="description"><?php esc_html_e( 'Al alumnado y a los docentes de este curso les aparece el botón «Ir al portal turístico» en su panel, y entran sin registrarse de nuevo. Se marca acá, con una casilla, y no por el nombre del curso: así renombrarlo no deja a todos afuera sin que nadie entienda por qué.', 'cead-acad' ); ?></p>
+				</td>
+			</tr>
 		</table>
 		<?php
 	}
@@ -330,6 +339,13 @@ class Cead_Acad_Courses_Admin {
 		// Delegado/a anterior (antes de que el loop de abajo pise el meta), para
 		// poder revocarle el rol/roster si cambia.
 		$old_delegate_id = (int) get_post_meta( $post_id, '_cead_acad_delegate', true );
+
+		// Casilla: presente = 1, ausente = se borra el meta.
+		if ( ! empty( $_POST['_cead_acad_turismo'] ) ) {
+			update_post_meta( $post_id, '_cead_acad_turismo', '1' );
+		} else {
+			delete_post_meta( $post_id, '_cead_acad_turismo' );
+		}
 
 		foreach ( [ '_cead_acad_turno', '_cead_acad_division', '_cead_acad_delegate', '_cead_acad_tutor' ] as $key ) {
 			$val = isset( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '';

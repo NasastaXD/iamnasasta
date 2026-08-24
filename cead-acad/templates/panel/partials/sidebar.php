@@ -26,6 +26,14 @@ $base_items = [
 	[ 'href' => 'panel/app',          'label' => __( 'Instalar app', 'cead-acad' ), 'icon' => 'smartphone' ],
 ];
 
+/*
+ * Portal turístico: solo para quien está en un curso marcado. No es una pantalla
+ * del panel — al tocarlo se emite un código y se sale para caaguazu.net.
+ */
+if ( class_exists( 'Cead_Acad_Turismo' ) && '' !== Cead_Acad_Turismo::rol_de( $user->ID ) ) {
+	$base_items[] = [ 'href' => 'panel/turismo', 'label' => __( 'Portal turístico', 'cead-acad' ), 'icon' => 'palmtree' ];
+}
+
 // Boletín solo para roles con acceso a notas propias.
 if ( current_user_can( 'cead_acad_view_own_grades' ) ) {
 	$base_items[] = [ 'href' => 'panel/boletin', 'label' => __( 'Boletín', 'cead-acad' ), 'icon' => 'clipboard' ];

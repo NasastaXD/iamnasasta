@@ -105,6 +105,7 @@ Content-Type: application/json
   "nombre": "Ana Penayo",
   "telefono": "595981111111",
   "rol": "alumno_turismo",
+  "email_verificado": false,
   "curso": "2.º Servicios Turísticos",
   "emitido": 1755989950
 }
@@ -171,36 +172,56 @@ regístrenlo. Es preferible una puerta cerrada a un permiso adivinado.
 
 ## 6. Decisiones que necesito de ustedes
 
-### 6.1 Email que ya existe → vincular
+### 6.1 Email que ya existe → vincular, pero probando el email una vez
 
-Si llega `ana@ejemplo.com` y ya hay una cuenta con ese email sin `cead_uid`
-—una promotora de antes, por ejemplo—: **vincúlenlas**. La cuenta pasa a tener
-también el `cead_uid` y el grant que corresponda.
+**Corrección sobre la versión anterior de este documento.** Pedí rechazar y
+vincular a mano; después acordamos vincular automático con este argumento: «del
+lado del CEAD el email es de solo lectura, así que forzar una colisión necesita
+a alguien con permiso para editar usuarios». Fui a verificarlo al código y **es
+cierto a medias**, de una forma que rompe la conclusión:
 
-En una versión anterior de este documento pedía lo contrario (rechazar y que un
-admin vinculara a mano). Estaba mal calibrado, por dos motivos:
+- En el **perfil**, efectivamente, el email no se puede tocar: el guardado ni
+  siquiera lee ese campo. Ahí el argumento se sostiene.
+- Pero en el **registro** el alumno escribe el email que quiere. El único
+  control es `email_exists()`, que mira los usuarios **del CEAD** y no sabe nada
+  de las cuentas de caaguazu.
 
-1. **El caso probable no es un ataque, es la misma persona.** En Caaguazú, un
-   alumno de Servicios Turísticos puede perfectamente ser ya promotor. Rechazar
-   ahí es fricción pura contra el caso que más se va a dar.
-2. **El ataque no está al alcance de un alumno.** Del lado del CEAD el email es
-   de solo lectura: un alumno no puede cambiarse el suyo, solo secretaría o
-   dirección desde wp-admin. Así que para forzar una colisión hace falta alguien
-   que ya tiene permiso para editar usuarios — y con ese permiso hay caminos
-   mucho más directos que este.
+El camino completo, sin cómplice interno: alguien con un enlace de invitación
+—que es justamente lo que le estamos repartiendo a 40-50 alumnos— se registra
+poniendo el email de un promotor. Toca el botón. Su cuenta queda vinculada a la
+del promotor, con los grants de esa persona.
 
-Estamos hablando de 40-50 alumnos por año en una comunidad conocida, no de un
-registro público abierto. Pedir un trámite manual para cubrir un ataque que
-necesita cómplice interno es cambiar comodidad real por seguridad que no aplica.
+El fondo del asunto: **el CEAD nunca verifica que el email sea de quien lo
+escribió.** No mandamos confirmación. Vincular por email es entonces confiar en
+un dato no probado, y el email es justo el que abre la puerta.
 
-**Lo único que sí pido**, porque no cuesta fricción: que la vinculación quede
-**registrada** de su lado —cuenta, `cead_uid`, fecha—. Si alguna vez algo sale
-raro, la diferencia entre poder mirarlo y no poder es ese registro.
+**Lo que propongo**, que conserva casi toda la comodidad:
 
-Y una opción, no un requisito: si una cuenta tiene permisos fuertes en el portal
-(gestión de equipo, moderación), pueden pedir confirmación antes de vincular.
-Son un puñado de cuentas y no afecta a ningún alumno. Si les parece de más,
-sáltenlo.
+- Si **no existe** cuenta con ese email → crear y entrar. Sin fricción. Es el
+  caso de la enorme mayoría.
+- Si **ya existe** una cuenta con ese email y sin `cead_uid` → **no vincular en
+  el acto**: mandar un correo a esa dirección con un enlace de confirmación.
+  Cuando la persona lo abre, quedan vinculadas **para siempre** y todos los
+  ingresos siguientes son instantáneos.
+
+Es una fricción **de una sola vez y solo para quien colisiona**, que es
+exactamente el alumno-que-ya-es-promotor del que hablábamos. Y como esa persona
+sí es dueña de esa casilla, el correo le llega y lo abre. Al que puso un email
+ajeno no le llega nunca.
+
+Para que puedan decidirlo del lado de ustedes, en los claims mandamos:
+
+```json
+"email_verificado": false
+```
+
+Hoy siempre es `false`. Si algún día agregamos verificación en el registro del
+CEAD, pasará a `true` y ahí sí pueden vincular directo sin el correo. **No
+traten un `false` como si fuera `true`**: es el único dato que separa «esta
+persona» de «alguien que escribió su email».
+
+Y lo que ya habíamos acordado y sigue en pie: que la vinculación quede
+**registrada** de su lado (cuenta, `cead_uid`, fecha, y si fue por confirmación).
 
 ### 6.2 A qué rol del portal mapea cada uno
 

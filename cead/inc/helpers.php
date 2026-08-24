@@ -75,7 +75,7 @@ function cead_listing_title() {
  */
 function cead_proyecto_numeros() {
     return [
-        'modulos' => [ 17, __( 'módulos', 'cead' ),          __( 'Partes independientes del sistema que cumplen funciones distintas y pueden actualizarse por separado.', 'cead' ) ],
+        'modulos' => [ 18, __( 'módulos', 'cead' ),          __( 'Partes independientes del sistema que cumplen funciones distintas y pueden actualizarse por separado.', 'cead' ) ],
         'tablas'  => [ 18, __( 'tablas propias', 'cead' ),   __( 'Estructuras creadas para guardar los datos del colegio de forma ordenada.', 'cead' ) ],
         'roles'   => [ 7,  __( 'roles', 'cead' ),            __( 'Dirección, secretaría, docente, delegado, estudiante, familia y consejo. Cada rol tiene permisos diferentes.', 'cead' ) ],
         'cpts'    => [ 7,  __( 'tipos de contenido', 'cead' ), __( 'Cursos, comunicados, eventos, tareas, recursos, encuestas y preguntas frecuentes.', 'cead' ) ],
