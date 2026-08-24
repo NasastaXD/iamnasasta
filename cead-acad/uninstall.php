@@ -89,6 +89,12 @@ $options = [
 	'cead_acad_wa_img_estilo',
 	'cead_acad_wa_ai_memory',
 	'cead_acad_wa_ai_context_budget',
+	/*
+	 * Restos de los «datos de demo», una función que ya no existe. Se siguen
+	 * borrando a propósito: una instalación vieja puede tenerlas guardadas desde
+	 * antes de que se eliminara, y sacar el nombre de acá las dejaría huérfanas
+	 * para siempre. No busques el código: no está, y no tiene que volver.
+	 */
 	'cead_acad_demo_tools',
 	'cead_acad_demo_enrolled',
 	'cead_acad_wa_ai_memories',

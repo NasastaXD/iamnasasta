@@ -53,7 +53,7 @@ class Cead_Acad_Ceadi_Panel {
 		return is_user_logged_in() && current_user_can( 'cead_acad_view_panel' );
 	}
 
-	/** ¿Está disponible el chat? Lo usa la plantilla para no dibujar una barra muerta. */
+	/** ¿Está disponible el chat? Lo usa la plantilla para no dibujar un punto muerto. */
 	public static function disponible() {
 		return class_exists( 'Cead_Acad_WA_AI' ) && Cead_Acad_WA_AI::enabled();
 	}

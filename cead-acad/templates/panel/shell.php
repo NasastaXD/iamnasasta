@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 $page_title = $page_title ?? __( 'Panel', 'cead-acad' );
 
 /*
- * ¿Va la barra de CEADI? Se resuelve una sola vez, acá arriba, porque la
+ * ¿Va el punto de CEADI? Se resuelve una sola vez, acá arriba, porque la
  * respuesta se necesita en dos lugares: la clase del <body> (que le reserva
  * lugar abajo al contenido) y el include del final.
  */
