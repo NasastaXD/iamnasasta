@@ -530,8 +530,17 @@ class Cead_Acad_WA_Tools {
 		 * segura y equivocada. Una respuesta parcial presentada como total es
 		 * peor que no contestar, porque nadie la sale a verificar.
 		 */
+		/*
+		 * La nota es para el MODELO, no para copiarla y pegarla.
+		 *
+		 * Redactada como una frase lista para mostrar, terminaba pegada al final
+		 * de cada respuesta: alguien pregunta a qué hora tiene Matemática, se lo
+		 * decís bien, y le agregás una advertencia sobre otros cursos que no
+		 * preguntó. Una aclaración que no cambia lo que la persona haría es
+		 * ruido, y el ruido enseña a no leer.
+		 */
 		$nota = $acotado
-			? "\n(Solo se miró el horario de tu curso: puede haber más en otros cursos.)"
+			? "\n[Alcance: solo se miraron los cursos de esta persona. Aclaráselo SOLO si lo que preguntó abarcaba más que su propio curso —por ejemplo todo lo que da un docente—; si preguntó por lo suyo, no aclares nada.]"
 			: '';
 
 		if ( ! $filas ) {

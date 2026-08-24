@@ -255,21 +255,36 @@ final class HorarioConsultaTest extends TestCase {
 		$r = Cead_Acad_WA_Tools::horario_texto( $soloSuCurso, [ 'docente' => 'Sanny' ], 1, '14:20', true );
 
 		$this->assertStringContainsString( 'Historia', $r );
-		$this->assertStringContainsStringIgnoringCase( 'otros cursos', $r );
+		$this->assertStringContainsStringIgnoringCase( 'Alcance:', $r );
 	}
 
     /** Y también cuando no encontró nada: ahí el aviso importa MÁS. */
 	public function test_avisa_del_alcance_aunque_no_encuentre_nada(): void {
 		$r = Cead_Acad_WA_Tools::horario_texto( [], [ 'docente' => 'Sanny' ], 1, '14:20', true );
 
-		$this->assertStringContainsStringIgnoringCase( 'otros cursos', $r );
+		$this->assertStringContainsStringIgnoringCase( 'Alcance:', $r );
 	}
 
 	/** Con permiso para ver todo, el aviso no aparece: sería ruido y confundiría. */
 	public function test_sin_acotar_no_avisa_nada(): void {
 		$r = $this->consultar( [ 'docente' => 'Sanny' ] );
 
-		$this->assertStringNotContainsStringIgnoringCase( 'otros cursos', $r );
+		$this->assertStringNotContainsStringIgnoringCase( 'Alcance:', $r );
+	}
+
+	/**
+	 * La nota del alcance va entre corchetes y dirigida al modelo, no redactada
+	 * como una frase lista para mostrar. Escrita como frase, terminaba pegada al
+	 * final de cada respuesta: alguien pregunta a qué hora tiene Matemática y se
+	 * lleva una advertencia sobre otros cursos que nunca preguntó. Una
+	 * aclaración que no cambia lo que la persona haría es ruido, y el ruido
+	 * enseña a no leer.
+	 */
+	public function test_la_nota_del_alcance_es_para_el_modelo_no_para_copiar(): void {
+		$r = Cead_Acad_WA_Tools::horario_texto( $this->franjas(), [ 'docente' => 'Sanny' ], 1, '14:20', true );
+
+		$this->assertStringContainsString( '[Alcance:', $r );
+		$this->assertStringContainsStringIgnoringCase( 'SOLO si', $r, 'Tiene que decirle CUÁNDO mencionarlo, no solo el hecho.' );
 	}
 
 	/* --------------------------- la herramienta ------------------------------ */

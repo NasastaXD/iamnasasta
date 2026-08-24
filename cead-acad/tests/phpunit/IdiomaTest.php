@@ -57,6 +57,38 @@ final class IdiomaTest extends TestCase {
 		$this->assertStringContainsString( 'guaraní', $e );
 	}
 
+	/* --------------------- el contrapeso de la cautela ---------------------- */
+
+	/**
+	 * La personalidad tiene varias reglas para no afirmar de más. Necesita la
+	 * contraria, y por un motivo que se olvida: los dos errores no se ven igual.
+	 * Cuando el bot inventa algo, alguien lo nota y lo corrige; cuando se calla,
+	 * no pasa nada visible y parece que funcionó. Sin un contrapeso explícito,
+	 * callarse termina siendo siempre la opción cómoda y el asistente deja de
+	 * servir para lo que lo pusieron.
+	 *
+	 * Es justo el tipo de sección que desaparece en una reescritura «para
+	 * acortar», porque suena a permiso y no a regla.
+	 */
+	public function test_la_personalidad_compensa_el_exceso_de_cautela(): void {
+		$p = Cead_Acad_WA_AI::default_persona();
+
+		$this->assertMatchesRegularExpression( '/callarse también cuesta/iu', $p );
+		$this->assertStringContainsString( 'sin rodeos', $p );
+	}
+
+	/**
+	 * Y el contrapeso NO puede arrastrarse las reglas duras. Aflojar la cautela
+	 * es decir lo que SÍ se sabe, no empezar a inventar ni a mostrar datos
+	 * ajenos: si esa distinción se pierde, la sección se vuelve peligrosa.
+	 */
+	public function test_el_contrapeso_no_toca_las_reglas_duras(): void {
+		$p = Cead_Acad_WA_AI::default_persona();
+
+		$this->assertMatchesRegularExpression( '/no inventar datos/iu', $p );
+		$this->assertMatchesRegularExpression( '/no saltear permisos/iu', $p );
+	}
+
 	/**
 	 * La personalidad de fábrica solo se usa si nadie cargó una propia. Si
 	 * alguien escribe la suya en wp-admin, la regla del idioma se va con la
