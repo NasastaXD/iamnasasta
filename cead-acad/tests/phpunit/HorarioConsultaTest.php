@@ -287,6 +287,68 @@ final class HorarioConsultaTest extends TestCase {
 		$this->assertStringContainsStringIgnoringCase( 'SOLO si', $r, 'Tiene que decirle CUÁNDO mencionarlo, no solo el hecho.' );
 	}
 
+	/* -------------------- el curso escrito de otra forma --------------------- */
+
+	/**
+	 * El caso real. Alguien preguntó por «2do servicios turisticos» y CEADI
+	 * contestó primero «no tienen clases», después «hasta las 17:20», y después
+	 * otra vez «no tienen clases cargadas» — todo en la misma conversación.
+	 *
+	 * No era el modelo: `contiene()` exigía que la frase entera apareciera
+	 * SEGUIDA. «2do servicios turisticos» no está dentro de «2.º Servicios
+	 * Turísticos», pero «servicios turisticos» sí. Según cómo redactara el filtro
+	 * cada turno, encontraba todo o nada.
+	 *
+	 * @dataProvider comoLoEscribeLaGente
+	 */
+	public function test_encuentra_el_curso_escrito_de_cualquier_forma( string $escrito ): void {
+		$franjas = [
+			[ 'dia' => 2, 'inicio' => '16:00', 'fin' => '17:20', 'materia' => 'Venta de Paquetes', 'docente' => 'X', 'aula' => '108', 'curso' => '2.º Servicios Turísticos' ],
+		];
+
+		$r = Cead_Acad_WA_Tools::horario_texto( $franjas, [ 'curso' => $escrito ], 2, '11:12' );
+
+		$this->assertStringContainsString( 'Venta de Paquetes', $r, "«{$escrito}» tendría que encontrar el curso." );
+	}
+
+	public static function comoLoEscribeLaGente(): array {
+		return [
+			'exacto'          => [ '2.º Servicios Turísticos' ],
+			'con do'          => [ '2do servicios turisticos' ],
+			'con º'           => [ '2º Servicios Turísticos' ],
+			'con ordinal'     => [ 'segundo servicios turisticos' ],
+			'sin el número'   => [ 'servicios turisticos' ],
+			'desordenado'     => [ 'turisticos servicios' ],
+			'solo el número'  => [ '2' ],
+			'con mayúsculas'  => [ 'SERVICIOS TURISTICOS' ],
+		];
+	}
+
+	/**
+	 * Y lo que hizo el daño de verdad: un curso que no existe tiene que decirse
+	 * como tal, NO como «no tienen clases cargadas».
+	 *
+	 * Las dos frases suenan igual de seguras y significan cosas opuestas: una
+	 * dice que el nombre está mal, la otra afirma algo sobre el horario. El
+	 * modelo repetía la segunda como si fuera un dato verificado.
+	 */
+	public function test_un_curso_inexistente_no_se_confunde_con_no_tener_clases(): void {
+		$r = Cead_Acad_WA_Tools::horario_texto( $this->franjas(), [ 'curso' => 'Ingeniería Espacial' ], 1, '14:20' );
+
+		$this->assertStringContainsStringIgnoringCase( 'no encontré', $r );
+		$this->assertStringNotContainsStringIgnoringCase( 'no hay nada', $r );
+		// Y ayuda: dice cuáles sí existen.
+		$this->assertStringContainsString( '3.º Ciencias Básicas', $r );
+	}
+
+	/** Un curso que SÍ existe pero sin clases ese día dice lo otro. */
+	public function test_un_curso_real_sin_clases_ese_dia_dice_que_no_hay(): void {
+		$r = Cead_Acad_WA_Tools::horario_texto( $this->franjas(), [ 'curso' => '2.º Sociales', 'dia' => 'jueves' ], 1, '14:20' );
+
+		$this->assertStringNotContainsStringIgnoringCase( 'no encontré ningún curso', $r );
+		$this->assertStringContainsStringIgnoringCase( 'jueves', $r );
+	}
+
 	/* --------------------------- la herramienta ------------------------------ */
 
 	/** Tiene que estar registrada como CONSULTA: se ejecuta sola, no escribe nada. */

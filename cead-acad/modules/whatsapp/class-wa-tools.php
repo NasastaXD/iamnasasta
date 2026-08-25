@@ -417,14 +417,53 @@ class Cead_Acad_WA_Tools {
 		return strtr( (string) $s, [ 'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n' ] );
 	}
 
-	/** ¿La aguja aparece en el pajar? Comparación tolerante (sin tildes, sin may.). */
+	/**
+	 * Deja un texto en su forma comparable: minúsculas, sin tildes, sin
+	 * puntuación, y con los ordinales llevados a su número.
+	 *
+	 * Lo de los ordinales no es un adorno. El colegio escribe «2.º Servicios
+	 * Turísticos», la gente escribe «2do», «2º» o «segundo», y sin normalizar
+	 * ninguna de esas tres encuentra el curso.
+	 */
+	protected static function normalizar( $s ) {
+		$s = self::sin_tildes( mb_strtolower( trim( (string) $s ) ) );
+
+		// «segundo» → «2», antes de romper las palabras.
+		$s = strtr( $s, [
+			'primero' => '1', 'primer' => '1', 'segundo' => '2', 'tercero' => '3', 'tercer' => '3',
+			'cuarto'  => '4', 'quinto' => '5', 'sexto'  => '6', 'septimo' => '7',
+		] );
+
+		// «2do», «1ro», «3er» → «2», «1», «3».
+		$s = preg_replace( '/(\d+)(ro|do|er|to|mo|vo|no)\b/u', '$1', $s );
+
+		// Todo lo que no sea letra o número separa palabras: así «2.º» queda «2».
+		$s = preg_replace( '/[^a-z0-9]+/u', ' ', $s );
+
+		return trim( (string) preg_replace( '/\s+/', ' ', $s ) );
+	}
+
+	/**
+	 * ¿El pajar contiene lo que se busca?
+	 *
+	 * Compara PALABRA POR PALABRA, no la frase entera seguida, y esa diferencia
+	 * es la que hacía fallar la búsqueda de cursos. Con `strpos` sobre la frase
+	 * completa, «2do servicios turisticos» no encontraba «2.º Servicios
+	 * Turísticos» —los caracteres no están en ese orden— pero «servicios
+	 * turisticos» sí. Según cómo el modelo redactara el filtro en cada turno,
+	 * encontraba todo o nada, y contestaba cosas opuestas en la misma
+	 * conversación.
+	 */
 	protected static function contiene( $pajar, $aguja ) {
-		$aguja = trim( (string) $aguja );
+		$aguja = self::normalizar( $aguja );
 		if ( '' === $aguja ) { return true; }
-		return false !== strpos(
-			self::sin_tildes( mb_strtolower( (string) $pajar ) ),
-			self::sin_tildes( mb_strtolower( $aguja ) )
-		);
+
+		$pajar = self::normalizar( $pajar );
+		foreach ( explode( ' ', $aguja ) as $palabra ) {
+			if ( '' === $palabra ) { continue; }
+			if ( false === strpos( $pajar, $palabra ) ) { return false; }
+		}
+		return true;
 	}
 
 	/**
@@ -490,6 +529,54 @@ class Cead_Acad_WA_Tools {
 			$dia = ( 7 === $hoy ) ? 1 : $hoy + 1;
 		}
 
+		/*
+		 * Cuando solo se miraron los cursos propios hay que DECIRLO, tanto si
+		 * hubo resultados como si no.
+		 *
+		 * El caso que lo hace necesario: un alumno de 2.º pregunta «¿qué materias
+		 * da la profe Sanny?». Si Sanny le da Historia a su curso y Matemática a
+		 * otros dos, sin este aviso la respuesta sería «Historia» — completa,
+		 * segura y equivocada. Una respuesta parcial presentada como total es
+		 * peor que no contestar, porque nadie la sale a verificar.
+		 */
+		/*
+		 * La nota es para el MODELO, no para copiarla y pegarla.
+		 *
+		 * Redactada como una frase lista para mostrar, terminaba pegada al final
+		 * de cada respuesta: alguien pregunta a qué hora tiene Matemática, se lo
+		 * decís bien, y le agregás una advertencia sobre otros cursos que no
+		 * preguntó. Una aclaración que no cambia lo que la persona haría es
+		 * ruido, y el ruido enseña a no leer.
+		 */
+		$nota = $acotado
+			? "\n[Alcance: solo se miraron los cursos de esta persona. Aclaráselo SOLO si lo que preguntó abarcaba más que su propio curso —por ejemplo todo lo que da un docente—; si preguntó por lo suyo, no aclares nada.]"
+			: '';
+
+		/*
+		 * Si se filtró por curso y NINGUNA franja es de un curso que coincida, el
+		 * problema es el nombre, no el horario.
+		 *
+		 * Sin esta distinción, un curso mal escrito devolvía «no tienen clases
+		 * cargadas»: una afirmación sobre el horario, dicha con total seguridad,
+		 * cuando en realidad no se había encontrado el curso. Es peor que un
+		 * error, porque el modelo la repite como si fuera un dato.
+		 */
+		if ( '' !== $curso_f ) {
+			$hay_curso = false;
+			foreach ( $franjas as $f ) {
+				if ( self::contiene( $f['curso'] ?? '', $curso_f ) ) { $hay_curso = true; break; }
+			}
+			if ( ! $hay_curso ) {
+				$nombres = array_values( array_unique( array_filter( array_map(
+					static function ( $f ) { return (string) ( $f['curso'] ?? '' ); },
+					$franjas
+				) ) ) );
+				return 'No encontré ningún curso que se llame así. NO es que no tengan clases: es que ese nombre no coincide con ninguno.'
+					. ( $nombres ? "\nLos que hay son: " . implode( ', ', array_slice( $nombres, 0, 12 ) ) . '.' : '' )
+					. $nota;
+			}
+		}
+
 		$filas = [];
 		foreach ( $franjas as $s ) {
 			$d = (int) ( $s['dia'] ?? 0 );
@@ -519,29 +606,6 @@ class Cead_Acad_WA_Tools {
 				'aula'    => (string) ( $s['aula'] ?? '' ),
 			];
 		}
-
-		/*
-		 * Cuando solo se miraron los cursos propios hay que DECIRLO, tanto si
-		 * hubo resultados como si no.
-		 *
-		 * El caso que lo hace necesario: un alumno de 2.º pregunta «¿qué materias
-		 * da la profe Sanny?». Si Sanny le da Historia a su curso y Matemática a
-		 * otros dos, sin este aviso la respuesta sería «Historia» — completa,
-		 * segura y equivocada. Una respuesta parcial presentada como total es
-		 * peor que no contestar, porque nadie la sale a verificar.
-		 */
-		/*
-		 * La nota es para el MODELO, no para copiarla y pegarla.
-		 *
-		 * Redactada como una frase lista para mostrar, terminaba pegada al final
-		 * de cada respuesta: alguien pregunta a qué hora tiene Matemática, se lo
-		 * decís bien, y le agregás una advertencia sobre otros cursos que no
-		 * preguntó. Una aclaración que no cambia lo que la persona haría es
-		 * ruido, y el ruido enseña a no leer.
-		 */
-		$nota = $acotado
-			? "\n[Alcance: solo se miraron los cursos de esta persona. Aclaráselo SOLO si lo que preguntó abarcaba más que su propio curso —por ejemplo todo lo que da un docente—; si preguntó por lo suyo, no aclares nada.]"
-			: '';
 
 		if ( ! $filas ) {
 			return self::horario_sin_resultados( $solo_ahora, $dia, $docente, $hora ) . $nota;

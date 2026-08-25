@@ -1388,6 +1388,15 @@ TXT;
 		 */
 		$nivel_actual = $forced_model ? null : ( $nivel ?: self::NIVEL_RAPIDO );
 		$escalado     = false;
+
+		/*
+		 * Cuánto tardó el turno y en qué. Sin esto, «el bot está lento» es una
+		 * sensación y la respuesta es una conjetura: puede ser el modelo, puede
+		 * ser que encadenó cinco consultas, puede ser un reintento de 18s contra
+		 * un proveedor que no contesta. Son problemas distintos con arreglos
+		 * distintos, y desde afuera se ven exactamente igual.
+		 */
+		self::$ultimo_turno = [ 'llamadas' => 0, 'seg' => 0.0, 'modelo' => $model, 'escalado' => false ];
 		// Con una foto manda el modelo de visión y no se escala: cambiar de
 		// modelo a mitad de turno dejaría la imagen atrás.
 		if ( $img_block ) { $nivel_actual = null; }
@@ -1427,7 +1436,10 @@ TXT;
 
 			$p = $payload( 'tools', $max_tokens );
 			$p['messages'] = $conversacion;
-			$r = self::http( $endpoint, $key, $p, $timeout, $retry, true, $nivel_actual );
+			$t0 = microtime( true );
+			$r  = self::http( $endpoint, $key, $p, $timeout, $retry, true, $nivel_actual );
+			self::$ultimo_turno['llamadas']++;
+			self::$ultimo_turno['seg'] += microtime( true ) - $t0;
 
 			// Si el proveedor rechaza el max_tokens pedido (cada modelo tiene su
 			// techo; DeepSeek corta en 8192), se reintenta con un valor prudente.
@@ -1490,6 +1502,8 @@ TXT;
 					$nivel_actual = $pide;
 					$model        = self::model_nivel( $pide );
 					$escalado     = true;
+					self::$ultimo_turno['escalado'] = true;
+					self::$ultimo_turno['modelo']   = $model;
 					$conversacion = $messages( 'tools' );
 					$ultimo_texto = '';
 					self::$last_tools = [];
@@ -1573,6 +1587,14 @@ TXT;
 		}
 		return $parsed;
 	}
+
+	/**
+	 * Qué tardó el último turno: llamadas al modelo, segundos, modelo usado y si
+	 * hubo escalada. Lo lee la pantalla de CEADI · IA.
+	 */
+	protected static $ultimo_turno = [];
+
+	public static function ultimo_turno() { return self::$ultimo_turno; }
 
 	/** Qué consultas resolvió el sistema en el último turno (para diagnóstico). */
 	protected static $last_tools = [];
@@ -1812,6 +1834,22 @@ TXT;
 		}
 		self::$last_error = '';
 		delete_transient( 'cead_acad_wa_ai_last_error' );
+
+		/*
+		 * Queda registrado SIEMPRE, no solo cuando algo falla. Un turno lento no
+		 * es un error —contesta bien, solo tarde— así que no deja rastro por
+		 * ningún otro lado, y sin rastro «está lento» se discute a ciegas.
+		 */
+		$t = self::ultimo_turno();
+		if ( ! empty( $t['llamadas'] ) ) {
+			error_log( sprintf(
+				'[CeadAcadWA][AI] turno: %d llamada(s) al modelo, %.1fs, modelo %s%s',
+				(int) $t['llamadas'],
+				(float) $t['seg'],
+				(string) $t['modelo'],
+				! empty( $t['escalado'] ) ? ' (escalado)' : ''
+			) );
+		}
 		if ( $phone !== '' && self::memory_turns() > 0 ) {
 			// La imagen no se guarda en la memoria (solo texto), pero sí queda la
 			// marca de que hubo una: si no, en el turno siguiente el modelo no
