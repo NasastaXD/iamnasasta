@@ -70,8 +70,12 @@ El navegador nunca ve los datos de la persona, solo un código sin significado.
 ### 4.1 El enlace que manda el CEAD
 
 ```
-https://caaguazu.net/acceso-cead?code=<64 hex>
+https://caaguazu.net/turismo-panel/acceso-cead?code=<64 hex>
 ```
+
+La ruta es **configurable de nuestro lado** (campo «Ruta de acceso del portal»),
+así que si mueven el panel otra vez alcanza con que nos avisen: se cambia un
+campo, no se publica una versión del plugin. Díganme la ruta definitiva.
 
 Nada más. Sin email, sin nombre, sin rol. Si el código se filtra, sirve **una
 sola vez y por dos minutos**, y sin el secreto compartido no se puede canjear.
@@ -122,8 +126,15 @@ Mandamos un rol **lógico**, y ustedes lo mapean a lo que exista en el panel:
 
 | Lo que manda el CEAD | Quién es |
 |---|---|
-| `alumno_turismo` | Alumno/a inscripto en el curso de Servicios Turísticos |
-| `docente_turismo` | Docente asignado a ese curso |
+| `alumno_turismo` | Alumno/a inscripto en un curso marcado como turístico |
+| `direccion_turismo` | Dirección del colegio (supervisión) |
+
+**Los docentes ya NO entran por acá.** Cambió respecto de la versión anterior de
+este documento: se decidió crearles la cuenta a mano de su lado. Son un puñado
+de personas y estables, y hacerlo por SSO obligaba a mantener una regla
+—«docente asignado a este curso»— que se desactualiza sola cada vez que cambia
+una asignación. Mucha maquinaria para resolver algo que se arregla creando tres
+cuentas. Si algún día son muchos, lo volvemos a hablar.
 
 Es a propósito: **los roles del portal son de ustedes**, y si mandáramos
 `promotur_mini` directamente, cualquier cambio en su modelo de roles rompería
@@ -225,8 +236,8 @@ Y lo que ya habíamos acordado y sigue en pie: que la vinculación quede
 
 ### 6.2 A qué rol del portal mapea cada uno
 
-¿`alumno_turismo` es `promotur_mini`? ¿`docente_turismo` es `promotur_promotor`,
-o hace falta un rol nuevo con permisos de revisión? Es su decisión: díganme el
+¿`alumno_turismo` es `promotur_mini`? ¿`direccion_turismo` es `promotur_promotor`,
+o hace falta un rol nuevo con permisos de supervisión? Es su decisión: díganme el
 mapa y lo dejo escrito en la documentación de los dos lados.
 
 ### 6.3 ¿Panel `promotor` o un panel nuevo?

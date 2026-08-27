@@ -128,6 +128,39 @@ final class TurismoFirmaTest extends TestCase {
 		$this->assertSame( 'https://caaguazu.net', Cead_Acad_Turismo::portal_url() );
 	}
 
+	/* -------------------------- la ruta de acceso --------------------------- */
+
+	/** Sin configurar, la ruta de fábrica. */
+	public function test_la_ruta_por_defecto(): void {
+		cead_test_reset_options();
+
+		$this->assertSame( '/acceso-cead', Cead_Acad_Turismo::ruta_acceso() );
+	}
+
+	/**
+	 * La ruta es configurable porque es del OTRO sitio: ya se movió una vez, de
+	 * la raíz a `/turismo-panel`. Que sea un campo evita publicar una versión del
+	 * plugin cada vez que ellos reacomodan su panel.
+	 *
+	 * @dataProvider rutasEscritas
+	 */
+	public function test_la_ruta_se_normaliza( string $escrita, string $esperada ): void {
+		cead_test_reset_options();
+		cead_test_set_option( 'cead_acad_turismo_ruta', $escrita );
+
+		$this->assertSame( $esperada, Cead_Acad_Turismo::ruta_acceso() );
+	}
+
+	public static function rutasEscritas(): array {
+		return [
+			'con barra inicial'  => [ '/turismo-panel/acceso', '/turismo-panel/acceso' ],
+			'sin barra inicial'  => [ 'turismo-panel/acceso',  '/turismo-panel/acceso' ],
+			'con barra final'    => [ '/turismo-panel/acceso/', '/turismo-panel/acceso' ],
+			'con espacios'       => [ '  /turismo-panel/acceso  ', '/turismo-panel/acceso' ],
+			'vacía → la de fábrica' => [ '', '/acceso-cead' ],
+		];
+	}
+
 	/** Sin puente configurado nadie es elegible, tenga el curso que tenga. */
 	public function test_sin_puente_nadie_es_elegible(): void {
 		cead_test_reset_options();
