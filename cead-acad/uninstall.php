@@ -120,6 +120,7 @@ $options = [
 	// Puente con el portal turístico de caaguazu.net. El secreto compartido NO
 	// está acá: vive en wp-config.php, no en la base.
 	'cead_acad_turismo_url',
+	'cead_acad_turismo_ruta',
 	// Marca de la migración que generó la clave canónica de teléfono.
 	'cead_acad_phone_keys_backfilled',
 ];

@@ -26,6 +26,17 @@ class Cead_Acad_Turismo {
 	/** Dónde vive el portal (sin barra final). */
 	const OPT_URL = 'cead_acad_turismo_url';
 
+	/**
+	 * La ruta a la que se manda a la persona con el código.
+	 *
+	 * Configurable y no fija en el código porque es del OTRO sitio: si mañana
+	 * mueven el panel —ya pasó una vez, de la raíz a `/turismo-panel`— se cambia
+	 * un campo en vez de publicar una versión del plugin.
+	 */
+	const OPT_RUTA = 'cead_acad_turismo_ruta';
+
+	const RUTA_DEFECTO = '/acceso-cead';
+
 	/** Prefijo de las opciones donde viven los códigos sin canjear. */
 	const PREFIJO = 'cead_acad_tur_code_';
 
@@ -51,6 +62,15 @@ class Cead_Acad_Turismo {
 
 	public static function portal_url() {
 		return rtrim( (string) get_option( self::OPT_URL, '' ), '/' );
+	}
+
+	/** La ruta de acceso, siempre empezando con barra y sin barra final. */
+	public static function ruta_acceso() {
+		$r = trim( (string) get_option( self::OPT_RUTA, '' ) );
+		if ( '' === $r ) {
+			return self::RUTA_DEFECTO;
+		}
+		return '/' . trim( $r, '/' );
 	}
 
 	/**
@@ -82,14 +102,20 @@ class Cead_Acad_Turismo {
 	/**
 	 * Qué es esta persona para el portal, o '' si no le corresponde entrar.
 	 *
-	 * Se resuelve por el CURSO marcado y no por el rol suelto: un docente lo es
-	 * del colegio entero, y lo que habilita el portal es estar en ESE curso.
+	 * Entran dos grupos y ninguno más:
 	 *
-	 * Marcar el curso con una casilla, en vez de mirar si el título dice
-	 * «Servicios Turísticos», también evita que renombrarlo deje a todo el mundo
-	 * afuera sin que nadie entienda por qué.
+	 *  - **Alumnado** de un curso marcado como turístico. Se resuelve por el
+	 *    CURSO y no por el título: marcarlo con una casilla evita que renombrarlo
+	 *    deje a todos afuera sin que nadie entienda por qué.
+	 *  - **Dirección**, siempre, esté o no en ese curso. Es quien supervisa.
 	 *
-	 * @return string 'alumno_turismo' | 'docente_turismo' | ''
+	 * Los DOCENTES quedan afuera a propósito. No es un olvido: se les crea la
+	 * cuenta a mano del lado del portal. Son un puñado de personas, estables, y
+	 * meterlas acá obligaría a mantener una regla («docente asignado a este
+	 * curso») que se desactualiza sola cada vez que cambia una asignación —
+	 * mucho trabajo para resolver algo que se arregla creando tres cuentas.
+	 *
+	 * @return string 'alumno_turismo' | 'direccion_turismo' | ''
 	 */
 	public static function rol_de( $user_id ) {
 		$user_id = (int) $user_id;
@@ -99,6 +125,14 @@ class Cead_Acad_Turismo {
 		// Una cuenta suspendida no entra a ningún lado.
 		if ( class_exists( 'Cead_Acad_User_Suspension' ) && Cead_Acad_User_Suspension::is_suspended( $user_id ) ) {
 			return '';
+		}
+
+		/*
+		 * Dirección va primero y no depende del curso: si todavía no se marcó
+		 * ninguno, quien supervisa igual tiene que poder entrar a mirar.
+		 */
+		if ( user_can( $user_id, 'cead_acad_manage_roles' ) ) {
+			return 'direccion_turismo';
 		}
 
 		$cursos = self::cursos();
@@ -114,18 +148,7 @@ class Cead_Acad_Turismo {
 			$mios[] = $actual;
 		}
 
-		if ( array_intersect( $cursos, array_unique( $mios ) ) ) {
-			return user_can( $user_id, 'cead_acad_record_grade' ) ? 'docente_turismo' : 'alumno_turismo';
-		}
-
-		// El tutor del curso cuenta aunque no figure entre los inscriptos.
-		foreach ( $cursos as $cid ) {
-			if ( (int) get_post_meta( $cid, '_cead_acad_tutor', true ) === $user_id ) {
-				return 'docente_turismo';
-			}
-		}
-
-		return '';
+		return array_intersect( $cursos, array_unique( $mios ) ) ? 'alumno_turismo' : '';
 	}
 
 	/* ===================================================================== */
@@ -186,7 +209,7 @@ class Cead_Acad_Turismo {
 			Cead_Acad_Audit::log( 'turismo_codigo_emitido', [ 'user' => (int) $user->ID, 'rol' => $rol ] );
 		}
 
-		return self::portal_url() . '/acceso-cead?code=' . rawurlencode( $code );
+		return self::portal_url() . self::ruta_acceso() . '?code=' . rawurlencode( $code );
 	}
 
 	protected static function titulo_curso( $user_id ) {
