@@ -25,7 +25,23 @@ class Cead_Acad_API {
 	/** El token en claro que vino en el request, para poder revocarlo. */
 	protected $token = '';
 
+	/** La instancia que arrancó, que es la que sabe cómo vino autenticado. */
+	protected static $viva = null;
+
+	/**
+	 * El `permission_callback` de cualquier endpoint que pida sesión.
+	 *
+	 * Tiene que apuntar a la instancia ARRANCADA y no a una nueva: el resultado
+	 * de la autenticación (token vencido, cuenta suspendida) vive en el objeto,
+	 * y una instancia recién creada respondería «no hay sesión» donde hace falta
+	 * decir «tu sesión venció, volvé a entrar».
+	 */
+	public static function gate() {
+		return [ self::$viva ?: new self(), 'autenticado' ];
+	}
+
 	public function boot() {
+		self::$viva = $this;
 		add_action( 'rest_api_init', [ $this, 'rutas' ] );
 		add_filter( 'determine_current_user', [ $this, 'usuario_por_token' ], 20 );
 		add_filter( 'rest_authentication_errors', [ $this, 'error_de_autenticacion' ], 20 );

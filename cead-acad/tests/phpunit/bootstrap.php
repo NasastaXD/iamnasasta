@@ -663,6 +663,7 @@ require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-memory.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-news.php';
 require_once dirname( __DIR__, 2 ) . '/modules/turismo/class-turismo.php';
 require_once dirname( __DIR__, 2 ) . '/modules/api/class-api-tokens.php';
+require_once dirname( __DIR__, 2 ) . '/modules/api/class-api-panel.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-tools.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-instagram.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-images.php';

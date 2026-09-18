@@ -98,6 +98,7 @@ require_once CEAD_ACAD_DIR . 'modules/notifications/class-notifications.php';
 require_once CEAD_ACAD_DIR . 'modules/turismo/class-turismo.php';
 require_once CEAD_ACAD_DIR . 'modules/api/class-api-tokens.php';
 require_once CEAD_ACAD_DIR . 'modules/api/class-api.php';
+require_once CEAD_ACAD_DIR . 'modules/api/class-api-panel.php';
 require_once CEAD_ACAD_DIR . 'modules/faq/class-faq.php';
 require_once CEAD_ACAD_DIR . 'modules/wiki/class-wiki.php';
 require_once CEAD_ACAD_DIR . 'modules/updates/class-updates.php';
