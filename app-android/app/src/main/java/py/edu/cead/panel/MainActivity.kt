@@ -36,7 +36,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.HtmlCompat
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import py.edu.cead.panel.data.Comunicados
@@ -117,7 +118,7 @@ private fun Panel(vm: PanelViewModel) {
                 // convierte a texto con formato en vez de mostrar las etiquetas
                 // crudas, y sin WebView: no hace falta un navegador entero para
                 // leer un comunicado.
-                Text(HtmlCompat.fromHtml(abierto.contenido ?: abierto.resumen))
+                Text(AnnotatedString.fromHtml(abierto.contenido ?: abierto.resumen))
             }
         }
         return

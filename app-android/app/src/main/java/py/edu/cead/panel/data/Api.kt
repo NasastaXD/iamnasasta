@@ -140,7 +140,7 @@ class Api(
      * puede leer, recién ahí se inventa uno genérico.
      */
     private suspend fun revisar(r: HttpResponse) {
-        if (r.status.isSuccess()) return
+        if (r.status.value in 200..299) return
 
         val error = runCatching { r.body<ErrorApi>() }.getOrNull()
         val mensaje = error?.message?.takeIf { it.isNotBlank() }
@@ -152,8 +152,6 @@ class Api(
         }
         throw ApiError(error?.code ?: "http_${r.status.value}", mensaje)
     }
-
-    private fun HttpStatusCode.isSuccess() = value in 200..299
 
     /** «Moto de Ana», para que la lista de sesiones signifique algo. */
     private fun nombreDelAparato(): String {
