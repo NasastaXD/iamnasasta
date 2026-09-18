@@ -28,7 +28,7 @@ import py.edu.cead.panel.data.Tareas
 sealed interface Carga<out T> {
     data object Cargando : Carga<Nothing>
     data class Listo<T>(val datos: T) : Carga<T>
-    data class Falló(val mensaje: String) : Carga<Nothing>
+    data class Fallo(val mensaje: String) : Carga<Nothing>
 }
 
 data class EstadoPanel(
@@ -97,7 +97,7 @@ class PanelViewModel(app: Application) : AndroidViewModel(app) {
      * suspendieron, cambió la contraseña en otro lado). Se vuelve a la entrada
      * en vez de dejar pantallas a medio cargar con un error incomprensible.
      */
-    private fun caducó() {
+    private fun caduco() {
         _estado.value = EstadoPanel()
         _sesionAbierta.value = false
         _errorLogin.value = "Tu sesión venció. Entrá de nuevo."
@@ -170,7 +170,7 @@ class PanelViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 alLlegar(bloque())
             } catch (e: SesionVencida) {
-                caducó()
+                caduco()
             } catch (e: Exception) {
                 // Silencioso a propósito: esto alimenta detalles secundarios
                 // (perfil, un comunicado suelto) y no la pantalla entera.
@@ -183,9 +183,9 @@ class PanelViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 alLlegar(Carga.Listo(bloque()))
             } catch (e: SesionVencida) {
-                caducó()
+                caduco()
             } catch (e: Exception) {
-                alLlegar(Carga.Falló(e.message ?: "No se pudo cargar."))
+                alLlegar(Carga.Fallo(e.message ?: "No se pudo cargar."))
             }
         }
     }

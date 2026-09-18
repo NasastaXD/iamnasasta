@@ -33,7 +33,7 @@ fun <T> Seccion(
 ) {
     when (carga) {
         is Carga.Cargando -> Centro { CircularProgressIndicator() }
-        is Carga.Falló -> Centro {
+        is Carga.Fallo -> Centro {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
