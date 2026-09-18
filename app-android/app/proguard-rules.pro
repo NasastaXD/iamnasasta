@@ -15,3 +15,17 @@
 
 # Ktor elige el motor por ServiceLoader.
 -keep class io.ktor.client.engine.android.** { *; }
+
+# Tink —lo que cifra el token por debajo de EncryptedSharedPreferences— viene
+# compilado contra anotaciones que no se empaquetan en la app: son de tiempo de
+# compilación y no existen en runtime. R8 no lo sabe y corta el build entero.
+#
+# Sin esto no hay APK de release posible, que es un detalle feo de descubrir la
+# primera vez que uno intenta subir a Play y no antes.
+-dontwarn com.google.errorprone.annotations.**
+-dontwarn javax.annotation.Nullable
+-dontwarn javax.annotation.concurrent.GuardedBy
+
+# slf4j busca su implementación por reflexión; en Android no hay ninguna y el
+# propio slf4j lo maneja: cae a un logger que no hace nada.
+-dontwarn org.slf4j.impl.StaticLoggerBinder
