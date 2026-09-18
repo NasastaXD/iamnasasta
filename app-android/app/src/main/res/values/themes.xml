@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        El tema de Android solo pinta lo que se ve antes de que arranque Compose
+        (la ventana inicial). De ahí en adelante manda Tema.kt.
+    -->
+    <style name="Theme.CEAD" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/cead_fondo</item>
+        <item name="android:statusBarColor">@color/cead_marca</item>
+    </style>
+</resources>
