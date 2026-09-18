@@ -39,6 +39,34 @@ function cead_acad_user_is_staff( $user = null ) {
 }
 
 /**
+ * En qué curso está parada una persona.
+ *
+ * Hay dos fuentes y el orden importa: primero el curso elegido a mano
+ * (`_cead_acad_current_course_id`), y si no hay, el primero de su lista. La
+ * segunda existe porque a la mayoría de los alumnos nadie les elige nada: están
+ * en un curso solo y esperan ver ESE, no una pantalla vacía.
+ *
+ * Vive acá y no en cada pantalla porque la respuesta tiene que ser una sola. El
+ * día que el panel web y la app contesten distinto, el alumno va a ver dos
+ * horarios diferentes del mismo día y ninguno de los dos va a estar «mal».
+ */
+function cead_acad_curso_actual( $user_id ) {
+	$user_id = (int) $user_id;
+	if ( ! $user_id ) {
+		return 0;
+	}
+	$curso = (int) get_user_meta( $user_id, '_cead_acad_current_course_id', true );
+	if ( $curso ) {
+		return $curso;
+	}
+	if ( ! class_exists( 'Cead_Acad_Courses_Roster' ) ) {
+		return 0;
+	}
+	$cursos = Cead_Acad_Courses_Roster::courses_for_user( $user_id );
+	return $cursos ? (int) $cursos[0] : 0;
+}
+
+/**
  * Rol principal del usuario relevante para el plugin. Memoizado por user_id en el request.
  */
 function cead_acad_user_role( $user = null ) {

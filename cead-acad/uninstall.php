@@ -135,6 +135,12 @@ foreach ( $options as $opt ) {
  */
 delete_metadata( 'user', 0, '_cead_acad_phone_e164', '', true );
 
+/*
+ * Los tokens de las apps nativas son credenciales vivas del plugin: si el
+ * plugin se va, no tiene sentido que sobrevivan llaves que ya no abren nada.
+ */
+delete_metadata( 'user', 0, '_cead_acad_api_tokens', '', true );
+
 // Borrar roles del plugin.
 foreach ( [ 'cead_acad_direction', 'cead_acad_secretary', 'cead_acad_teacher', 'cead_acad_delegate', 'cead_acad_student', 'cead_acad_guardian', 'cead_acad_student_council' ] as $role ) {
 	remove_role( $role );

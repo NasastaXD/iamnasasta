@@ -7,11 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 $user = wp_get_current_user();
 
 // Curso del usuario (meta o primer curso del roster).
-$course_id = (int) get_user_meta( $user->ID, '_cead_acad_current_course_id', true );
-if ( ! $course_id && class_exists( 'Cead_Acad_Courses_Roster' ) ) {
-	$courses = Cead_Acad_Courses_Roster::courses_for_user( $user->ID );
-	if ( $courses ) { $course_id = (int) $courses[0]; }
-}
+$course_id = cead_acad_curso_actual( $user->ID );
 
 $slots = [];
 if ( $course_id ) {
