@@ -131,6 +131,51 @@ if ( ! function_exists( 'delete_user_meta' ) ) {
 	}
 }
 
+/*
+ * ---- Store de usuarios ----
+ *
+ * Lo mínimo para probar los tokens de las apps: un id y el hash de la
+ * contraseña. Ese hash importa de verdad y no es decorado — los tokens se atan
+ * a un pedazo suyo, así que cambiarlo acá es lo que reproduce «la persona
+ * cambió la contraseña» sin necesitar WordPress.
+ */
+$GLOBALS['cead_test_users'] = []; // user_id => WP_User
+
+if ( ! class_exists( 'WP_User' ) ) {
+	class WP_User {
+		public $ID           = 0;
+		public $user_pass    = '';
+		public $user_email   = '';
+		public $display_name = '';
+		public $roles        = [];
+		public $allcaps      = [];
+
+		public function __construct( $id = 0, $pass = '' ) {
+			$this->ID        = (int) $id;
+			$this->user_pass = (string) $pass;
+		}
+
+		public function exists() {
+			return $this->ID > 0;
+		}
+	}
+}
+
+function cead_test_set_user( $user_id, $pass = '$P$Babcdefghijklmnopqrstuvwxyz0' ) {
+	return $GLOBALS['cead_test_users'][ (int) $user_id ] = new WP_User( $user_id, $pass );
+}
+
+function cead_test_reset_users() {
+	$GLOBALS['cead_test_users'] = [];
+}
+
+if ( ! function_exists( 'get_user_by' ) ) {
+	function get_user_by( $field, $value ) {
+		if ( 'id' !== strtolower( (string) $field ) ) { return false; }
+		return $GLOBALS['cead_test_users'][ (int) $value ] ?? false;
+	}
+}
+
 // ---- Store de post meta controlable desde los tests ----
 $GLOBALS['cead_test_postmeta'] = []; // post_id => [ key => value ]
 
@@ -617,6 +662,8 @@ require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-docs.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-memory.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-news.php';
 require_once dirname( __DIR__, 2 ) . '/modules/turismo/class-turismo.php';
+require_once dirname( __DIR__, 2 ) . '/modules/api/class-api-tokens.php';
+require_once dirname( __DIR__, 2 ) . '/modules/api/class-api-panel.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-tools.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-instagram.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-images.php';
