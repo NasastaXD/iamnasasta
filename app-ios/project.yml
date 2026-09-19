@@ -1,0 +1,39 @@
+# Receta de XcodeGen: genera CEAD.xcodeproj a partir de esto.
+#
+# El proyecto no se versiona porque un .xcodeproj es un archivo generado y
+# enorme, que produce conflictos de merge ilegibles cada vez que dos personas
+# agregan un archivo. Esta receta dice lo mismo en treinta líneas que se leen.
+#
+#   brew install xcodegen && xcodegen generate
+
+name: CEAD
+options:
+  bundleIdPrefix: py.edu.cead
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+packages:
+  CeadKit:
+    path: CeadKit
+
+targets:
+  CEAD:
+    type: application
+    platform: iOS
+    sources:
+      - path: CEAD
+    dependencies:
+      - package: CeadKit
+        product: CeadKit
+    info:
+      path: CEAD/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: py.edu.cead.panel
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1"
