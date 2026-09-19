@@ -26,8 +26,31 @@ targets:
     dependencies:
       - package: CeadKit
         product: CeadKit
+    # El Info.plist se genera desde acá y no se versiona aparte. Con XcodeGen,
+    # `info.path` significa «escribí el plist en esta ruta»: un archivo propio
+    # en esa misma ruta se pisa en la primera regeneración, y lo que se pierde
+    # —la URL del sitio, la política de transporte— no avisa al desaparecer.
     info:
       path: CEAD/Info.plist
+      properties:
+        # El sitio del colegio, de donde cuelga la API. Vive acá para que
+        # apuntar la app a otro entorno sea cambiar un valor y no salir a
+        # buscar la URL por los archivos.
+        CeadSitio: https://cead.edu.py
+
+        UILaunchScreen:
+          UIColorName: FondoLanzamiento
+
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+
+        # Sin excepciones de transporte: la app manda una contraseña y guarda un
+        # token de larga vida, así que HTTP en claro no se habilita para nada.
+        # El servidor además rechaza el login fuera de HTTPS, de modo que una
+        # excepción acá tampoco serviría para «probar rápido».
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: py.edu.cead.panel

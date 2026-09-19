@@ -41,8 +41,12 @@ la cuenta de desarrollador de pago.
 
 ## A qué servidor apunta
 
-A `https://cead.edu.py`, definido en `CEAD/Info.plist` bajo la clave
-`CeadSitio`. Si el dominio real es otro, ahí se cambia — en un solo lugar.
+A `https://cead.edu.py`, definido en `project.yml` bajo `CeadSitio`. Si el
+dominio real es otro, se cambia ahí y se vuelve a correr `xcodegen generate`.
+
+No se edita el `Info.plist` directamente: ese archivo lo genera XcodeGen desde
+`project.yml`, así que un cambio hecho a mano dura hasta la próxima
+regeneración y desaparece sin avisar.
 
 ## Qué está verificado y qué no
 
