@@ -41,7 +41,7 @@ la cuenta de desarrollador de pago.
 
 ## A qué servidor apunta
 
-A `https://cead.edu.py`, definido en `project.yml` bajo `CeadSitio`. Si el
+A `https://cead.caaguazu.net`, definido en `project.yml` bajo `CeadSitio`. Si el
 dominio real es otro, se cambia ahí y se vuelve a correr `xcodegen generate`.
 
 No se edita el `Info.plist` directamente: ese archivo lo genera XcodeGen desde
@@ -62,7 +62,7 @@ tipos. Si pasa, mandame el mensaje y lo arreglo.
 
 ## Antes de publicar en la App Store
 
-- El identificador es `py.edu.cead.panel`, igual que el de Android. **Una vez
+- El identificador es `net.caaguazu.cead.panel`, igual que el de Android. **Una vez
   publicado no se puede cambiar**, así que conviene confirmarlo antes.
 - La cuenta de desarrollador de Apple cuesta US$99 al año. Según lo que
   hablamos, ya está paga.

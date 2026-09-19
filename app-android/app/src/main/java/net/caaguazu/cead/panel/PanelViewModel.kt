@@ -1,4 +1,4 @@
-package py.edu.cead.panel
+package net.caaguazu.cead.panel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -8,15 +8,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import py.edu.cead.panel.data.Almacen
-import py.edu.cead.panel.data.Api
-import py.edu.cead.panel.data.Boletin
-import py.edu.cead.panel.data.Comunicado
-import py.edu.cead.panel.data.Comunicados
-import py.edu.cead.panel.data.Horario
-import py.edu.cead.panel.data.Perfil
-import py.edu.cead.panel.data.SesionVencida
-import py.edu.cead.panel.data.Tareas
+import net.caaguazu.cead.panel.data.Almacen
+import net.caaguazu.cead.panel.data.Api
+import net.caaguazu.cead.panel.data.Boletin
+import net.caaguazu.cead.panel.data.Comunicado
+import net.caaguazu.cead.panel.data.Comunicados
+import net.caaguazu.cead.panel.data.Horario
+import net.caaguazu.cead.panel.data.Perfil
+import net.caaguazu.cead.panel.data.SesionVencida
+import net.caaguazu.cead.panel.data.Tareas
 
 /**
  * Una sección que se está trayendo del servidor.

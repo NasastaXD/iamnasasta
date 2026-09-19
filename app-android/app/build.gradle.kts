@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "py.edu.cead.panel"
+    namespace = "net.caaguazu.cead.panel"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "py.edu.cead.panel"
+        applicationId = "net.caaguazu.cead.panel"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
@@ -21,7 +21,7 @@ android {
          * código para que apuntar la app a un entorno de prueba sea cambiar una
          * línea y no salir a buscar la URL por los archivos.
          */
-        buildConfigField("String", "SITIO", "\"https://cead.edu.py\"")
+        buildConfigField("String", "SITIO", "\"https://cead.caaguazu.net\"")
     }
 
     buildTypes {

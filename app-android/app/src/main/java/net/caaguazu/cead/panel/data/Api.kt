@@ -1,4 +1,4 @@
-package py.edu.cead.panel.data
+package net.caaguazu.cead.panel.data
 
 import android.os.Build
 import io.ktor.client.HttpClient

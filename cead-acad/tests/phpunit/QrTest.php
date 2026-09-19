@@ -15,6 +15,12 @@
  * Las matrices congeladas se verificaron contra un decodificador independiente
  * (OpenCV) antes de fijarlas: 71 casos entre las versiones 1 a 10 y los cuatro
  * niveles de corrección, todos legibles.
+ *
+ * OJO con el dominio de los ejemplos: `cead.edu.py` NO es el sitio del colegio
+ * —ese es `cead.caaguazu.net`— sino una cadena cualquiera elegida para tener el
+ * largo típico de una URL de carné. Acá da igual qué diga: lo que se mide es
+ * que el texto vuelva intacto del decodificador. No se cambia porque las
+ * matrices congeladas más abajo corresponden a ESTOS bytes exactos.
  */
 
 use PHPUnit\Framework\TestCase;

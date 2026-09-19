@@ -1,4 +1,4 @@
-package py.edu.cead.panel.ui
+package net.caaguazu.cead.panel.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,10 +19,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import py.edu.cead.panel.data.Boletin
-import py.edu.cead.panel.data.Comunicados
-import py.edu.cead.panel.data.Horario
-import py.edu.cead.panel.data.Tareas
+import net.caaguazu.cead.panel.data.Boletin
+import net.caaguazu.cead.panel.data.Comunicados
+import net.caaguazu.cead.panel.data.Horario
+import net.caaguazu.cead.panel.data.Tareas
 
 /* ------------------------------------------------------------------ horario */
 

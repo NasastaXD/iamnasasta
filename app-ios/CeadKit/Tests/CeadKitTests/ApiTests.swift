@@ -68,7 +68,7 @@ final class ApiTests: XCTestCase {
     ) -> (Api, AlmacenFalso) {
         (
             Api(
-                sitio: "https://cead.edu.py",
+                sitio: "https://cead.caaguazu.net",
                 almacen: almacen,
                 transporte: TransporteFalso(json, codigo: codigo, espia: espia)
             ),
@@ -80,7 +80,7 @@ final class ApiTests: XCTestCase {
 
     func testDecodificaElPerfilConSuRolLabel() async throws {
         let (cliente, _) = api("""
-        {"id":12,"nombre":"Ana López","email":"ana@cead.edu.py","rol":"cead_acad_student",
+        {"id":12,"nombre":"Ana López","email":"ana@cead.caaguazu.net","rol":"cead_acad_student",
          "rol_label":"Estudiante","caps":["cead_acad_view_own_grades"],
          "curso":{"id":20,"titulo":"2.º Servicios Turísticos"},"avatar":null}
         """)
@@ -288,21 +288,21 @@ final class ApiTests: XCTestCase {
         _ = try await cliente.comunicados(pagina: 2)
 
         let url = espia.ultimo?.url?.absoluteString
-        XCTAssertEqual(url, "https://cead.edu.py/wp-json/cead-acad/v1/comunicados?pagina=2")
+        XCTAssertEqual(url, "https://cead.caaguazu.net/wp-json/cead-acad/v1/comunicados?pagina=2")
     }
 
     /// Una barra de más en la dirección del sitio no puede producir `//wp-json`.
     func testUnaBarraDeMasEnElSitioNoDuplicaLaRuta() async throws {
         let espia = Espia()
         let cliente = Api(
-            sitio: "https://cead.edu.py/",
+            sitio: "https://cead.caaguazu.net/",
             almacen: AlmacenFalso(),
             transporte: TransporteFalso(#"{"tareas":[]}"#, espia: espia)
         )
 
         _ = try await cliente.tareas()
 
-        XCTAssertEqual(espia.ultimo?.url?.absoluteString, "https://cead.edu.py/wp-json/cead-acad/v1/tareas")
+        XCTAssertEqual(espia.ultimo?.url?.absoluteString, "https://cead.caaguazu.net/wp-json/cead-acad/v1/tareas")
     }
 
     func testCerrarUnaSesionUsaDelete() async throws {
