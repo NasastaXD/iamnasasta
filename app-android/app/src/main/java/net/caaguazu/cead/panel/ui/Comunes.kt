@@ -1,4 +1,4 @@
-package py.edu.cead.panel.ui
+package net.caaguazu.cead.panel.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,7 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import py.edu.cead.panel.Carga
+import net.caaguazu.cead.panel.Carga
 
 /**
  * Dibuja una sección según en qué estado esté.

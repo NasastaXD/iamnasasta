@@ -1,4 +1,4 @@
-package py.edu.cead.panel.ui
+package net.caaguazu.cead.panel.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

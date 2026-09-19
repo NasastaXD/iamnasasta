@@ -1,4 +1,4 @@
-package py.edu.cead.panel.data
+package net.caaguazu.cead.panel.data
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

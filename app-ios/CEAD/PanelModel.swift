@@ -23,7 +23,7 @@ final class PanelModel: ObservableObject {
     /// código para que apuntar la app a un entorno de prueba sea cambiar un
     /// valor y no salir a buscar la URL por los archivos.
     private static var sitio: String {
-        (Bundle.main.object(forInfoDictionaryKey: "CeadSitio") as? String) ?? "https://cead.edu.py"
+        (Bundle.main.object(forInfoDictionaryKey: "CeadSitio") as? String) ?? "https://cead.caaguazu.net"
     }
 
     private let llavero = Llavero()

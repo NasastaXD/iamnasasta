@@ -22,7 +22,7 @@ import CeadKit
  */
 final class Llavero: AlmacenDeSesion, @unchecked Sendable {
 
-    private let servicio = "py.edu.cead.panel"
+    private let servicio = "net.caaguazu.cead.panel"
 
     var token: String? {
         get { leer("token") }

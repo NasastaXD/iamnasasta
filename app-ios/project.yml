@@ -8,7 +8,7 @@
 
 name: CEAD
 options:
-  bundleIdPrefix: py.edu.cead
+  bundleIdPrefix: net.caaguazu.cead
   deploymentTarget:
     iOS: "16.0"
   createIntermediateGroups: true
@@ -36,7 +36,7 @@ targets:
         # El sitio del colegio, de donde cuelga la API. Vive acá para que
         # apuntar la app a otro entorno sea cambiar un valor y no salir a
         # buscar la URL por los archivos.
-        CeadSitio: https://cead.edu.py
+        CeadSitio: https://cead.caaguazu.net
 
         UILaunchScreen:
           UIColorName: FondoLanzamiento
@@ -53,7 +53,7 @@ targets:
 
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: py.edu.cead.panel
+        PRODUCT_BUNDLE_IDENTIFIER: net.caaguazu.cead.panel
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

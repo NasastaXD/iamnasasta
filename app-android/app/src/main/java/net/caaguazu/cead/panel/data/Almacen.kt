@@ -1,4 +1,4 @@
-package py.edu.cead.panel.data
+package net.caaguazu.cead.panel.data
 
 import android.content.Context
 import android.content.SharedPreferences

@@ -1,4 +1,4 @@
-package py.edu.cead.panel
+package net.caaguazu.cead.panel
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -40,14 +40,14 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import py.edu.cead.panel.data.Comunicados
-import py.edu.cead.panel.ui.PantallaBoletin
-import py.edu.cead.panel.ui.PantallaComunicados
-import py.edu.cead.panel.ui.PantallaHorario
-import py.edu.cead.panel.ui.PantallaLogin
-import py.edu.cead.panel.ui.PantallaTareas
-import py.edu.cead.panel.ui.Seccion
-import py.edu.cead.panel.ui.TemaCead
+import net.caaguazu.cead.panel.data.Comunicados
+import net.caaguazu.cead.panel.ui.PantallaBoletin
+import net.caaguazu.cead.panel.ui.PantallaComunicados
+import net.caaguazu.cead.panel.ui.PantallaHorario
+import net.caaguazu.cead.panel.ui.PantallaLogin
+import net.caaguazu.cead.panel.ui.PantallaTareas
+import net.caaguazu.cead.panel.ui.Seccion
+import net.caaguazu.cead.panel.ui.TemaCead
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

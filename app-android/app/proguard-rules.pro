@@ -5,13 +5,13 @@
 -keepattributes *Annotation*, InnerClasses
 -dontnote kotlinx.serialization.**
 
--keepclassmembers class py.edu.cead.panel.data.** {
+-keepclassmembers class net.caaguazu.cead.panel.data.** {
     *** Companion;
 }
--keepclasseswithmembers class py.edu.cead.panel.data.** {
+-keepclasseswithmembers class net.caaguazu.cead.panel.data.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
--keep,includedescriptorclasses class py.edu.cead.panel.data.**$$serializer { *; }
+-keep,includedescriptorclasses class net.caaguazu.cead.panel.data.**$$serializer { *; }
 
 # Ktor elige el motor por ServiceLoader.
 -keep class io.ktor.client.engine.android.** { *; }
