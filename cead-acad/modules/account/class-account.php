@@ -104,40 +104,75 @@ class Cead_Acad_Account {
 		return in_array( (int) $resource_id, self::fav_ids( $user_id ), true );
 	}
 
-	/** Mensaje directo a un rol (Dirección / Consejo / Administración) → buzón. */
+	/**
+	 * Deja un recurso como favorito o no, según `$favorito`.
+	 *
+	 * Fija un estado en vez de invertirlo. La web manda «tocaron la estrella» y
+	 * la app manda «tiene que quedar marcado»: lo segundo se puede repetir sin
+	 * consecuencias, que es lo que hace falta cuando la app guarda el toque sin
+	 * señal y lo reenvía al volver la conexión. Un interruptor reenviado dos
+	 * veces se deshace solo.
+	 */
+	public static function fijar_favorito( $user_id, $resource_id, $favorito ) {
+		$ids = self::fav_ids( $user_id );
+		$rid = (int) $resource_id;
+		$ids = array_values( array_diff( $ids, [ $rid ] ) );
+		if ( $favorito ) {
+			$ids[] = $rid;
+		}
+		update_user_meta( (int) $user_id, self::FAV_META, $ids );
+		return (bool) $favorito;
+	}
+
+	/**
+	 * Mensaje directo a un rol (Dirección / Consejo / Administración) → buzón.
+	 *
+	 * @return true|WP_Error `vacio` o `vulgar`.
+	 */
+	public static function enviar_mensaje( $user_id, $destinatario, $mensaje ) {
+		$to = sanitize_key( (string) $destinatario );
+		if ( ! in_array( $to, [ 'direccion', 'consejo', 'administracion' ], true ) ) {
+			$to = 'direccion';
+		}
+		$msg = trim( sanitize_textarea_field( (string) $mensaje ) );
+		if ( '' === $msg ) {
+			return new WP_Error( 'vacio', __( 'Escribí el mensaje.', 'cead-acad' ) );
+		}
+		if ( function_exists( 'cead_acad_has_banned_words' ) && cead_acad_has_banned_words( $msg ) ) {
+			return new WP_Error( 'vulgar', __( 'El mensaje tiene palabras que no se pueden enviar.', 'cead-acad' ) );
+		}
+
+		$user  = get_userdata( (int) $user_id );
+		$roles = Cead_Acad_Capabilities::roles();
+		$role  = cead_acad_user_role( (int) $user_id );
+		$rdisp = $roles[ $role ]['display'] ?? $role;
+		$phone = (string) get_user_meta( (int) $user_id, self::PHONE_META, true );
+
+		$body = sprintf( "✉️ De %s (%s)\n\n%s", $user ? $user->display_name : '', $rdisp, $msg );
+
+		( new Cead_Acad_WA_Store() )->create_suggestion( $phone !== '' ? $phone : null, $body, $to );
+		return true;
+	}
+
 	public function handle_send_message() {
 		if ( ! is_user_logged_in() ) { wp_safe_redirect( cead_acad_url( 'login' ) ); exit; }
 		check_admin_referer( 'cead_acad_send_message' );
 
-		$uid  = get_current_user_id();
-		$user = wp_get_current_user();
 		$dest = cead_acad_url( 'panel/contacto' );
+		$to   = sanitize_key( (string) ( $_POST['recipient'] ?? '' ) );
+		$msg  = wp_unslash( $_POST['message'] ?? '' );
 
-		$to  = sanitize_key( (string) ( $_POST['recipient'] ?? '' ) );
-		if ( ! in_array( $to, [ 'direccion', 'consejo', 'administracion' ], true ) ) {
-			$to = 'direccion';
-		}
-		$msg = trim( sanitize_textarea_field( wp_unslash( $_POST['message'] ?? '' ) ) );
-		if ( $msg === '' ) {
+		$r = self::enviar_mensaje( get_current_user_id(), $to, $msg );
+		if ( is_wp_error( $r ) ) {
+			// El texto vulgar se devuelve al formulario para corregirlo; el vacío
+			// no tiene nada que devolver.
+			if ( 'vulgar' === $r->get_error_code() ) {
+				cead_acad_flash( 'contacto_message', trim( sanitize_textarea_field( (string) $msg ) ) );
+			}
 			cead_acad_flash( 'contacto_recipient', $to );
-			wp_safe_redirect( add_query_arg( 'err', 'vacio', $dest ) );
+			wp_safe_redirect( add_query_arg( 'err', $r->get_error_code(), $dest ) );
 			exit;
 		}
-		if ( function_exists( 'cead_acad_has_banned_words' ) && cead_acad_has_banned_words( $msg ) ) {
-			cead_acad_flash( 'contacto_message', $msg );
-			cead_acad_flash( 'contacto_recipient', $to );
-			wp_safe_redirect( add_query_arg( 'err', 'vulgar', $dest ) );
-			exit;
-		}
-
-		$roles = Cead_Acad_Capabilities::roles();
-		$role  = cead_acad_user_role( $uid );
-		$rdisp = $roles[ $role ]['display'] ?? $role;
-		$phone = (string) get_user_meta( $uid, self::PHONE_META, true );
-
-		$body = sprintf( "✉️ De %s (%s)\n\n%s", $user->display_name, $rdisp, $msg );
-
-		( new Cead_Acad_WA_Store() )->create_suggestion( $phone !== '' ? $phone : null, $body, $to );
 
 		wp_safe_redirect( add_query_arg( 'done', 1, $dest ) );
 		exit;
@@ -150,13 +185,7 @@ class Cead_Acad_Account {
 		$uid = get_current_user_id();
 		$rid = (int) ( $_POST['resource_id'] ?? 0 );
 		if ( $rid ) {
-			$ids = self::fav_ids( $uid );
-			if ( in_array( $rid, $ids, true ) ) {
-				$ids = array_values( array_diff( $ids, [ $rid ] ) );
-			} else {
-				$ids[] = $rid;
-			}
-			update_user_meta( $uid, self::FAV_META, $ids );
+			self::fijar_favorito( $uid, $rid, ! self::is_fav( $uid, $rid ) );
 		}
 		$ref = wp_get_referer();
 		wp_safe_redirect( $ref ? $ref : cead_acad_url( 'panel/recursos' ) );
@@ -256,22 +285,20 @@ class Cead_Acad_Account {
 	/* Guardar perfil                                                      */
 	/* ------------------------------------------------------------------ */
 
-	public function handle_save_profile() {
-		if ( ! is_user_logged_in() ) {
-			wp_safe_redirect( cead_acad_url( 'login' ) );
-			exit;
-		}
-		check_admin_referer( 'cead_acad_save_profile' );
+	/**
+	 * Nombre visible y teléfono.
+	 *
+	 * @return true|WP_Error `tel_ocupado`.
+	 */
+	public static function guardar_datos( $user_id, $display, $phone ) {
+		$user_id = (int) $user_id;
+		$display = sanitize_text_field( (string) $display );
+		$phone   = sanitize_text_field( (string) $phone );
 
-		$user_id = get_current_user_id();
-		$dest    = cead_acad_url( 'panel/perfil' );
-
-		$display = sanitize_text_field( (string) ( $_POST['display_name'] ?? '' ) );
 		if ( $display !== '' ) {
 			wp_update_user( [ 'ID' => $user_id, 'display_name' => $display ] );
 		}
 
-		$phone   = sanitize_text_field( (string) ( $_POST['phone'] ?? '' ) );
 		$anterior = (string) get_user_meta( $user_id, self::PHONE_META, true );
 
 		/*
@@ -286,9 +313,7 @@ class Cead_Acad_Account {
 		 */
 		if ( $phone !== '' && class_exists( 'Cead_Acad_WA_Identity' ) ) {
 			if ( Cead_Acad_WA_Identity::phone_taken_by( $phone, $user_id ) ) {
-				cead_acad_flash( 'perfil_phone', $anterior );
-				wp_safe_redirect( add_query_arg( 'err', 'tel_ocupado', $dest ) );
-				exit;
+				return new WP_Error( 'tel_ocupado', __( 'Ese número ya está cargado en otra cuenta.', 'cead-acad' ) );
 			}
 		}
 
@@ -310,28 +335,60 @@ class Cead_Acad_Account {
 			}
 		}
 
+		return true;
+	}
+
+	/**
+	 * Foto de perfil desde `$_FILES[ $clave ]`.
+	 *
+	 * @return int|WP_Error Id del adjunto nuevo, o `tipo` / `subida`.
+	 */
+	public static function guardar_avatar( $user_id, $clave = 'avatar' ) {
+		$type = (string) ( $_FILES[ $clave ]['type'] ?? '' );
+		if ( strpos( $type, 'image/' ) !== 0 ) {
+			return new WP_Error( 'tipo', __( 'La foto tiene que ser una imagen.', 'cead-acad' ) );
+		}
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+
+		$attach_id = media_handle_upload( $clave, 0, [], [ 'test_form' => false ] );
+		if ( is_wp_error( $attach_id ) ) {
+			return new WP_Error( 'subida', __( 'No se pudo subir la foto.', 'cead-acad' ) );
+		}
+		$old = self::avatar_id( $user_id );
+		update_user_meta( (int) $user_id, self::AVATAR_META, (int) $attach_id );
+		if ( $old && $old !== (int) $attach_id ) {
+			wp_delete_attachment( $old, true );
+		}
+		return (int) $attach_id;
+	}
+
+	public function handle_save_profile() {
+		if ( ! is_user_logged_in() ) {
+			wp_safe_redirect( cead_acad_url( 'login' ) );
+			exit;
+		}
+		check_admin_referer( 'cead_acad_save_profile' );
+
+		$user_id = get_current_user_id();
+		$dest    = cead_acad_url( 'panel/perfil' );
+		$phone   = sanitize_text_field( (string) ( $_POST['phone'] ?? '' ) );
+
+		$r = self::guardar_datos( $user_id, (string) ( $_POST['display_name'] ?? '' ), $phone );
+		if ( is_wp_error( $r ) ) {
+			cead_acad_flash( 'perfil_phone', (string) get_user_meta( $user_id, self::PHONE_META, true ) );
+			wp_safe_redirect( add_query_arg( 'err', $r->get_error_code(), $dest ) );
+			exit;
+		}
+
 		// Foto (opcional).
 		if ( ! empty( $_FILES['avatar']['name'] ) && empty( $_FILES['avatar']['error'] ) ) {
-			$type = (string) ( $_FILES['avatar']['type'] ?? '' );
-			if ( strpos( $type, 'image/' ) !== 0 ) {
+			$a = self::guardar_avatar( $user_id, 'avatar' );
+			if ( is_wp_error( $a ) ) {
 				cead_acad_flash( 'perfil_phone', $phone );
-				wp_safe_redirect( add_query_arg( 'err', 'tipo', $dest ) );
+				wp_safe_redirect( add_query_arg( 'err', $a->get_error_code(), $dest ) );
 				exit;
-			}
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-			require_once ABSPATH . 'wp-admin/includes/media.php';
-			require_once ABSPATH . 'wp-admin/includes/image.php';
-
-			$attach_id = media_handle_upload( 'avatar', 0, [], [ 'test_form' => false ] );
-			if ( is_wp_error( $attach_id ) ) {
-				cead_acad_flash( 'perfil_phone', $phone );
-				wp_safe_redirect( add_query_arg( 'err', 'subida', $dest ) );
-				exit;
-			}
-			$old = self::avatar_id( $user_id );
-			update_user_meta( $user_id, self::AVATAR_META, (int) $attach_id );
-			if ( $old && $old !== (int) $attach_id ) {
-				wp_delete_attachment( $old, true );
 			}
 		}
 

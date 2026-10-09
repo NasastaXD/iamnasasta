@@ -75,15 +75,18 @@ class Cead_Acad_Notifications {
 	}
 
 	/** Marca todos los comunicados visibles como leídos. */
+	public static function marcar_todo_visto( $user_id ) {
+		$ids = class_exists( 'Cead_Acad_Audiences' ) ? Cead_Acad_Audiences::subjects_for_user( 'broadcast', $user_id ) : [];
+		foreach ( (array) $ids as $bid ) {
+			Cead_Acad_Broadcasts_Reads::mark_read( (int) $bid, (int) $user_id );
+		}
+	}
+
 	public function handle_seen() {
 		if ( ! is_user_logged_in() ) { wp_safe_redirect( cead_acad_url( 'login' ) ); exit; }
 		check_admin_referer( 'cead_acad_notif_seen' );
 
-		$uid = get_current_user_id();
-		$ids = class_exists( 'Cead_Acad_Audiences' ) ? Cead_Acad_Audiences::subjects_for_user( 'broadcast', $uid ) : [];
-		foreach ( (array) $ids as $bid ) {
-			Cead_Acad_Broadcasts_Reads::mark_read( (int) $bid, $uid );
-		}
+		self::marcar_todo_visto( get_current_user_id() );
 
 		$ref = wp_get_referer();
 		wp_safe_redirect( $ref ? $ref : cead_acad_url( 'panel' ) );

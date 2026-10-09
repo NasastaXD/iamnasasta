@@ -169,6 +169,42 @@ function cead_test_reset_users() {
 	$GLOBALS['cead_test_users'] = [];
 }
 
+/*
+ * ---- Sesión y respuestas REST ----
+ *
+ * Lo justo para probar la capa de idempotencia de la API sin WordPress: quién
+ * es el usuario actual y un WP_REST_Response que guarde datos y headers.
+ */
+$GLOBALS['cead_test_current_user'] = 0;
+
+function cead_test_set_current_user( $id ) {
+	$GLOBALS['cead_test_current_user'] = (int) $id;
+}
+
+if ( ! function_exists( 'get_current_user_id' ) ) {
+	function get_current_user_id() {
+		return (int) $GLOBALS['cead_test_current_user'];
+	}
+}
+
+if ( ! class_exists( 'WP_REST_Response' ) ) {
+	class WP_REST_Response {
+		protected $data;
+		protected $headers = [];
+		public function __construct( $data = null ) { $this->data = $data; }
+		public function get_data() { return $this->data; }
+		public function header( $k, $v ) { $this->headers[ $k ] = $v; }
+		public function get_headers() { return $this->headers; }
+	}
+}
+
+if ( ! function_exists( 'rest_ensure_response' ) ) {
+	function rest_ensure_response( $r ) {
+		if ( $r instanceof WP_REST_Response || $r instanceof WP_Error ) { return $r; }
+		return new WP_REST_Response( $r );
+	}
+}
+
 if ( ! function_exists( 'get_user_by' ) ) {
 	function get_user_by( $field, $value ) {
 		if ( 'id' !== strtolower( (string) $field ) ) { return false; }
@@ -663,7 +699,9 @@ require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-memory.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-news.php';
 require_once dirname( __DIR__, 2 ) . '/modules/turismo/class-turismo.php';
 require_once dirname( __DIR__, 2 ) . '/modules/api/class-api-tokens.php';
+require_once dirname( __DIR__, 2 ) . '/modules/api/class-api.php';
 require_once dirname( __DIR__, 2 ) . '/modules/api/class-api-panel.php';
+require_once dirname( __DIR__, 2 ) . '/modules/account/class-account.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-tools.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-instagram.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-images.php';

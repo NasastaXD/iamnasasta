@@ -40,6 +40,18 @@ class Cead_Acad_API {
 		return [ self::$viva ?: new self(), 'autenticado' ];
 	}
 
+	/**
+	 * ¿Este pedido entró con un token de app?
+	 *
+	 * Lo usa CEADI para saber por dónde le están escribiendo: el mismo cerebro
+	 * atiende la web y la app, y decirle «desde el panel web» a quien está en el
+	 * teléfono lo hace contestar con indicaciones de una pantalla que no tiene
+	 * adelante.
+	 */
+	public static function por_app() {
+		return self::$viva && '' !== self::$viva->token;
+	}
+
 	public function boot() {
 		self::$viva = $this;
 		add_action( 'rest_api_init', [ $this, 'rutas' ] );
@@ -219,6 +231,78 @@ class Cead_Acad_API {
 			] : null,
 			'avatar'    => get_avatar_url( $user->ID, [ 'size' => 192 ] ),
 		];
+	}
+
+	/* ------------------------------------------------------ idempotencia */
+
+	/** Cuánto se recuerda una escritura ya hecha. */
+	const IDEM_VIDA_SEG = 7 * DAY_IN_SECONDS;
+
+	/**
+	 * Ejecuta una escritura una sola vez por clave.
+	 *
+	 * La app guarda lo que se toca sin señal —en el colegio no hay wifi— y lo
+	 * manda al volver la conexión. Si el envío llega al servidor pero la
+	 * respuesta se pierde en el camino, la app no tiene forma de saber que ya
+	 * entró, y lo vuelve a mandar. Sin esto, una encuesta anónima se contaría
+	 * dos veces: no guarda quién respondió, así que no hay manera de detectar
+	 * el duplicado por otro lado.
+	 *
+	 * Con el header `Idempotency-Key`, la segunda vez no se ejecuta nada: se
+	 * devuelve la misma respuesta que la primera. Sin header, se ejecuta
+	 * siempre, que es lo que espera cualquier cliente que no sepa de esto.
+	 *
+	 * Los errores no se recuerdan, a propósito: si falló porque se cayó la
+	 * base, reintentar tiene que poder salir bien.
+	 *
+	 * Lo que se guarda es la respuesta y nada más. Quien la arma decide qué
+	 * contiene: una encuesta anónima no puede devolver el id de la respuesta,
+	 * porque quedaría atado a quién la mandó.
+	 *
+	 * @param WP_REST_Request $req
+	 * @param callable        $hacer Devuelve datos (array) o WP_Error.
+	 */
+	public static function una_vez( $req, callable $hacer ) {
+		$clave = self::clave_idempotencia( $req->get_header( 'idempotency_key' ) );
+		if ( null === $clave ) {
+			return rest_ensure_response( $hacer() );
+		}
+		if ( false === $clave ) {
+			return new WP_Error( 'cead_api_clave_invalida', __( 'Idempotency-Key con formato inválido.', 'cead-acad' ), [ 'status' => 400 ] );
+		}
+
+		$tk = 'cead_api_idem_' . md5( get_current_user_id() . '|' . $clave );
+
+		$guardada = get_transient( $tk );
+		if ( is_array( $guardada ) && array_key_exists( 'datos', $guardada ) ) {
+			$resp = rest_ensure_response( $guardada['datos'] );
+			$resp->header( 'Idempotent-Replay', 'true' );
+			return $resp;
+		}
+
+		$r = $hacer();
+		if ( is_wp_error( $r ) ) {
+			return $r;
+		}
+		set_transient( $tk, [ 'datos' => $r ], self::IDEM_VIDA_SEG );
+		return rest_ensure_response( $r );
+	}
+
+	/**
+	 * Valida la clave que manda el cliente.
+	 *
+	 * @return string|null|false La clave; null si no vino; false si vino mal.
+	 */
+	public static function clave_idempotencia( $bruta ) {
+		if ( null === $bruta || '' === trim( (string) $bruta ) ) {
+			return null;
+		}
+		$clave = trim( (string) $bruta );
+		// Un UUID son 36; se deja margen sin aceptar cualquier cosa.
+		if ( ! preg_match( '/^[A-Za-z0-9_-]{8,80}$/', $clave ) ) {
+			return false;
+		}
+		return $clave;
 	}
 
 	/* ------------------------------------------------------ autenticación */
