@@ -69,6 +69,58 @@ class Cead_Acad_API_Gestion {
 
 		$r( '/gestion/metricas', 'GET', [ $this, 'metricas' ] );
 
+		// Notas.
+		$r( '/gestion/notas/opciones', 'GET', [ $this, 'opciones_notas' ] );
+		$r( '/gestion/notas', 'GET', [ $this, 'notas_del_curso' ], [
+			'curso_id' => [ 'required' => true, 'type' => 'integer' ],
+		] );
+		$r( '/gestion/notas', 'POST', [ $this, 'cargar_nota' ], [
+			'alumno_id'     => [ 'required' => true, 'type' => 'integer' ],
+			'curso_id'      => [ 'required' => true, 'type' => 'integer' ],
+			'materia_id'    => [ 'required' => false, 'type' => 'integer', 'default' => 0 ],
+			'materia_nueva' => [ 'required' => false, 'type' => 'string', 'default' => '' ],
+			'periodo'       => [ 'required' => true, 'type' => 'string' ],
+			'nota'          => [ 'required' => true, 'type' => 'number' ],
+			'comentario'    => [ 'required' => false, 'type' => 'string', 'default' => '' ],
+		] );
+
+		// Invitaciones.
+		$r( '/gestion/invitaciones', 'GET', [ $this, 'invitaciones' ] );
+		$r( '/gestion/invitaciones', 'POST', [ $this, 'invitar' ], [
+			'rol'      => [ 'required' => true, 'type' => 'string' ],
+			'usos'     => [ 'required' => false, 'type' => 'integer', 'default' => 1, 'minimum' => 1, 'maximum' => 1000 ],
+			'curso_id' => [ 'required' => false, 'type' => 'integer', 'default' => 0 ],
+			'email'    => [ 'required' => false, 'type' => 'string', 'default' => '' ],
+		] );
+		$r( "/gestion/invitaciones/{$id}/revocar", 'POST', [ $this, 'revocar_invitacion' ] );
+
+		// Notas del sitio (artículos).
+		$r( '/gestion/articulos/opciones', 'GET', [ $this, 'opciones_articulos' ] );
+		$r( '/gestion/articulos', 'POST', [ $this, 'publicar_articulo' ], [
+			'titulo'       => [ 'required' => true, 'type' => 'string' ],
+			'contenido'    => [ 'required' => true, 'type' => 'string' ],
+			'categoria'    => [ 'required' => false, 'type' => 'integer', 'default' => 0 ],
+			'formato'      => [ 'required' => false, 'type' => 'string', 'default' => '' ],
+			'fecha_evento' => [ 'required' => false, 'type' => 'string', 'default' => '' ],
+			'lugar_evento' => [ 'required' => false, 'type' => 'string', 'default' => '' ],
+			'redes'        => [ 'required' => false, 'type' => 'boolean', 'default' => false ],
+		] );
+
+		// Tareas del curso (las del delegado/a).
+		$r( '/delegado/tareas', 'GET', [ $this, 'tareas_del_curso' ] );
+		$r( "/delegado/tareas/{$id}/estado", 'POST', [ $this, 'estado_tarea' ], [
+			'estado' => [ 'required' => true, 'type' => 'string', 'enum' => Cead_Acad_Tasks_CPT::STATUSES ],
+		] );
+		$r( '/gestion/tareas', 'POST', [ $this, 'asignar_tarea' ], [
+			'titulo'    => [ 'required' => true, 'type' => 'string' ],
+			'detalle'   => [ 'required' => false, 'type' => 'string', 'default' => '' ],
+			'curso_id'  => [ 'required' => true, 'type' => 'integer' ],
+			'prioridad' => [ 'required' => false, 'type' => 'string', 'enum' => Cead_Acad_Tasks_CPT::PRIORITIES, 'default' => 'normal' ],
+			'vence'     => [ 'required' => false, 'type' => 'string', 'default' => '' ],
+		] );
+
+		$r( '/delegados', 'GET', [ $this, 'delegados' ] );
+
 		// La otra punta del buzón: el alumnado.
 		$r( '/reportes/categorias', 'GET', [ $this, 'categorias_reporte' ] );
 		$r( '/reportes', 'POST', [ $this, 'reportar' ], [
@@ -247,6 +299,233 @@ class Cead_Acad_API_Gestion {
 			return self::sin_permiso();
 		}
 		return rest_ensure_response( Cead_Acad_Metricas::datos() );
+	}
+
+	/* --------------------------------------------------------------- notas */
+
+	public function opciones_notas() {
+		$r = Cead_Acad_Notas::opciones( get_current_user_id() );
+		return is_wp_error( $r ) ? $r : rest_ensure_response( $r );
+	}
+
+	public function notas_del_curso( $req ) {
+		$r = Cead_Acad_Notas::del_curso( get_current_user_id(), (int) $req->get_param( 'curso_id' ) );
+		return is_wp_error( $r ) ? $r : rest_ensure_response( $r );
+	}
+
+	public function cargar_nota( $req ) {
+		return Cead_Acad_API::una_vez( $req, static function () use ( $req ) {
+			return Cead_Acad_Notas::cargar( get_current_user_id(), [
+				'alumno_id'     => (int) $req->get_param( 'alumno_id' ),
+				'curso_id'      => (int) $req->get_param( 'curso_id' ),
+				'materia_id'    => (int) $req->get_param( 'materia_id' ),
+				'materia_nueva' => (string) $req->get_param( 'materia_nueva' ),
+				'periodo'       => (string) $req->get_param( 'periodo' ),
+				'nota'          => $req->get_param( 'nota' ),
+				'comentario'    => (string) $req->get_param( 'comentario' ),
+				'origen'        => 'app',
+			] );
+		} );
+	}
+
+	/* -------------------------------------------------------- invitaciones */
+
+	public function invitaciones() {
+		if ( ! current_user_can( 'cead_acad_manage_invitations' ) ) {
+			return self::sin_permiso();
+		}
+		return rest_ensure_response( [
+			'roles'        => self::roles_invitables( get_current_user_id() ),
+			'invitaciones' => array_map( [ __CLASS__, 'invitacion' ], (array) Cead_Acad_Invitations::list_recent( 50 ) ),
+		] );
+	}
+
+	/** Los roles para los que esta persona puede generar una invitación. */
+	public static function roles_invitables( $user_id ) {
+		$out = [];
+		foreach ( Cead_Acad_Capabilities::roles() as $slug => $cfg ) {
+			if ( Cead_Acad_Invitations::puede_asignar( $user_id, $slug ) ) {
+				$out[] = [ 'valor' => $slug, 'nombre' => (string) $cfg['display'] ];
+			}
+		}
+		return $out;
+	}
+
+	public static function invitacion( array $row ) {
+		$roles  = Cead_Acad_Capabilities::roles();
+		$estado = Cead_Acad_Invitations::status( $row );
+		$token  = Cead_Acad_Invitations::plain_token( $row );
+		$curso  = (int) ( $row['course_id'] ?? 0 );
+		return [
+			'id'        => (int) $row['id'],
+			'rol'       => (string) $row['role'],
+			'rol_label' => (string) ( $roles[ $row['role'] ]['display'] ?? $row['role'] ),
+			'curso'     => $curso ? [ 'id' => $curso, 'titulo' => get_the_title( $curso ) ] : null,
+			'email'     => (string) ( $row['email'] ?? '' ) ?: null,
+			'estado'    => $estado,
+			'usos'      => max( 1, (int) ( $row['max_uses'] ?? 1 ) ),
+			'restantes' => Cead_Acad_Invitations::uses_left( $row ),
+			'vence'     => gmdate( 'c', strtotime( $row['expires_at'] . ' UTC' ) ),
+			'creada'    => gmdate( 'c', strtotime( $row['created_at'] . ' UTC' ) ),
+			// El link solo mientras sirve: uno vencido o revocado no se comparte.
+			'link'      => ( 'valid' === $estado && '' !== $token ) ? Cead_Acad_Invitations::registration_url( $token ) : null,
+		];
+	}
+
+	public function invitar( $req ) {
+		return Cead_Acad_API::una_vez( $req, static function () use ( $req ) {
+			$uid = get_current_user_id();
+			$rol = (string) $req->get_param( 'rol' );
+			if ( ! current_user_can( 'cead_acad_manage_invitations' ) ) {
+				return self::sin_permiso();
+			}
+			if ( ! isset( Cead_Acad_Capabilities::roles()[ $rol ] ) ) {
+				return new WP_Error( 'rol_invalido', __( 'Ese rol no existe.', 'cead-acad' ), [ 'status' => 400 ] );
+			}
+			if ( ! Cead_Acad_Invitations::puede_asignar( $uid, $rol ) ) {
+				return new WP_Error( 'cead_api_sin_permiso', __( 'No podés invitar con el rol Dirección.', 'cead-acad' ), [ 'status' => 403 ] );
+			}
+			$email = sanitize_email( (string) $req->get_param( 'email' ) );
+			$curso = (int) $req->get_param( 'curso_id' );
+
+			$tokens = Cead_Acad_Invitations::create( [
+				'role'      => $rol,
+				'max_uses'  => (int) $req->get_param( 'usos' ),
+				'course_id' => $curso ?: null,
+				'email'     => $email ?: null,
+			] );
+			if ( ! $tokens ) {
+				return new WP_Error( 'cead_api_error', __( 'No se pudo crear la invitación.', 'cead-acad' ), [ 'status' => 500 ] );
+			}
+			$fila = Cead_Acad_Invitations::find_by_token( $tokens[0] );
+			return [ 'invitacion' => $fila ? self::invitacion( $fila ) : [ 'link' => Cead_Acad_Invitations::registration_url( $tokens[0] ) ] ];
+		} );
+	}
+
+	public function revocar_invitacion( $req ) {
+		return Cead_Acad_API::una_vez( $req, static function () use ( $req ) {
+			if ( ! current_user_can( 'cead_acad_manage_invitations' ) ) {
+				return self::sin_permiso();
+			}
+			$fila = Cead_Acad_Invitations::find_by_id( (int) $req->get_param( 'id' ) );
+			if ( ! $fila ) {
+				return new WP_Error( 'no_existe', __( 'Esa invitación no existe.', 'cead-acad' ), [ 'status' => 404 ] );
+			}
+			// Revocar una de Dirección es tan delicado como crearla.
+			if ( ! Cead_Acad_Invitations::puede_asignar( get_current_user_id(), (string) $fila['role'] ) ) {
+				return self::sin_permiso();
+			}
+			Cead_Acad_Invitations::revoke( (int) $fila['id'] );
+			return [ 'invitacion' => self::invitacion( Cead_Acad_Invitations::find_by_id( (int) $fila['id'] ) ?: $fila ) ];
+		} );
+	}
+
+	/* ----------------------------------------------------------- artículos */
+
+	public function opciones_articulos() {
+		if ( ! current_user_can( 'cead_acad_manage_articles' ) ) {
+			return self::sin_permiso();
+		}
+		return rest_ensure_response( Cead_Acad_Articulos::opciones( get_current_user_id() ) );
+	}
+
+	public function publicar_articulo( $req ) {
+		return Cead_Acad_API::una_vez( $req, static function () use ( $req ) {
+			$uid = get_current_user_id();
+			if ( ! current_user_can( 'cead_acad_manage_articles' ) ) {
+				return self::sin_permiso();
+			}
+			// Pedir redes sin ser el director/a no es un error: se publica
+			// igual, solo en el sitio, y la respuesta lo dice.
+			$redes = (bool) $req->get_param( 'redes' ) && Cead_Acad_Articulos::puede_redes( $uid );
+
+			$imagen = 0;
+			if ( ! empty( $_FILES['imagen']['name'] ) ) {
+				$imagen = self::subir_imagen( 'imagen' );
+				if ( is_wp_error( $imagen ) ) {
+					return $imagen;
+				}
+			}
+			$pid = Cead_Acad_Articulos::publicar( $uid, [
+				'titulo'       => (string) $req->get_param( 'titulo' ),
+				'contenido'    => (string) $req->get_param( 'contenido' ),
+				'imagen'       => $imagen,
+				'categoria'    => (int) $req->get_param( 'categoria' ),
+				'formato'      => (string) $req->get_param( 'formato' ),
+				'fecha_evento' => Cead_Acad_Articulos::fecha_mysql( $req->get_param( 'fecha_evento' ) ),
+				'lugar_evento' => (string) $req->get_param( 'lugar_evento' ),
+				'redes'        => $redes,
+				'via'          => 'app',
+			] );
+			if ( is_wp_error( $pid ) ) {
+				if ( $imagen ) {
+					wp_delete_attachment( $imagen, true );
+				}
+				return $pid;
+			}
+			return [
+				'articulo' => [
+					'id'     => (int) $pid,
+					'titulo' => get_the_title( $pid ),
+					'url'    => get_permalink( $pid ),
+					'redes'  => $redes,
+				],
+			];
+		} );
+	}
+
+	/* --------------------------------------------------- tareas del curso */
+
+	public function tareas_del_curso() {
+		$uid = get_current_user_id();
+		if ( ! current_user_can( 'cead_acad_complete_delegate_task' ) && ! current_user_can( 'cead_acad_assign_tasks' ) ) {
+			return self::sin_permiso();
+		}
+		$tareas = Cead_Acad_Tasks_CPT::for_user( $uid, [ 'pendiente', 'en_curso', 'hecha' ] );
+		return rest_ensure_response( [ 'tareas' => array_map( [ 'Cead_Acad_Tasks_CPT', 'ficha' ], $tareas ) ] );
+	}
+
+	public function estado_tarea( $req ) {
+		return Cead_Acad_API::una_vez( $req, static function () use ( $req ) {
+			$id = (int) $req->get_param( 'id' );
+			$r  = Cead_Acad_Tasks_CPT::fijar_estado( get_current_user_id(), $id, (string) $req->get_param( 'estado' ) );
+			return is_wp_error( $r ) ? $r : [ 'tarea' => Cead_Acad_Tasks_CPT::ficha( get_post( $id ) ) ];
+		} );
+	}
+
+	public function asignar_tarea( $req ) {
+		return Cead_Acad_API::una_vez( $req, static function () use ( $req ) {
+			$pid = Cead_Acad_Tasks_CPT::crear( [
+				'titulo'    => (string) $req->get_param( 'titulo' ),
+				'detalle'   => (string) $req->get_param( 'detalle' ),
+				'curso_id'  => (int) $req->get_param( 'curso_id' ),
+				'prioridad' => (string) $req->get_param( 'prioridad' ),
+				'vence'     => (string) $req->get_param( 'vence' ),
+				'autor'     => get_current_user_id(),
+			] );
+			return is_wp_error( $pid ) ? $pid : [ 'tarea' => Cead_Acad_Tasks_CPT::ficha( get_post( $pid ) ) ];
+		} );
+	}
+
+	/* ----------------------------------------------------------- delegados */
+
+	/**
+	 * El directorio de delegados, con sus teléfonos.
+	 *
+	 * Solo en línea, nunca en la sincronización: son teléfonos de terceros, y
+	 * cada vez que alguien los mira queda registrado, igual que en la web.
+	 */
+	public function delegados() {
+		if ( ! current_user_can( 'cead_acad_view_delegates' ) ) {
+			return self::sin_permiso();
+		}
+		$lista = Cead_Acad_Courses_Roster::delegates();
+		Cead_Acad_Audit::log( 'delegates_viewed', [
+			'entity_type' => 'user',
+			'entity_id'   => get_current_user_id(),
+			'payload'     => [ 'fichas' => count( $lista ), 'via' => 'app' ],
+		] );
+		return rest_ensure_response( [ 'delegados' => array_values( $lista ) ] );
 	}
 
 	/* ---------------------------------------------- reportes del alumnado */

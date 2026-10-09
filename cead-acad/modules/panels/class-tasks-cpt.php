@@ -170,30 +170,113 @@ class Cead_Acad_Tasks_CPT {
 			exit;
 		}
 
-		$task = get_post( $task_id );
-		if ( ! $task || $task->post_type !== self::POST_TYPE ) {
-			wp_safe_redirect( cead_acad_url( 'panel/delegado' ) );
-			exit;
-		}
-
-		// Permisos: dirección/secretaría siempre; delegado solo del curso asignado.
-		$user = wp_get_current_user();
-		$can  = current_user_can( 'cead_acad_assign_tasks' );
-		if ( ! $can ) {
-			if ( current_user_can( 'cead_acad_complete_delegate_task' ) ) {
-				$task_course = (int) get_post_meta( $task_id, '_cead_acad_task_course', true );
-				$user_courses = Cead_Acad_Courses_Roster::courses_for_user( $user->ID );
-				$can = in_array( $task_course, $user_courses, true );
-			}
-		}
-		if ( ! $can ) {
+		$r = self::fijar_estado( get_current_user_id(), $task_id, $status );
+		if ( is_wp_error( $r ) && 'no_existe' !== $r->get_error_code() ) {
 			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ), 403 );
 		}
 
-		update_post_meta( $task_id, '_cead_acad_task_status', $status );
-
 		wp_safe_redirect( cead_acad_url( 'panel/delegado' ) );
 		exit;
+	}
+
+	/**
+	 * Cambia el estado de una tarea del curso.
+	 *
+	 * Dirección y Secretaría pueden con cualquiera; el delegado/a, solo con
+	 * las de su curso. Fija el estado en vez de avanzarlo: la app lo manda
+	 * desde una cola que se reintenta, y repetir un «queda hecha» no cambia
+	 * nada.
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function fijar_estado( $user_id, $task_id, $estado ) {
+		$task_id = (int) $task_id;
+		if ( ! in_array( $estado, self::STATUSES, true ) ) {
+			return new WP_Error( 'estado_invalido', __( 'Ese estado no existe.', 'cead-acad' ), [ 'status' => 400 ] );
+		}
+		$task = get_post( $task_id );
+		if ( ! $task || self::POST_TYPE !== ( $task->post_type ?? '' ) ) {
+			return new WP_Error( 'no_existe', __( 'Esa tarea no existe.', 'cead-acad' ), [ 'status' => 404 ] );
+		}
+		if ( ! self::puede_cambiar( $user_id, $task_id ) ) {
+			return new WP_Error( 'cead_api_sin_permiso', __( 'Esa tarea no es de tu curso.', 'cead-acad' ), [ 'status' => 403 ] );
+		}
+		update_post_meta( $task_id, '_cead_acad_task_status', $estado );
+		return true;
+	}
+
+	public static function puede_cambiar( $user_id, $task_id ) {
+		if ( user_can( $user_id, 'cead_acad_assign_tasks' ) ) {
+			return true;
+		}
+		if ( ! user_can( $user_id, 'cead_acad_complete_delegate_task' ) ) {
+			return false;
+		}
+		$curso = (int) get_post_meta( (int) $task_id, '_cead_acad_task_course', true );
+		return in_array( $curso, array_map( 'intval', (array) Cead_Acad_Courses_Roster::courses_for_user( $user_id ) ), true );
+	}
+
+	/**
+	 * Crea una tarea para el delegado/a de un curso.
+	 *
+	 * @param array $args titulo, detalle, curso_id, prioridad, vence (Y-m-d), autor.
+	 * @return int|WP_Error
+	 */
+	public static function crear( array $args ) {
+		$autor = (int) ( $args['autor'] ?? 0 );
+		if ( ! user_can( $autor, 'cead_acad_assign_tasks' ) ) {
+			return new WP_Error( 'cead_api_sin_permiso', __( 'No tenés permiso para asignar tareas.', 'cead-acad' ), [ 'status' => 403 ] );
+		}
+		$titulo = trim( sanitize_text_field( (string) ( $args['titulo'] ?? '' ) ) );
+		$curso  = (int) ( $args['curso_id'] ?? 0 );
+		if ( '' === $titulo ) {
+			return new WP_Error( 'sin_titulo', __( 'La tarea necesita un título.', 'cead-acad' ), [ 'status' => 400 ] );
+		}
+		$c = get_post( $curso );
+		if ( ! $c || Cead_Acad_Courses_CPT::POST_TYPE !== $c->post_type ) {
+			return new WP_Error( 'sin_curso', __( 'Elegí el curso.', 'cead-acad' ), [ 'status' => 400 ] );
+		}
+		$prioridad = (string) ( $args['prioridad'] ?? 'normal' );
+		if ( ! in_array( $prioridad, self::PRIORITIES, true ) ) {
+			$prioridad = 'normal';
+		}
+		$vence = (string) ( $args['vence'] ?? '' );
+		if ( '' !== $vence && ( 1 !== preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/', $vence, $m ) || ! checkdate( (int) $m[2], (int) $m[3], (int) $m[1] ) ) ) {
+			return new WP_Error( 'fecha_invalida', __( 'La fecha de vencimiento no es válida.', 'cead-acad' ), [ 'status' => 400 ] );
+		}
+
+		// Los datos se guardan antes de publicar, igual que comunicados y
+		// eventos: lo que reacciona a la publicación ve la tarea completa.
+		$pid = wp_insert_post( [
+			'post_type'    => self::POST_TYPE,
+			'post_status'  => 'draft',
+			'post_title'   => $titulo,
+			'post_content' => sanitize_textarea_field( (string) ( $args['detalle'] ?? '' ) ),
+			'post_author'  => $autor,
+		], true );
+		if ( is_wp_error( $pid ) ) {
+			return $pid;
+		}
+		update_post_meta( $pid, '_cead_acad_task_course', $curso );
+		update_post_meta( $pid, '_cead_acad_task_status', 'pendiente' );
+		update_post_meta( $pid, '_cead_acad_task_priority', $prioridad );
+		update_post_meta( $pid, '_cead_acad_task_due_date', $vence );
+		wp_publish_post( $pid );
+		return (int) $pid;
+	}
+
+	/** Una tarea del curso, como la ve la app. */
+	public static function ficha( $t ) {
+		$curso = (int) get_post_meta( $t->ID, '_cead_acad_task_course', true );
+		return [
+			'id'        => (int) $t->ID,
+			'titulo'    => get_the_title( $t ),
+			'detalle'   => wp_strip_all_tags( $t->post_content ),
+			'curso'     => $curso ? [ 'id' => $curso, 'titulo' => get_the_title( $curso ) ] : null,
+			'estado'    => (string) get_post_meta( $t->ID, '_cead_acad_task_status', true ) ?: 'pendiente',
+			'prioridad' => (string) get_post_meta( $t->ID, '_cead_acad_task_priority', true ) ?: 'normal',
+			'vence'     => (string) get_post_meta( $t->ID, '_cead_acad_task_due_date', true ) ?: null,
+		];
 	}
 
 	public static function status_label( $s ) {

@@ -254,10 +254,8 @@ class Cead_Acad_Admin_Menu {
 	 * o le asigne a otro el rol más alto del colegio.
 	 */
 	protected function can_assign_role( $role ) {
-		if ( 'cead_acad_direction' !== $role ) {
-			return true;
-		}
-		return current_user_can( 'cead_acad_manage_roles' ) || current_user_can( 'manage_options' );
+		// La misma regla que usa la app.
+		return Cead_Acad_Invitations::puede_asignar( get_current_user_id(), $role );
 	}
 
 	protected function do_create() {

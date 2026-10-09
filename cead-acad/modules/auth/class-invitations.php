@@ -287,6 +287,21 @@ class Cead_Acad_Invitations {
 		return $wpdb->get_results( "SELECT * FROM {$table} ORDER BY id DESC LIMIT {$limit}", ARRAY_A );
 	}
 
+	/**
+	 * ¿Puede esta persona darle este rol a alguien (por invitación o a mano)?
+	 *
+	 * Solo Dirección (o un administrador) da el rol Dirección: si no,
+	 * Secretaría podría darse —o darle a otro— el rol más alto del colegio. La
+	 * regla la usan las pantallas del admin y la app. Si además puede invitar
+	 * o editar cuentas lo decide cada pantalla con su propio permiso.
+	 */
+	public static function puede_asignar( $user_id, $role ) {
+		if ( 'cead_acad_direction' !== $role ) {
+			return true;
+		}
+		return user_can( $user_id, 'cead_acad_manage_roles' ) || user_can( $user_id, 'manage_options' );
+	}
+
 	protected static function sanitize_role( $role ) {
 		$valid = array_keys( Cead_Acad_Capabilities::roles() );
 		return in_array( $role, $valid, true ) ? $role : 'cead_acad_student';

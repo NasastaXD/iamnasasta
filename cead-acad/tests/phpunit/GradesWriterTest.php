@@ -84,6 +84,32 @@ class GradesWriterTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Los periodos reales del CEAD. Con estos, «la segunda» tiene que caer en
+	 * «Segunda Etapa»: antes caía en '2', que no existe, y toda nota que no
+	 * fuera la final rebotaba.
+	 */
+	public function test_con_las_etapas_del_cead_el_numero_cae_en_su_etapa() {
+		cead_test_set_option( 'cead_acad_grades_periods', [ 'Primera Etapa', 'Segunda Etapa', 'Final' ] );
+		$casos = [
+			'Primera Etapa' => 'Primera Etapa', 'primera etapa' => 'Primera Etapa', 'la primera' => 'Primera Etapa',
+			'1' => 'Primera Etapa', '2' => 'Segunda Etapa', 'segunda' => 'Segunda Etapa', '2da etapa' => 'Segunda Etapa',
+			'final' => 'Final', 'Nota final' => 'Final', '' => '', 'asdf' => '',
+		];
+		foreach ( $casos as $entrada => $esperado ) {
+			$this->assertSame( $esperado, Cead_Acad_Grades_Writer::norm_period( $entrada ), "falló con: {$entrada}" );
+		}
+		$v = Cead_Acad_Grades_Writer::validate( array_merge( $this->base(), [ 'period' => 'segunda' ] ) );
+		$this->assertIsArray( $v );
+		$this->assertSame( 'Segunda Etapa', $v['period'] );
+	}
+
+	/** Un tercer periodo que no existe no se inventa: rebota en la validación. */
+	public function test_un_periodo_que_no_existe_sigue_rebotando() {
+		cead_test_set_option( 'cead_acad_grades_periods', [ 'Primera Etapa', 'Segunda Etapa', 'Final' ] );
+		$this->assertTrue( is_wp_error( Cead_Acad_Grades_Writer::validate( array_merge( $this->base(), [ 'period' => '3' ] ) ) ) );
+	}
+
 	public function test_validacion_caso_feliz() {
 		$v = Cead_Acad_Grades_Writer::validate( $this->base() );
 		$this->assertIsArray( $v );
