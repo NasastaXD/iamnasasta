@@ -898,23 +898,8 @@ class Cead_Acad_WA_Engine {
 	 * @return int[]|null
 	 */
 	private function courses_scope_for( $uid ) {
-		$uid = (int) $uid;
-		if ( ! $uid ) { return []; }
-		if ( Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_courses' ) ) { return null; }
-
-		$ids = class_exists( 'Cead_Acad_Courses_Roster' )
-			? Cead_Acad_Courses_Roster::courses_for_user( $uid )
-			: [];
-		// Cursos donde figura como tutor/a aunque no esté en el roster.
-		$tutor = get_posts( [
-			'post_type'      => 'cead_acad_course',
-			'post_status'    => 'publish',
-			'fields'         => 'ids',
-			'posts_per_page' => 50,
-			'meta_key'       => '_cead_acad_tutor',
-			'meta_value'     => $uid,
-		] );
-		return array_values( array_unique( array_map( 'intval', array_merge( (array) $ids, (array) $tutor ) ) ) );
+		// La misma regla que usa la app para cargar notas.
+		return Cead_Acad_Notas::alcance_cursos( $uid );
 	}
 
 	/** Títulos legibles de una lista de cursos. */
@@ -1026,16 +1011,6 @@ class Cead_Acad_WA_Engine {
 		$a = Cead_Acad_WA_Identity::normalize_phone( $phone );
 		$b = Cead_Acad_WA_Identity::normalize_phone( $conf );
 		return $a !== '' && $a === $b;
-	}
-
-	/** Categoría que Bit Social vigila para auto-publicar en redes. */
-	private function social_category_id() {
-		$slug = (string) get_option( 'cead_acad_wa_social_category', 'redes-sociales' );
-		$slug = sanitize_title( $slug ) ?: 'redes-sociales';
-		$term = get_term_by( 'slug', $slug, 'category' );
-		if ( $term && ! is_wp_error( $term ) ) { return (int) $term->term_id; }
-		$new = wp_insert_term( 'Redes sociales', 'category', [ 'slug' => $slug ] );
-		return is_wp_error( $new ) ? 0 : (int) $new['term_id'];
 	}
 
 	/**
@@ -2209,74 +2184,30 @@ class Cead_Acad_WA_Engine {
 	 * replicarse en redes.
 	 */
 	private function execute_articulo( $phone, $context, $identity ) {
-		$uid = (int) ( $identity['user_id'] ?? 0 );
-		if ( ! Cead_Acad_WA_Identity::can( $uid, 'cead_acad_manage_articles' ) ) {
-			$this->send( $phone, $this->m( 'access_denied' ) );
-			$this->store->set_state( $phone, 'ia_home' );
-			return;
-		}
-		$titulo    = (string) ( $context['titulo'] ?? 'Artículo' );
-		$contenido = (string) ( $context['contenido'] ?? '' );
-		$image     = $context['image'] ?? null;
+		$uid   = (int) ( $identity['user_id'] ?? 0 );
+		$image = $context['image'] ?? null;
 		// Se vuelve a validar el número: entre la propuesta y la aprobación
 		// pudo cambiar la configuración de quién es el director/a.
 		$redes = ! empty( $context['redes'] ) && $this->is_director_phone( $phone );
 
-		// La IA redacta en Markdown; WordPress no lo entiende y publicaba los
-		// asteriscos y las barritas de las tablas tal cual. Se maqueta acá.
-		$html = class_exists( 'Cead_Acad_Article_Format' )
-			? Cead_Acad_Article_Format::to_html( $contenido )
-			: $contenido;
-
-		$pid = wp_insert_post( [
-			'post_type'    => 'post',
-			'post_status'  => 'publish',
-			'post_title'   => $titulo,
-			'post_content' => $html,
-			'post_author'  => $uid ?: 0,
-		], true );
+		// La publicación es la misma que desde la app: maqueta, categoría y
+		// auditoría no dependen de por dónde entró la nota.
+		$pid = Cead_Acad_Articulos::publicar( $uid, [
+			'titulo'       => (string) ( $context['titulo'] ?? 'Artículo' ),
+			'contenido'    => (string) ( $context['contenido'] ?? '' ),
+			'imagen'       => ( $image && ! empty( $image['attachment_id'] ) ) ? (int) $image['attachment_id'] : 0,
+			'categoria'    => (int) ( $context['categoria'] ?? 0 ),
+			'formato'      => (string) ( $context['formato'] ?? '' ),
+			'fecha_evento' => (string) ( $context['fecha_ev'] ?? '' ),
+			'lugar_evento' => (string) ( $context['lugar_ev'] ?? '' ),
+			'redes'        => $redes,
+			'via'          => 'ia',
+		] );
 		if ( is_wp_error( $pid ) ) {
-			$this->send( $phone, $this->m( 'error_generic' ) );
+			$this->send( $phone, 'cead_api_sin_permiso' === $pid->get_error_code() ? $this->m( 'access_denied' ) : $this->m( 'error_generic' ) );
 			$this->store->set_state( $phone, 'ia_home' );
 			return;
 		}
-		if ( $image && ! empty( $image['attachment_id'] ) ) {
-			set_post_thumbnail( $pid, (int) $image['attachment_id'] );
-		}
-		/*
-		 * La maqueta se vuelve a resolver al publicar, no se copia del contexto.
-		 * Entre la propuesta y el «sí» puede haber pasado un rato y el tema pudo
-		 * cambiar; y sobre todo, es la misma razón por la que la categoría se
-		 * revalida acá: lo que se guarda tiene que ser válido AHORA, no cuando se
-		 * propuso.
-		 */
-		$formato = '';
-		if ( class_exists( 'Cead_Acad_Article_Kind' ) ) {
-			$formato = Cead_Acad_Article_Kind::guardar( $pid, (string) ( $context['formato'] ?? '' ), [
-				'fecha' => (string) ( $context['fecha_ev'] ?? '' ),
-				'lugar' => (string) ( $context['lugar_ev'] ?? '' ),
-			] );
-		}
-		// La categoría temática se revalida contra las que existen ahora: entre
-		// la propuesta y la aprobación pudieron borrarla.
-		$tema = (int) ( $context['categoria'] ?? 0 );
-		if ( $tema && ! isset( $this->article_categories()[ $tema ] ) ) { $tema = 0; }
-		if ( $tema ) {
-			wp_set_post_categories( $pid, [ $tema ], true );
-		}
-		if ( $redes ) {
-			$cat = $this->social_category_id();
-			if ( $cat ) {
-				// append = true: no pisa la categoría por defecto del sitio.
-				wp_set_post_categories( $pid, [ $cat ], true );
-			}
-		}
-		Cead_Acad_Audit::log( 'wa_article_published', [
-			'user_id'     => $uid ?: null,
-			'entity_type' => 'post',
-			'entity_id'   => $pid,
-			'payload'     => [ 'redes' => $redes, 'categoria' => $tema ?: null, 'con_imagen' => (bool) $image, 'formato' => $formato ?: null, 'via' => 'ia' ],
-		] );
 		$this->send(
 			$phone,
 			$this->interp( $this->m( 'article_published' ), [ 'url' => get_permalink( $pid ) ] )
@@ -2831,48 +2762,24 @@ class Cead_Acad_WA_Engine {
 
 	/** Guarda la nota aprobada (re-chequea permisos y que el alumno sea del curso). */
 	private function execute_nota( $phone, $context, $identity ) {
-		$uid       = (int) ( $identity['user_id'] ?? 0 );
-		$course_id = (int) ( $context['course_id'] ?? 0 );
-		$student   = (int) ( $context['student_id'] ?? 0 );
+		$uid = (int) ( $identity['user_id'] ?? 0 );
 
-		if ( ! Cead_Acad_Grades_Writer::user_can_grade_course( $uid, $course_id ) ) {
-			$this->send( $phone, $this->m( 'access_denied' ) );
-			$this->store->set_state( $phone, 'ia_home' );
-			return;
-		}
-		// El alumno tiene que seguir perteneciendo al curso (pudo cambiar entre
-		// la propuesta y la aprobación).
-		$in_course = array_map( 'intval', (array) Cead_Acad_Courses_Roster::users_in_course( $course_id ) );
-		if ( ! in_array( $student, $in_course, true ) ) {
-			$this->send( $phone, __( 'Ese alumno ya no figura en el curso, así que no cargué la nota.', 'cead-acad' ) );
-			$this->store->set_state( $phone, 'ia_home' );
-			return;
-		}
-
-		// La materia nueva recién se crea acá, con la aprobación ya dada.
-		$subject_id = (int) ( $context['subject_id'] ?? 0 );
-		if ( ! $subject_id && ! empty( $context['subject_new'] ) ) {
-			$made       = Cead_Acad_Grades_Writer::match_subject( (string) ( $context['subject_name'] ?? '' ), $course_id, true );
-			$subject_id = (int) $made['term_id'];
-		}
-		if ( ! $subject_id ) {
-			$this->send( $phone, $this->m( 'error_generic' ) );
-			$this->store->set_state( $phone, 'ia_home' );
-			return;
-		}
-
-		$res = Cead_Acad_Grades_Writer::record( [
-			'student_user_id' => $student,
-			'course_id'       => $course_id,
-			'subject_term_id' => $subject_id,
-			'period'          => (string) ( $context['period'] ?? '' ),
-			'score'           => $context['score'] ?? null,
-			'comments'        => (string) ( $context['comments'] ?? '' ),
-			'recorded_by'     => $uid,
+		// Las comprobaciones (curso propio, alumno todavía en el curso, materia
+		// nueva solo con aprobación) son las mismas que desde la app.
+		$res = Cead_Acad_Notas::cargar( $uid, [
+			'alumno_id'     => (int) ( $context['student_id'] ?? 0 ),
+			'curso_id'      => (int) ( $context['course_id'] ?? 0 ),
+			'materia_id'    => (int) ( $context['subject_id'] ?? 0 ),
+			'materia_nueva' => ! empty( $context['subject_new'] ) ? (string) ( $context['subject_name'] ?? '' ) : '',
+			'periodo'       => (string) ( $context['period'] ?? '' ),
+			'nota'          => $context['score'] ?? null,
+			'comentario'    => (string) ( $context['comments'] ?? '' ),
+			'origen'        => 'whatsapp',
 		] );
 
 		if ( is_wp_error( $res ) ) {
-			$this->send( $phone, '⚠️ ' . $res->get_error_message() );
+			$msg = 'cead_api_sin_permiso' === $res->get_error_code() ? $this->m( 'access_denied' ) : '⚠️ ' . $res->get_error_message();
+			$this->send( $phone, $msg );
 			$this->store->set_state( $phone, 'ia_home' );
 			return;
 		}

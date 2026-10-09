@@ -100,7 +100,41 @@ class Cead_Acad_API_Sync {
 			// Las categorías, para poder escribir un reporte sin señal y que
 			// salga cuando vuelva.
 			'categorias_reporte' => Cead_Acad_Buzon::categorias(),
+			'gestion'            => $this->gestion( $uid ),
 		];
+	}
+
+	/**
+	 * Lo que el staff necesita para trabajar sin señal: con qué opciones armar
+	 * un comunicado, un evento, una nota o una tarjeta de notas, para cargarlos
+	 * en el aula y que salgan cuando vuelva la conexión.
+	 *
+	 * Solo opciones, nunca datos de terceros: el buzón y el directorio de
+	 * delegados se miran en línea. Cada parte aparece si la persona tiene el
+	 * permiso; para un alumno, esto queda vacío.
+	 */
+	protected function gestion( $uid ) {
+		$g = [];
+		if ( user_can( $uid, 'cead_acad_publish_broadcast' ) ) {
+			$g['audiencias_comunicado'] = Cead_Acad_Gestion_Audiencias::opciones( $uid, 'comunicado' );
+		}
+		if ( user_can( $uid, 'cead_acad_manage_schedule' ) ) {
+			$g['audiencias_evento'] = Cead_Acad_Gestion_Audiencias::opciones( $uid, 'evento' );
+		}
+		if ( user_can( $uid, 'cead_acad_record_grade' ) ) {
+			$g['notas'] = Cead_Acad_Notas::opciones( $uid );
+		}
+		if ( user_can( $uid, 'cead_acad_manage_articles' ) ) {
+			$g['articulos'] = Cead_Acad_Articulos::opciones( $uid );
+		}
+		if ( user_can( $uid, 'cead_acad_complete_delegate_task' ) || user_can( $uid, 'cead_acad_assign_tasks' ) ) {
+			$g['tareas_del_curso'] = array_map(
+				[ 'Cead_Acad_Tasks_CPT', 'ficha' ],
+				Cead_Acad_Tasks_CPT::for_user( $uid, [ 'pendiente', 'en_curso', 'hecha' ] )
+			);
+		}
+		// Un objeto vacío y no una lista vacía: la app lo lee como un mapa.
+		return $g ?: new stdClass();
 	}
 
 	/**

@@ -208,12 +208,50 @@ class Cead_Acad_Grades_Writer {
 		return [ 'status' => 'none', 'matches' => [] ];
 	}
 
-	/** Normaliza «segundo trimestre», «2do», «p2», «final» → '2' / 'Final'. */
+	/**
+	 * Lleva lo que escribió alguien a uno de los periodos del colegio.
+	 *
+	 * «segundo trimestre», «2do», «p2», «la segunda etapa» → el segundo
+	 * periodo configurado; «final» → el final. Devuelve el periodo TAL COMO
+	 * está configurado, porque eso es lo que se guarda y lo que el boletín
+	 * agrupa.
+	 *
+	 * Antes devolvía siempre un número ('1', '2'…) y el validador lo comparaba
+	 * contra los periodos configurados. Con los periodos numerados andaba;
+	 * con los del CEAD («Primera Etapa», «Segunda Etapa», «Final») el '2' no
+	 * coincidía con nada y toda nota que no fuera la final rebotaba con «ese
+	 * periodo no existe».
+	 */
 	public static function norm_period( $raw ) {
 		$s = self::norm( $raw );
 		if ( '' === $s ) { return ''; }
-		if ( preg_match( '/\bfinal\b/', $s ) ) { return 'Final'; }
+		$periodos = self::periods();
 
+		// Escrito tal cual (sin importar mayúsculas ni tildes).
+		foreach ( $periodos as $p ) {
+			if ( self::norm( $p ) === $s ) { return $p; }
+		}
+
+		if ( preg_match( '/\bfinal\b/', $s ) ) {
+			foreach ( $periodos as $p ) {
+				if ( preg_match( '/\bfinal\b/', self::norm( $p ) ) ) { return $p; }
+			}
+			return 'Final';
+		}
+
+		$n = self::ordinal( $s );
+		if ( '' === $n ) { return ''; }
+		if ( in_array( $n, $periodos, true ) ) { return $n; }
+
+		// El enésimo periodo que no es el final: «2» → «Segunda Etapa».
+		$ordinarios = array_values( array_filter( $periodos, static function ( $p ) {
+			return ! preg_match( '/\bfinal\b/', Cead_Acad_Grades_Writer::norm( $p ) );
+		} ) );
+		return $ordinarios[ (int) $n - 1 ] ?? $n;
+	}
+
+	/** «segundo», «2do», «p2» → '2'; '' si no hay un número. */
+	protected static function ordinal( $s ) {
 		$words = [
 			'primer' => '1', 'primero' => '1', 'primera' => '1', 'uno' => '1',
 			'segundo' => '2', 'segunda' => '2', 'dos' => '2',
@@ -468,7 +506,8 @@ class Cead_Acad_Grades_Writer {
 			'entity_type' => 'grade',
 			'entity_id'   => $id,
 			'payload'     => [
-				'source'  => 'whatsapp',
+				// Por dónde entró: el bot no la pasa, y era el único que cargaba.
+				'source'  => sanitize_key( (string) ( $args['source'] ?? 'whatsapp' ) ),
 				'course'  => $v['course_id'],
 				'student' => $v['student_user_id'],
 				'subject' => $v['subject_term_id'],
