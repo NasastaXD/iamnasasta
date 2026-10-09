@@ -11,8 +11,8 @@
  * con Aceptar / Editar / Cancelar antes de escribir nada) vive en el motor de
  * WhatsApp. Ofrecer acciones acá sin ese paso sería darle a la IA una vía para
  * escribir en el sistema sin que nadie confirme, que es exactamente lo que el
- * diseño evita en el otro canal. Cuando haga falta ejecutar algo, se hace por
- * WhatsApp, donde el trámite está completo.
+ * diseño evita. Cuando haga falta ejecutar algo, se hace desde
+ * la pantalla de la app, donde el trámite está completo.
  *
  * Lo que sí se respeta es el rol: las consultas que ve el modelo salen de
  * `Cead_Acad_WA_Tools::specs()`, que filtra por permisos reales. Un alumno
@@ -116,7 +116,7 @@ class Cead_Acad_Ceadi_Panel {
 		 */
 		$intent = (string) ( $respuesta['intent'] ?? '' );
 		if ( '' !== $intent && class_exists( 'Cead_Acad_WA_Tools' ) && Cead_Acad_WA_Tools::es_gestion( $intent ) ) {
-			$texto = trim( $texto . "\n\n" . __( 'Eso se confirma por WhatsApp: escribime por ahí y te muestro el resumen antes de ejecutarlo.', 'cead-acad' ) );
+			$texto = trim( $texto . "\n\n" . self::donde_se_hace( $intent ) );
 		}
 
 		if ( '' === $texto ) {
@@ -124,6 +124,29 @@ class Cead_Acad_Ceadi_Panel {
 		}
 
 		return rest_ensure_response( [ 'respuesta' => $texto ] );
+	}
+
+	/**
+	 * Dónde se hace una acción de gestión.
+	 *
+	 * CEADI acá solo consulta; las acciones que escriben tienen su pantalla en
+	 * la app, con su propio paso de confirmación antes de guardar. Antes esto
+	 * mandaba a WhatsApp, que ya no es el canal. Lo que no tiene pantalla se
+	 * dice así, en vez de mandar a alguien a buscar algo que no existe.
+	 */
+	public static function donde_se_hace( $intent ) {
+		$pantallas = [
+			'enviar_comunicado' => __( 'Publicar comunicado', 'cead-acad' ),
+			'crear_evento'      => __( 'Cargar evento', 'cead-acad' ),
+			'crear_invitacion'  => __( 'Invitaciones', 'cead-acad' ),
+			'cargar_nota'       => __( 'Cargar notas', 'cead-acad' ),
+			'crear_articulo'    => __( 'Publicar en el sitio', 'cead-acad' ),
+		];
+		if ( isset( $pantallas[ $intent ] ) ) {
+			/* translators: %s: nombre de la pantalla de la app */
+			return sprintf( __( 'Eso lo hacés desde la app, en «%s»: ahí lo armás y lo revisás antes de guardarlo.', 'cead-acad' ), $pantallas[ $intent ] );
+		}
+		return __( 'Eso todavía no se puede hacer desde la app.', 'cead-acad' );
 	}
 
 	/**

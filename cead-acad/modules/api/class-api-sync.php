@@ -101,6 +101,7 @@ class Cead_Acad_API_Sync {
 			// salga cuando vuelva.
 			'categorias_reporte' => Cead_Acad_Buzon::categorias(),
 			'gestion'            => $this->gestion( $uid ),
+			'preferencias_push'  => Cead_Acad_Push::preferencias( $uid ),
 		];
 	}
 

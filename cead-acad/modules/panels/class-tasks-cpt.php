@@ -123,6 +123,11 @@ class Cead_Acad_Tasks_CPT {
 			$val = sanitize_text_field( wp_unslash( $_POST[ $key ] ?? '' ) );
 			update_post_meta( $post_id, $key, $val );
 		}
+
+		// Con el curso ya guardado: es a quién se le avisa.
+		if ( 'publish' === $post->post_status && Cead_Acad_Push::es_reciente( $post ) ) {
+			Cead_Acad_Push::marcar_y_avisar( $post_id, 'cead_acad_tarea_asignada' );
+		}
 	}
 
 	public function columns( $cols ) {
@@ -262,6 +267,7 @@ class Cead_Acad_Tasks_CPT {
 		update_post_meta( $pid, '_cead_acad_task_priority', $prioridad );
 		update_post_meta( $pid, '_cead_acad_task_due_date', $vence );
 		wp_publish_post( $pid );
+		Cead_Acad_Push::marcar_y_avisar( $pid, 'cead_acad_tarea_asignada' );
 		return (int) $pid;
 	}
 

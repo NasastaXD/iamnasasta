@@ -59,6 +59,8 @@ final class Cead_Acad_Plugin {
 		( new Cead_Acad_API_Alumno() )->boot();
 		( new Cead_Acad_API_Sync() )->boot();
 		( new Cead_Acad_API_Gestion() )->boot();
+		( new Cead_Acad_Push() )->boot();
+		( new Cead_Acad_API_Push() )->boot();
 		( new Cead_Acad_Assets() )->boot();
 		( new Cead_Acad_Invitations() )->boot();
 		( new Cead_Acad_Auth_Controller() )->boot();

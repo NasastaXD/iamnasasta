@@ -286,6 +286,7 @@ class Cead_Acad_Schedule_CPT {
 		Cead_Acad_Audiences::set( 'event', $pid, $audiencias );
 
 		wp_publish_post( $pid );
+		Cead_Acad_Push::marcar_y_avisar( $pid, 'cead_acad_evento_publicado' );
 		return (int) $pid;
 	}
 }
