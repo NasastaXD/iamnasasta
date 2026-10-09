@@ -174,6 +174,11 @@ class Cead_Acad_Schedule_Admin {
 		}
 		$audiences = array_map( 'unserialize', array_unique( array_map( 'serialize', $audiences ) ) );
 		Cead_Acad_Audiences::set( 'event', $post_id, $audiences );
+
+		// Con la audiencia ya guardada (ver Cead_Acad_Broadcasts_Targeting::save).
+		if ( 'publish' === $post->post_status && Cead_Acad_Push::es_reciente( $post ) ) {
+			Cead_Acad_Push::marcar_y_avisar( $post_id, 'cead_acad_evento_publicado' );
+		}
 	}
 
 	public function columns( $cols ) {

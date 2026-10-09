@@ -141,6 +141,15 @@ delete_metadata( 'user', 0, '_cead_acad_phone_e164', '', true );
  */
 delete_metadata( 'user', 0, '_cead_acad_api_tokens', '', true );
 
+/*
+ * Los teléfonos registrados para recibir avisos y las preferencias de cada
+ * persona. El índice usa una clave por token (`_cead_acad_push_t_<hash>`), así
+ * que se borra por prefijo.
+ */
+delete_metadata( 'user', 0, '_cead_acad_push_devices', '', true );
+delete_metadata( 'user', 0, '_cead_acad_push_prefs', '', true );
+$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE %s", $wpdb->esc_like( '_cead_acad_push_t_' ) . '%' ) ); // phpcs:ignore WordPress.DB
+
 // Borrar roles del plugin.
 foreach ( [ 'cead_acad_direction', 'cead_acad_secretary', 'cead_acad_teacher', 'cead_acad_delegate', 'cead_acad_student', 'cead_acad_guardian', 'cead_acad_student_council' ] as $role ) {
 	remove_role( $role );

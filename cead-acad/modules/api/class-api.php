@@ -52,6 +52,15 @@ class Cead_Acad_API {
 		return self::$viva && '' !== self::$viva->token;
 	}
 
+	/** El id de la sesión (dispositivo) de esta petición, o '' si no entró por token. */
+	public static function jti_actual() {
+		if ( ! self::por_app() ) {
+			return '';
+		}
+		$partes = Cead_Acad_API_Tokens::partir( self::$viva->token );
+		return $partes ? (string) $partes[1] : '';
+	}
+
 	public function boot() {
 		self::$viva = $this;
 		add_action( 'rest_api_init', [ $this, 'rutas' ] );

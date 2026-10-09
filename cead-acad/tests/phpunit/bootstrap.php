@@ -94,6 +94,7 @@ if ( ! function_exists( 'get_users' ) ) {
 			if ( ! array_key_exists( $key, $metas ) ) { continue; }
 			$valor = (string) $metas[ $key ];
 			$match = match ( $compare ) {
+				'EXISTS' => true, // ya se comprobó arriba que la clave está
 				'LIKE'  => '' !== $needle && false !== strpos( $valor, $needle ),
 				'!='    => $valor !== $needle,
 				default => $valor === $needle,
@@ -107,6 +108,10 @@ if ( ! function_exists( 'get_users' ) ) {
 		}
 		return $out;
 	}
+}
+
+if ( ! function_exists( 'date_i18n' ) ) {
+	function date_i18n( $format, $ts = false ) { return gmdate( $format, false === $ts ? time() : $ts ); }
 }
 
 if ( ! function_exists( 'get_user_meta' ) ) {
@@ -711,9 +716,13 @@ require_once dirname( __DIR__, 2 ) . '/modules/gestion/class-buzon.php';
 require_once dirname( __DIR__, 2 ) . '/modules/gestion/class-metricas.php';
 require_once dirname( __DIR__, 2 ) . '/modules/gestion/class-notas.php';
 require_once dirname( __DIR__, 2 ) . '/modules/gestion/class-articulos.php';
+require_once dirname( __DIR__, 2 ) . '/modules/push/class-push-fcm.php';
+require_once dirname( __DIR__, 2 ) . '/modules/push/class-push.php';
+require_once dirname( __DIR__, 2 ) . '/modules/api/class-api-push.php';
 require_once dirname( __DIR__, 2 ) . '/modules/panels/class-tasks-cpt.php';
 require_once dirname( __DIR__, 2 ) . '/modules/api/class-api-gestion.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-module.php';
+require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-ceadi-panel.php';
 require_once dirname( __DIR__, 2 ) . '/modules/account/class-account.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-tools.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-instagram.php';

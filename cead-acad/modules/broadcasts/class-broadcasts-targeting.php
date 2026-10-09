@@ -12,8 +12,11 @@ class Cead_Acad_Broadcasts_Targeting {
 		add_action( 'add_meta_boxes',                              [ $this, 'metabox' ] );
 		add_action( 'save_post_' . Cead_Acad_Broadcasts_CPT::POST_TYPE, [ $this, 'save' ], 10, 2 );
 
-		// Notificación por email opcional al publicar.
-		add_action( 'transition_post_status', [ $this, 'maybe_notify_email' ], 10, 3 );
+		// Notificación por email opcional al publicar. Cuelga de la acción y no
+		// de la transición de estado: ver el comentario de `save()`.
+		add_action( 'cead_acad_comunicado_publicado', [ $this, 'notify_email' ] );
+		// Un comunicado programado se publica solo, sin pasar por el editor.
+		add_action( 'transition_post_status', [ $this, 'al_publicarse_programado' ], 10, 3 );
 	}
 
 	public function metabox() {
@@ -150,13 +153,29 @@ class Cead_Acad_Broadcasts_Targeting {
 		Cead_Acad_Audiences::set( 'broadcast', $post_id, $audiences );
 
 		update_post_meta( $post_id, '_cead_acad_notify_email', ! empty( $_POST['_cead_acad_notify_email'] ) ? 1 : 0 );
+
+		/*
+		 * Recién ahora, con las audiencias y el aviso por email ya guardados.
+		 * WordPress pasa el comunicado a «publicado» ANTES de guardar este
+		 * formulario, así que avisar en la transición era avisar sin saber a
+		 * quién ni si había que mandar email: la primera publicación desde el
+		 * editor salía sin ninguno de los dos.
+		 */
+		if ( 'publish' === $post->post_status && Cead_Acad_Push::es_reciente( $post ) ) {
+			Cead_Acad_Push::marcar_y_avisar( $post_id, 'cead_acad_comunicado_publicado' );
+		}
 	}
 
-	public function maybe_notify_email( $new_status, $old_status, $post ) {
-		if ( $post->post_type !== Cead_Acad_Broadcasts_CPT::POST_TYPE ) {
-			return;
+	/** Un comunicado programado ya tiene todo guardado desde antes: se avisa cuando le llega la hora. */
+	public function al_publicarse_programado( $new_status, $old_status, $post ) {
+		if ( $post->post_type === Cead_Acad_Broadcasts_CPT::POST_TYPE && 'publish' === $new_status && 'future' === $old_status ) {
+			Cead_Acad_Push::marcar_y_avisar( $post->ID, 'cead_acad_comunicado_publicado' );
 		}
-		if ( 'publish' !== $new_status || 'publish' === $old_status ) {
+	}
+
+	public function notify_email( $post_id ) {
+		$post = get_post( (int) $post_id );
+		if ( ! $post || $post->post_type !== Cead_Acad_Broadcasts_CPT::POST_TYPE ) {
 			return;
 		}
 		if ( ! get_post_meta( $post->ID, '_cead_acad_notify_email', true ) ) {

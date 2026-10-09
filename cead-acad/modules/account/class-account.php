@@ -153,6 +153,7 @@ class Cead_Acad_Account {
 		// Con quién lo mandó, para que la respuesta le llegue aunque no tenga
 		// WhatsApp: la ve en la app, en «Mis mensajes».
 		( new Cead_Acad_WA_Store() )->create_suggestion( $phone !== '' ? $phone : null, $body, $to, (int) $user_id );
+		do_action( 'cead_acad_buzon_mensaje_nuevo', $to );
 		return true;
 	}
 

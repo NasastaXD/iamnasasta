@@ -151,7 +151,19 @@ class Cead_Acad_Notas {
 			return new WP_Error( $r->get_error_code(), $r->get_error_message(), [ 'status' => 400 ] );
 		}
 
-		$guardada = Cead_Acad_Grades_Writer::find( $alumno, $curso, $materia, Cead_Acad_Grades_Writer::norm_period( $args['periodo'] ?? '' ) );
+		$periodo  = Cead_Acad_Grades_Writer::norm_period( $args['periodo'] ?? '' );
+		$guardada = Cead_Acad_Grades_Writer::find( $alumno, $curso, $materia, $periodo );
+
+		// Volver a mandar la misma nota (la cola de la app reintenta) no es una
+		// nota nueva: no se le avisa otra vez al alumno.
+		$igual = $r['previous'] && $guardada
+			&& null !== ( $r['previous']['score'] ?? null ) && null !== ( $guardada['score'] ?? null )
+			&& abs( (float) $r['previous']['score'] - (float) $guardada['score'] ) < 0.001;
+		if ( ! $igual ) {
+			$t = get_term( $materia );
+			do_action( 'cead_acad_nota_cargada', $alumno, ( $t && ! is_wp_error( $t ) ) ? (string) $t->name : '', $periodo );
+		}
+
 		return [
 			'id'       => (int) $r['id'],
 			'creada'   => (bool) $r['created'],

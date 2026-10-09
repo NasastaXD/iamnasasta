@@ -203,7 +203,21 @@ class Cead_Acad_API_Tokens {
 		}
 		unset( $tokens[ $jti ] );
 		self::guardar( $user_id, $tokens );
+		/**
+		 * Se cerró una sesión. Lo que estaba atado a ella (los avisos al
+		 * teléfono) tiene que irse con ella.
+		 *
+		 * @param int         $user_id
+		 * @param string|null $jti Null = todas las de la persona.
+		 */
+		do_action( 'cead_acad_api_sesion_cerrada', (int) $user_id, (string) $jti );
 		return true;
+	}
+
+	/** ¿Sigue viva esta sesión? (existe y no venció) */
+	public static function existe( $user_id, $jti ) {
+		$tokens = self::leer( $user_id );
+		return isset( $tokens[ $jti ] ) && ! self::caducado( $tokens[ $jti ], time() );
 	}
 
 	/** Cierra la sesión del token que vino en la petición. */
@@ -218,6 +232,7 @@ class Cead_Acad_API_Tokens {
 	/** Echa a todos los dispositivos de una persona. */
 	public static function revocar_todo( $user_id ) {
 		delete_user_meta( (int) $user_id, self::META );
+		do_action( 'cead_acad_api_sesion_cerrada', (int) $user_id, null );
 	}
 
 	/* -------------------------------------------------------------- listado */

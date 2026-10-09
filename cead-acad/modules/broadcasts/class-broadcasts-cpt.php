@@ -141,7 +141,7 @@ class Cead_Acad_Broadcasts_CPT {
 		 * el estado ANTES de guardar las audiencias; un aviso colgado de la
 		 * transición no sabría a quién mandarlo.
 		 */
-		do_action( 'cead_acad_comunicado_publicado', (int) $pid );
+		Cead_Acad_Push::marcar_y_avisar( $pid, 'cead_acad_comunicado_publicado' );
 
 		return (int) $pid;
 	}
