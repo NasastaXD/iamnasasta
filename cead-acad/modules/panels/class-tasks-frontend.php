@@ -63,9 +63,61 @@ class Cead_Acad_Tasks_Frontend {
 	}
 
 	/** ¿La tarea pertenece a un curso del usuario? */
-	protected static function user_can_task( $user_id, $task_id ) {
+	public static function user_can_task( $user_id, $task_id ) {
 		$course = (int) get_post_meta( $task_id, '_cead_acad_task_course', true );
 		return $course && in_array( $course, self::user_courses( $user_id ), true );
+	}
+
+	/**
+	 * Deja la tarea hecha o pendiente según `$hecha`.
+	 *
+	 * Fija un estado en vez de invertirlo, por la misma razón que los
+	 * favoritos: la app reenvía lo que se tocó sin señal, y un interruptor
+	 * reenviado dos veces vuelve a donde estaba.
+	 *
+	 * @return bool|WP_Error El estado que quedó, o `forbidden`.
+	 */
+	public static function fijar_hecha( $user_id, $task_id, $hecha ) {
+		$task_id = (int) $task_id;
+		if ( ! $task_id || ! self::user_can_task( $user_id, $task_id ) ) {
+			return new WP_Error( 'forbidden', __( 'Esa tarea no es de tu curso.', 'cead-acad' ) );
+		}
+		$ids = array_values( array_diff( self::done_ids( $user_id ), [ $task_id ] ) );
+		if ( $hecha ) {
+			$ids[] = $task_id;
+		}
+		update_user_meta( (int) $user_id, self::DONE_META, $ids );
+		return (bool) $hecha;
+	}
+
+	/**
+	 * Guarda la entrega que vino en `$_FILES[ $clave ]`, reemplazando la anterior.
+	 *
+	 * @return int|WP_Error Id del adjunto, o `forbidden` / `archivo` / `subida`.
+	 */
+	public static function guardar_entrega( $user_id, $task_id, $clave = 'entrega' ) {
+		$task_id = (int) $task_id;
+		if ( ! $task_id || ! self::user_can_task( $user_id, $task_id ) ) {
+			return new WP_Error( 'forbidden', __( 'Esa tarea no es de tu curso.', 'cead-acad' ) );
+		}
+		if ( empty( $_FILES[ $clave ]['name'] ) || ! empty( $_FILES[ $clave ]['error'] ) ) {
+			return new WP_Error( 'archivo', __( 'Falta el archivo de la entrega.', 'cead-acad' ) );
+		}
+
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+
+		$attach_id = media_handle_upload( $clave, 0, [], [ 'test_form' => false ] );
+		if ( is_wp_error( $attach_id ) ) {
+			return new WP_Error( 'subida', __( 'No se pudo subir el archivo.', 'cead-acad' ) );
+		}
+		$old = self::submission_id( $user_id, $task_id );
+		update_user_meta( (int) $user_id, self::SUB_META . $task_id, (int) $attach_id );
+		if ( $old && $old !== (int) $attach_id ) {
+			wp_delete_attachment( $old, true );
+		}
+		return (int) $attach_id;
 	}
 
 	/* ----- Handlers ----- */
@@ -76,18 +128,12 @@ class Cead_Acad_Tasks_Frontend {
 
 		$uid     = get_current_user_id();
 		$task_id = (int) ( $_POST['task_id'] ?? 0 );
-		$dest    = cead_acad_url( 'panel/tareas' );
 
-		if ( $task_id && self::user_can_task( $uid, $task_id ) ) {
-			$ids = self::done_ids( $uid );
-			if ( in_array( $task_id, $ids, true ) ) {
-				$ids = array_values( array_diff( $ids, [ $task_id ] ) );
-			} else {
-				$ids[] = $task_id;
-			}
-			update_user_meta( $uid, self::DONE_META, $ids );
-		}
-		wp_safe_redirect( $dest );
+		// El botón de la web sigue siendo un interruptor: acá se decide hacia
+		// dónde, y lo que se guarda es el estado.
+		self::fijar_hecha( $uid, $task_id, ! self::is_done( $uid, $task_id ) );
+
+		wp_safe_redirect( cead_acad_url( 'panel/tareas' ) );
 		exit;
 	}
 
@@ -95,32 +141,11 @@ class Cead_Acad_Tasks_Frontend {
 		if ( ! is_user_logged_in() ) { wp_safe_redirect( cead_acad_url( 'login' ) ); exit; }
 		check_admin_referer( 'cead_acad_task_submit' );
 
-		$uid     = get_current_user_id();
-		$task_id = (int) ( $_POST['task_id'] ?? 0 );
-		$dest    = cead_acad_url( 'panel/tareas' );
-
-		if ( ! $task_id || ! self::user_can_task( $uid, $task_id ) ) {
-			wp_safe_redirect( add_query_arg( 'err', 'forbidden', $dest ) );
+		$r = self::guardar_entrega( get_current_user_id(), (int) ( $_POST['task_id'] ?? 0 ), 'entrega' );
+		$dest = cead_acad_url( 'panel/tareas' );
+		if ( is_wp_error( $r ) ) {
+			wp_safe_redirect( add_query_arg( 'err', $r->get_error_code(), $dest ) );
 			exit;
-		}
-		if ( empty( $_FILES['entrega']['name'] ) || ! empty( $_FILES['entrega']['error'] ) ) {
-			wp_safe_redirect( add_query_arg( 'err', 'archivo', $dest ) );
-			exit;
-		}
-
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-		require_once ABSPATH . 'wp-admin/includes/media.php';
-		require_once ABSPATH . 'wp-admin/includes/image.php';
-
-		$attach_id = media_handle_upload( 'entrega', 0, [], [ 'test_form' => false ] );
-		if ( is_wp_error( $attach_id ) ) {
-			wp_safe_redirect( add_query_arg( 'err', 'subida', $dest ) );
-			exit;
-		}
-		$old = self::submission_id( $uid, $task_id );
-		update_user_meta( $uid, self::SUB_META . $task_id, (int) $attach_id );
-		if ( $old && $old !== (int) $attach_id ) {
-			wp_delete_attachment( $old, true );
 		}
 		wp_safe_redirect( add_query_arg( 'done', 1, $dest ) );
 		exit;

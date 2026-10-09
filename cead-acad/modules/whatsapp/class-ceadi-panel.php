@@ -172,7 +172,13 @@ class Cead_Acad_Ceadi_Panel {
 			}
 		}
 
-		$curso_id = (int) get_user_meta( $uid, '_cead_acad_current_course_id', true );
+		/*
+		 * La misma definición de «su curso» que usa el resto del panel. Antes
+		 * se leía solo el curso elegido a mano, y a la mayoría de los alumnos
+		 * nadie les elige nada: están en un curso y punto. Para ellos CEADI no
+		 * sabía en qué curso estaban, mientras la pantalla de horarios sí.
+		 */
+		$curso_id = cead_acad_curso_actual( $uid );
 		if ( $curso_id ) { $lineas[] = 'Curso: ' . get_the_title( $curso_id ); }
 
 		/*
@@ -184,7 +190,9 @@ class Cead_Acad_Ceadi_Panel {
 		 * según por dónde entró.
 		 */
 		$lineas[] = 'Hoy es ' . date_i18n( 'l j \d\e F \d\e Y, H:i', current_time( 'timestamp' ) ) . '.';
-		$lineas[] = 'Te está escribiendo desde el panel web, no por WhatsApp.';
+		$lineas[] = ( class_exists( 'Cead_Acad_API' ) && Cead_Acad_API::por_app() )
+			? 'Te está escribiendo desde la app del CEAD en su teléfono, no por WhatsApp.'
+			: 'Te está escribiendo desde el panel web, no por WhatsApp.';
 
 		return implode( "\n", $lineas );
 	}
