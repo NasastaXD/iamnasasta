@@ -198,7 +198,7 @@ class Cead_Acad_API_Panel {
 		return rest_ensure_response( $datos );
 	}
 
-	protected static function comunicado_breve( $post, array $leidos ) {
+	public static function comunicado_breve( $post, array $leidos ) {
 		return [
 			'id'        => (int) $post->ID,
 			'titulo'    => get_the_title( $post ),
@@ -294,20 +294,28 @@ class Cead_Acad_API_Panel {
 	/* ---------------------------------------------------------- calendario */
 
 	public function calendario( $req ) {
-		$desde = self::fecha( $req->get_param( 'desde' ) );
-		$hasta = self::fecha( $req->get_param( 'hasta' ) );
+		list( $desde, $hasta ) = self::rango( $req->get_param( 'desde' ), $req->get_param( 'hasta' ) );
 
-		$eventos = Cead_Acad_Schedule_Feed::for_user( get_current_user_id(), $desde, $hasta );
+		/*
+		 * Con rango completo se pide lo que SE CRUZA con el rango, no lo que
+		 * empieza adentro. Unas vacaciones que arrancaron la semana pasada y
+		 * siguen corriendo tienen que aparecer: es justo cuando la gente
+		 * pregunta «¿hay clases mañana?».
+		 */
+		$cruce   = null !== $desde && null !== $hasta;
+		$eventos = Cead_Acad_Schedule_Feed::for_user( get_current_user_id(), $desde, $hasta, 500, true, $cruce );
 
 		$items = [];
 		foreach ( (array) $eventos as $e ) {
 			$items[] = [
-				'id'      => (int) $e->ID,
-				'titulo'  => get_the_title( $e ),
-				'detalle' => wp_strip_all_tags( $e->post_content ),
-				'inicio'  => (string) get_post_meta( $e->ID, '_cead_acad_event_start', true ),
-				'fin'     => (string) get_post_meta( $e->ID, '_cead_acad_event_end', true ),
-				'lugar'   => (string) get_post_meta( $e->ID, '_cead_acad_event_location', true ),
+				'id'          => (int) $e->ID,
+				'titulo'      => get_the_title( $e ),
+				'detalle'     => wp_strip_all_tags( $e->post_content ),
+				'inicio'      => (string) get_post_meta( $e->ID, '_cead_acad_event_start', true ),
+				'fin'         => (string) get_post_meta( $e->ID, '_cead_acad_event_end', true ),
+				'todo_el_dia' => (bool) get_post_meta( $e->ID, '_cead_acad_event_all_day', true ),
+				'tipo'        => (string) get_post_meta( $e->ID, '_cead_acad_event_type', true ),
+				'lugar'       => (string) get_post_meta( $e->ID, '_cead_acad_event_location', true ),
 			];
 		}
 
@@ -315,12 +323,31 @@ class Cead_Acad_API_Panel {
 	}
 
 	/**
+	 * El rango que pidió el cliente, listo para el feed.
+	 *
+	 * El feed compara como DATETIME, y una fecha sola se lee como la medianoche
+	 * de ese día. Pasar `hasta = 2026-10-09` tal cual dejaba afuera todo lo que
+	 * pasaba ESE día después de las 00:00 —o sea, el último día entero—. Así que
+	 * el inicio va a las 00:00:00 y el fin a las 23:59:59.
+	 *
+	 * @return array{0:?string,1:?string}
+	 */
+	public static function rango( $desde, $hasta ) {
+		$d = self::fecha( $desde );
+		$h = self::fecha( $hasta );
+		return [
+			$d ? $d . ' 00:00:00' : null,
+			$h ? $h . ' 23:59:59' : null,
+		];
+	}
+
+	/**
 	 * Una fecha `Y-m-d` del cliente, o null.
 	 *
-	 * Null no es un descarte: es lo que el feed espera para «usá tu rango por
-	 * defecto». Una fecha con cualquier otra forma se trata igual que no haber
-	 * mandado nada, porque inventar un rango a partir de basura devolvería una
-	 * lista que parece una respuesta.
+	 * Null significa «sin límite de ese lado», no «rango por defecto». Una
+	 * fecha con cualquier otra forma se trata igual que no haber mandado nada,
+	 * porque inventar un rango a partir de basura devolvería una lista que
+	 * parece una respuesta.
 	 */
 	protected static function fecha( $valor ) {
 		$valor = trim( (string) $valor );
