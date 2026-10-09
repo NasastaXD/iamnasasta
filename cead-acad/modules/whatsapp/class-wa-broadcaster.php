@@ -34,34 +34,20 @@ class Cead_Acad_WA_Broadcaster {
 	 *                       un título propio a CEADI cuando redacta).
 	 */
 	public static function create_broadcast_post( $message, $target, $attachment_id = 0, $titulo = '' ) {
-		$titulo = trim( (string) $titulo );
-		$title  = '' !== $titulo ? $titulo : wp_trim_words( $message !== '' ? $message : 'Comunicado', 10, '…' );
-
 		/*
-		 * El mensaje es texto de WhatsApp — *negrita* con un asterisco, sin
-		 * encabezados ni tablas — y ESE es el que se manda a los teléfonos, tal
-		 * cual, en `enqueue()`. Acá se guarda una traducción a HTML aparte, solo
-		 * para que la copia que vive en el panel se vea leída y no como un
-		 * bloque de texto con asteriscos sueltos.
+		 * El mensaje es texto de WhatsApp —*negrita* con un asterisco, sin
+		 * encabezados ni tablas— y ESE es el que se manda a los teléfonos, tal
+		 * cual, en `enqueue()`. La copia del panel la arma el módulo de
+		 * comunicados, que es el mismo camino que usa la app.
 		 */
-		$html = class_exists( 'Cead_Acad_Article_Format' )
-			? Cead_Acad_Article_Format::to_html_whatsapp( $message )
-			: $message;
-
-		$pid = wp_insert_post( [
-			'post_type'    => Cead_Acad_Broadcasts_CPT::POST_TYPE,
-			'post_status'  => 'publish',
-			'post_title'   => $title,
-			'post_content' => $html,
-		], true );
-		if ( is_wp_error( $pid ) ) {
-			return 0;
-		}
-		Cead_Acad_Audiences::set( 'broadcast', $pid, self::map_target_to_audiences( $target ) );
-		if ( $attachment_id ) {
-			set_post_thumbnail( $pid, (int) $attachment_id );
-		}
-		return (int) $pid;
+		$pid = Cead_Acad_Broadcasts_CPT::crear( [
+			'titulo'     => $titulo,
+			'texto'      => '' !== (string) $message ? $message : 'Comunicado',
+			'audiencias' => self::map_target_to_audiences( $target ),
+			'imagen'     => (int) $attachment_id,
+			'autor'      => get_current_user_id(),
+		] );
+		return is_wp_error( $pid ) ? 0 : (int) $pid;
 	}
 
 	public static function map_target_to_audiences( $target ) {

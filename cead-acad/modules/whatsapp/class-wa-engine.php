@@ -2182,20 +2182,18 @@ class Cead_Acad_WA_Engine {
 		}
 		$start  = (string) ( $context['start'] ?? '' );
 		$titulo = (string) ( $context['titulo'] ?? 'Evento' );
-		$post_id = wp_insert_post( [
-			'post_type'   => Cead_Acad_Schedule_CPT::POST_TYPE,
-			'post_status' => 'publish',
-			'post_title'  => $titulo,
-			'post_author' => $uid ?: 0,
-		], true );
+		$post_id = Cead_Acad_Schedule_CPT::crear( [
+			'titulo'     => $titulo,
+			'inicio'     => $start,
+			'tipo'       => 'evento',
+			'autor'      => $uid,
+			'audiencias' => [ [ 'type' => 'all', 'value' => '*' ] ],
+		] );
 		if ( is_wp_error( $post_id ) ) {
 			$this->send( $phone, $this->m( 'error_generic' ) );
 			$this->store->set_state( $phone, 'ia_home' );
 			return;
 		}
-		update_post_meta( $post_id, '_cead_acad_event_start', $start );
-		update_post_meta( $post_id, '_cead_acad_event_type', 'evento' );
-		Cead_Acad_Audiences::set( 'event', $post_id, [ [ 'type' => 'all', 'value' => '*' ] ] );
 		$this->send( $phone, $this->m( 'event_saved' ), 'event_created' );
 		$this->store->set_state( $phone, 'ia_home' );
 	}
@@ -3778,16 +3776,14 @@ class Cead_Acad_WA_Engine {
 		}
 		$start = $this->parse_datetime( trim( $body ) );
 		if ( $start === null ) { $this->send( $phone, $this->m( 'event_date_invalid' ) ); return; }
-		$post_id = wp_insert_post( [
-			'post_type'   => Cead_Acad_Schedule_CPT::POST_TYPE,
-			'post_status' => 'publish',
-			'post_title'  => (string) ( $context['title'] ?? 'Evento' ),
-			'post_author' => (int) ( $identity['user_id'] ?: 0 ),
-		], true );
+		$post_id = Cead_Acad_Schedule_CPT::crear( [
+			'titulo'     => (string) ( $context['title'] ?? 'Evento' ),
+			'inicio'     => $start,
+			'tipo'       => 'evento',
+			'autor'      => (int) ( $identity['user_id'] ?: 0 ),
+			'audiencias' => [ [ 'type' => 'all', 'value' => '*' ] ],
+		] );
 		if ( is_wp_error( $post_id ) ) { $this->send( $phone, $this->m( 'error_generic' ) ); $this->reenter_staff( $phone ); return; }
-		update_post_meta( $post_id, '_cead_acad_event_start', $start );
-		update_post_meta( $post_id, '_cead_acad_event_type', 'evento' );
-		Cead_Acad_Audiences::set( 'event', $post_id, [ [ 'type' => 'all', 'value' => '*' ] ] );
 		$this->send( $phone, $this->m( 'event_saved' ), 'event_created' );
 		$this->finish_capture( $phone, 'staff' );
 	}

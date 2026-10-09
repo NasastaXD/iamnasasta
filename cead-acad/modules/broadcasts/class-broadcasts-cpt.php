@@ -68,4 +68,81 @@ class Cead_Acad_Broadcasts_CPT {
 			}
 		}
 	}
+
+	/**
+	 * Crea un comunicado y lo publica.
+	 *
+	 * El único camino para crear comunicados fuera del editor del admin: lo usan
+	 * la app y el bot. El texto llega con el formato de un mensaje —*negrita*
+	 * con un asterisco, sin encabezados— y se guarda traducido a HTML para que
+	 * el panel lo muestre leído y no como texto con asteriscos sueltos.
+	 *
+	 * Las audiencias, la imagen y la categoría se guardan ANTES de publicar.
+	 * Todo lo que reacciona a la publicación pregunta a quién va dirigido el
+	 * comunicado; si la publicación pasara primero, esa pregunta se haría sobre
+	 * un comunicado sin destinatarios, y el aviso no le llegaría a nadie.
+	 *
+	 * Quién puede publicar a quién NO se decide acá: lo decide quien llama
+	 * (`Cead_Acad_Gestion_Audiencias`), porque depende de por dónde entró el
+	 * pedido y de quién lo hizo.
+	 *
+	 * @param array $args titulo, texto, audiencias, imagen (id de adjunto),
+	 *                    categoria (slug), avisar_email, autor.
+	 * @return int|WP_Error
+	 */
+	public static function crear( array $args ) {
+		$texto = trim( (string) ( $args['texto'] ?? '' ) );
+		if ( '' === $texto ) {
+			return new WP_Error( 'sin_texto', __( 'El comunicado no tiene texto.', 'cead-acad' ) );
+		}
+		$audiencias = (array) ( $args['audiencias'] ?? [] );
+		if ( ! $audiencias ) {
+			return new WP_Error( 'sin_audiencia', __( 'Elegí a quién va dirigido el comunicado.', 'cead-acad' ) );
+		}
+
+		$titulo = trim( sanitize_text_field( (string) ( $args['titulo'] ?? '' ) ) );
+		if ( '' === $titulo ) {
+			$titulo = wp_trim_words( wp_strip_all_tags( $texto ), 10, '…' );
+		}
+		$html = class_exists( 'Cead_Acad_Article_Format' )
+			? Cead_Acad_Article_Format::to_html_whatsapp( $texto )
+			: wpautop( esc_html( $texto ) );
+
+		$pid = wp_insert_post( [
+			'post_type'    => self::POST_TYPE,
+			'post_status'  => 'draft',
+			'post_title'   => $titulo,
+			'post_content' => $html,
+			'post_author'  => (int) ( $args['autor'] ?? 0 ),
+		], true );
+		if ( is_wp_error( $pid ) ) {
+			return $pid;
+		}
+
+		Cead_Acad_Audiences::set( 'broadcast', $pid, $audiencias );
+		if ( ! empty( $args['imagen'] ) ) {
+			set_post_thumbnail( $pid, (int) $args['imagen'] );
+		}
+		$categoria = sanitize_title( (string) ( $args['categoria'] ?? '' ) );
+		if ( '' !== $categoria && term_exists( $categoria, self::TAX_CAT ) ) {
+			wp_set_object_terms( $pid, $categoria, self::TAX_CAT );
+		}
+		// El mismo aviso por email que ofrece el editor del admin. Tiene que
+		// estar marcado antes de publicar: el aviso se dispara al publicar.
+		if ( ! empty( $args['avisar_email'] ) ) {
+			update_post_meta( $pid, '_cead_acad_notify_email', 1 );
+		}
+
+		wp_publish_post( $pid );
+
+		/*
+		 * El aviso de «hay un comunicado nuevo» se cuelga de acá y no de la
+		 * transición de estado. Al publicar desde el editor, WordPress cambia
+		 * el estado ANTES de guardar las audiencias; un aviso colgado de la
+		 * transición no sabría a quién mandarlo.
+		 */
+		do_action( 'cead_acad_comunicado_publicado', (int) $pid );
+
+		return (int) $pid;
+	}
 }

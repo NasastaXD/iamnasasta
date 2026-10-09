@@ -664,7 +664,10 @@ if ( ! function_exists( 'apply_filters' ) ) {
 	}
 }
 if ( ! function_exists( 'add_action' ) )        { function add_action( ...$a ) { return true; } }
-if ( ! function_exists( 'do_action' ) )         { function do_action( ...$a ) { return null; } }
+// Las acciones no hacen nada, pero quedan anotadas: alcanza para probar que
+// algo avisó (el buzón cuando contesta) sin levantar WordPress entero.
+$GLOBALS['cead_test_actions'] = [];
+if ( ! function_exists( 'do_action' ) )         { function do_action( ...$a ) { $GLOBALS['cead_test_actions'][] = $a; return null; } }
 if ( ! function_exists( 'add_meta_box' ) )      { function add_meta_box( ...$a ) { return null; } }
 if ( ! function_exists( 'register_post_meta' ) ) { function register_post_meta( ...$a ) { return true; } }
 
@@ -703,6 +706,11 @@ require_once dirname( __DIR__, 2 ) . '/modules/api/class-api.php';
 require_once dirname( __DIR__, 2 ) . '/modules/api/class-api-panel.php';
 require_once dirname( __DIR__, 2 ) . '/modules/api/class-api-alumno.php';
 require_once dirname( __DIR__, 2 ) . '/modules/api/class-api-sync.php';
+require_once dirname( __DIR__, 2 ) . '/modules/gestion/class-gestion-audiencias.php';
+require_once dirname( __DIR__, 2 ) . '/modules/gestion/class-buzon.php';
+require_once dirname( __DIR__, 2 ) . '/modules/gestion/class-metricas.php';
+require_once dirname( __DIR__, 2 ) . '/modules/api/class-api-gestion.php';
+require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-module.php';
 require_once dirname( __DIR__, 2 ) . '/modules/account/class-account.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-tools.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-instagram.php';

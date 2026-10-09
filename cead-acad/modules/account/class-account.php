@@ -150,7 +150,9 @@ class Cead_Acad_Account {
 
 		$body = sprintf( "✉️ De %s (%s)\n\n%s", $user ? $user->display_name : '', $rdisp, $msg );
 
-		( new Cead_Acad_WA_Store() )->create_suggestion( $phone !== '' ? $phone : null, $body, $to );
+		// Con quién lo mandó, para que la respuesta le llegue aunque no tenga
+		// WhatsApp: la ve en la app, en «Mis mensajes».
+		( new Cead_Acad_WA_Store() )->create_suggestion( $phone !== '' ? $phone : null, $body, $to, (int) $user_id );
 		return true;
 	}
 

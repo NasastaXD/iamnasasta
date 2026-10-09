@@ -93,6 +93,13 @@ class Cead_Acad_API_Sync {
 			'recursos'    => self::datos( $this->alumno->recursos( self::pedido( [ 'por_pag' => 200 ] ) ) ),
 			'encuestas'   => $this->encuestas( $uid ),
 			'faq'         => Cead_Acad_API_Alumno::lista_faq(),
+			// Las respuestas a lo que mandó, para leerlas sin señal. El buzón
+			// de coordinación NO va acá: son reportes con nombres y relatos que
+			// no tienen por qué quedar guardados en un teléfono.
+			'mis_mensajes' => ( new Cead_Acad_Buzon() )->mios( $uid ),
+			// Las categorías, para poder escribir un reporte sin señal y que
+			// salga cuando vuelva.
+			'categorias_reporte' => Cead_Acad_Buzon::categorias(),
 		];
 	}
 

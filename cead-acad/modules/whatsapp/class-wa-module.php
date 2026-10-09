@@ -17,6 +17,52 @@ class Cead_Acad_WA_Module {
 		( new Cead_Acad_WA_REST( $store, $engine ) )->boot();
 		( new Cead_Acad_WA_Cron( $store, $bridge, $broadcaster ) )->boot();
 		( new Cead_Acad_WA_Admin( $store, $bridge, $broadcaster ) )->boot();
+
+		add_action( 'cead_acad_buzon_respuesta', [ __CLASS__, 'avisar_buzon' ], 10, 4 );
+	}
+
+	/**
+	 * Coordinación contestó en el buzón: si quien escribió dejó su número, se
+	 * le avisa por WhatsApp. Es el mismo aviso que antes salía desde la
+	 * plantilla del panel, con las mismas palabras.
+	 */
+	public static function avisar_buzon( $tipo, $fila, $accion, $respuesta ) {
+		$mensaje = self::mensaje_buzon( $tipo, $fila, $accion, $respuesta );
+		if ( null !== $mensaje ) {
+			self::notify( (string) $fila->phone, $mensaje );
+		}
+	}
+
+	/** El texto del aviso, o null si no corresponde avisar. Pura, para probarla. */
+	public static function mensaje_buzon( $tipo, $fila, $accion, $respuesta ) {
+		$respuesta = (string) $respuesta;
+		$extra     = '' !== $respuesta ? "\n\n{$respuesta}" : '';
+		if ( ! is_object( $fila ) || empty( $fila->phone ) ) {
+			return null;
+		}
+
+		if ( 'reporte' === $tipo ) {
+			// A un anónimo no se le escribe: no tiene número, y si lo tuviera
+			// no debería usarse.
+			if ( 'confidential' !== ( $fila->type ?? '' ) ) {
+				return null;
+			}
+			$ref = (string) $fila->ref_code;
+			switch ( $accion ) {
+				case 'respond': return '' !== $respuesta ? "💬 Respuesta a tu reporte {$ref}:\n\n{$respuesta}" : null;
+				case 'accept':  return "✅ Tu reporte {$ref} fue recibido y aceptado." . $extra;
+			}
+			return null;
+		}
+
+		if ( 'sugerencia' === $tipo ) {
+			switch ( $accion ) {
+				case 'respond': return '' !== $respuesta ? "💬 Respuesta a tu sugerencia:\n\n{$respuesta}" : null;
+				case 'accept':  return '✅ Tu sugerencia fue aceptada.' . $extra;
+				case 'deny':    return '❌ Tu sugerencia fue rechazada.' . $extra;
+			}
+		}
+		return null;
 	}
 
 	/**

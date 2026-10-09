@@ -8,107 +8,32 @@ if ( ! current_user_can( 'cead_acad_view_metrics' ) ) {
 	wp_die( esc_html__( 'Esta sección es solo para dirección.', 'cead-acad' ), 403 );
 }
 
-global $wpdb;
+// El cálculo vive en Cead_Acad_Metricas: la app muestra los mismos números.
+$m = Cead_Acad_Metricas::datos();
 
-$roster_table     = cead_acad_table( 'roster' );
-$audiences_table  = cead_acad_table( 'audiences' );
-$reads_table      = cead_acad_table( 'broadcast_reads' );
-$responses_table  = cead_acad_table( 'survey_responses' );
-$grades_table     = cead_acad_table( 'grades' );
+$students_count   = $m['personas']['alumnos'];
+$delegates_count  = $m['personas']['delegados'];
+$teachers_count   = $m['personas']['docentes'];
+$active_roster    = $m['personas']['inscripciones_activas'];
+$courses_pub      = $m['contenido']['cursos'];
+$broadcasts_pub   = $m['contenido']['comunicados'];
+$surveys_pub      = $m['contenido']['encuestas'];
+$events_pub       = $m['contenido']['eventos'];
+$resources_pub    = $m['contenido']['recursos'];
+$next_events      = $m['proximos_eventos'];
 
-$users_total      = count_users();
-$students_count   = (int) ( $users_total['avail_roles']['cead_acad_student'] ?? 0 );
-$delegates_count  = (int) ( $users_total['avail_roles']['cead_acad_delegate'] ?? 0 );
-$teachers_count   = (int) ( $users_total['avail_roles']['cead_acad_teacher'] ?? 0 );
-
-$active_roster    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$roster_table} WHERE status = 'active'" );
-$courses          = wp_count_posts( Cead_Acad_Courses_CPT::POST_TYPE );
-$courses_pub      = (int) ( $courses->publish ?? 0 );
-
-$broadcasts_pub   = (int) ( wp_count_posts( Cead_Acad_Broadcasts_CPT::POST_TYPE )->publish ?? 0 );
-$surveys_pub      = (int) ( wp_count_posts( Cead_Acad_Surveys_CPT::POST_TYPE )->publish ?? 0 );
-$events_pub       = (int) ( wp_count_posts( Cead_Acad_Schedule_CPT::POST_TYPE )->publish ?? 0 );
-$resources_pub    = (int) ( wp_count_posts( Cead_Acad_Resources_CPT::POST_TYPE )->publish ?? 0 );
-
-// Próximos eventos.
-$next_events = get_posts( [
-	'post_type'      => Cead_Acad_Schedule_CPT::POST_TYPE,
-	'post_status'    => 'publish',
-	'posts_per_page' => 5,
-	'meta_key'       => '_cead_acad_event_start',
-	'orderby'        => 'meta_value',
-	'order'          => 'ASC',
-	'meta_query'     => [
-		// `_cead_acad_event_start` se guarda en hora LOCAL (viene de un
-		// <input type="datetime-local">), así que el corte también va en local.
-		// Con `current_time( 'mysql', 1 )` —que es GMT— en Paraguay (UTC-3) se
-		// comparaba contra tres horas en el futuro: los eventos de esta mañana
-		// desaparecían de «Próximos eventos» estando todavía por empezar.
-		[ 'key' => '_cead_acad_event_start', 'value' => current_time( 'mysql' ), 'compare' => '>=', 'type' => 'DATETIME' ],
-	],
-] );
-
-// Tasa de lectura del último comunicado publicado.
-$latest_broadcast = get_posts( [
-	'post_type'      => Cead_Acad_Broadcasts_CPT::POST_TYPE,
-	'post_status'    => 'publish',
-	'posts_per_page' => 1,
-] );
-$latest_read_rate = null;
-if ( $latest_broadcast ) {
-	$b   = $latest_broadcast[0];
-	$recipients = Cead_Acad_Broadcasts_Feed::resolve_recipient_user_ids( $b->ID );
-	$reads_count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$reads_table} WHERE broadcast_id = %d", $b->ID ) );
-	$latest_read_rate = [
-		'title'    => get_the_title( $b ),
-		'recipients' => count( $recipients ),
-		'reads'    => $reads_count,
-		'rate'     => count( $recipients ) > 0 ? round( $reads_count / max( 1, count( $recipients ) ) * 100 ) : 0,
-	];
-}
-
-// Tasa de respuesta de la última encuesta nominal.
-$latest_survey = get_posts( [
-	'post_type'      => Cead_Acad_Surveys_CPT::POST_TYPE,
-	'post_status'    => 'publish',
-	'posts_per_page' => 1,
-] );
-$latest_survey_stats = null;
-if ( $latest_survey ) {
-	$s = $latest_survey[0];
-	// Resolver audiencias del subject_type='survey' (resolve_recipient_user_ids vive en Broadcasts y asume 'broadcast').
-	$rows = Cead_Acad_Audiences::get( 'survey', $s->ID );
-	$audience_users = [];
-	foreach ( $rows as $r ) {
-		switch ( $r['audience_type'] ) {
-			case 'all':
-				foreach ( get_users( [ 'fields' => [ 'ID' ] ] ) as $u ) { $audience_users[] = (int) $u->ID; }
-				break;
-			case 'role':
-				foreach ( get_users( [ 'role' => $r['audience_value'], 'fields' => [ 'ID' ] ] ) as $u ) { $audience_users[] = (int) $u->ID; }
-				break;
-			case 'course':
-				foreach ( Cead_Acad_Courses_Roster::users_in_course( (int) $r['audience_value'] ) as $uid ) { $audience_users[] = (int) $uid; }
-				break;
-			case 'user':
-				$audience_users[] = (int) $r['audience_value'];
-				break;
-		}
-	}
-	$audience_users = array_unique( $audience_users );
-
-	$responses_count = (int) $wpdb->get_var( $wpdb->prepare(
-		"SELECT COUNT(*) FROM {$responses_table} WHERE survey_id = %d",
-		$s->ID
-	) );
-
-	$latest_survey_stats = [
-		'title'      => get_the_title( $s ),
-		'recipients' => count( $audience_users ),
-		'responses'  => $responses_count,
-		'rate'       => count( $audience_users ) > 0 ? round( $responses_count / max( 1, count( $audience_users ) ) * 100 ) : 0,
-	];
-}
+$latest_read_rate = $m['ultimo_comunicado'] ? [
+	'title'      => $m['ultimo_comunicado']['titulo'],
+	'recipients' => $m['ultimo_comunicado']['destinatarios'],
+	'reads'      => $m['ultimo_comunicado']['lecturas'],
+	'rate'       => $m['ultimo_comunicado']['tasa'],
+] : null;
+$latest_survey_stats = $m['ultima_encuesta'] ? [
+	'title'      => $m['ultima_encuesta']['titulo'],
+	'recipients' => $m['ultima_encuesta']['destinatarios'],
+	'responses'  => $m['ultima_encuesta']['respuestas'],
+	'rate'       => $m['ultima_encuesta']['tasa'],
+] : null;
 
 $page_title = __( 'Dirección', 'cead-acad' );
 
@@ -178,14 +103,14 @@ $body = function () use ( $students_count, $delegates_count, $teachers_count, $a
 			<h3 class="cead-acad-section-h"><?php esc_html_e( 'Próximos eventos', 'cead-acad' ); ?></h3>
 			<div class="cead-acad-feed">
 				<?php foreach ( $next_events as $e ) :
-					$start = (string) get_post_meta( $e->ID, '_cead_acad_event_start', true );
-					$type  = (string) get_post_meta( $e->ID, '_cead_acad_event_type',  true ) ?: 'evento';
+					$start = $e['inicio'];
+					$type  = $e['tipo'];
 				?>
-					<a class="cead-acad-feed-item is-read" href="<?php echo esc_url( cead_acad_url( 'panel/horarios/' . $e->ID ) ); ?>">
+					<a class="cead-acad-feed-item is-read" href="<?php echo esc_url( cead_acad_url( 'panel/horarios/' . $e['id'] ) ); ?>">
 						<div class="cead-acad-feed-item-meta">
 							<span class="cead-acad-eyebrow"><?php echo esc_html( Cead_Acad_Schedule_CPT::type_label( $type ) ); ?> · <?php echo $start ? esc_html( date_i18n( 'j M Y · H:i', strtotime( $start ) ) ) : '—'; ?></span>
 						</div>
-						<h3 class="cead-acad-feed-item-title"><?php echo esc_html( get_the_title( $e ) ); ?></h3>
+						<h3 class="cead-acad-feed-item-title"><?php echo esc_html( $e['titulo'] ); ?></h3>
 					</a>
 				<?php endforeach; ?>
 			</div>

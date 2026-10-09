@@ -8,73 +8,27 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-$can_reports     = current_user_can( 'cead_acad_manage_reports' );
-$can_suggestions = current_user_can( 'cead_acad_manage_suggestions' );
-if ( ! $can_reports && ! $can_suggestions ) {
+$alcance = Cead_Acad_Buzon::alcance( get_current_user_id() );
+if ( '' === $alcance ) {
 	wp_die( esc_html__( 'No tenés permiso para ver el buzón.', 'cead-acad' ), 403 );
 }
-
+$can_reports  = 'todo' === $alcance;
 // El Consejo (sin manage_reports) solo ve la categoría "consejo".
-$council_only = $can_suggestions && ! $can_reports;
+$council_only = 'consejo' === $alcance;
 
-$store = new Cead_Acad_WA_Store();
+$store  = new Cead_Acad_WA_Store();
+$buzon  = new Cead_Acad_Buzon( $store );
 
 if ( isset( $_POST['cead_acad_buzon'] ) && check_admin_referer( 'cead_acad_buzon' ) ) {
 	$kind = sanitize_key( wp_unslash( $_POST['kind'] ?? '' ) );
 	$do   = sanitize_key( wp_unslash( $_POST['do'] ?? '' ) );
 	$id   = (int) ( $_POST['id'] ?? 0 );
-	$resp = sanitize_textarea_field( wp_unslash( $_POST['response'] ?? '' ) );
+	$resp = wp_unslash( $_POST['response'] ?? '' );
 
-	if ( $kind === 'report' && $can_reports && $id ) {
-		$r = $store->get_report( $id );
-		if ( $r ) {
-			switch ( $do ) {
-				case 'respond':
-					$store->respond_report( $id, $resp, 'in_review' );
-					if ( $r->type === 'confidential' && $resp !== '' && ! empty( $r->phone ) ) {
-						Cead_Acad_WA_Module::notify( $r->phone, "💬 Respuesta a tu reporte {$r->ref_code}:\n\n{$resp}" );
-					}
-					break;
-				case 'accept':
-					$store->respond_report( $id, $resp, 'accepted' );
-					if ( $r->type === 'confidential' && ! empty( $r->phone ) ) {
-						Cead_Acad_WA_Module::notify( $r->phone, "✅ Tu reporte {$r->ref_code} fue recibido y aceptado." . ( $resp !== '' ? "\n\n{$resp}" : '' ) );
-					}
-					break;
-				case 'not_report': $store->mark_not_report( $id ); break;
-				case 'trash':      $store->soft_delete_report( $id ); break;
-				case 'restore':    $store->restore_report( $id ); break;
-				case 'purge':      $store->purge_report( $id ); break;
-			}
-		}
-	} elseif ( $kind === 'suggestion' && ( $can_reports || $can_suggestions ) && $id ) {
-		$s = $store->get_suggestion( $id );
-		// El Consejo solo puede actuar sobre su categoría.
-		if ( $s && ( ! $council_only || $s->category === 'consejo' ) ) {
-			switch ( $do ) {
-				case 'respond':
-					$store->respond_suggestion( $id, $resp, 'in_review' );
-					if ( $resp !== '' && ! empty( $s->phone ) ) {
-						Cead_Acad_WA_Module::notify( $s->phone, "💬 Respuesta a tu sugerencia:\n\n{$resp}" );
-					}
-					break;
-				case 'accept':
-					$store->respond_suggestion( $id, $resp, 'accepted' );
-					if ( ! empty( $s->phone ) ) {
-						Cead_Acad_WA_Module::notify( $s->phone, "✅ Tu sugerencia fue aceptada." . ( $resp !== '' ? "\n\n{$resp}" : '' ) );
-					}
-					break;
-				case 'deny':
-					$store->respond_suggestion( $id, $resp, 'denied' );
-					if ( ! empty( $s->phone ) ) {
-						Cead_Acad_WA_Module::notify( $s->phone, "❌ Tu sugerencia fue rechazada." . ( $resp !== '' ? "\n\n{$resp}" : '' ) );
-					}
-					break;
-				case 'trash':   $store->soft_delete_suggestion( $id ); break;
-				case 'restore': $store->restore_suggestion( $id ); break;
-				case 'purge':   $store->purge_suggestion( $id ); break;
-			}
-		}
+	// Las mismas reglas y el mismo aviso que desde la app: viven en el buzón.
+	$tipo = [ 'report' => 'reporte', 'suggestion' => 'sugerencia' ][ $kind ] ?? '';
+	if ( $tipo && $id ) {
+		$buzon->actuar( get_current_user_id(), $tipo, $id, $do, $resp );
 	}
 
 	// Patrón POST→Redirect→GET: volvemos al MISMO ítem (ancla) para no recargar
@@ -123,7 +77,7 @@ $body = function () use ( $reports, $suggestions, $trash_reports, $trash_sugg, $
 	<section class="cead-acad-panel-section" id="buzon-top">
 		<span class="cead-acad-eyebrow"><?php esc_html_e( 'Coordinación', 'cead-acad' ); ?></span>
 		<h2 class="cead-acad-panel-h"><?php esc_html_e( 'Buzón', 'cead-acad' ); ?></h2>
-		<p class="cead-acad-panel-sub"><?php esc_html_e( 'Reportes y sugerencias del alumnado. Las respuestas se avisan por WhatsApp si dejaron número.', 'cead-acad' ); ?></p>
+		<p class="cead-acad-panel-sub"><?php esc_html_e( 'Reportes y sugerencias del alumnado. Las respuestas les llegan a la app, y por WhatsApp si dejaron número.', 'cead-acad' ); ?></p>
 
 		<?php if ( $notice ) : ?>
 			<div class="cead-acad-msg cead-acad-msg--ok" style="margin:1rem 0"><?php echo esc_html( $notice ); ?></div>
