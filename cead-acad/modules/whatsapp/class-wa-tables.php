@@ -75,6 +75,7 @@ class Cead_Acad_WA_Tables {
 			ref_code   VARCHAR(20) NOT NULL,
 			type       VARCHAR(20) NOT NULL DEFAULT 'anonymous',
 			phone      VARCHAR(30) NULL,
+			user_id    BIGINT(20) UNSIGNED NULL,
 			category   VARCHAR(60) DEFAULT '',
 			body_enc   LONGTEXT NOT NULL,
 			status     VARCHAR(20) NOT NULL DEFAULT 'new',
@@ -85,12 +86,14 @@ class Cead_Acad_WA_Tables {
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY (id),
 			UNIQUE KEY ref_code (ref_code),
-			KEY status (status)
+			KEY status (status),
+			KEY user_id (user_id)
 		) {$charset};" );
 
 		dbDelta( "CREATE TABLE {$suggestions} (
 			id         BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
 			phone      VARCHAR(30) NULL,
+			user_id    BIGINT(20) UNSIGNED NULL,
 			body       LONGTEXT NOT NULL,
 			category   VARCHAR(20) NOT NULL DEFAULT 'administracion',
 			status     VARCHAR(20) NOT NULL DEFAULT 'new',
@@ -98,7 +101,8 @@ class Cead_Acad_WA_Tables {
 			deleted_at DATETIME NULL,
 			created_at DATETIME NOT NULL,
 			PRIMARY KEY (id),
-			KEY status (status)
+			KEY status (status),
+			KEY user_id (user_id)
 		) {$charset};" );
 
 		dbDelta( "CREATE TABLE {$scheduled} (

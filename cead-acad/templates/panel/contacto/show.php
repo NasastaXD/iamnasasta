@@ -10,7 +10,11 @@ $page_title = __( 'Escribir al CEAD', 'cead-acad' );
 $old_message   = (string) cead_acad_flash( 'contacto_message' );
 $old_recipient = cead_acad_flash( 'contacto_recipient' );
 
-$body = function () use ( $old_message, $old_recipient ) {
+// Lo que ya mandó y si le contestaron. Antes la respuesta solo llegaba por
+// WhatsApp, y quien no tenía número cargado nunca se enteraba.
+$mios = ( new Cead_Acad_Buzon() )->mios( get_current_user_id() );
+
+$body = function () use ( $old_message, $old_recipient, $mios ) {
 	$done = isset( $_GET['done'] );
 	$err  = isset( $_GET['err'] ) ? sanitize_key( (string) $_GET['err'] ) : '';
 	$recipients = [
@@ -54,6 +58,30 @@ $body = function () use ( $old_message, $old_recipient ) {
 				<button type="submit" class="cead-acad-btn"><?php esc_html_e( 'Enviar mensaje', 'cead-acad' ); ?></button>
 			</div>
 		</form>
+
+		<?php if ( $mios['mensajes'] ) :
+			$estados = [
+				'new'       => __( 'Enviado', 'cead-acad' ),
+				'in_review' => __( 'Respondido', 'cead-acad' ),
+				'accepted'  => __( 'Aceptado', 'cead-acad' ),
+				'denied'    => __( 'Rechazado', 'cead-acad' ),
+			];
+			?>
+			<h3 class="cead-acad-section-h" style="margin-top:2rem"><?php esc_html_e( 'Mis mensajes', 'cead-acad' ); ?></h3>
+			<?php foreach ( $mios['mensajes'] as $m ) : ?>
+				<div class="cead-acad-card" style="margin-bottom:.8rem">
+					<p class="cead-acad-buzon-meta">
+						<strong><?php echo esc_html( $recipients[ $m['para'] ] ?? $m['para'] ); ?></strong>
+						· <?php echo esc_html( $estados[ $m['estado'] ] ?? $m['estado'] ); ?>
+						· <?php echo esc_html( $m['creado'] ); ?>
+					</p>
+					<blockquote class="cead-acad-buzon-quote"><?php echo nl2br( esc_html( $m['texto'] ) ); ?></blockquote>
+					<?php if ( '' !== trim( $m['respuesta'] ) ) : ?>
+						<p><strong><?php esc_html_e( 'Respuesta:', 'cead-acad' ); ?></strong><br><?php echo nl2br( esc_html( $m['respuesta'] ) ); ?></p>
+					<?php endif; ?>
+				</div>
+			<?php endforeach; ?>
+		<?php endif; ?>
 	</section>
 	<?php
 };

@@ -37,8 +37,10 @@ class Cead_Acad_Schedule_Admin {
 
 	public function render_meta( $post ) {
 		wp_nonce_field( 'cead_acad_event_save', '_cead_acad_event_nonce' );
-		$start = (string) get_post_meta( $post->ID, '_cead_acad_event_start',    true );
-		$end   = (string) get_post_meta( $post->ID, '_cead_acad_event_end',      true );
+		// El campo datetime-local solo entiende «2026-10-09T10:00». Los eventos
+		// que creó el bot están guardados con espacio y abrían en blanco.
+		$start = Cead_Acad_Schedule_CPT::fecha_canonica( get_post_meta( $post->ID, '_cead_acad_event_start', true ) );
+		$end   = Cead_Acad_Schedule_CPT::fecha_canonica( get_post_meta( $post->ID, '_cead_acad_event_end', true ) );
 		$all   = (bool)   get_post_meta( $post->ID, '_cead_acad_event_all_day',  true );
 		$loc   = (string) get_post_meta( $post->ID, '_cead_acad_event_location', true );
 		$type  = (string) get_post_meta( $post->ID, '_cead_acad_event_type',     true ) ?: 'evento';

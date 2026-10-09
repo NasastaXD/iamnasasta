@@ -242,7 +242,13 @@ class Cead_Acad_WA_Store {
 	}
 
 	// ---- Reportes (cifrados) ----
-	public function create_report( $type, $phone, $category, $body ) {
+
+	/**
+	 * @param int $user_id Quién lo manda, si lo manda desde la app. En uno
+	 *                     anónimo se descarta, igual que el teléfono: que no
+	 *                     quede guardado es lo que lo hace anónimo.
+	 */
+	public function create_report( $type, $phone, $category, $body, $user_id = 0 ) {
 		global $wpdb;
 		$t   = cead_acad_table( 'wa_reports' );
 		$ref = 'RPT-' . strtoupper( substr( bin2hex( Cead_Acad_WA_Crypto::random32() ), 0, 6 ) );
@@ -251,6 +257,7 @@ class Cead_Acad_WA_Store {
 			'ref_code' => $ref,
 			'type'     => $type === 'anonymous' ? 'anonymous' : 'confidential',
 			'phone'    => $type === 'anonymous' ? null : $phone,
+			'user_id'  => $type === 'anonymous' || ! $user_id ? null : (int) $user_id,
 			'category' => $category,
 			'body_enc' => Cead_Acad_WA_Crypto::encrypt( $body ),
 			'status'   => 'new',
@@ -314,6 +321,19 @@ class Cead_Acad_WA_Store {
 		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE id = %d", $id ) ) ?: null;
 	}
 
+	public function get_report_by_ref( $ref ) {
+		global $wpdb;
+		$t = cead_acad_table( 'wa_reports' );
+		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE ref_code = %s", (string) $ref ) ) ?: null;
+	}
+
+	/** Los reportes confidenciales que mandó alguien desde la app. */
+	public function reports_by_user( $user_id, $limit = 50 ) {
+		global $wpdb;
+		$t = cead_acad_table( 'wa_reports' );
+		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE user_id = %d AND deleted_at IS NULL ORDER BY created_at DESC LIMIT %d", (int) $user_id, $limit ) ) ?: [];
+	}
+
 	public function update_report_status( $id, $status ) {
 		global $wpdb;
 		$t = cead_acad_table( 'wa_reports' );
@@ -340,11 +360,24 @@ class Cead_Acad_WA_Store {
 	}
 
 	// ---- Sugerencias ----
-	public function create_suggestion( $phone, $body, $category = 'administracion' ) {
+	public function create_suggestion( $phone, $body, $category = 'administracion', $user_id = 0 ) {
 		global $wpdb;
 		$t   = cead_acad_table( 'wa_suggestions' );
 		$cat = in_array( $category, [ 'administracion', 'consejo', 'direccion' ], true ) ? $category : 'administracion';
-		return (bool) $wpdb->insert( $t, [ 'phone' => $phone, 'body' => $body, 'category' => $cat, 'status' => 'new', 'created_at' => current_time( 'mysql' ) ] );
+		return (bool) $wpdb->insert( $t, [
+			'phone'      => $phone,
+			'user_id'    => $user_id ? (int) $user_id : null,
+			'body'       => $body,
+			'category'   => $cat,
+			'status'     => 'new',
+			'created_at' => current_time( 'mysql' ),
+		] );
+	}
+
+	public function suggestions_by_user( $user_id, $limit = 50 ) {
+		global $wpdb;
+		$t = cead_acad_table( 'wa_suggestions' );
+		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE user_id = %d AND deleted_at IS NULL ORDER BY created_at DESC LIMIT %d", (int) $user_id, $limit ) ) ?: [];
 	}
 
 	public function suggestions_by_status( $status = '', $limit = 20 ) {

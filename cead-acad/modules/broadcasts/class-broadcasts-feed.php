@@ -52,10 +52,16 @@ class Cead_Acad_Broadcasts_Feed {
 	/**
 	 * Resuelve los user_ids que pueden ver un comunicado (para notificaciones).
 	 *
+	 * Sirve igual para cualquier cosa con audiencias —una encuesta, un evento—
+	 * pasándole de qué se trata: las reglas de a quién alcanza una audiencia
+	 * son las mismas, y tenerlas escritas dos veces ya hizo que una de las
+	 * copias se olvidara de las promociones.
+	 *
+	 * @param string $subject_type `broadcast`, `survey`, `event`…
 	 * @return int[]
 	 */
-	public static function resolve_recipient_user_ids( $broadcast_id ) {
-		$rows = Cead_Acad_Audiences::get( 'broadcast', $broadcast_id );
+	public static function resolve_recipient_user_ids( $broadcast_id, $subject_type = 'broadcast' ) {
+		$rows = Cead_Acad_Audiences::get( $subject_type, $broadcast_id );
 		if ( ! $rows ) {
 			return [];
 		}

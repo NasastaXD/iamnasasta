@@ -197,4 +197,95 @@ class Cead_Acad_Schedule_CPT {
 		}
 		return $hex;
 	}
+
+	/**
+	 * Una fecha de evento en la forma que guarda el admin: `2026-10-09T10:00`.
+	 *
+	 * Había dos formas conviviendo. El admin guarda lo que devuelve su campo
+	 * `datetime-local` —con una T en el medio—, y el bot de WhatsApp guardaba
+	 * `2026-10-09 10:00:00`, con espacio. El feed las lee igual, pero el campo
+	 * del admin no entiende la segunda: un evento creado por WhatsApp abría con
+	 * la fecha en blanco, y como el campo es obligatorio, no se podía guardar
+	 * ningún otro cambio hasta volver a cargarla a mano.
+	 *
+	 * Acá entra cualquiera de las dos y sale siempre la del admin. Lo que no se
+	 * entiende devuelve cadena vacía: inventar una fecha a partir de basura
+	 * pondría un evento en un día que nadie eligió.
+	 */
+	public static function fecha_canonica( $valor ) {
+		$valor = trim( (string) $valor );
+		if ( 1 !== preg_match( '/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::\d{2})?)?$/', $valor, $m ) ) {
+			return '';
+		}
+		// Un 31 de febrero se guardaría tal cual y después MySQL lo compararía
+		// como pudiera: mejor rechazarlo acá.
+		if ( ! checkdate( (int) $m[2], (int) $m[3], (int) $m[1] ) ) {
+			return '';
+		}
+		// Solo el día: un evento de día completo no tiene hora.
+		if ( ! isset( $m[4] ) ) {
+			return "{$m[1]}-{$m[2]}-{$m[3]}T00:00";
+		}
+		if ( (int) $m[4] > 23 || (int) $m[5] > 59 ) {
+			return '';
+		}
+		return "{$m[1]}-{$m[2]}-{$m[3]}T{$m[4]}:{$m[5]}";
+	}
+
+	/**
+	 * Crea un evento y lo publica.
+	 *
+	 * Es el único camino para crear eventos fuera del editor del admin: lo usan
+	 * la app y el bot. Las audiencias se guardan ANTES de publicar, a propósito.
+	 * Todo lo que reacciona a la publicación —un aviso, una notificación— pregunta
+	 * a quién va dirigido el evento, y si la publicación pasara primero, esa
+	 * pregunta se haría sobre un evento que todavía no tiene destinatarios.
+	 *
+	 * @param array $args titulo, detalle, inicio, fin, todo_el_dia, lugar, tipo,
+	 *                    audiencias (formato de Cead_Acad_Audiences), autor.
+	 * @return int|WP_Error
+	 */
+	public static function crear( array $args ) {
+		$titulo = trim( sanitize_text_field( (string) ( $args['titulo'] ?? '' ) ) );
+		if ( '' === $titulo ) {
+			return new WP_Error( 'sin_titulo', __( 'El evento necesita un título.', 'cead-acad' ) );
+		}
+		$inicio = self::fecha_canonica( $args['inicio'] ?? '' );
+		if ( '' === $inicio ) {
+			return new WP_Error( 'sin_inicio', __( 'El evento necesita una fecha de inicio válida.', 'cead-acad' ) );
+		}
+		$fin = self::fecha_canonica( $args['fin'] ?? '' );
+		if ( '' !== $fin && $fin < $inicio ) {
+			return new WP_Error( 'fin_antes', __( 'El evento no puede terminar antes de empezar.', 'cead-acad' ) );
+		}
+		$tipo = (string) ( $args['tipo'] ?? 'evento' );
+		if ( ! in_array( $tipo, self::TYPES, true ) ) {
+			$tipo = 'evento';
+		}
+		$audiencias = (array) ( $args['audiencias'] ?? [] );
+		if ( ! $audiencias ) {
+			return new WP_Error( 'sin_audiencia', __( 'Elegí para quién es el evento.', 'cead-acad' ) );
+		}
+
+		$pid = wp_insert_post( [
+			'post_type'    => self::POST_TYPE,
+			'post_status'  => 'draft',
+			'post_title'   => $titulo,
+			'post_content' => sanitize_textarea_field( (string) ( $args['detalle'] ?? '' ) ),
+			'post_author'  => (int) ( $args['autor'] ?? 0 ),
+		], true );
+		if ( is_wp_error( $pid ) ) {
+			return $pid;
+		}
+
+		update_post_meta( $pid, '_cead_acad_event_start', $inicio );
+		update_post_meta( $pid, '_cead_acad_event_end', $fin );
+		update_post_meta( $pid, '_cead_acad_event_all_day', ! empty( $args['todo_el_dia'] ) ? 1 : 0 );
+		update_post_meta( $pid, '_cead_acad_event_location', sanitize_text_field( (string) ( $args['lugar'] ?? '' ) ) );
+		update_post_meta( $pid, '_cead_acad_event_type', $tipo );
+		Cead_Acad_Audiences::set( 'event', $pid, $audiencias );
+
+		wp_publish_post( $pid );
+		return (int) $pid;
+	}
 }
