@@ -1,0 +1,98 @@
+# Receta de XcodeGen: genera CEAD.xcodeproj a partir de esto.
+#
+# El proyecto no se versiona porque un .xcodeproj es un archivo generado y
+# enorme, que produce conflictos de merge ilegibles cada vez que dos personas
+# agregan un archivo. Esta receta dice lo mismo en poco más de cincuenta líneas
+# que se leen.
+#
+#   brew install xcodegen && xcodegen generate
+#
+# La app se dibuja entera desde Kotlin (carpeta `shared/`): el proyecto de
+# Xcode es solo el envoltorio que arranca eso, recibe los avisos de Firebase y
+# firma el paquete. Ver COMPILAR.md.
+
+name: CEAD
+options:
+  bundleIdPrefix: net.caaguazu.cead
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+# Los avisos al teléfono usan Firebase. Sin el archivo GoogleService-Info.plist
+# la app compila y anda igual, solo que sin avisos (ver docs/AVISOS-PUSH.md).
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: 11.0.0
+
+targets:
+  CEAD:
+    type: application
+    platform: iOS
+    sources:
+      - path: CEAD
+    dependencies:
+      - package: Firebase
+        product: FirebaseMessaging
+
+    # Compila el código Kotlin y lo deja como framework «Shared». Es el mismo
+    # paso que trae por defecto el proyecto de ejemplo de Kotlin Multiplatform.
+    preBuildScripts:
+      - name: Compilar Kotlin
+        basedOnDependencyAnalysis: false
+        script: |
+          if [ "YES" = "$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED" ]; then
+            echo "Se saltea Gradle: OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED=YES"
+            exit 0
+          fi
+          cd "$SRCROOT/.."
+          ./gradlew :shared:embedAndSignAppleFrameworkForXcode
+
+    # El Info.plist se genera desde acá y no se versiona aparte. Con XcodeGen,
+    # `info.path` significa «escribí el plist en esta ruta»: un archivo propio
+    # en esa misma ruta se pisa en la primera regeneración.
+    info:
+      path: CEAD/Info.plist
+      properties:
+        UILaunchScreen:
+          UIColorName: FondoLanzamiento
+
+        # Solo vertical, solo iPhone.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+
+        # Para que lleguen avisos con la app cerrada.
+        UIBackgroundModes:
+          - remote-notification
+
+        # El delegado de Firebase sustituye métodos de la app; con SwiftUI hay
+        # que decírselo expresamente para que no se confunda.
+        FirebaseAppDelegateProxyEnabled: false
+
+        # Sin excepciones de transporte: la app manda una contraseña y guarda un
+        # token de larga vida, así que HTTP en claro no se habilita para nada.
+        # El servidor además rechaza el login fuera de HTTPS.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+
+    # Permiso de avisos al teléfono (push). Necesita la cuenta de desarrollador
+    # de pago: con una cuenta gratuita Xcode no puede firmar con esta capacidad.
+    entitlements:
+      path: CEAD/CEAD.entitlements
+      properties:
+        aps-environment: development
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.caaguazu.cead.panel
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1"
+        # El script de Gradle escribe en carpetas de la máquina: no puede correr
+        # dentro del aislamiento de scripts de Xcode.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        # Dónde deja Gradle el framework compilado.
+        FRAMEWORK_SEARCH_PATHS: "$(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)$(EFFECTIVE_PLATFORM_NAME)"
+        OTHER_LDFLAGS: "$(inherited) -framework Shared"

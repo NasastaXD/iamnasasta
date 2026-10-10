@@ -160,7 +160,24 @@ class Cead_Acad_Gestion_Audiencias {
 			'roles'           => $roles,
 			'cursos'          => $cursos,
 			'promociones'     => array_values( $promos ),
+			// Solo los comunicados se pueden marcar con una categoría (urgente,
+			// académico…); un evento tiene su propio «tipo».
+			'categorias'      => 'comunicado' === $para ? self::categorias_de_comunicado() : [],
 		];
+	}
+
+	/**
+	 * Con qué categorías se puede marcar un comunicado. El valor es el «slug»,
+	 * que es lo que espera `Cead_Acad_Broadcasts_CPT::crear()`.
+	 */
+	public static function categorias_de_comunicado() {
+		$terminos = get_terms( [ 'taxonomy' => Cead_Acad_Broadcasts_CPT::TAX_CAT, 'hide_empty' => false ] );
+		if ( is_wp_error( $terminos ) ) {
+			return [];
+		}
+		return array_values( array_map( static function ( $t ) {
+			return [ 'valor' => (string) $t->slug, 'nombre' => (string) $t->name ];
+		}, $terminos ) );
 	}
 
 	protected static function no_permitida( $que ) {

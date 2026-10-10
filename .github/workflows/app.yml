@@ -1,0 +1,82 @@
+name: App
+
+# La app (carpeta app/) en Android y en iPhone. Solo corre cuando cambia algo de
+# la app: el plugin y el tema ya tienen sus propias pruebas en tests.yml.
+#
+# El trabajo de iPhone existe porque el código de iOS no se puede compilar fuera
+# de una Mac. Acá se compila en una de verdad, así que un error de tipos en
+# `shared/src/iosMain` o en los archivos Swift se ve en el pull request y no
+# recién cuando alguien abre Xcode.
+
+on:
+  push:
+    branches: [main]
+    paths: ['app/**', '.github/workflows/app.yml']
+  pull_request:
+    paths: ['app/**', '.github/workflows/app.yml']
+  workflow_dispatch:
+
+jobs:
+  android:
+    name: Android y pruebas
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Primero lo común como código puro (sin Android ni escritorio): si algo
+      # usa una pieza que existe en un sistema y en el otro no, falla acá.
+      - name: Código común, pruebas y compilación de Android
+        run: >
+          ./gradlew --no-daemon --console=plain
+          :shared:compileCommonMainKotlinMetadata
+          :shared:desktopTest
+          :androidApp:assembleDebug
+          :androidApp:bundleRelease
+
+  iphone:
+    name: iPhone (compila en una Mac)
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Código de iOS (Kotlin)
+        run: ./gradlew --no-daemon --console=plain :shared:linkDebugFrameworkIosSimulatorArm64
+
+      - name: Proyecto de Xcode
+        working-directory: app/iosApp
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      # Sin firmar: solo comprueba que el proyecto entero (Swift + Kotlin +
+      # Firebase) compila para el simulador.
+      - name: Compilar para el simulador
+        working-directory: app/iosApp
+        run: >
+          xcodebuild
+          -project CEAD.xcodeproj -scheme CEAD
+          -configuration Debug
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO
+          build

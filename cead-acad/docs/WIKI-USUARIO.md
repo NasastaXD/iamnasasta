@@ -63,7 +63,8 @@ Se puede usar desde el navegador o **instalarse como app** en el celular (ver §
 
 ## 3. La app (PWA) y preferencias
 
-- **Instalar como app**: en el menú, **"Instalar app"** explica paso a paso cómo agregarla a la pantalla de inicio en **Android (Chrome)**, **iPhone (Safari)** y **PC**. Se abre a pantalla completa, se actualiza sola y no ocupa casi nada. Es gratis.
+- **La app del colegio (Android y iPhone)**: tiene **todo lo del panel** —horario, comunicados, tareas, calendario, boletín, recursos, encuestas, escribir al colegio y CEADI— y, para el personal, también publicar comunicados, cargar eventos y notas, y el buzón. **Funciona sin conexión**: lo último que se bajó se puede leer en el aula, y lo que se hace sin señal (marcar una tarea, responder una encuesta, cargar una nota) **se envía solo cuando vuelve internet**; al tocar el aviso que aparece arriba se ve qué está esperando. Avisa al teléfono cuando hay un comunicado, un evento, una tarea o una respuesta nueva (cada persona elige qué avisos recibir en *Más → Ajustes*). Los avisos del bloqueo de pantalla nunca muestran el contenido de una respuesta del buzón ni una nota.
+- **Instalar como app (versión web)**: en el menú, **"Instalar app"** explica paso a paso cómo agregarla a la pantalla de inicio en **Android (Chrome)**, **iPhone (Safari)** y **PC**. Se abre a pantalla completa, se actualiza sola y no ocupa casi nada. Es gratis.
 - **Modo oscuro**: botón 🌗 en la barra superior. Queda guardado en tu dispositivo.
 - **Menú**: en celular el menú lateral se abre con el botón ☰; en computadora está siempre visible.
 - **Notificaciones** 🔔: la campana junta lo nuevo (comunicados sin leer, próximos eventos, tareas que vencen) con "marcar todo leído".

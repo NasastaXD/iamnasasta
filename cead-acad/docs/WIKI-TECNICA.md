@@ -321,6 +321,9 @@ php cead-acad/tests/test-phone-normalization.php        # test de normalización
 | Documento | Contenido |
 |-----------|-----------|
 | `cead-acad/README.md` | Referencia completa del plugin (módulo por módulo) |
+| `app/README.md` | La app nativa (Android + iPhone, Kotlin Multiplatform): cómo funciona sin conexión, estructura, qué está verificado |
+| `app/COMPILAR.md` | Compilar, firmar y publicar la app |
+| `cead-acad/docs/AVISOS-PUSH.md` | Avisos al teléfono (Firebase): qué se avisa, qué hacer una sola vez |
 | `cead-acad/modules/whatsapp/README.md` | Detalle del bot |
 | `cead-acad/modules/whatsapp/EXTENDING.md` | Recetas para extender el bot |
 | `cead-acad/bridge/INSTALACION-VPS.md` | Instalación del bridge en una VPS (recomendado) |

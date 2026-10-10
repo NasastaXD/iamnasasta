@@ -36,9 +36,11 @@ anda, solo que sin timbre.
 1. Entrar a <https://console.firebase.google.com> con la cuenta del colegio y
    **Agregar proyecto** (se puede desactivar Google Analytics).
 2. **Agregar app → Android**, con el identificador **`net.caaguazu.cead.panel`**.
-   Descargar `google-services.json` (se lo pasan a quien compile la app).
+   Descargar `google-services.json` y copiarlo a `app/androidApp/`.
 3. **Agregar app → iOS**, con el mismo identificador. Descargar
-   `GoogleService-Info.plist`.
+   `GoogleService-Info.plist` y copiarlo a `app/iosApp/CEAD/` (antes de generar
+   el proyecto de Xcode). Estos dos archivos son de cada instalación y no se
+   suben al repositorio.
 4. Para iPhone, además: en *Configuración del proyecto → Cloud Messaging →
    Configuración de la app de Apple*, subir una **clave APNs (.p8)** creada en
    developer.apple.com → *Certificates, Identifiers & Profiles → Keys*.
@@ -69,9 +71,9 @@ define( 'CEAD_ACAD_FCM_CREDENTIALS', '/ruta/completa/fuera/de/public_html/cead-f
 
 ### 4. Comprobar que anda
 
-Con la app instalada e iniciada la sesión, se llama a
-`POST /wp-json/cead-acad/v1/dispositivos/prueba` (la pantalla de Ajustes de la
-app va a tener un botón «Probar avisos» para esto). La respuesta dice si
+Con la app instalada e iniciada la sesión, en **Más → Ajustes** hay un botón
+**«Probar avisos»**: manda un aviso de prueba al propio teléfono. (Por debajo
+llama a `POST /wp-json/cead-acad/v1/dispositivos/prueba`.) La respuesta dice si
 Firebase quedó configurado y cuántos teléfonos recibieron el aviso:
 
 ```json

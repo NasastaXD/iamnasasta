@@ -51,6 +51,23 @@ final class GestionTest extends TestCase {
 		$GLOBALS['cead_test_transients'] = [];
 	}
 
+	/* ---------------------------------------------- categorías de comunicado */
+
+	public function test_las_categorias_de_comunicado_salen_con_su_slug_y_solo_las_de_comunicados(): void {
+		cead_test_reset_terms();
+		wp_insert_term( 'Urgente', Cead_Acad_Broadcasts_CPT::TAX_CAT, [ 'slug' => 'urgente' ] );
+		wp_insert_term( 'Académico', Cead_Acad_Broadcasts_CPT::TAX_CAT, [ 'slug' => 'academico' ] );
+		wp_insert_term( 'Noticias', 'category', [ 'slug' => 'noticias' ] );
+
+		$this->assertSame(
+			[
+				[ 'valor' => 'urgente', 'nombre' => 'Urgente' ],
+				[ 'valor' => 'academico', 'nombre' => 'Académico' ],
+			],
+			Cead_Acad_Gestion_Audiencias::categorias_de_comunicado()
+		);
+	}
+
 	/* ---------------------------------------------- quién publica a quién */
 
 	private function roles(): array {

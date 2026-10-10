@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Los archivos que la app abre con otras apps (un PDF bajado, por ejemplo). -->
+<paths>
+    <files-path name="datos" path="." />
+    <cache-path name="cache" path="." />
+</paths>
