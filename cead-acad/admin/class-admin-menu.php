@@ -65,6 +65,35 @@ class Cead_Acad_Admin_Menu {
 			'cead-acad-features',
 			[ $this, 'render_features' ]
 		);
+
+		// «Novedades», con el globito de WordPress mientras haya algo sin ver.
+		$titulo_nov = __( 'Novedades', 'cead-acad' );
+		if ( Cead_Acad_Changelog::hay_nuevas_para( get_current_user_id(), 'admin' ) ) {
+			$titulo_nov .= ' <span class="update-plugins count-1"><span class="plugin-count">1</span></span>';
+		}
+		add_submenu_page(
+			'cead-acad',
+			__( 'Novedades', 'cead-acad' ),
+			$titulo_nov,
+			'read',
+			'cead-acad-novedades',
+			[ $this, 'render_changelog' ]
+		);
+	}
+
+	/** Lo que cambió en cada versión, con las notas para quien administra. */
+	public function render_changelog() {
+		if ( ! cead_acad_user_is_staff() ) {
+			wp_die( esc_html__( 'Sin permisos.', 'cead-acad' ) );
+		}
+		$uid      = get_current_user_id();
+		$entradas = Cead_Acad_Changelog::para( 'admin' );
+		// Se lee antes de anotar que ya la vio: lo marcado «Nuevo» es lo que no había visto.
+		$visto = Cead_Acad_Changelog::visto( $uid );
+		if ( $entradas ) {
+			Cead_Acad_Changelog::marcar_visto( $uid, (string) $entradas[0]['version'] );
+		}
+		include CEAD_ACAD_DIR . 'admin/views/changelog.php';
 	}
 
 	/**
@@ -146,6 +175,7 @@ class Cead_Acad_Admin_Menu {
 
 		echo '<h2>' . esc_html__( 'Accesos rápidos', 'cead-acad' ) . '</h2>';
 		echo '<ul style="list-style:disc;margin-left:20px;line-height:1.8">';
+		echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-novedades' ) ) . '">' . esc_html__( 'Novedades', 'cead-acad' ) . '</a> — ' . esc_html__( 'qué cambió en cada versión, con notas para quien administra.', 'cead-acad' ) . '</li>';
 		echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-users' ) ) . '">' . esc_html__( 'Usuarios', 'cead-acad' ) . '</a> — ' . esc_html__( 'creá usuarios manualmente y asigná roles y teléfono.', 'cead-acad' ) . '</li>';
 		echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=cead-acad-invitations' ) ) . '">' . esc_html__( 'Invitaciones', 'cead-acad' ) . '</a> — ' . esc_html__( 'generá links para sumar usuarios al sistema.', 'cead-acad' ) . '</li>';
 		echo '<li><a href="' . esc_url( admin_url( 'edit.php?post_type=' . Cead_Acad_Courses_CPT::POST_TYPE ) ) . '">' . esc_html__( 'Cursos', 'cead-acad' ) . '</a> — ' . esc_html__( 'creá cursos y asigná delegado/a, tutor/a y alumnado.', 'cead-acad' ) . '</li>';

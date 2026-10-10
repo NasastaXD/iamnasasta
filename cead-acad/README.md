@@ -187,6 +187,7 @@ Rutas disponibles luego de activar el plugin y refrescar permalink:
 | `/panel/recursos` | Logueado | Biblioteca de recursos con filtros |
 | `/panel/recursos/{id}` | Logueado + audiencia | Detalle y descarga de recurso |
 | `/panel/boletin` | `view_own_grades` | Boletín de calificaciones por periodo |
+| `/panel/novedades` | `view_panel` | Lo nuevo de cada versión, explicado en simple (fuente: `includes/changelog-data.php`) |
 | `/panel/delegado` | Delegado/a | Dashboard de tareas del delegado |
 | `/panel/secretaria` | Secretaría | Hub administrativo |
 | `/panel/direccion` | Dirección | Tablero de métricas de la institución |
