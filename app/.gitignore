@@ -1,0 +1,19 @@
+# Gradle / Android
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+captures/
+.cxx/
+.kotlin/
+
+# Firebase: son de cada instalación, no del repo. Ver docs/AVISOS-PUSH.md.
+androidApp/google-services.json
+iosApp/iosApp/GoogleService-Info.plist
+
+# Xcode
+iosApp/*.xcodeproj/
+iosApp/build/
+xcuserdata/
+*.xcworkspace/

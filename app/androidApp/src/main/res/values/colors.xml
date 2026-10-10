@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Los mismos de la marca, ya usados por el PWA del panel. -->
+    <color name="cead_marca">#E93B3C</color>
+    <color name="cead_fondo">#F7F5F0</color>
+    <color name="cead_tinta">#0B0B0B</color>
+</resources>
