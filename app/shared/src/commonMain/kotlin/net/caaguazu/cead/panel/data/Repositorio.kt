@@ -58,7 +58,7 @@ class Repositorio(
     val plataforma: Plataforma,
     private val alcance: CoroutineScope,
     motor: HttpClientEngine? = null,
-    private val sistema: FileSystem = FileSystem.SYSTEM,
+    private val sistema: FileSystem,
     sitio: String = Config.SITIO,
     private val reloj: () -> Long = { Fechas.milis() },
     /** Falso en las pruebas: ahí se llama a [sincronizarAhora] a mano, para no competir con el trabajador. */

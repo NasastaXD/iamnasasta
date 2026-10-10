@@ -11,7 +11,7 @@ object Config {
     /** El sitio del colegio, de donde cuelga la API. */
     const val SITIO = "https://cead.caaguazu.net"
 
-    const val VERSION = "0.2.0"
+    const val VERSION = "1.0.0"
 
     /** Cuántos comunicados/eventos se muestran como mucho en el inicio. */
     const val ITEMS_INICIO = 3

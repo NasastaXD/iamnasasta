@@ -10,10 +10,13 @@ captures/
 
 # Firebase: son de cada instalación, no del repo. Ver docs/AVISOS-PUSH.md.
 androidApp/google-services.json
-iosApp/iosApp/GoogleService-Info.plist
+iosApp/CEAD/GoogleService-Info.plist
 
 # Xcode
 iosApp/*.xcodeproj/
 iosApp/build/
 xcuserdata/
 *.xcworkspace/
+# Lo genera XcodeGen (iosApp/project.yml) y lo escribe en cada corrida.
+iosApp/CEAD/Info.plist
+iosApp/CEAD/CEAD.entitlements

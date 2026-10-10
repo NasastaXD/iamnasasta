@@ -89,7 +89,7 @@ class ApiCliente(
     private val alSesionVencida: () -> Unit,
     private val agente: String,
     motor: HttpClientEngine? = null,
-    private val sistema: FileSystem = FileSystem.SYSTEM,
+    private val sistema: FileSystem,
 ) {
 
     private val http: HttpClient = run {

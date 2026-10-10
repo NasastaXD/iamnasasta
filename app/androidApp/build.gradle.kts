@@ -21,12 +21,39 @@ android {
         applicationId = "net.caaguazu.cead.panel"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.2.0"
+        // Google Play rechaza un paquete cuyo versionCode no sea MAYOR al último
+        // que se subió. Se empieza alto a propósito, por si la app que ya está
+        // publicada se subió con un número chico. Si hiciera falta más, se
+        // sube acá (o se pasa -Pcead.versionCode=N al compilar).
+        versionCode = (findProperty("cead.versionCode") as String?)?.toIntOrNull() ?: 10000
+        versionName = "1.0.0"
+    }
+
+    /*
+     * La firma de release. Los datos de la llave NO van en el repositorio: se
+     * ponen en ~/.gradle/gradle.properties (fuera del proyecto) con estas
+     * cuatro líneas, y sin ellas se genera un APK sin firmar:
+     *
+     *   cead.keystore=/ruta/a/la/llave.jks
+     *   cead.keystorePassword=...
+     *   cead.keyAlias=...
+     *   cead.keyPassword=...
+     */
+    val llave = findProperty("cead.keystore") as String?
+    if (llave != null) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(llave)
+                storePassword = findProperty("cead.keystorePassword") as String?
+                keyAlias = findProperty("cead.keyAlias") as String?
+                keyPassword = findProperty("cead.keyPassword") as String?
+            }
+        }
     }
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -59,6 +86,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.fragment)
+    implementation(libs.okio)
     implementation(libs.kotlinx.coroutines.android)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)

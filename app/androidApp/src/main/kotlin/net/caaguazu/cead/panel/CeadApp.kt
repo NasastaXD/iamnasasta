@@ -10,6 +10,7 @@ import kotlinx.coroutines.SupervisorJob
 import net.caaguazu.cead.panel.data.Repositorio
 import net.caaguazu.cead.panel.plataforma.PlataformaAndroid
 import net.caaguazu.cead.panel.ui.Navegacion
+import okio.FileSystem
 
 /**
  * El proceso de la app.
@@ -31,7 +32,7 @@ class CeadApp : Application() {
     override fun onCreate() {
         super.onCreate()
         plataforma = PlataformaAndroid(this)
-        repo = Repositorio(plataforma, CoroutineScope(SupervisorJob() + Dispatchers.Default))
+        repo = Repositorio(plataforma, CoroutineScope(SupervisorJob() + Dispatchers.Default), sistema = FileSystem.SYSTEM)
         crearCanalDeAvisos()
     }
 

@@ -45,7 +45,6 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
             implementation(libs.okio)
-            implementation(libs.settings)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
         }
@@ -60,6 +59,8 @@ kotlin {
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            // El llavero de iOS (donde se guarda el token).
+            implementation(libs.settings)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

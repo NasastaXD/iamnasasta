@@ -563,6 +563,7 @@ if ( ! function_exists( 'wp_insert_term' ) ) {
 		$term_id = $GLOBALS['cead_test_next_term_id']++;
 		$GLOBALS['cead_test_terms'][ $term_id ] = [
 			'name'     => $name,
+			'slug'     => $args['slug'] ?? strtolower( trim( preg_replace( '/[^A-Za-z0-9]+/', '-', $name ), '-' ) ),
 			'taxonomy' => $taxonomy,
 			'count'    => 0,
 		];
@@ -604,7 +605,7 @@ if ( ! function_exists( 'get_terms' ) ) {
 		foreach ( $GLOBALS['cead_test_terms'] as $term_id => $term ) {
 			if ( $taxonomy && $term['taxonomy'] !== $taxonomy ) { continue; }
 			if ( $meta_key && empty( $GLOBALS['cead_test_term_meta'][ $term_id ][ $meta_key ] ) ) { continue; }
-			$out[] = 'ids' === $fields ? $term_id : (object) [ 'term_id' => $term_id, 'name' => $term['name'], 'taxonomy' => $term['taxonomy'], 'count' => $term['count'] ];
+			$out[] = 'ids' === $fields ? $term_id : (object) [ 'term_id' => $term_id, 'name' => $term['name'], 'slug' => $term['slug'] ?? '', 'taxonomy' => $term['taxonomy'], 'count' => $term['count'] ];
 		}
 		return $out;
 	}
@@ -692,6 +693,7 @@ require_once dirname( __DIR__, 2 ) . '/admin/class-admin-menu.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-identity.php';
 require_once dirname( __DIR__, 2 ) . '/modules/auth/class-invitations.php';
 require_once dirname( __DIR__, 2 ) . '/modules/broadcasts/class-broadcasts-audiences.php';
+require_once dirname( __DIR__, 2 ) . '/modules/broadcasts/class-broadcasts-cpt.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-csv-reader.php';
 require_once dirname( __DIR__, 2 ) . '/modules/importers/class-importer-base.php';
 require_once dirname( __DIR__, 2 ) . '/modules/schedule/class-schedule-cpt.php';
