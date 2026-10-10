@@ -17,6 +17,13 @@ $base_items = [
 	[ 'href' => 'panel/tareas',       'label' => __( 'Mis tareas', 'cead-acad' ),   'icon' => 'clipboard' ],
 	[ 'href' => 'panel/recursos',     'label' => __( 'Recursos', 'cead-acad' ),     'icon' => 'portfolio' ],
 	[ 'href' => 'panel/faq',          'label' => __( 'Preguntas frecuentes', 'cead-acad' ), 'icon' => 'editor-help' ],
+	// «Nuevo» mientras haya algo que la persona todavía no vio.
+	[
+		'href'  => 'panel/novedades',
+		'label' => __( 'Novedades', 'cead-acad' ),
+		'icon'  => 'megaphone',
+		'badge' => Cead_Acad_Changelog::hay_nuevas_para( $user->ID, Cead_Acad_Changelog::mirada_de( $user->ID ) ) ? __( 'Nuevo', 'cead-acad' ) : '',
+	],
 	[ 'href' => 'panel/wiki',         'label' => __( 'Wiki / Ayuda', 'cead-acad' ),  'icon' => 'book' ],
 	// El carné va apagado hasta que el colegio lo adopte (cead_acad_carne_activo()).
 	...( cead_acad_carne_activo()
@@ -90,6 +97,9 @@ $current_route = trim( get_query_var( Cead_Acad_Rewrites::QUERY_VAR ), '/' );
 				<a href="<?php echo esc_url( $href ); ?>">
 					<span class="cead-acad-panel-nav-dot" aria-hidden="true"></span>
 					<?php echo esc_html( $it['label'] ); ?>
+					<?php if ( ! empty( $it['badge'] ) ) : ?>
+						<span class="cead-acad-nav-pill"><?php echo esc_html( $it['badge'] ); ?></span>
+					<?php endif; ?>
 				</a>
 			</li>
 		<?php endforeach; ?>

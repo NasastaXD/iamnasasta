@@ -1,0 +1,409 @@
+/* ============================================================
+   CEAD Académico — Novedades
+   La usan el panel (/panel/novedades, el aviso del inicio y el cartel del menú)
+   y wp-admin (CEAD Académico → Novedades). Por eso define sus propios valores de
+   respaldo: en wp-admin no existen las variables del panel.
+
+   Lenguaje del CEAD: superficies rectas (radio 0), el rojo de marca como
+   protagonista y los otros tres colores de la identidad (azul, amarillo,
+   naranja) como acentos. Tipografía de display solo para títulos y etiquetas.
+   ============================================================ */
+
+.cead-acad-nov,
+.cead-acad-nov-aviso {
+	--nov-brand:      var(--cead-acad-brand, #E93B3C);
+	--nov-brand-deep: #B82A2B;
+	--nov-brand-tint: #FCE7E7;
+	--nov-blue:       #49A3C8;
+	--nov-blue-deep:  #1F6E8F;
+	--nov-blue-tint:  #E3F1F7;
+	--nov-yellow:     #EDDF58;
+	--nov-orange:     #F4B74C;
+	--nov-orange-deep:#7A4B00;
+	--nov-orange-tint:#FCEFD6;
+	--nov-ink:        var(--cead-acad-ink, #0B0B0B);
+	--nov-soft:       var(--cead-acad-text-soft, #4A4A4A);
+	--nov-muted:      var(--cead-acad-text-muted, #6B6B6B);
+	--nov-border:     var(--cead-acad-border, #E4E1DA);
+	--nov-surface:    #fff;
+	--nov-canvas:     var(--cead-acad-canvas, #F7F5F0);
+	--nov-display:    var(--cead-acad-font-display, 'Anton', Impact, system-ui, sans-serif);
+	--nov-body:       var(--cead-acad-font-body, 'Mulish', system-ui, sans-serif);
+}
+.cead-acad-nov {
+	position: relative;
+	margin-top: 1.75rem;
+	font-family: var(--nov-body);
+	color: var(--nov-ink);
+}
+
+/* ----- Filtros (radios sin JavaScript) ----- */
+
+.cead-acad-nov-radio {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+	pointer-events: none;
+}
+.cead-acad-nov-filtros {
+	display: flex;
+	flex-wrap: wrap;
+	gap: .5rem;
+	margin: 0 0 2rem;
+}
+.cead-acad-nov-filtro {
+	display: inline-flex;
+	align-items: center;
+	gap: .55rem;
+	padding: .6rem 1rem;
+	border: 1px solid var(--nov-border);
+	background: var(--nov-surface);
+	color: var(--nov-soft);
+	font-family: var(--nov-display);
+	font-size: .74rem;
+	letter-spacing: .16em;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition: background .2s ease, color .2s ease, border-color .2s ease;
+}
+.cead-acad-nov-filtro:hover { border-color: var(--nov-ink); color: var(--nov-ink); }
+.cead-acad-nov-filtro-n {
+	display: inline-block;
+	min-width: 1.5em;
+	padding: .1em .45em;
+	background: var(--nov-canvas);
+	color: var(--nov-muted);
+	font-size: .9em;
+	letter-spacing: .04em;
+	text-align: center;
+}
+
+/* El filtro marcado. Uno por radio: un selector hermano no puede mirar «cuál». */
+#cead-nov-f-todo:checked    ~ .cead-acad-nov-filtros label[for="cead-nov-f-todo"],
+#cead-nov-f-nuevo:checked   ~ .cead-acad-nov-filtros label[for="cead-nov-f-nuevo"],
+#cead-nov-f-mejora:checked  ~ .cead-acad-nov-filtros label[for="cead-nov-f-mejora"],
+#cead-nov-f-arreglo:checked ~ .cead-acad-nov-filtros label[for="cead-nov-f-arreglo"] {
+	background: var(--nov-ink);
+	border-color: var(--nov-ink);
+	color: var(--nov-surface);
+}
+#cead-nov-f-todo:checked    ~ .cead-acad-nov-filtros label[for="cead-nov-f-todo"] .cead-acad-nov-filtro-n,
+#cead-nov-f-nuevo:checked   ~ .cead-acad-nov-filtros label[for="cead-nov-f-nuevo"] .cead-acad-nov-filtro-n,
+#cead-nov-f-mejora:checked  ~ .cead-acad-nov-filtros label[for="cead-nov-f-mejora"] .cead-acad-nov-filtro-n,
+#cead-nov-f-arreglo:checked ~ .cead-acad-nov-filtros label[for="cead-nov-f-arreglo"] .cead-acad-nov-filtro-n {
+	background: var(--nov-brand);
+	color: #fff;
+}
+/* Foco por teclado: el radio es invisible, así que el anillo se dibuja en su etiqueta. */
+#cead-nov-f-todo:focus-visible    ~ .cead-acad-nov-filtros label[for="cead-nov-f-todo"],
+#cead-nov-f-nuevo:focus-visible   ~ .cead-acad-nov-filtros label[for="cead-nov-f-nuevo"],
+#cead-nov-f-mejora:focus-visible  ~ .cead-acad-nov-filtros label[for="cead-nov-f-mejora"],
+#cead-nov-f-arreglo:focus-visible ~ .cead-acad-nov-filtros label[for="cead-nov-f-arreglo"] {
+	outline: 2px solid var(--cead-acad-focus, #E93B3C);
+	outline-offset: 3px;
+}
+
+/* Lo que se oculta según el filtro. Las entradas que se quedan sin nada también
+   se van (`:has`; donde no exista, quedan con su encabezado, que no estorba). */
+#cead-nov-f-nuevo:checked   ~ .cead-acad-nov-linea .cead-acad-nov-item:not([data-tipo="nuevo"]),
+#cead-nov-f-mejora:checked  ~ .cead-acad-nov-linea .cead-acad-nov-item:not([data-tipo="mejora"]),
+#cead-nov-f-arreglo:checked ~ .cead-acad-nov-linea .cead-acad-nov-item:not([data-tipo="arreglo"]),
+#cead-nov-f-nuevo:checked   ~ .cead-acad-nov-linea .cead-acad-nov-release:not(:has(.cead-acad-nov-item[data-tipo="nuevo"])),
+#cead-nov-f-mejora:checked  ~ .cead-acad-nov-linea .cead-acad-nov-release:not(:has(.cead-acad-nov-item[data-tipo="mejora"])),
+#cead-nov-f-arreglo:checked ~ .cead-acad-nov-linea .cead-acad-nov-release:not(:has(.cead-acad-nov-item[data-tipo="arreglo"])) {
+	display: none;
+}
+
+/* ----- El hilo de tiempo ----- */
+
+.cead-acad-nov-linea {
+	list-style: none;
+	margin: 0;
+	padding: 0 0 0 2.4rem;
+	position: relative;
+}
+.cead-acad-nov-linea::before {
+	content: "";
+	position: absolute;
+	left: .62rem;
+	top: .5rem;
+	bottom: 1rem;
+	width: 2px;
+	background: var(--nov-border);
+}
+.cead-acad-nov-release {
+	position: relative;
+	padding-bottom: 2.75rem;
+}
+.cead-acad-nov-release:last-child { padding-bottom: .5rem; }
+
+/* Un cuadradito por versión, en los colores de la marca. */
+.cead-acad-nov-nodo {
+	position: absolute;
+	left: -2.4rem;
+	top: .15rem;
+	width: 1.3rem;
+	height: 1.3rem;
+	border: 3px solid var(--nov-surface);
+	box-shadow: 0 0 0 1px var(--nov-border);
+}
+.cead-acad-nov-nodo--brand  { background: var(--nov-brand); }
+.cead-acad-nov-nodo--blue   { background: var(--nov-blue); }
+.cead-acad-nov-nodo--yellow { background: var(--nov-yellow); }
+.cead-acad-nov-nodo--orange { background: var(--nov-orange); }
+
+/* ----- Encabezado de cada versión ----- */
+
+.cead-acad-nov-cab { position: relative; margin-bottom: 1.1rem; }
+.cead-acad-nov-meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: .5rem .85rem;
+	margin-bottom: .35rem;
+	font-size: .86rem;
+	color: var(--nov-muted);
+}
+.cead-acad-nov-ver {
+	font-family: var(--nov-display);
+	font-size: .78rem;
+	letter-spacing: .2em;
+	text-transform: uppercase;
+	color: var(--nov-brand);
+}
+.cead-acad-nov-pill {
+	display: inline-block;
+	padding: .18rem .55rem;
+	background: var(--nov-brand);
+	color: #fff;
+	font-family: var(--nov-display);
+	font-size: .64rem;
+	letter-spacing: .18em;
+	text-transform: uppercase;
+}
+.cead-acad-nov-titulo {
+	margin: 0 0 .35rem;
+	font-family: var(--nov-display);
+	font-weight: 400;
+	font-size: clamp(1.45rem, 2.6vw, 1.95rem);
+	line-height: 1.1;
+	letter-spacing: -.005em;
+	text-transform: uppercase;
+	color: var(--nov-ink);
+}
+.cead-acad-nov-resumen {
+	margin: 0;
+	max-width: 46rem;
+	font-size: 1.05rem;
+	line-height: 1.6;
+	color: var(--nov-soft);
+}
+.cead-acad-nov-cuenta { margin: .9rem 0 0; display: flex; flex-wrap: wrap; gap: .4rem; }
+
+/* La versión más nueva se destaca: es lo primero que se quiere ver. */
+.cead-acad-nov-release--ultima > .cead-acad-nov-cab {
+	padding: 1.6rem 1.75rem 1.5rem;
+	background: var(--nov-surface);
+	border: 1px solid var(--nov-border);
+	border-bottom: 4px solid var(--nov-brand);
+}
+.cead-acad-nov-release--ultima .cead-acad-nov-titulo { font-size: clamp(1.75rem, 3.4vw, 2.5rem); }
+.cead-acad-nov-marcas {
+	position: absolute;
+	top: 1.2rem;
+	right: 1.4rem;
+	display: flex;
+	gap: .3rem;
+}
+.cead-acad-nov-marcas i { display: block; width: .8rem; height: .8rem; }
+.cead-acad-nov-marcas i:nth-child(1) { background: var(--nov-brand); }
+.cead-acad-nov-marcas i:nth-child(2) { background: var(--nov-blue); }
+.cead-acad-nov-marcas i:nth-child(3) { background: var(--nov-yellow); }
+.cead-acad-nov-marcas i:nth-child(4) { background: var(--nov-orange); }
+
+/* ----- Cada novedad ----- */
+
+.cead-acad-nov-items {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 19.5rem), 1fr));
+	gap: .85rem;
+}
+.cead-acad-nov-item {
+	margin: 0;
+	padding: 1.1rem 1.25rem 1.2rem;
+	background: var(--nov-surface);
+	border: 1px solid var(--nov-border);
+	border-left: 4px solid var(--nov-brand);
+}
+.cead-acad-nov-item--mejora  { border-left-color: var(--nov-blue); }
+.cead-acad-nov-item--arreglo { border-left-color: var(--nov-orange); }
+
+.cead-acad-nov-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .6rem; }
+.cead-acad-nov-chip {
+	display: inline-block;
+	padding: .22rem .55rem;
+	font-family: var(--nov-display);
+	font-size: .64rem;
+	line-height: 1.3;
+	letter-spacing: .14em;
+	text-transform: uppercase;
+	background: var(--nov-canvas);
+	color: var(--nov-soft);
+}
+.cead-acad-nov-chip--nuevo   { background: var(--nov-brand-tint);  color: var(--nov-brand-deep); }
+.cead-acad-nov-chip--mejora  { background: var(--nov-blue-tint);   color: var(--nov-blue-deep); }
+.cead-acad-nov-chip--arreglo { background: var(--nov-orange-tint); color: var(--nov-orange-deep); }
+.cead-acad-nov-chip--area    { background: transparent; box-shadow: inset 0 0 0 1px var(--nov-border); color: var(--nov-muted); }
+.cead-acad-nov-chip--equipo  { background: var(--nov-ink); color: var(--nov-surface); }
+
+.cead-acad-nov-item-titulo {
+	margin: 0 0 .35rem;
+	font-family: var(--nov-body);
+	font-size: 1.04rem;
+	font-weight: 800;
+	line-height: 1.3;
+	color: var(--nov-ink);
+}
+.cead-acad-nov-item-texto {
+	margin: 0;
+	font-size: .96rem;
+	line-height: 1.65;
+	color: var(--nov-soft);
+}
+/* Lo que se leyó por primera vez en esta visita. */
+.is-fresca .cead-acad-nov-item { box-shadow: 0 0 0 1px var(--nov-brand-tint); }
+
+/* La nota técnica (solo wp-admin). */
+.cead-acad-nov-admin {
+	margin-top: .85rem;
+	padding: .7rem .9rem;
+	background: var(--nov-blue-tint);
+	border-left: 3px solid var(--nov-blue);
+	color: #123F52;
+	font-size: .9rem;
+	line-height: 1.55;
+}
+.cead-acad-nov-admin strong {
+	display: block;
+	margin-bottom: .15rem;
+	font-size: .72rem;
+	letter-spacing: .1em;
+	text-transform: uppercase;
+	color: var(--nov-blue-deep);
+}
+.cead-acad-nov-admin p { margin: 0; }
+
+/* ----- Aviso en el inicio del panel ----- */
+
+/* Las cuatro marcas de la identidad en cuadrícula de 2×2, para acompañar al aviso. */
+.cead-acad-nov-marcas--inline {
+	position: static;
+	flex: none;
+	display: grid;
+	grid-template-columns: repeat(2, .8rem);
+	gap: .22rem;
+}
+
+.cead-acad-nov-aviso {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	margin: 1.5rem 0 0;
+	padding: 1rem 1.25rem;
+	background: var(--cead-acad-brand-tint, #FCE7E7);
+	border: 1px solid var(--cead-acad-border, #E4E1DA);
+	border-left: 4px solid var(--cead-acad-brand, #E93B3C);
+	color: inherit;
+	text-decoration: none;
+	transition: transform .16s ease, box-shadow .16s ease;
+}
+.cead-acad-nov-aviso:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.1); }
+.cead-acad-nov-aviso-txt { display: flex; flex-direction: column; gap: .1rem; min-width: 0; flex: 1; }
+.cead-acad-nov-aviso-txt strong {
+	font-family: var(--cead-acad-font-display, 'Anton', Impact, sans-serif);
+	font-weight: 400;
+	font-size: 1.05rem;
+	letter-spacing: .02em;
+	text-transform: uppercase;
+	color: var(--cead-acad-ink, #0B0B0B);
+}
+.cead-acad-nov-aviso-txt span { color: var(--cead-acad-text-soft, #4A4A4A); font-size: .95rem; }
+.cead-acad-nov-aviso-ir {
+	font-family: var(--cead-acad-font-display, 'Anton', Impact, sans-serif);
+	font-size: .72rem;
+	letter-spacing: .18em;
+	text-transform: uppercase;
+	color: var(--cead-acad-brand-deep, #B82A2B);
+	white-space: nowrap;
+}
+
+/* Cartelito «Nuevo» al final del ítem del menú (el enlace es un flex: auto lo empuja a la derecha). */
+.cead-acad-nav-pill {
+	display: inline-block;
+	margin-left: auto;
+	padding: .12rem .45rem;
+	background: var(--cead-acad-brand, #E93B3C);
+	color: #fff;
+	font-family: var(--cead-acad-font-display, 'Anton', Impact, sans-serif);
+	font-size: .58rem;
+	letter-spacing: .16em;
+	line-height: 1.4;
+	text-transform: uppercase;
+	vertical-align: middle;
+}
+
+/* ----- Celular ----- */
+
+@media (max-width: 600px) {
+	.cead-acad-nov-linea { padding-left: 1.9rem; }
+	.cead-acad-nov-linea::before { left: .42rem; }
+	.cead-acad-nov-nodo { left: -1.9rem; width: 1.05rem; height: 1.05rem; }
+	.cead-acad-nov-release--ultima > .cead-acad-nov-cab { padding: 1.25rem 1.15rem 1.2rem; }
+	.cead-acad-nov-marcas { top: .95rem; right: 1rem; }
+	.cead-acad-nov-marcas i { width: .65rem; height: .65rem; }
+	.cead-acad-nov-aviso { flex-wrap: wrap; }
+}
+
+/* ----- Modo oscuro (el panel marca el tema en <html data-theme>) ----- */
+
+[data-theme="dark"] .cead-acad-nov,
+[data-theme="dark"] .cead-acad-nov-aviso {
+	--nov-surface:     #1d2027;
+	--nov-canvas:      #14161b;
+	--nov-brand-tint:  #3A1A1B;
+	--nov-brand-deep:  #F7A9AA;
+	--nov-blue-tint:   #14303B;
+	--nov-blue-deep:   #8CCBE4;
+	--nov-orange-tint: #3A2E10;
+	--nov-orange-deep: #F2CF7A;
+}
+[data-theme="dark"] .cead-acad-nov-chip--equipo { background: #e9eaed; color: #14161b; }
+[data-theme="dark"] .cead-acad-nov-aviso { background: #2a1819; }
+[data-theme="dark"] .cead-acad-nov-aviso-ir { color: #F7A9AA; }
+
+/* ----- wp-admin: sin las tipografías del panel, y a medida de la pantalla ----- */
+
+.cead-acad-nov--admin { margin-top: 1.25rem; max-width: 70rem; }
+.cead-acad-nov--admin .cead-acad-nov-ver,
+.cead-acad-nov--admin .cead-acad-nov-pill,
+.cead-acad-nov--admin .cead-acad-nov-chip,
+.cead-acad-nov--admin .cead-acad-nov-filtro,
+.cead-acad-nov--admin .cead-acad-nov-titulo {
+	font-family: inherit;
+	font-weight: 700;
+}
+.cead-acad-nov--admin .cead-acad-nov-titulo { text-transform: none; letter-spacing: 0; font-size: 1.4rem; }
+.cead-acad-nov--admin .cead-acad-nov-release--ultima .cead-acad-nov-titulo { font-size: 1.8rem; }
+.cead-acad-nov--admin .cead-acad-nov-ver,
+.cead-acad-nov--admin .cead-acad-nov-chip,
+.cead-acad-nov--admin .cead-acad-nov-filtro { letter-spacing: .06em; }
+.cead-acad-nov--admin .cead-acad-nov-item-titulo { font-family: inherit; }
+
+@media (prefers-reduced-motion: reduce) {
+	.cead-acad-nov-filtro, .cead-acad-nov-aviso { transition: none; }
+	.cead-acad-nov-aviso:hover { transform: none; }
+}

@@ -62,9 +62,14 @@ if ( current_user_can( 'cead_acad_manage_reports' ) || current_user_can( 'cead_a
 	$quick[] = [ 'href' => 'panel/buzon', 'label' => __( 'Buzón', 'cead-acad' ), 'icon' => '📨' ];
 }
 
+// Si hay novedades sin ver, un aviso arriba con la última.
+$mirada_nov = Cead_Acad_Changelog::mirada_de( $user->ID );
+$nov_lista  = Cead_Acad_Changelog::para( $mirada_nov );
+$novedad    = ( $nov_lista && Cead_Acad_Changelog::hay_nuevas( Cead_Acad_Changelog::visto( $user->ID ), $nov_lista ) ) ? $nov_lista[0] : null;
+
 $page_title = __( 'Inicio', 'cead-acad' );
 
-$body = function () use ( $user, $rdisp, $quick, $today_classes, $events, $unread, $recent_broadcasts ) {
+$body = function () use ( $user, $rdisp, $quick, $today_classes, $events, $unread, $recent_broadcasts, $novedad ) {
 	$read_ids = Cead_Acad_Broadcasts_Reads::read_ids_for_user( $user->ID );
 	$days_es  = [ 1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 7 => 'Domingo' ];
 	?>
@@ -72,6 +77,17 @@ $body = function () use ( $user, $rdisp, $quick, $today_classes, $events, $unrea
 		<span class="cead-acad-eyebrow"><?php echo esc_html( ucfirst( wp_date( 'l, j \d\e F' ) ) ); ?></span>
 		<h2 class="cead-acad-panel-h"><?php /* translators: %s: nombre del usuario */ printf( esc_html__( 'Hola, %s 👋', 'cead-acad' ), esc_html( $user->display_name ) ); ?></h2>
 		<p class="cead-acad-panel-sub"><?php /* translators: %s: rol del usuario */ printf( esc_html__( 'Estás en el panel del CEAD como %s.', 'cead-acad' ), '<strong>' . esc_html( $rdisp ) . '</strong>' ); ?></p>
+
+		<?php if ( $novedad ) : ?>
+			<a class="cead-acad-nov-aviso" href="<?php echo esc_url( cead_acad_url( 'panel/novedades' ) ); ?>">
+				<span class="cead-acad-nov-marcas cead-acad-nov-marcas--inline" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+				<span class="cead-acad-nov-aviso-txt">
+					<strong><?php esc_html_e( 'Hay novedades en el panel', 'cead-acad' ); ?></strong>
+					<span><?php echo esc_html( $novedad['titulo'] ); ?></span>
+				</span>
+				<span class="cead-acad-nov-aviso-ir"><?php esc_html_e( 'Verlas →', 'cead-acad' ); ?></span>
+			</a>
+		<?php endif; ?>
 
 		<!-- Accesos rápidos -->
 		<div class="cead-acad-quick">

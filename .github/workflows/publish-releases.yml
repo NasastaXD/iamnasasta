@@ -51,11 +51,17 @@ jobs:
           fi
           mkdir -p build && cp -r cead-acad build/cead-acad
           ( cd build && zip -rq ../cead-acad.zip cead-acad -x '*/.git/*' '*/.DS_Store' '*/node_modules/*' '*/tests/*' )
+          # Las notas salen del mismo archivo que la página «Novedades» del
+          # panel y de wp-admin (cead-acad/includes/changelog-data.php). Es lo que
+          # WordPress muestra en «Ver detalles» al actualizar. Si esa versión no
+          # tiene entrada, queda el texto genérico.
+          php bin/release-notes.php "$VER" > release-notes.md || true
+          printf '\n---\nRelease automático desde main (%s).\n' "$GITHUB_SHA" >> release-notes.md
           gh release create "$VER" cead-acad.zip \
             -R "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "CEAD Académico v$VER" \
-            --notes "Release automático desde main ($GITHUB_SHA)."
+            --notes-file release-notes.md
 
       - name: Release del tema (cead-theme.zip)
         env:

@@ -41,6 +41,14 @@ class Cead_Acad_Assets {
 			CEAD_ACAD_VERSION
 		);
 
+		// Novedades: la página, el aviso del inicio y el cartelito del menú.
+		wp_enqueue_style(
+			'cead-acad-novedades',
+			cead_acad_asset( 'assets/css/cead-acad-novedades.css' ),
+			[ 'cead-acad-frontend' ],
+			CEAD_ACAD_VERSION
+		);
+
 		wp_enqueue_script(
 			'cead-acad-frontend',
 			cead_acad_asset( 'assets/js/cead-acad-frontend.js' ),
@@ -85,5 +93,15 @@ class Cead_Acad_Assets {
 			[],
 			CEAD_ACAD_VERSION
 		);
+
+		// La lista de novedades se dibuja igual que en el panel.
+		if ( 'cead-acad-novedades' === (string) ( $_GET['page'] ?? '' ) ) {
+			wp_enqueue_style(
+				'cead-acad-novedades',
+				cead_acad_asset( 'assets/css/cead-acad-novedades.css' ),
+				[ 'cead-acad-admin' ],
+				CEAD_ACAD_VERSION
+			);
+		}
 	}
 }

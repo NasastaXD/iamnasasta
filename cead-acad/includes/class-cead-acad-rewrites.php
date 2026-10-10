@@ -311,6 +311,10 @@ class Cead_Acad_Rewrites {
 				cead_acad_template( 'panel/faq/list.php' );
 				return;
 
+			case 'novedades':
+				cead_acad_template( 'panel/novedades/list.php' );
+				return;
+
 			case 'wiki':
 				// La wiki vive en /wiki (página pública, solo lectura). Desde el
 				// panel es una simple redirección, como pidió la dirección.

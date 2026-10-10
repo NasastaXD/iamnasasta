@@ -300,6 +300,12 @@ Se despliega aparte (Node.js). Dos escenarios soportados:
 
 Variables relevantes: `HOST` (interfaz de escucha), `PORT_STRICT` (fallar si el puerto fijo está ocupado, en vez de correrse a otro), `TUNNEL=off` (no levantar cloudflared) y `MAX_BODY_SIZE` (tope del JSON entrante; las imágenes viajan en base64).
 
+### Novedades de cada versión (changelog)
+
+Cada versión del plugin trae su entrada en **`cead-acad/includes/changelog-data.php`**, arriba de todo. Es la **única fuente**: de ahí salen la página **Novedades** del panel (`/panel/novedades`, cada persona ve lo que le corresponde), la de **wp-admin** (*CEAD Académico → Novedades*, con notas técnicas para quien administra), el aviso del inicio, el cartelito «Nuevo» del menú y las **notas del Release de GitHub** (`bin/release-notes.php`, que es lo que WordPress muestra en «Ver detalles» al actualizar).
+
+Se escribe en castellano simple, qué cambia *para la persona*, sin jerga (la jerga va en la nota `admin`). Cada ítem es `nuevo`, `mejora` o `arreglo`, y puede ser `para` todos, el equipo o solo wp-admin. Una prueba (`ChangelogTest`) falla si la versión del plugin no coincide con la primera entrada: no se puede publicar sin documentar.
+
 ---
 
 ## 12. Tests y CI
@@ -323,6 +329,7 @@ php cead-acad/tests/test-phone-normalization.php        # test de normalización
 | `cead-acad/README.md` | Referencia completa del plugin (módulo por módulo) |
 | `app/README.md` | La app nativa (Android + iPhone, Kotlin Multiplatform): cómo funciona sin conexión, estructura, qué está verificado |
 | `app/COMPILAR.md` | Compilar, firmar y publicar la app |
+| `cead-acad/includes/changelog-data.php` | Las novedades de cada versión (fuente única del changelog; ver §11) |
 | `cead-acad/docs/AVISOS-PUSH.md` | Avisos al teléfono (Firebase): qué se avisa, qué hacer una sola vez |
 | `cead-acad/modules/whatsapp/README.md` | Detalle del bot |
 | `cead-acad/modules/whatsapp/EXTENDING.md` | Recetas para extender el bot |

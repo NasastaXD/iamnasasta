@@ -714,6 +714,7 @@ require_once dirname( __DIR__, 2 ) . '/modules/api/class-api-panel.php';
 require_once dirname( __DIR__, 2 ) . '/modules/api/class-api-alumno.php';
 require_once dirname( __DIR__, 2 ) . '/modules/api/class-api-sync.php';
 require_once dirname( __DIR__, 2 ) . '/modules/gestion/class-gestion-audiencias.php';
+require_once dirname( __DIR__, 2 ) . '/includes/class-cead-acad-changelog.php';
 require_once dirname( __DIR__, 2 ) . '/modules/gestion/class-buzon.php';
 require_once dirname( __DIR__, 2 ) . '/modules/gestion/class-metricas.php';
 require_once dirname( __DIR__, 2 ) . '/modules/gestion/class-notas.php';
