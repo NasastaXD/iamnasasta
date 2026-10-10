@@ -13,6 +13,13 @@ kotlin {
         compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
     }
 
+    /*
+     * Un destino de escritorio que NO es un producto: existe para correr las
+     * pruebas de pantalla en cualquier máquina y sacar capturas de lo que se
+     * dibuja, sin necesitar un emulador. La app se entrega en Android e iOS.
+     */
+    jvm("desktop")
+
     // Los destinos de Apple solo se compilan en un Mac; en Linux se saltean.
     listOf(iosX64(), iosArm64(), iosSimulatorArm64()).forEach { destino ->
         destino.binaries.framework {
@@ -62,6 +69,12 @@ kotlin {
         }
         androidUnitTest.dependencies {
             implementation(libs.junit)
+        }
+        val desktopTest by getting {
+            dependencies {
+                implementation(compose.desktop.currentOs)
+                implementation(libs.junit)
+            }
         }
     }
 }

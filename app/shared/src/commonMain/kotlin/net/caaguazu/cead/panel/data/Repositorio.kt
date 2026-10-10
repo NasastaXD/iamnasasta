@@ -5,6 +5,7 @@ package net.caaguazu.cead.panel.data
 import io.ktor.client.engine.HttpClientEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -26,6 +27,9 @@ import net.caaguazu.cead.panel.util.Fechas
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import kotlin.random.Random
+
+/** Un mensaje de la charla con CEADI. [esPropio] = lo escribió la persona. */
+data class MensajeCeadi(val texto: String, val esPropio: Boolean, val error: Boolean = false)
 
 sealed interface EstadoSesion {
     /** Todavía leyendo del disco: no mostrar ni el login ni la app. */
@@ -59,6 +63,8 @@ class Repositorio(
     private val reloj: () -> Long = { Fechas.milis() },
     /** Falso en las pruebas: ahí se llama a [sincronizarAhora] a mano, para no competir con el trabajador. */
     iniciarTrabajador: Boolean = true,
+    /** Cada cuánto se reintenta lo que quedó esperando. Más corto en las pruebas. */
+    private val reintentoMs: Long = REINTENTO_MS,
 ) {
 
     private val almacen = Almacen(sistema, plataforma.dirDatos + "/cead")
@@ -88,6 +94,13 @@ class Repositorio(
 
     val sincronizando = MutableStateFlow(false)
 
+    /**
+     * La conversación con CEADI. Vive solo en memoria y se borra al salir de la
+     * sesión: lo que se le pregunta a un asistente es más íntimo de lo que
+     * parece, y no hay motivo para dejarlo en el teléfono.
+     */
+    val conversacionCeadi = MutableStateFlow<List<MensajeCeadi>>(emptyList())
+
     /** Milisegundos de la última sincronización que llegó al servidor, o 0. */
     val ultimaSync = MutableStateFlow(0L)
 
@@ -98,6 +111,8 @@ class Repositorio(
     val avisos: SharedFlow<String> get() = _avisos
     private val _avisos = MutableSharedFlow<String>(extraBufferCapacity = 16)
 
+    private var ultimoIntento = 0L
+
     private val colaLock = Mutex()
     private val pedidos = Channel<Unit>(Channel.CONFLATED)
 
@@ -105,6 +120,17 @@ class Repositorio(
         if (iniciarTrabajador) {
             alcance.launch {
                 for (p in pedidos) sincronizarAhora()
+            }
+            // Sin wifi en el colegio, lo que se carga en el aula espera. Cuando
+            // vuelve la señal tiene que salir solo, sin que nadie se acuerde de
+            // abrir la app ni de tirar de la pantalla: el teléfono no avisa a la
+            // app cuándo hay red, así que se prueba cada tanto mientras haya algo
+            // esperando (y solo entonces: no se gasta batería ni datos en vano).
+            alcance.launch {
+                while (true) {
+                    delay(reintentoMs)
+                    if (usuarioActual() != null && !sincronizando.value && pendientes.value.any { !it.fallido }) pedirSync()
+                }
             }
         }
         // Se lee del disco acá mismo, sin esperar: es un archivo chico, y así la
@@ -173,6 +199,11 @@ class Repositorio(
         sesion.value = EstadoSesion.SinSesion()
     }
 
+    /** Para los botones: cerrar sesión sin quedarse esperando la red. */
+    fun cerrarSesionEnSegundoPlano() {
+        alcance.launch { cerrarSesion() }
+    }
+
     private fun sesionVencida() {
         // No se borran los datos: si es la misma persona que vuelve a entrar,
         // los envíos que había dejado en cola siguen ahí.
@@ -188,6 +219,7 @@ class Repositorio(
         pendientes.value = emptyList()
         locales.value = Locales()
         ultimaSync.value = 0
+        conversacionCeadi.value = emptyList()
     }
 
     /** Si entra otra persona, lo de la anterior se va: no se mezclan ni se filtran. */
@@ -225,12 +257,24 @@ class Repositorio(
     }
 
     /**
+     * La app volvió a primer plano (se desbloqueó el teléfono, se salió de otra
+     * app). Si hace un rato que no sincroniza, lo hace: así los comunicados de
+     * la mañana están al abrir la app y no hay que tirar de la pantalla.
+     * Si acaba de hacerlo, no: abrir y cerrar la app no tiene que gastar datos.
+     */
+    fun alPrimerPlano() {
+        if (usuarioActual() == null) return
+        if (reloj() - ultimoIntento >= PRIMER_PLANO_MIN_MS) pedirSync()
+    }
+
+    /**
      * Primero manda lo que quedó esperando, después trae lo nuevo. En ese
      * orden: traer primero haría que el servidor contestara con datos que no
      * incluyen lo que la persona hizo hace un rato.
      */
     internal suspend fun sincronizarAhora() {
         if (usuarioActual() == null) return
+        ultimoIntento = reloj()
         sincronizando.value = true
         try {
             vaciarCola()
@@ -592,6 +636,11 @@ class Repositorio(
         ),
     )
 
+    /** Un mensaje de una sola vez para la pantalla (abajo, que se va solo). */
+    fun mensaje(texto: String) {
+        _avisos.tryEmit(texto)
+    }
+
     /* ---------------------------------------------------------- en línea */
 
     /** Lo que solo se puede hacer con conexión y no se guarda en el teléfono. */
@@ -628,6 +677,12 @@ class Repositorio(
     }
 
     companion object {
+        /** Cada cuánto se reintenta lo que no pudo salir. */
+        const val REINTENTO_MS = 60_000L
+
+        /** Sin sincronizar hace más que esto, volver a la app sincroniza. */
+        const val PRIMER_PLANO_MIN_MS = 2 * 60_000L
+
         private const val K_TOKEN = "token"
         private const val K_USUARIO = "usuario"
         private const val SIETE_DIAS = 7L * 24 * 60 * 60 * 1000

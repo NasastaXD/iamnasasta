@@ -46,6 +46,10 @@ object Fechas {
 
     fun milis(): Long = Clock.System.now().toEpochMilliseconds()
 
+    /** Unos milisegundos desde 1970, llevados a la hora del teléfono. */
+    fun instanteDesdeMilis(ms: Long, zona: TimeZone = TimeZone.currentSystemDefault()): LocalDateTime =
+        Instant.fromEpochMilliseconds(ms).toLocalDateTime(zona)
+
     /**
      * Una fecha de pared del colegio: `2026-10-09T14:30`, `2026-10-09 14:30:00`
      * o solo `2026-10-09` (medianoche). Null si no es una fecha.
@@ -100,6 +104,16 @@ object Fechas {
             dia == hoy.plus(DatePeriod(days = -1)) -> "ayer"
             dia.year == hoy.year -> diaMes(dia)
             else -> "${diaMes(dia)} ${dia.year}"
+        }
+    }
+
+    /** Cuántos días tiene un mes (febrero de un año bisiesto, 29). */
+    fun diasDelMes(anio: Int, mes: Int): Int {
+        val bisiesto = (anio % 4 == 0 && anio % 100 != 0) || anio % 400 == 0
+        return when (mes) {
+            2 -> if (bisiesto) 29 else 28
+            4, 6, 9, 11 -> 30
+            else -> 31
         }
     }
 

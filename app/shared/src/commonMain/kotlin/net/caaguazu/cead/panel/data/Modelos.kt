@@ -111,6 +111,12 @@ data class MateriaBoletin(
 data class Boletin(
     val materias: List<MateriaBoletin> = emptyList(),
     val periodos: List<String> = emptyList(),
+    /** La escala del colegio. Si el servidor no la manda, la paraguaya de 1 a 5. */
+    val escala: Escala = Escala(
+        maxima = 5.0,
+        aprobado = 2.0,
+        etiquetas = mapOf("5" to "Sobresaliente", "4" to "Distinguido", "3" to "Bueno", "2" to "Regular", "1" to "Insuficiente"),
+    ),
 )
 
 /* -------------------------------------------------------------- tareas */
@@ -277,6 +283,8 @@ data class OpcionesAudiencia(
     val roles: List<OpcionAudiencia> = emptyList(),
     val cursos: List<OpcionAudiencia> = emptyList(),
     val promociones: List<OpcionAudiencia> = emptyList(),
+    /** Solo para comunicados: las categorías que existen (Académico, Urgente…). */
+    val categorias: List<OpcionAudiencia> = emptyList(),
 )
 
 /** Una audiencia elegida: lo que viaja al servidor. */

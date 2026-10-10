@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -598,5 +599,75 @@ class RepositorioTest {
         repo.entrar()
         val e2 = repo.descargarRecurso(Recurso(id = 1, titulo = "Enlace", url = null))
         assertEquals("sin_url", e2?.codigo)
+    }
+
+    /* ------------------------------------------- solo, sin que nadie lo pida */
+
+    /** Con el trabajador andando de verdad, en su propio hilo: es lo que hace la app real. */
+    private fun Entorno.repoVivo(alcance: CoroutineScope, reintentoMs: Long = 60_000L) =
+        Repositorio(plat, alcance, servidor.motor, fs, "https://cead.test", { ahora }, iniciarTrabajador = true, reintentoMs = reintentoMs)
+
+    @Test
+    fun `al volver a la app sincroniza solo si hace rato que no lo hizo`() = runTest {
+        val e = Entorno(this)
+        val alcance = CoroutineScope(Dispatchers.Default + SupervisorJob())
+        try {
+            val repo = e.repoVivo(alcance)
+            assertNull(repo.iniciarSesion("ana", "clave"))
+            esperarQue { e.servidor.a("/sincronizar").size == 1 }
+
+            // Se desbloquea el teléfono un minuto después: no hace falta volver a pedir nada.
+            e.ahora += 60_000
+            repo.alPrimerPlano()
+            withContext(Dispatchers.Default) { delay(150) }
+            assertEquals(1, e.servidor.a("/sincronizar").size)
+
+            // Una hora después sí.
+            e.ahora += 60 * 60_000
+            repo.alPrimerPlano()
+            esperarQue { e.servidor.a("/sincronizar").size == 2 }
+        } finally {
+            alcance.cancel()
+        }
+    }
+
+    @Test
+    fun `sin sesion volver a la app no pide nada`() = runTest {
+        val e = Entorno(this)
+        val alcance = CoroutineScope(Dispatchers.Default + SupervisorJob())
+        try {
+            val repo = e.repoVivo(alcance)
+            e.ahora += 60 * 60_000
+            repo.alPrimerPlano()
+            withContext(Dispatchers.Default) { delay(150) }
+            assertTrue(e.servidor.a("/sincronizar").isEmpty())
+        } finally {
+            alcance.cancel()
+        }
+    }
+
+    @Test
+    fun `lo que quedo esperando sin senal sale solo cuando vuelve la conexion`() = runTest {
+        val e = Entorno(this)
+        val alcance = CoroutineScope(Dispatchers.Default + SupervisorJob())
+        try {
+            val repo = e.repoVivo(alcance, reintentoMs = 50)
+            assertNull(repo.iniciarSesion("ana", "clave"))
+            esperarQue { e.servidor.a("/sincronizar").size == 1 }
+
+            e.enLinea = false
+            repo.marcarTarea(55, true)
+            esperarQue { repo.sinConexion.value }
+            assertEquals(1, repo.pendientes.value.size)
+
+            // Vuelve la señal. Nadie abre la app ni tira de la pantalla.
+            e.tareaHecha = true
+            e.version = "v2"
+            e.enLinea = true
+            esperarQue { repo.pendientes.value.isEmpty() }
+            assertEquals(1, e.servidor.a("/tareas/55/hecha").size)
+        } finally {
+            alcance.cancel()
+        }
     }
 }

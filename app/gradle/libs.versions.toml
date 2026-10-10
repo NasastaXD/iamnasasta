@@ -12,6 +12,7 @@ settings = "1.3.0"
 coil = "3.3.0"
 activity = "1.11.0"
 core = "1.17.0"
+fragment = "1.8.9"
 security = "1.1.0"
 firebaseBom = "35.0.0"
 googleServices = "4.4.4"
@@ -41,6 +42,9 @@ coil-network-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.re
 
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "core" }
+# La app no usa fragments, pero Firebase trae uno viejo y la revisión de release
+# (lint) se queja de que con él no se puede usar el selector de archivos.
+androidx-fragment = { module = "androidx.fragment:fragment", version.ref = "fragment" }
 androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "security" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }

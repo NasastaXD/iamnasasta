@@ -13,8 +13,12 @@
 }
 -keep,includedescriptorclasses class net.caaguazu.cead.panel.data.**$$serializer { *; }
 
-# Ktor elige el motor por ServiceLoader.
--keep class io.ktor.client.engine.android.** { *; }
+# Ktor elige el motor por ServiceLoader; el de la app es OkHttp.
+-keep class io.ktor.client.engine.okhttp.** { *; }
+-dontwarn okhttp3.internal.platform.**
+-dontwarn org.conscrypt.**
+-dontwarn org.bouncycastle.**
+-dontwarn org.openjsse.**
 
 # Tink —lo que cifra el token por debajo de EncryptedSharedPreferences— viene
 # compilado contra anotaciones que no se empaquetan en la app: son de tiempo de
