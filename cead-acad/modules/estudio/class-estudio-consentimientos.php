@@ -61,6 +61,7 @@ class Cead_Acad_Estudio_Consentimientos {
 				'fecha' => current_time( 'Y-m-d' ), 'estado' => 'retirado', 'retirado_en' => current_time( 'mysql', 1 ), 'creado_en' => current_time( 'mysql', 1 ) ] );
 		}
 		Cead_Acad_Audit::log( 'estudio_consentimiento_retirado', [ 'user_id' => (int) $user_id ] );
+		Cead_Acad_Estudio::bitacora( 'operacion', 'consentimiento_retirado' ); // sin quién: solo que ocurrió
 		return true;
 	}
 

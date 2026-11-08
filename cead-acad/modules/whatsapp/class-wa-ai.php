@@ -74,7 +74,7 @@ class Cead_Acad_WA_AI {
 		if ( defined( 'CEAD_ACAD_AI_KEY' ) && CEAD_ACAD_AI_KEY ) {
 			return (string) CEAD_ACAD_AI_KEY;
 		}
-		return (string) get_option( 'cead_acad_wa_ai_key', '' );
+		return cead_acad_secreto( 'CEAD_ACAD_AI_KEY', 'cead_acad_wa_ai_key' );
 	}
 	public static function model() {
 		return (string) ( get_option( 'cead_acad_wa_ai_model', '' ) ?: self::MODEL_DEFAULT );
@@ -641,7 +641,7 @@ class Cead_Acad_WA_AI {
 		if ( defined( 'CEAD_ACAD_STT_KEY' ) && CEAD_ACAD_STT_KEY ) {
 			return (string) CEAD_ACAD_STT_KEY;
 		}
-		$k = (string) get_option( 'cead_acad_wa_stt_key', '' );
+		$k = cead_acad_secreto( 'CEAD_ACAD_STT_KEY', 'cead_acad_wa_stt_key' );
 		return $k !== '' ? $k : self::key();
 	}
 	public static function stt_endpoint() {

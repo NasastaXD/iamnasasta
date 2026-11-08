@@ -575,7 +575,7 @@ class Cead_Acad_WA_Instagram {
 	 * un token de acceso de larga duración de la cuenta de empresa vinculada.
 	 */
 	protected static function desde_graph() {
-		$token = (string) get_option( 'cead_acad_wa_ig_token', '' );
+		$token = cead_acad_secreto( 'CEAD_ACAD_IG_TOKEN', 'cead_acad_wa_ig_token' );
 		$cuenta = (string) get_option( 'cead_acad_wa_ig_cuenta_id', '' );
 		if ( '' === $token || '' === $cuenta ) {
 			return new WP_Error( 'cead_ig_config', 'Falta el token o el ID de cuenta de Instagram.' );
@@ -636,7 +636,7 @@ class Cead_Acad_WA_Instagram {
 		$url = str_replace( '{usuario}', rawurlencode( self::usuario() ), $url );
 
 		$headers = [];
-		$clave   = trim( (string) get_option( 'cead_acad_wa_ig_proveedor_key', '' ) );
+		$clave   = trim( cead_acad_secreto( 'CEAD_ACAD_IG_PROVEEDOR_KEY', 'cead_acad_wa_ig_proveedor_key' ) );
 		if ( '' !== $clave ) {
 			$headers['Authorization'] = 'Bearer ' . $clave;
 			// Varios servicios de RapidAPI esperan la clave con este nombre.

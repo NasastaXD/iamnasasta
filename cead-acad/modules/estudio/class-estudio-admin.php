@@ -22,7 +22,7 @@ class Cead_Acad_Estudio_Admin {
 
 	public function boot() {
 		add_action( 'admin_menu', [ $this, 'menu' ], 30 );
-		foreach ( [ 'config', 'consentimientos', 'linea_base', 'revisar', 'exportar' ] as $a ) {
+		foreach ( [ 'config', 'consentimientos', 'linea_base', 'revisar', 'exportar', 'importar_config' ] as $a ) {
 			add_action( "admin_post_cead_acad_estudio_{$a}", [ $this, $a ] );
 		}
 	}
@@ -149,6 +149,7 @@ class Cead_Acad_Estudio_Admin {
 		}
 		$zip->close();
 		Cead_Acad_Audit::log( 'estudio_exportacion', [ 'payload' => $x['resumen'] ] );
+		Cead_Acad_Estudio::bitacora( 'operacion', 'exportacion_investigacion', $x['resumen'] );
 
 		nocache_headers();
 		header( 'Content-Type: application/zip' );
@@ -171,7 +172,9 @@ class Cead_Acad_Estudio_Admin {
 		$c['inicio']              = preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) ( $_POST['inicio'] ?? '' ) ) ? (string) $_POST['inicio'] : $c['inicio'];
 		$c['consentimiento_modo'] = 'individual' === ( $_POST['consentimiento_modo'] ?? '' ) ? 'individual' : 'acuerdo_institucional';
 		$c['permitir_retiro']     = ! empty( $_POST['permitir_retiro'] );
+		$antes = Cead_Acad_Estudio::config();
 		update_option( Cead_Acad_Estudio::OPCION, $c );
+		Cead_Acad_Estudio::bitacora( 'configuracion', 'estudio_configurado', [ 'antes' => $antes, 'despues' => $c ] );
 		Cead_Acad_Audit::log( 'estudio_configurado', [ 'payload' => array_intersect_key( $c, array_flip( [ 'activo', 'codigo', 'inicio', 'consentimiento_modo', 'permitir_retiro' ] ) ) ] );
 		$this->volver( 'config' );
 	}
@@ -191,6 +194,7 @@ class Cead_Acad_Estudio_Admin {
 		} );
 		Cead_Acad_Audit::log( 'estudio_consentimientos_importados', [ 'payload' => [ 'ok' => $r['ok'], 'errores' => count( $r['errores'] ) ] ] );
 		set_transient( 'cead_acad_estudio_import_' . $quien, $r, 300 );
+		Cead_Acad_Estudio::bitacora( 'operacion', 'consentimientos_importados', [ 'ok' => $r['ok'], 'errores' => count( $r['errores'] ) ] );
 		$this->volver( 'consentimientos' );
 	}
 
@@ -211,6 +215,7 @@ class Cead_Acad_Estudio_Admin {
 			'canal'                => 'papel',
 		];
 		update_option( 'cead_acad_estudio_linea_base', $lb, false );
+		Cead_Acad_Estudio::bitacora( 'operacion', 'linea_base_cargada', [ 'fecha' => end( $lb )['fecha'] ] );
 		$this->volver( 'linea_base' );
 	}
 
@@ -224,7 +229,50 @@ class Cead_Acad_Estudio_Admin {
 			return mb_substr( sanitize_textarea_field( wp_unslash( (string) $v ) ), 0, 500 );
 		}, (array) ( $_POST['abiertas'] ?? [] ) ), 'strlen' );
 		$wpdb->update( cead_acad_table( 'estudio_respuestas' ), [ 'abiertas_revisadas' => wp_json_encode( (object) $limpias ), 'revisada_en' => current_time( 'mysql', 1 ) ], [ 'id' => (int) ( $_POST['id'] ?? 0 ) ] );
+		Cead_Acad_Estudio::bitacora( 'operacion', 'abierta_revisada', [ 'respuesta' => (int) ( $_POST['id'] ?? 0 ) ] );
 		$this->volver( 'revisar' );
+	}
+
+	/**
+	 * Encuestas editadas en el panel maestro (acción exportar_config_wp): se
+	 * sube el JSON, se valida y reemplaza al de la spec. Lo ya enviado no
+	 * cambia; queda en la bitácora con el hash del archivo y qué cambió.
+	 */
+	public function importar_config() {
+		check_admin_referer( 'cead_acad_estudio_importar_config' );
+		if ( ! current_user_can( self::CAP_GESTION ) ) {
+			wp_die( esc_html__( 'Sin permiso.', 'cead-acad' ), 403 );
+		}
+		$texto = isset( $_FILES['config']['tmp_name'] ) && is_uploaded_file( $_FILES['config']['tmp_name'] ) ? (string) file_get_contents( $_FILES['config']['tmp_name'] ) : '';
+		$cfg   = json_decode( $texto, true );
+		$err   = Cead_Acad_Estudio_Logica::validar_config( $cfg );
+		if ( $err ) {
+			set_transient( 'cead_acad_estudio_config_err_' . get_current_user_id(), $err, 300 );
+			$this->volver( 'importar_config_error' );
+		}
+		$antes = Cead_Acad_Estudio::instrumentos();
+		update_option( 'cead_acad_estudio_config', $cfg, false );
+		Cead_Acad_Estudio::bitacora( 'encuestas', 'config_importada', [
+			'sha256'      => hash( 'sha256', $texto ),
+			'roles'       => $cfg['roles'] ?? [ 'alumno', 'docente' ],
+			'meses'       => count( $cfg['meses'] ),
+			'versiones'   => self::versiones_de( $cfg ),
+			'antes'       => self::versiones_de( $antes ),
+		] );
+		$this->volver( 'importar_config' );
+	}
+
+	/** bloque → versión vigente, para leer la bitácora de un vistazo. */
+	public static function versiones_de( $cfg ) {
+		$out = [];
+		foreach ( (array) ( $cfg['instrumentos'] ?? [] ) as $bloque => $def ) {
+			foreach ( (array) $def as $rol => $b ) {
+				if ( is_array( $b ) && ! empty( $b['versiones'] ) ) {
+					$out[ "$bloque.$rol" ] = end( $b['versiones'] )['version'] ?? null;
+				}
+			}
+		}
+		return $out;
 	}
 
 	protected function volver( $seccion ) {
@@ -311,6 +359,27 @@ class Cead_Acad_Estudio_Admin {
 					<?php submit_button( __( 'Guardar revisión', 'cead-acad' ), 'small', 'submit', false ); ?>
 				</form>
 			<?php endforeach; ?>
+			<?php endif; ?>
+
+			<?php if ( current_user_can( self::CAP_GESTION ) ) : ?>
+			<h2><?php esc_html_e( 'Encuestas del panel maestro', 'cead-acad' ); ?></h2>
+			<p><?php esc_html_e( 'Las encuestas se editan en el panel maestro de la app. Exportá ahí la configuración para WordPress y subila acá: reemplaza a la de la spec (lo ya enviado no cambia).', 'cead-acad' ); ?></p>
+			<?php $cerr = get_transient( 'cead_acad_estudio_config_err_' . get_current_user_id() ); if ( 'importar_config_error' === ( $_GET['ok'] ?? '' ) && is_array( $cerr ) ) : ?>
+				<div class="notice notice-error"><p><?php echo esc_html( implode( ' · ', $cerr ) ); ?></p></div>
+			<?php endif; ?>
+			<p><?php echo esc_html( sprintf( __( 'Roles: %1$s · features activas: %2$s', 'cead-acad' ), implode( ', ', Cead_Acad_Estudio_Encuestas::roles() ), implode( ', ', Cead_Acad_Estudio::features_activas() ) ) ); ?></p>
+			<form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="cead_acad_estudio_importar_config"><?php wp_nonce_field( 'cead_acad_estudio_importar_config' ); ?>
+				<input type="file" name="config" accept=".json,application/json" required> <?php submit_button( __( 'Importar configuración', 'cead-acad' ), 'secondary', 'submit', false ); ?>
+			</form>
+
+			<h2><?php esc_html_e( 'Bitácora del estudio', 'cead-acad' ); ?></h2>
+			<p><?php esc_html_e( 'Permanente: cambios de encuestas, envíos (con preguntas omitidas por features), operaciones sobre datos y cambios de configuración. Sin datos personales.', 'cead-acad' ); ?></p>
+			<table class="widefat striped"><thead><tr><th><?php esc_html_e( 'Cuándo (UTC)', 'cead-acad' ); ?></th><th><?php esc_html_e( 'Tipo', 'cead-acad' ); ?></th><th><?php esc_html_e( 'Acción', 'cead-acad' ); ?></th><th><?php esc_html_e( 'Origen', 'cead-acad' ); ?></th><th><?php esc_html_e( 'Detalle', 'cead-acad' ); ?></th></tr></thead><tbody>
+			<?php foreach ( $wpdb->get_results( 'SELECT * FROM ' . cead_acad_table( 'estudio_bitacora' ) . ' ORDER BY id DESC LIMIT 100', ARRAY_A ) ?: [] as $f ) : ?>
+				<tr><td><?php echo esc_html( $f['ts'] ); ?></td><td><?php echo esc_html( $f['tipo'] ); ?></td><td><?php echo esc_html( $f['accion'] ); ?></td><td><?php echo esc_html( $f['origen'] ); ?></td><td><code style="white-space:pre-wrap"><?php echo esc_html( mb_substr( (string) $f['detalle'], 0, 400 ) ); ?></code></td></tr>
+			<?php endforeach; ?>
+			</tbody></table>
 			<?php endif; ?>
 
 			<?php if ( current_user_can( self::CAP_EXPORT ) ) : ?>

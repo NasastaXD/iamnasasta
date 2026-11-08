@@ -26,8 +26,15 @@ class Cead_Acad_Estudio_Encuestas {
 	/** Rol del estudio → roles del plugin que lo reciben. */
 	const DESTINOS = [
 		'alumno'  => [ 'cead_acad_student', 'cead_acad_delegate', 'cead_acad_student_council' ],
-		'docente' => [ 'cead_acad_teacher' ],
+		'docente'  => [ 'cead_acad_teacher' ],
+		'director' => [ 'cead_acad_direction' ],
 	];
+
+	/** Roles a los que va la encuesta (los fija la campaña del panel maestro). */
+	public static function roles() {
+		$r = (array) ( Cead_Acad_Estudio::instrumentos()['roles'] ?? [ 'alumno', 'docente' ] );
+		return array_values( array_intersect( $r, array_keys( self::DESTINOS ) ) );
+	}
 
 	/** Pantallas del panel que nunca se bloquean. */
 	const EXCEPCIONES = [ 'panel/encuestas', 'panel/perfil', 'panel/asistencia', 'panel/estudio' ];
@@ -164,7 +171,8 @@ class Cead_Acad_Estudio_Encuestas {
 		$entrada   = [];
 		foreach ( array_values( $preguntas ) as $i => $q ) {
 			if ( isset( $snapshot[ $i ], $answers[ $q['id'] ] ) ) {
-				$entrada[ $snapshot[ $i ]['id'] ] = is_array( $answers[ $q['id'] ] ) ? reset( $answers[ $q['id'] ] ) : $answers[ $q['id'] ];
+				$val = $answers[ $q['id'] ];
+				$entrada[ $snapshot[ $i ]['id'] ] = ( is_array( $val ) && 'multiple' !== ( $snapshot[ $i ]['tipo'] ?? '' ) ) ? reset( $val ) : $val;
 			}
 		}
 		$v = Cead_Acad_Estudio_Logica::validar_respuestas( $snapshot, $entrada );
@@ -215,6 +223,7 @@ class Cead_Acad_Estudio_Encuestas {
 		if ( $ahora >= Cead_Acad_Estudio_Logica::fin_recoleccion( $c['inicio'], $cal ) ) {
 			$c['cerrado'] = true;
 			update_option( Cead_Acad_Estudio::OPCION, $c );
+			Cead_Acad_Estudio::bitacora( 'operacion', 'estudio_cerrado', [ 'motivo' => '12 meses cumplidos' ] );
 			Cead_Acad_Audit::log( 'estudio_cerrado', [ 'user_id' => 0 ] );
 			return;
 		}
@@ -223,7 +232,7 @@ class Cead_Acad_Estudio_Encuestas {
 			if ( $ahora < $v['envio'] || $ahora >= $v['cierre'] ) {
 				continue;
 			}
-			foreach ( array_keys( self::DESTINOS ) as $rol ) {
+			foreach ( self::roles() as $rol ) {
 				$candado = "cead_acad_estudio_m{$mes}_{$rol}";
 				$id = (int) get_option( $candado );
 				if ( ! $id ) {
@@ -242,7 +251,16 @@ class Cead_Acad_Estudio_Encuestas {
 	}
 
 	protected static function crear( array $cfg, $mes, $rol, array $v ) {
-		$inst = Cead_Acad_Estudio_Logica::instrumento( $cfg, $mes, $rol );
+		try {
+			$inst = Cead_Acad_Estudio_Logica::instrumento( $cfg, $mes, $rol, Cead_Acad_Estudio::features_activas() );
+		} catch ( InvalidArgumentException $e ) {
+			Cead_Acad_Estudio::bitacora( 'encuestas', 'envio_sin_preguntas', [ 'mes' => $mes, 'rol' => $rol ] );
+			return 0;
+		}
+		if ( ! $inst['preguntas'] ) {
+			Cead_Acad_Estudio::bitacora( 'encuestas', 'envio_sin_preguntas', [ 'mes' => $mes, 'rol' => $rol, 'omitidas' => $inst['omitidas'] ] );
+			return 0;
+		}
 		$titulos = [ 0 => __( 'Encuesta inicial', 'cead-acad' ), 12 => __( 'Encuesta final', 'cead-acad' ) ];
 		$id = wp_insert_post( [
 			'post_type'   => Cead_Acad_Surveys_CPT::POST_TYPE,
@@ -261,6 +279,7 @@ class Cead_Acad_Estudio_Encuestas {
 			'_cead_acad_estudio_instrumento' => $inst['clave'],
 			'_cead_acad_estudio_version'     => $inst['version'],
 			'_cead_acad_estudio_preguntas'   => wp_slash( wp_json_encode( $inst['preguntas'] ) ),
+			'_cead_acad_estudio_omitidas'    => wp_slash( wp_json_encode( $inst['omitidas'] ) ),
 			'_cead_acad_estudio_envio'       => $v['envio'],
 			'_cead_acad_estudio_cierre'      => $v['cierre'],
 			// Hora LOCAL, como las encuestas normales (Cead_Acad_Surveys_CPT::is_open).
@@ -291,6 +310,8 @@ class Cead_Acad_Estudio_Encuestas {
 		}
 		self::avisar( $uids, $id, $inst['clave'], __( 'Respondela para seguir usando la app.', 'cead-acad' ) );
 		Cead_Acad_Audit::log( 'estudio_encuesta_enviada', [ 'user_id' => 0, 'entity_type' => 'survey', 'entity_id' => $id, 'payload' => [ 'mes' => $mes, 'rol' => $rol ] ] );
+		Cead_Acad_Estudio::bitacora( 'encuestas', 'envio', [ 'encuesta' => (int) $id, 'mes' => $mes, 'rol' => $rol, 'version' => $inst['version'],
+			'preguntas' => count( $inst['preguntas'] ), 'omitidas' => $inst['omitidas'], 'asignadas' => count( $uids ) ] );
 		return (int) $id;
 	}
 

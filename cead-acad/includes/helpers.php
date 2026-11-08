@@ -8,9 +8,23 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 /**
  * Nombres canónicos de las tablas custom del plugin.
  */
+/**
+ * Una clave de API o token: primero de wp-config.php (constante), y solo si no
+ * está, de la base (opción, como hasta ahora). Spec del estudio, sección 10:
+ * los secretos fuera de wp_options, para que una copia de la base no los lleve.
+ *
+ *   define( 'CEAD_ACAD_AI_KEY', '…' );  // en wp-config.php
+ */
+function cead_acad_secreto( $constante, $opcion, $defecto = '' ) {
+	if ( defined( $constante ) && '' !== (string) constant( $constante ) ) {
+		return (string) constant( $constante );
+	}
+	return (string) get_option( $opcion, $defecto );
+}
+
 function cead_acad_table( $name ) {
 	global $wpdb;
-	$allowed = [ 'invitations', 'audit_log', 'roster', 'audiences', 'broadcast_reads', 'survey_questions', 'survey_responses', 'survey_answers', 'grades', 'import_jobs', 'wa_session', 'wa_registry', 'wa_state', 'wa_messages', 'wa_reports', 'wa_suggestions', 'wa_scheduled', 'wa_logs', 'estudio_eventos', 'estudio_consentimientos', 'estudio_respuestas', 'asistencias', 'asistencias_historial' ];
+	$allowed = [ 'invitations', 'audit_log', 'roster', 'audiences', 'broadcast_reads', 'survey_questions', 'survey_responses', 'survey_answers', 'grades', 'import_jobs', 'wa_session', 'wa_registry', 'wa_state', 'wa_messages', 'wa_reports', 'wa_suggestions', 'wa_scheduled', 'wa_logs', 'estudio_eventos', 'estudio_consentimientos', 'estudio_respuestas', 'asistencias', 'asistencias_historial', 'estudio_bitacora' ];
 	if ( ! in_array( $name, $allowed, true ) ) {
 		// No devolver silenciosamente otra tabla real (antes: 'invitations'):
 		// un nombre mal tipeado tiene que romper fuerte y visible, no leer o

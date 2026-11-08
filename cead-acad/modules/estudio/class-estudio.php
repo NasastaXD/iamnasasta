@@ -61,13 +61,51 @@ class Cead_Acad_Estudio {
 		return defined( 'CEAD_ESTUDIO_SALT' ) ? (string) CEAD_ESTUDIO_SALT : '';
 	}
 
-	/** Instrumentos versionados (mismo archivo que el backend de la app). */
+	/**
+	 * Instrumentos y calendario. Lo que se importó desde el panel maestro
+	 * (opción) manda sobre el archivo del plugin, que es la siembra de la spec:
+	 * una actualización del plugin no pisa lo que se editó en el panel.
+	 */
 	public static function instrumentos() {
 		static $cfg = null;
 		if ( null === $cfg ) {
-			$cfg = json_decode( (string) file_get_contents( CEAD_ACAD_DIR . 'config/estudio-encuestas.json' ), true ) ?: [];
+			$importada = get_option( 'cead_acad_estudio_config', null );
+			$cfg = is_array( $importada ) && $importada
+				? $importada
+				: ( json_decode( (string) file_get_contents( CEAD_ACAD_DIR . 'config/estudio-encuestas.json' ), true ) ?: [] );
 		}
 		return $cfg;
+	}
+
+	/**
+	 * Features del catálogo que este sitio tiene activas, para filtrar las
+	 * preguntas tagueadas. En WordPress no hay catálogo por institución: se
+	 * deduce de lo que está encendido (y se puede ajustar por opción).
+	 */
+	public static function features_activas() {
+		$base = [ 'comunicados', 'encuestas', 'encuestas_estudio', 'asistencias', 'agenda', 'horario_clases', 'recursos',
+			'calificaciones', 'tareas_delegado', 'buzon', 'faq', 'carne', 'novedades', 'metricas_direccion' ];
+		if ( ! get_option( 'cead_acad_modo_piloto', false ) ) {
+			array_push( $base, 'whatsapp_bot', 'instagram', 'turismo' );
+		}
+		$ajuste = get_option( 'cead_acad_features_apagadas', [] );
+		return array_values( array_diff( $base, is_array( $ajuste ) ? $ajuste : [] ) );
+	}
+
+	/**
+	 * Bitácora del estudio: cambios de encuestas y operaciones sobre datos.
+	 * Solo se agrega (nunca se edita ni se borra desde el plugin) y no lleva
+	 * datos personales: acciones, conteos, versiones.
+	 */
+	public static function bitacora( $tipo, $accion, array $detalle = [] ) {
+		global $wpdb;
+		$wpdb->insert( cead_acad_table( 'estudio_bitacora' ), [
+			'ts'      => current_time( 'mysql', 1 ),
+			'tipo'    => in_array( $tipo, [ 'encuestas', 'operacion', 'configuracion', 'recoleccion' ], true ) ? $tipo : 'operacion',
+			'accion'  => substr( sanitize_key( $accion ), 0, 60 ),
+			'origen'  => user_can( get_current_user_id(), 'cead_acad_manage_study' ) ? 'equipo_estudio' : ( get_current_user_id() ? 'gestion' : 'sistema' ),
+			'detalle' => wp_json_encode( Cead_Acad_Estudio_Logica::meta_segura_profunda( $detalle ) ),
+		] );
 	}
 
 	/** ¿Se está recolectando ahora? */

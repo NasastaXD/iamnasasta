@@ -290,7 +290,10 @@
               {
                 "id": "asistencia_rapida",
                 "tipo": "likert5",
-                "texto": "Registrar la asistencia en la app fue rápido."
+                "texto": "Registrar la asistencia en la app fue rápido.",
+                "features": [
+                  "asistencias"
+                ]
               },
               {
                 "id": "funciono",
@@ -306,6 +309,9 @@
                   "Algunos",
                   "La mayoría",
                   "Todos"
+                ],
+                "features": [
+                  "asistencias"
                 ]
               },
               {
@@ -463,5 +469,6 @@
         ]
       }
     }
-  }
+  },
+  "$tags": "Cada pregunta puede llevar 'features': si la institución no tiene activa alguna, la pregunta no se le manda. Este archivo es la siembra inicial; después las encuestas se editan desde el panel maestro (acción exportar_config_wp lo regenera para el plugin WordPress)."
 }

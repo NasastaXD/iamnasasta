@@ -225,6 +225,20 @@ class Cead_Acad_Activator {
 		$resp      = cead_acad_table( 'estudio_respuestas' );
 		$asis      = cead_acad_table( 'asistencias' );
 		$asis_hist = cead_acad_table( 'asistencias_historial' );
+		$bitacora  = cead_acad_table( 'estudio_bitacora' );
+
+		// Bitácora permanente: el plugin solo agrega filas (no hay pantalla ni
+		// función que edite o borre). Sin datos personales.
+		dbDelta( "CREATE TABLE {$bitacora} (
+			id      BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			ts      DATETIME NOT NULL,
+			tipo    VARCHAR(20) NOT NULL,
+			accion  VARCHAR(60) NOT NULL,
+			origen  VARCHAR(20) NOT NULL,
+			detalle LONGTEXT NULL,
+			PRIMARY KEY  (id),
+			KEY tipo_ts (tipo, ts)
+		) {$charset};" );
 
 		dbDelta( "CREATE TABLE {$eventos} (
 			id                 BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,

@@ -68,6 +68,24 @@ class Cead_Acad_Estudio_Logica {
 		return $out ?: null;
 	}
 
+	/** Para la bitácora: como meta_segura, pero admite listas y objetos anidados (ids, versiones, conteos). */
+	public static function meta_segura_profunda( $v, $nivel = 0 ) {
+		if ( $nivel > 4 ) {
+			return null;
+		}
+		if ( is_array( $v ) ) {
+			$out = [];
+			foreach ( $v as $k => $x ) {
+				if ( is_string( $k ) && preg_match( '/(nombre|mail|correo|tel|phone|documento|nacim|ip$|user_?agent|texto|mensaje|password)/i', $k ) ) {
+					continue;
+				}
+				$out[ $k ] = self::meta_segura_profunda( $x, $nivel + 1 );
+			}
+			return $out;
+		}
+		return ( is_string( $v ) && mb_strlen( $v ) > 120 ) ? mb_substr( $v, 0, 120 ) : $v;
+	}
+
 	/* ------------------------------------------------------------- tiempos */
 
 	/**
@@ -248,9 +266,14 @@ class Cead_Acad_Estudio_Logica {
 	 * Une los bloques del mes (config['meses']) tomando la última versión de
 	 * cada uno. Los ids se prefijan con el bloque: `mensual.a_tiempo`.
 	 *
-	 * @param string $rol alumno|docente
+	 * Tags (los pone el panel maestro): una pregunta con `features` solo va si
+	 * el sitio tiene activas TODAS esas features; si no, queda en `omitidas`
+	 * («no se preguntó», que no es lo mismo que «no respondió»).
+	 *
+	 * @param string        $rol      alumno|docente|director
+	 * @param string[]|null $features Features activas del sitio (null = no filtrar).
 	 */
-	public static function instrumento( array $cfg, $mes, $rol ) {
+	public static function instrumento( array $cfg, $mes, $rol, $features = null ) {
 		$def = null;
 		foreach ( (array) ( $cfg['meses'] ?? [] ) as $m ) {
 			if ( (int) $m['mes'] === (int) $mes ) {
@@ -262,17 +285,27 @@ class Cead_Acad_Estudio_Logica {
 		}
 		$preguntas = [];
 		$versiones = [];
+		$omitidas  = [];
 		foreach ( $def['bloques'] as $bloque ) {
 			$b = $cfg['instrumentos'][ $bloque ][ $rol ] ?? $cfg['instrumentos'][ $bloque ]['todos'] ?? null;
 			if ( ! $b || empty( $b['versiones'] ) ) {
-				throw new InvalidArgumentException( "el bloque $bloque no tiene versión para $rol" );
+				continue; // ese bloque no tiene preguntas para este rol
 			}
 			$v = end( $b['versiones'] );
 			$versiones[] = $bloque . '@' . $v['version'];
 			foreach ( $v['preguntas'] as $p ) {
-				$p['id']     = $bloque . '.' . $p['id'];
+				$p['id'] = $bloque . '.' . $p['id'];
+				$faltan  = null === $features ? [] : array_values( array_diff( (array) ( $p['features'] ?? [] ), $features ) );
+				if ( $faltan ) {
+					$omitidas[] = [ 'id' => $p['id'], 'features_faltantes' => $faltan ];
+					continue;
+				}
+				unset( $p['features'], $p['roles'] );
 				$preguntas[] = $p;
 			}
+		}
+		if ( ! $versiones ) {
+			throw new InvalidArgumentException( "no hay preguntas del mes $mes para $rol" );
 		}
 		return [
 			'clave'     => sprintf( 'estudio-m%02d-%s', $mes, $rol ),
@@ -280,6 +313,7 @@ class Cead_Acad_Estudio_Logica {
 			'rol'       => $rol,
 			'version'   => implode( '+', $versiones ),
 			'preguntas' => $preguntas,
+			'omitidas'  => $omitidas,
 		];
 	}
 
@@ -331,6 +365,14 @@ class Cead_Acad_Estudio_Logica {
 						$cerradas[ $p['id'] ] = $v;
 					}
 					break;
+				case 'multiple':
+					$vals = array_values( array_unique( array_map( 'strval', (array) $v ) ) );
+					if ( ! $vals || array_diff( $vals, (array) ( $p['opciones'] ?? [] ) ) ) {
+						$errores[] = "{$p['id']}: opciones inválidas";
+					} else {
+						$cerradas[ $p['id'] ] = $vals;
+					}
+					break;
 				case 'texto_corto':
 					$t = mb_substr( trim( (string) $v ), 0, (int) ( $p['max_largo'] ?? 280 ) );
 					if ( '' !== $t ) {
@@ -352,10 +394,42 @@ class Cead_Acad_Estudio_Logica {
 	}
 
 	/**
+	 * Valida un archivo de configuración exportado desde el panel maestro
+	 * (acción exportar_config_wp) antes de reemplazar el del plugin.
+	 *
+	 * @return string[] errores (vacío = sirve)
+	 */
+	public static function validar_config( $cfg ) {
+		if ( ! is_array( $cfg ) || empty( $cfg['meses'] ) || empty( $cfg['instrumentos'] ) || ! is_array( $cfg['instrumentos'] ) ) {
+			return [ 'faltan meses o instrumentos' ];
+		}
+		$errores = [];
+		$roles   = (array) ( $cfg['roles'] ?? [ 'alumno', 'docente' ] );
+		foreach ( $cfg['meses'] as $m ) {
+			foreach ( $roles as $rol ) {
+				try {
+					$i = self::instrumento( $cfg, (int) ( $m['mes'] ?? -1 ), $rol );
+					foreach ( $i['preguntas'] as $p ) {
+						if ( ! in_array( $p['tipo'] ?? '', [ 'likert5', 'opcion', 'multiple', 'numero', 'texto_corto' ], true ) || '' === trim( (string) ( $p['texto'] ?? '' ) ) ) {
+							$errores[] = "pregunta inválida: {$p['id']}";
+						}
+					}
+				} catch ( InvalidArgumentException $e ) {
+					// Un rol puede no tener preguntas en un bloque: solo es error si no tiene en NINGUNO.
+					if ( ! str_contains( $e->getMessage(), 'no hay preguntas' ) ) {
+						$errores[] = $e->getMessage();
+					}
+				}
+			}
+		}
+		return array_values( array_unique( $errores ) );
+	}
+
+	/**
 	 * Tipo de pregunta del instrumento → tipo del módulo de encuestas
 	 * (para mostrarla con el mismo formulario que las demás encuestas).
 	 */
 	public static function tipo_survey( $tipo ) {
-		return [ 'likert5' => 'scale', 'opcion' => 'radio', 'numero' => 'text', 'texto_corto' => 'text' ][ $tipo ] ?? 'text';
+		return [ 'likert5' => 'scale', 'opcion' => 'radio', 'multiple' => 'checkbox', 'numero' => 'text', 'texto_corto' => 'text' ][ $tipo ] ?? 'text';
 	}
 }

@@ -59,7 +59,7 @@ class Cead_Acad_WA_Images {
 	 * dos quede vieja. Quien use proveedores distintos carga la propia.
 	 */
 	public static function key() {
-		$k = trim( (string) get_option( 'cead_acad_wa_img_key', '' ) );
+		$k = trim( cead_acad_secreto( 'CEAD_ACAD_IMG_KEY', 'cead_acad_wa_img_key' ) );
 		if ( '' !== $k ) { return $k; }
 		return class_exists( 'Cead_Acad_WA_AI' ) ? Cead_Acad_WA_AI::key() : '';
 	}

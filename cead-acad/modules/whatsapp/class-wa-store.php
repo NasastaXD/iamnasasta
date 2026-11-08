@@ -41,7 +41,13 @@ class Cead_Acad_WA_Store {
 	}
 
 	public function bridge_url() { return (string) ( $this->session()->bridge_url ?? '' ); }
-	public function shared_token() { return (string) ( $this->session()->shared_token ?? '' ); }
+	/** El token del bridge: de wp-config.php (CEAD_ACAD_WA_TOKEN) si está; si no, el guardado en la base. */
+	public function shared_token() {
+		if ( defined( 'CEAD_ACAD_WA_TOKEN' ) && '' !== (string) CEAD_ACAD_WA_TOKEN ) {
+			return (string) CEAD_ACAD_WA_TOKEN;
+		}
+		return (string) ( $this->session()->shared_token ?? '' );
+	}
 
 	// ---- Registro de números ----
 	public function get_number( $phone ) {
