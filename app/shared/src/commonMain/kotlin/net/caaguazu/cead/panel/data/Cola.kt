@@ -1,6 +1,10 @@
 package net.caaguazu.cead.panel.data
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 
 /**
  * Un envío esperando salir.
@@ -75,3 +79,23 @@ data class Locales(
 
 @Serializable
 data class ColaGuardada(val envios: List<Envio> = emptyList())
+
+/**
+ * Le pone al cuerpo de un envío la hora en que la persona hizo la acción
+ * (`ts_cliente`, milisegundos UTC del teléfono), no la de cuando salió.
+ *
+ * Por qué: el estudio mide cuánto tarda un comunicado en ser leído. Si se
+ * leyó sin señal en el aula a las 8 y llegó al servidor a las 18, la hora
+ * real es la de las 8 (spec del estudio, 3.3). El servidor guarda las dos y
+ * marca la del teléfono como dudosa si es imposible.
+ *
+ * Si el cuerpo ya trae `ts_cliente` no se toca; si no es un objeto JSON se
+ * deja como está.
+ */
+fun conTsCliente(cuerpo: String?, creado: Long): String? {
+    if (creado <= 0L) return cuerpo
+    val obj = if (cuerpo.isNullOrBlank()) JsonObject(emptyMap())
+    else runCatching { Json.parseToJsonElement(cuerpo).jsonObject }.getOrNull() ?: return cuerpo
+    if (obj.containsKey("ts_cliente")) return cuerpo
+    return JsonObject(obj + ("ts_cliente" to JsonPrimitive(creado))).toString()
+}

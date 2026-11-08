@@ -363,12 +363,12 @@ class Repositorio(
 
     private suspend fun enviar(e: Envio): Resultado<JsonObject> =
         if (e.archivos.isEmpty()) {
-            api.post(e.ruta, JsonObject.serializer(), e.cuerpo, clave = e.id)
+            api.post(e.ruta, JsonObject.serializer(), conTsCliente(e.cuerpo, e.creado), clave = e.id)
         } else {
             api.postMultipart(
                 e.ruta,
                 JsonObject.serializer(),
-                campos = e.campos,
+                campos = if (e.creado > 0L && "ts_cliente" !in e.campos) e.campos + ("ts_cliente" to "${e.creado}") else e.campos,
                 archivos = e.archivos.map { ArchivoAdjunto(it.campo, it.ruta, it.nombre, it.tipoMime) },
                 clave = e.id,
             )
