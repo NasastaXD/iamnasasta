@@ -1,0 +1,467 @@
+{
+  "$comentario": "Instrumentos del estudio piloto (spec sección 5). Fuente única: la Edge Function estudio-programador y el plugin cead-acad leen este archivo. NO editar una versión publicada: para cambiar una pregunta se agrega una versión nueva al final de 'versiones' y la anterior se conserva para poder comparar.",
+  "version_archivo": 1,
+  "escala_likert5": {
+    "min": 1,
+    "max": 5,
+    "etiquetas": {
+      "1": "Muy en desacuerdo",
+      "2": "En desacuerdo",
+      "3": "Ni de acuerdo ni en desacuerdo",
+      "4": "De acuerdo",
+      "5": "Muy de acuerdo"
+    }
+  },
+  "duracion_maxima_minutos": 3,
+  "calendario": {
+    "hora_envio": "10:00",
+    "utc_offset_horas": -3,
+    "ventana_dias": 7,
+    "recordatorios_dias": [
+      3
+    ],
+    "feriados_extra": [],
+    "feriados_quitar": []
+  },
+  "bloqueo": {
+    "$comentario": "Encuesta obligatoria para seguir usando la app (acuerdo con las instituciones). Se bloquea pasados gracia_dias desde el envío; lo de 'excepciones' nunca se bloquea.",
+    "obligatoria": true,
+    "gracia_dias": 3,
+    "excepciones": [
+      "asistencia",
+      "sincronizar_cola",
+      "perfil",
+      "encuestas"
+    ]
+  },
+  "meses": [
+    {
+      "mes": 0,
+      "bloques": [
+        "inicial"
+      ]
+    },
+    {
+      "mes": 1,
+      "bloques": [
+        "mensual"
+      ]
+    },
+    {
+      "mes": 2,
+      "bloques": [
+        "mensual"
+      ]
+    },
+    {
+      "mes": 3,
+      "bloques": [
+        "mensual"
+      ]
+    },
+    {
+      "mes": 4,
+      "bloques": [
+        "mensual",
+        "sus"
+      ]
+    },
+    {
+      "mes": 5,
+      "bloques": [
+        "mensual"
+      ]
+    },
+    {
+      "mes": 6,
+      "bloques": [
+        "mensual"
+      ]
+    },
+    {
+      "mes": 7,
+      "bloques": [
+        "mensual"
+      ]
+    },
+    {
+      "mes": 8,
+      "bloques": [
+        "mensual"
+      ]
+    },
+    {
+      "mes": 9,
+      "bloques": [
+        "mensual"
+      ]
+    },
+    {
+      "mes": 10,
+      "bloques": [
+        "mensual"
+      ]
+    },
+    {
+      "mes": 11,
+      "bloques": [
+        "mensual"
+      ]
+    },
+    {
+      "mes": 12,
+      "bloques": [
+        "mensual",
+        "sus",
+        "final_abiertas"
+      ]
+    }
+  ],
+  "instrumentos": {
+    "inicial": {
+      "alumno": {
+        "versiones": [
+          {
+            "version": 1,
+            "preguntas": [
+              {
+                "id": "celular",
+                "tipo": "opcion",
+                "texto": "¿Tenés celular propio con internet?",
+                "opciones": [
+                  "Sí",
+                  "Compartido",
+                  "No"
+                ]
+              },
+              {
+                "id": "conexion",
+                "tipo": "opcion",
+                "texto": "¿Cómo es tu conexión a internet en casa?",
+                "opciones": [
+                  "Buena",
+                  "Regular",
+                  "Mala",
+                  "No tengo"
+                ]
+              },
+              {
+                "id": "medio",
+                "tipo": "opcion",
+                "texto": "¿Por qué medio te enterás normalmente de los comunicados del colegio?",
+                "opciones": [
+                  "Cuaderno",
+                  "Grupo de WhatsApp",
+                  "Me avisa un compañero",
+                  "Otro"
+                ]
+              },
+              {
+                "id": "a_tiempo",
+                "tipo": "likert5",
+                "texto": "Me entero a tiempo de los comunicados del colegio."
+              },
+              {
+                "id": "fechas",
+                "tipo": "likert5",
+                "texto": "Me resulta fácil saber cuándo tengo exámenes y entregas."
+              },
+              {
+                "id": "satisfaccion",
+                "tipo": "likert5",
+                "texto": "Estoy satisfecho/a con cómo se comunica el colegio conmigo."
+              }
+            ]
+          }
+        ]
+      },
+      "docente": {
+        "versiones": [
+          {
+            "version": 1,
+            "preguntas": [
+              {
+                "id": "registro_asistencia",
+                "tipo": "opcion",
+                "texto": "¿Cómo registra hoy la asistencia?",
+                "opciones": [
+                  "Planilla en papel",
+                  "Planilla digital",
+                  "Otro"
+                ]
+              },
+              {
+                "id": "minutos_asistencia",
+                "tipo": "numero",
+                "texto": "¿Cuántos minutos le lleva, en promedio, tomar asistencia en una clase?",
+                "min": 0,
+                "max": 120
+              },
+              {
+                "id": "medio",
+                "tipo": "opcion",
+                "texto": "¿Por qué medio envía comunicados a sus alumnos?",
+                "opciones": [
+                  "Cuaderno",
+                  "WhatsApp",
+                  "Verbal",
+                  "Otro"
+                ]
+              },
+              {
+                "id": "a_tiempo",
+                "tipo": "likert5",
+                "texto": "Los comunicados que envío llegan a tiempo a mis alumnos."
+              },
+              {
+                "id": "asistencia_carga",
+                "tipo": "likert5",
+                "texto": "Registrar y entregar la asistencia me lleva demasiado tiempo."
+              },
+              {
+                "id": "satisfaccion",
+                "tipo": "likert5",
+                "texto": "Estoy satisfecho/a con las herramientas de comunicación de la institución."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "mensual": {
+      "alumno": {
+        "versiones": [
+          {
+            "version": 1,
+            "preguntas": [
+              {
+                "id": "a_tiempo",
+                "tipo": "likert5",
+                "texto": "Este mes me enteré a tiempo de los comunicados del colegio."
+              },
+              {
+                "id": "fechas",
+                "tipo": "likert5",
+                "texto": "Este mes fue fácil encontrar las fechas de exámenes y entregas."
+              },
+              {
+                "id": "funciono",
+                "tipo": "likert5",
+                "texto": "La app funcionó bien cuando la necesité."
+              },
+              {
+                "id": "frecuencia",
+                "tipo": "opcion",
+                "texto": "Este mes, ¿cuántas veces por semana usaste la app?",
+                "opciones": [
+                  "Nunca",
+                  "1–2",
+                  "3–5",
+                  "Todos los días"
+                ]
+              },
+              {
+                "id": "satisfaccion",
+                "tipo": "likert5",
+                "texto": "Estoy satisfecho/a con cómo se comunica el colegio conmigo."
+              },
+              {
+                "id": "mejorar",
+                "tipo": "texto_corto",
+                "texto": "¿Qué mejorarías?",
+                "opcional": true,
+                "abierta": true,
+                "max_largo": 280
+              }
+            ]
+          }
+        ]
+      },
+      "docente": {
+        "versiones": [
+          {
+            "version": 1,
+            "preguntas": [
+              {
+                "id": "a_tiempo",
+                "tipo": "likert5",
+                "texto": "Este mes, mis comunicados llegaron a tiempo a mis alumnos."
+              },
+              {
+                "id": "asistencia_rapida",
+                "tipo": "likert5",
+                "texto": "Registrar la asistencia en la app fue rápido."
+              },
+              {
+                "id": "funciono",
+                "tipo": "likert5",
+                "texto": "La app funcionó bien cuando la necesité, incluso sin buena conexión."
+              },
+              {
+                "id": "dias_asistencia",
+                "tipo": "opcion",
+                "texto": "Este mes, ¿cuántos días usó la app para tomar asistencia?",
+                "opciones": [
+                  "Ninguno",
+                  "Algunos",
+                  "La mayoría",
+                  "Todos"
+                ]
+              },
+              {
+                "id": "ahorro",
+                "tipo": "likert5",
+                "texto": "La app me ahorró tiempo frente al método anterior."
+              },
+              {
+                "id": "satisfaccion",
+                "tipo": "likert5",
+                "texto": "Estoy satisfecho/a con las herramientas de comunicación de la institución."
+              },
+              {
+                "id": "mejorar",
+                "tipo": "texto_corto",
+                "texto": "¿Qué mejoraría?",
+                "opcional": true,
+                "abierta": true,
+                "max_largo": 280
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "sus": {
+      "$fuente": "System Usability Scale: Brooke, J. (1996). SUS: a 'quick and dirty' usability scale. Versión en español: Sevilla-Gonzalez, M. R., Moreno Loaeza, L., Lazaro-Carrera, L. S., et al. (2020). Spanish Version of the System Usability Scale for the Assessment of Electronic Tools: Development and Validation. JMIR Human Factors 7(4):e21161. doi:10.2196/21161",
+      "$pendiente": "traduccion_verificada=false: antes del mes 4, cotejar palabra por palabra con la versión publicada en el artículo y, si difiere, cargarla como versión 2.",
+      "traduccion_verificada": false,
+      "todos": {
+        "versiones": [
+          {
+            "version": 1,
+            "preguntas": [
+              {
+                "id": "sus1",
+                "tipo": "likert5",
+                "texto": "Creo que me gustaría usar esta aplicación con frecuencia."
+              },
+              {
+                "id": "sus2",
+                "tipo": "likert5",
+                "texto": "Encontré la aplicación innecesariamente compleja."
+              },
+              {
+                "id": "sus3",
+                "tipo": "likert5",
+                "texto": "Pensé que la aplicación era fácil de usar."
+              },
+              {
+                "id": "sus4",
+                "tipo": "likert5",
+                "texto": "Creo que necesitaría ayuda de una persona con conocimientos técnicos para poder usar esta aplicación."
+              },
+              {
+                "id": "sus5",
+                "tipo": "likert5",
+                "texto": "Encontré que las distintas funciones de la aplicación estaban bien integradas."
+              },
+              {
+                "id": "sus6",
+                "tipo": "likert5",
+                "texto": "Pensé que había demasiada inconsistencia en la aplicación."
+              },
+              {
+                "id": "sus7",
+                "tipo": "likert5",
+                "texto": "Imagino que la mayoría de las personas aprendería a usar esta aplicación muy rápidamente."
+              },
+              {
+                "id": "sus8",
+                "tipo": "likert5",
+                "texto": "Encontré la aplicación muy complicada de usar."
+              },
+              {
+                "id": "sus9",
+                "tipo": "likert5",
+                "texto": "Me sentí muy confiado/a usando la aplicación."
+              },
+              {
+                "id": "sus10",
+                "tipo": "likert5",
+                "texto": "Necesité aprender muchas cosas antes de poder empezar a usar la aplicación."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "final_abiertas": {
+      "alumno": {
+        "versiones": [
+          {
+            "version": 1,
+            "preguntas": [
+              {
+                "id": "util",
+                "tipo": "texto_corto",
+                "texto": "¿Qué fue lo más útil de la app?",
+                "opcional": true,
+                "abierta": true,
+                "max_largo": 500
+              },
+              {
+                "id": "dificil",
+                "tipo": "texto_corto",
+                "texto": "¿Qué fue lo más difícil o molesto?",
+                "opcional": true,
+                "abierta": true,
+                "max_largo": 500
+              },
+              {
+                "id": "seguiria",
+                "tipo": "texto_corto",
+                "texto": "¿Seguirías usándola? ¿Por qué?",
+                "opcional": true,
+                "abierta": true,
+                "max_largo": 500
+              }
+            ]
+          }
+        ]
+      },
+      "docente": {
+        "versiones": [
+          {
+            "version": 1,
+            "preguntas": [
+              {
+                "id": "util",
+                "tipo": "texto_corto",
+                "texto": "¿Qué fue lo más útil de la app?",
+                "opcional": true,
+                "abierta": true,
+                "max_largo": 500
+              },
+              {
+                "id": "dificil",
+                "tipo": "texto_corto",
+                "texto": "¿Qué fue lo más difícil o molesto?",
+                "opcional": true,
+                "abierta": true,
+                "max_largo": 500
+              },
+              {
+                "id": "seguiria",
+                "tipo": "texto_corto",
+                "texto": "¿Seguiría usándola? ¿Por qué?",
+                "opcional": true,
+                "abierta": true,
+                "max_largo": 500
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'CEAD_ACAD_VERSION',    '0.97.0' );
-define( 'CEAD_ACAD_DB_VERSION', '19' );
+define( 'CEAD_ACAD_DB_VERSION', '20' );
 define( 'CEAD_ACAD_FILE',       __FILE__ );
 define( 'CEAD_ACAD_DIR',        plugin_dir_path( __FILE__ ) );
 define( 'CEAD_ACAD_URL',        plugin_dir_url( __FILE__ ) );
@@ -45,6 +45,12 @@ require_once CEAD_ACAD_DIR . 'modules/broadcasts/class-broadcasts-cpt.php';
 require_once CEAD_ACAD_DIR . 'modules/broadcasts/class-broadcasts-targeting.php';
 require_once CEAD_ACAD_DIR . 'modules/broadcasts/class-broadcasts-reads.php';
 require_once CEAD_ACAD_DIR . 'modules/broadcasts/class-broadcasts-feed.php';
+require_once CEAD_ACAD_DIR . 'modules/estudio/class-estudio-logica.php';
+require_once CEAD_ACAD_DIR . 'modules/estudio/class-estudio.php';
+require_once CEAD_ACAD_DIR . 'modules/estudio/class-estudio-encuestas.php';
+require_once CEAD_ACAD_DIR . 'modules/estudio/class-estudio-consentimientos.php';
+require_once CEAD_ACAD_DIR . 'modules/estudio/class-estudio-admin.php';
+require_once CEAD_ACAD_DIR . 'modules/asistencias/class-asistencias.php';
 require_once CEAD_ACAD_DIR . 'modules/surveys/class-surveys-cpt.php';
 require_once CEAD_ACAD_DIR . 'modules/surveys/class-surveys-questions.php';
 require_once CEAD_ACAD_DIR . 'modules/surveys/class-surveys-responses.php';

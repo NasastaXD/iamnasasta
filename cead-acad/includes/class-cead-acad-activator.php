@@ -106,6 +106,9 @@ class Cead_Acad_Activator {
 			broadcast_id BIGINT(20) UNSIGNED NOT NULL,
 			user_id      BIGINT(20) UNSIGNED NOT NULL,
 			read_at      DATETIME NOT NULL,
+			ts_cliente   DATETIME NULL,
+			canal        VARCHAR(10) NULL,
+			ts_cliente_dudoso TINYINT(1) NOT NULL DEFAULT 0,
 			PRIMARY KEY  (id),
 			UNIQUE KEY broadcast_user (broadcast_id, user_id),
 			KEY user_id (user_id)
@@ -206,6 +209,111 @@ class Cead_Acad_Activator {
 
 		// Tablas del módulo WhatsApp.
 		Cead_Acad_WA_Tables::create_tables();
+
+		self::create_estudio_tables( $charset );
+	}
+
+	/**
+	 * Estudio piloto (spec secciones 3, 4 y 6). Sin user_id en lo que se
+	 * exporta: eventos y respuestas llevan el seudónimo (HMAC con la sal de
+	 * wp-config.php). Las asistencias sí tienen alumno_id: son un dato de la
+	 * institución (como las notas) y solo salen agregadas.
+	 */
+	protected static function create_estudio_tables( $charset ) {
+		$eventos   = cead_acad_table( 'estudio_eventos' );
+		$consent   = cead_acad_table( 'estudio_consentimientos' );
+		$resp      = cead_acad_table( 'estudio_respuestas' );
+		$asis      = cead_acad_table( 'asistencias' );
+		$asis_hist = cead_acad_table( 'asistencias_historial' );
+
+		dbDelta( "CREATE TABLE {$eventos} (
+			id                 BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			seudonimo          CHAR(64) NOT NULL,
+			institucion        VARCHAR(8) NOT NULL,
+			rol                VARCHAR(20) NOT NULL,
+			curso_grupo        VARCHAR(30) NULL,
+			evento             VARCHAR(40) NOT NULL,
+			entidad_tipo       VARCHAR(20) NULL,
+			entidad_id         BIGINT(20) UNSIGNED NULL,
+			canal              VARCHAR(10) NOT NULL,
+			ts_cliente         DATETIME NULL,
+			ts_servidor        DATETIME NOT NULL,
+			meta               LONGTEXT NULL,
+			con_consentimiento TINYINT(1) NOT NULL DEFAULT 0,
+			PRIMARY KEY  (id),
+			KEY evento_ts (evento, ts_servidor),
+			KEY seudonimo (seudonimo),
+			KEY entidad (entidad_tipo, entidad_id)
+		) {$charset};" );
+
+		dbDelta( "CREATE TABLE {$consent} (
+			id                BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			user_id           BIGINT(20) UNSIGNED NOT NULL,
+			tipo              VARCHAR(30) NOT NULL,
+			version_documento VARCHAR(40) NOT NULL,
+			fecha             DATE NOT NULL,
+			cargado_por       BIGINT(20) UNSIGNED NULL,
+			estado            VARCHAR(10) NOT NULL DEFAULT 'activo',
+			retirado_en       DATETIME NULL,
+			creado_en         DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY uno (user_id, tipo, version_documento),
+			KEY estado (estado)
+		) {$charset};" );
+
+		// Sin ip_hash ni user_agent (spec 5.1). El texto libre aparte, y solo
+		// sale en la exportación su versión revisada a mano.
+		dbDelta( "CREATE TABLE {$resp} (
+			id                  BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			survey_id           BIGINT(20) UNSIGNED NOT NULL,
+			seudonimo           CHAR(64) NOT NULL,
+			institucion         VARCHAR(8) NOT NULL,
+			rol                 VARCHAR(20) NOT NULL,
+			curso_grupo         VARCHAR(30) NULL,
+			instrumento_clave   VARCHAR(40) NOT NULL,
+			instrumento_version VARCHAR(80) NOT NULL,
+			mes                 TINYINT UNSIGNED NOT NULL,
+			cerradas            LONGTEXT NOT NULL,
+			abiertas            LONGTEXT NULL,
+			abiertas_revisadas  LONGTEXT NULL,
+			revisada_en         DATETIME NULL,
+			sus_puntaje         DECIMAL(5,2) NULL,
+			con_consentimiento  TINYINT(1) NOT NULL DEFAULT 0,
+			ts_cliente          DATETIME NULL,
+			ts_servidor         DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY una (survey_id, seudonimo),
+			KEY mes (mes, rol)
+		) {$charset};" );
+
+		dbDelta( "CREATE TABLE {$asis} (
+			id                 BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			curso_id           BIGINT(20) UNSIGNED NOT NULL,
+			fecha              DATE NOT NULL,
+			bloque             VARCHAR(20) NOT NULL DEFAULT '',
+			alumno_id          BIGINT(20) UNSIGNED NOT NULL,
+			estado             ENUM('presente','ausente','tarde','justificado') NOT NULL,
+			cargado_por        BIGINT(20) UNSIGNED NOT NULL,
+			ts_cliente         DATETIME NULL,
+			ts_servidor        DATETIME NOT NULL,
+			clave_idempotencia VARCHAR(120) NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY clave_idempotencia (clave_idempotencia),
+			UNIQUE KEY toma (curso_id, fecha, bloque, alumno_id),
+			KEY fecha (fecha),
+			KEY alumno (alumno_id, fecha)
+		) {$charset};" );
+
+		dbDelta( "CREATE TABLE {$asis_hist} (
+			id              BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			asistencia_id   BIGINT(20) UNSIGNED NOT NULL,
+			estado_anterior VARCHAR(12) NULL,
+			estado_nuevo    VARCHAR(12) NOT NULL,
+			cambiado_por    BIGINT(20) UNSIGNED NULL,
+			cambiado_en     DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY asistencia (asistencia_id)
+		) {$charset};" );
 	}
 
 	protected static function ensure_upload_dir() {

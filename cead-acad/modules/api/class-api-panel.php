@@ -190,7 +190,7 @@ class Cead_Acad_API_Panel {
 			return new WP_Error( 'cead_api_no_existe', __( 'Ese comunicado no existe.', 'cead-acad' ), [ 'status' => 404 ] );
 		}
 
-		Cead_Acad_Broadcasts_Reads::mark_read( $id, $user_id );
+		Cead_Acad_Broadcasts_Reads::mark_read( $id, $user_id, null, 'app' );
 
 		$datos = self::comunicado_breve( $post, [ $id ] );
 		$datos['contenido'] = apply_filters( 'the_content', $post->post_content );

@@ -41,6 +41,7 @@ class Cead_Acad_Capabilities {
 						'cead_acad_manage_suggestions'   => true,
 						'cead_acad_view_other_schedules' => true,
 						'cead_acad_view_delegates'       => true,
+						'cead_acad_take_attendance'      => true,
 					]
 				),
 			],
@@ -65,6 +66,7 @@ class Cead_Acad_Capabilities {
 						'cead_acad_manage_articles'      => true,
 						'cead_acad_view_other_schedules' => true,
 						'cead_acad_view_delegates'       => true,
+						'cead_acad_take_attendance'      => true,
 					]
 				),
 			],
@@ -81,6 +83,7 @@ class Cead_Acad_Capabilities {
 						'cead_acad_view_course_grades'   => true,
 						'cead_acad_view_other_schedules' => true,
 						'cead_acad_view_delegates'       => true,
+						'cead_acad_take_attendance'      => true,
 					]
 				),
 			],
@@ -111,6 +114,16 @@ class Cead_Acad_Capabilities {
 				// Las familias ven calendario, eventos, comunicados y tareas a nivel
 				// colegio, pero NO calificaciones (para evitar conflictos).
 				'caps'    => self::base_caps(),
+			],
+			// Equipo del estudio piloto: configura el estudio y exporta los datos
+			// seudonimizados. No entra al panel ni ve datos personales.
+			'cead_acad_study_team' => [
+				'display' => 'Equipo del estudio',
+				'caps'    => [
+					'read'                      => true,
+					'cead_acad_manage_study'    => true,
+					'cead_acad_research_export' => true,
+				],
 			],
 			'cead_acad_student_council' => [
 				'display' => 'Consejo Estudiantil',

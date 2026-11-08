@@ -53,7 +53,13 @@ final class Cead_Acad_Plugin {
 
 		( new Cead_Acad_Rewrites() )->boot();
 		( new Cead_Acad_Hardening() )->boot();
-		( new Cead_Acad_Turismo() )->boot();
+		// Modo piloto (spec 9): lo que está fuera del estudio se apaga por
+		// configuración, sin borrar código. Los mensajes de menores no se
+		// mandan a proveedores externos.
+		$piloto = (bool) get_option( 'cead_acad_modo_piloto', false );
+		if ( ! $piloto ) {
+			( new Cead_Acad_Turismo() )->boot();
+		}
 		( new Cead_Acad_API() )->boot();
 		( new Cead_Acad_API_Panel() )->boot();
 		( new Cead_Acad_API_Alumno() )->boot();
@@ -81,9 +87,16 @@ final class Cead_Acad_Plugin {
 		( new Cead_Acad_Resources_Admin() )->boot();
 		( new Cead_Acad_Importer_Admin() )->boot();
 		( new Cead_Acad_Tasks_CPT() )->boot();
-		( new Cead_Acad_WA_Module() )->boot();
-		( new Cead_Acad_Ceadi_Panel() )->boot();
-		( new Cead_Acad_WA_Instagram() )->boot();
+		if ( ! $piloto ) {
+			( new Cead_Acad_WA_Module() )->boot();
+			( new Cead_Acad_Ceadi_Panel() )->boot();
+			( new Cead_Acad_WA_Instagram() )->boot();
+		}
+		( new Cead_Acad_Estudio() )->boot();
+		( new Cead_Acad_Estudio_Encuestas() )->boot();
+		( new Cead_Acad_Estudio_Consentimientos() )->boot();
+		( new Cead_Acad_Estudio_Admin() )->boot();
+		( new Cead_Acad_Asistencias() )->boot();
 		Cead_Acad_WA_News::hooks(); // invalida el resumen de noticias al publicar
 		( new Cead_Acad_Account() )->boot();
 		( new Cead_Acad_Tasks_Frontend() )->boot();

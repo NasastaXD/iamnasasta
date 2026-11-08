@@ -732,3 +732,13 @@ require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-instagram.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-images.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-article-format.php';
 require_once dirname( __DIR__, 2 ) . '/modules/whatsapp/class-wa-engine.php';
+
+// Estudio piloto y asistencias (lógica pura).
+defined( 'CEAD_ACAD_DIR' ) || define( 'CEAD_ACAD_DIR', dirname( __DIR__, 2 ) . '/' );
+require_once dirname( __DIR__, 2 ) . '/admin/class-admin-exports.php';
+require_once dirname( __DIR__, 2 ) . '/modules/estudio/class-estudio-logica.php';
+require_once dirname( __DIR__, 2 ) . '/modules/estudio/class-estudio.php';
+require_once dirname( __DIR__, 2 ) . '/modules/estudio/class-estudio-encuestas.php';
+require_once dirname( __DIR__, 2 ) . '/modules/estudio/class-estudio-consentimientos.php';
+require_once dirname( __DIR__, 2 ) . '/modules/estudio/class-estudio-admin.php';
+require_once dirname( __DIR__, 2 ) . '/modules/asistencias/class-asistencias.php';

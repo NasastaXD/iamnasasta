@@ -283,7 +283,11 @@ class Cead_Acad_Admin_Exports {
 	// CSV
 	// -------------------------------------------------------------------------
 
-	protected function to_csv( array $header, array $rows ) {
+	/**
+	 * Público y estático para que la exportación del estudio use exactamente
+	 * la misma protección contra inyección de fórmulas (spec 7).
+	 */
+	public static function to_csv( array $header, array $rows ) {
 		$fh = fopen( 'php://memory', 'r+' );
 		fputcsv( $fh, array_map( [ __CLASS__, 'sanitize_cell' ], $header ), ',', '"', '\\' );
 		foreach ( $rows as $row ) {

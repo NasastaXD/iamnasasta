@@ -299,6 +299,18 @@ class Cead_Acad_Rewrites {
 				cead_acad_template( 'panel/tareas/list.php' );
 				return;
 
+			case 'asistencia':
+				if ( ! current_user_can( Cead_Acad_Asistencias::CAP ) ) {
+					wp_safe_redirect( cead_acad_url( 'panel' ) );
+					exit;
+				}
+				cead_acad_template( 'panel/asistencia/take.php' );
+				return;
+
+			case 'estudio':
+				cead_acad_template( 'panel/estudio/show.php' );
+				return;
+
 			case 'buscar':
 				cead_acad_template( 'panel/buscar/results.php' );
 				return;

@@ -205,7 +205,8 @@ class Cead_Acad_API_Alumno {
 				return new WP_Error( 'closed', __( 'La encuesta ya cerró.', 'cead-acad' ), [ 'status' => 409 ] );
 			}
 
-			$r = Cead_Acad_Surveys_Responses::submit( $sid, $uid, (array) $req->get_param( 'respuestas' ) );
+			$r = Cead_Acad_Surveys_Responses::submit( $sid, $uid, (array) $req->get_param( 'respuestas' ),
+				Cead_Acad_Estudio_Logica::parsear_ts( $req->get_param( 'ts_cliente' ) ) );
 			if ( is_wp_error( $r ) ) {
 				$status = 'already_responded' === $r->get_error_code() ? 409 : 400;
 				return new WP_Error( $r->get_error_code(), $r->get_error_message(), [ 'status' => $status ] );
@@ -374,7 +375,9 @@ class Cead_Acad_API_Alumno {
 			if ( ! Cead_Acad_Broadcasts_Feed::user_can_view( $id, $uid ) ) {
 				return new WP_Error( 'cead_api_no_visible', __( 'Ese comunicado no es para vos.', 'cead-acad' ), [ 'status' => 403 ] );
 			}
-			Cead_Acad_Broadcasts_Reads::mark_read( $id, $uid );
+			// ts_cliente: cuándo se abrió de verdad (puede haber sido horas antes,
+			// sin señal). Sin esto, la app parecería más lenta de lo que es (spec 3.3).
+			Cead_Acad_Broadcasts_Reads::mark_read( $id, $uid, Cead_Acad_Estudio_Logica::parsear_ts( $req->get_param( 'ts_cliente' ) ), 'app' );
 			return [ 'ok' => true ];
 		} );
 	}

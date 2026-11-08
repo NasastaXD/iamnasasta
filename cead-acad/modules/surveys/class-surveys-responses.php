@@ -14,7 +14,13 @@ class Cead_Acad_Surveys_Responses {
 	 * @param int   $user_id (0 si anónima)
 	 * @param array $answers [ question_id => value (string|array) ]
 	 */
-	public static function submit( $survey_id, $user_id, $answers ) {
+	public static function submit( $survey_id, $user_id, $answers, $ts_cliente = null ) {
+		// Encuesta del estudio piloto: se guarda seudonimizada y SIN hash de IP
+		// ni navegador (spec 5.1), en estudio_respuestas.
+		if ( class_exists( 'Cead_Acad_Estudio_Encuestas' ) && Cead_Acad_Estudio_Encuestas::es_estudio( $survey_id ) ) {
+			return Cead_Acad_Estudio_Encuestas::responder( $survey_id, $user_id, (array) $answers, $ts_cliente );
+		}
+
 		global $wpdb;
 		$resp_table = cead_acad_table( 'survey_responses' );
 		$ans_table  = cead_acad_table( 'survey_answers' );
@@ -87,6 +93,9 @@ class Cead_Acad_Surveys_Responses {
 	}
 
 	public static function user_already_responded( $survey_id, $user_id ) {
+		if ( class_exists( 'Cead_Acad_Estudio_Encuestas' ) && Cead_Acad_Estudio_Encuestas::es_estudio( $survey_id ) ) {
+			return (bool) get_user_meta( (int) $user_id, Cead_Acad_Estudio_Encuestas::META_RESPONDIDA . (int) $survey_id, true );
+		}
 		global $wpdb;
 		$table = cead_acad_table( 'survey_responses' );
 		return (bool) $wpdb->get_var( $wpdb->prepare(

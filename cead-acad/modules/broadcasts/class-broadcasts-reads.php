@@ -8,15 +8,40 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class Cead_Acad_Broadcasts_Reads {
 
 	/**
-	 * Marca un comunicado como leído por un usuario. Idempotente.
+	 * Marca un comunicado como leído por un usuario. Idempotente: cuenta la
+	 * PRIMERA apertura («leído» = abrió el comunicado, definición del estudio).
+	 *
+	 * @param int|null $ts_cliente Hora real de la apertura en el dispositivo
+	 *                             (la app la manda; puede ser horas antes de
+	 *                             llegar si se leyó sin conexión).
+	 * @param string   $canal      web | app | bot
 	 */
-	public static function mark_read( $broadcast_id, $user_id ) {
+	public static function mark_read( $broadcast_id, $user_id, $ts_cliente = null, $canal = 'web' ) {
 		global $wpdb;
 		$table = cead_acad_table( 'broadcast_reads' );
-		$wpdb->query( $wpdb->prepare(
-			"INSERT IGNORE INTO {$table} (broadcast_id, user_id, read_at) VALUES (%d, %d, %s)",
-			(int) $broadcast_id, (int) $user_id, current_time( 'mysql', 1 )
+		$ahora = time();
+
+		// Se guardan las dos horas. Si la del teléfono es imposible (posterior a
+		// la llegada o anterior a la publicación) se marca dudosa: el análisis
+		// usa entonces la del servidor.
+		$post    = get_post( (int) $broadcast_id );
+		$pub     = $post ? strtotime( $post->post_date_gmt . ' UTC' ) : null;
+		$dudoso  = Cead_Acad_Estudio_Logica::ts_cliente_dudoso( $ts_cliente, $ahora, $pub );
+
+		// prepare() convierte null en '': el NULL de ts_cliente va literal.
+		$ts_sql = null === $ts_cliente ? 'NULL' : $wpdb->prepare( '%s', gmdate( 'Y-m-d H:i:s', (int) $ts_cliente ) );
+		$n = $wpdb->query( $wpdb->prepare(
+			"INSERT IGNORE INTO {$table} (broadcast_id, user_id, read_at, ts_cliente, canal, ts_cliente_dudoso) VALUES (%d, %d, %s, {$ts_sql}, %s, %d)",
+			(int) $broadcast_id, (int) $user_id, gmdate( 'Y-m-d H:i:s', $ahora ),
+			in_array( $canal, [ 'web', 'app', 'bot' ], true ) ? $canal : 'web', $dudoso ? 1 : 0
 		) );
+
+		if ( 1 === (int) $n && class_exists( 'Cead_Acad_Estudio' ) ) {
+			Cead_Acad_Estudio::registrar( 'comunicado_leido', [
+				'user_id' => (int) $user_id, 'canal' => $canal, 'entidad_tipo' => 'comunicado', 'entidad_id' => (int) $broadcast_id,
+				'ts_cliente' => $ts_cliente, 'meta' => [ 'ts_cliente_dudoso' => $dudoso ],
+			] );
+		}
 	}
 
 	/**
